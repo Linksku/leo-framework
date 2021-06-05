@@ -1,0 +1,10 @@
+{
+  "name": "Campus",
+  "short_name": "Campus",
+  "start_url": "/",
+  "icons": [],
+  "theme_color": "#2196f3",
+  "background_color": "#FFFFFF",
+  "display": "standalone",
+  "orientation": "portrait"
+}

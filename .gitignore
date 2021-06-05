@@ -1,0 +1,29 @@
+# NPM
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Build
+/build
+/dist
+/build.*
+
+# OSX
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+.ipynb_checkpoints
+.eslintcache
+stats.json
+/.env
+/src/.env
+/isolate-*.log
+/*.gpg
+/*.zip
+.git/
+.git-framework/
+src/

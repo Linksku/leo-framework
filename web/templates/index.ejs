@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title><%- title %></title>
+
+  <style>html{background-color:#fafafa}body{opacity:0}</style>
+  <link rel="stylesheet" href="<%= assetsUrl %>/css/main.css?v=<%= version %>" media="none" onload="if(media!='all')media='all'">
+  <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,maximum-scale=5,user-scalable=0">
+<% if (production) { %>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <meta name="description" content="<%= description %>">
+  <meta name="theme-color" content="#00a2c2">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="<%= name %>">
+  <meta name="apple-mobile-web-app-title" content="<%= name %>">
+  <link rel="shortcut icon" href="<%= basePath %>/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="<%= assetsUrl %>/icon180.png">
+  <link rel="icon" sizes="192x192" href="<%= assetsUrl %>/icon192.png">
+  <link rel="manifest" href="<%= basePath %>/manifest.json">
+<% } %>
+</head>
+<body>
+  <%- content %>
+
+  <script defer src="<%= assetsUrl %>/js/main.js?v=<%= version %>" charset="utf-8"></script>
+</body>
+</html>

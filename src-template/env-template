@@ -1,0 +1,5 @@
+export SERVER='development'
+export REMOTE_SERVER_IP=''
+export TZ='UTC'
+export MOBILE_APP_ID=''
+export APP_NAME=''

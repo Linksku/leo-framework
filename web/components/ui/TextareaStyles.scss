@@ -1,0 +1,42 @@
+.inputWrap {
+  display: block;
+  overflow: hidden;
+  margin-bottom: 15px;
+}
+
+.labelWrap {
+  padding-top: 25px;
+  position: relative;
+}
+
+.label {
+  @extend %label;
+
+  display: inline-block;
+  position: absolute;
+  top: 0;
+}
+
+.textarea {
+  min-height: $inputHeight * 2;
+  vertical-align: middle;
+  display: inline-block;
+  max-width: 100%;
+  width: 100%;
+  padding: $inputPadding;
+  background: #fff;
+  color: $inputColor;
+  border: $inputBorder;
+  border-radius: $inputBorderRadius;
+  cursor: pointer;
+  outline: none;
+
+  &:focus {
+    border-color: mix($primaryColor, $inputBorderColor, $weight: 33%);
+  }
+
+  @include placeholder {
+    font-weight: 300;
+    color: $inputPlaceholderColor;
+  }
+}

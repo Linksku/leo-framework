@@ -1,0 +1,46 @@
+$btnDim: 18px;
+
+.container {
+  @extend %maxWidthContainer;
+
+  height: $headerHeight;
+  background-color: #fff;
+  border-bottom: 1px solid $separatorColor;
+  position: relative;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  touch-action: none;
+}
+
+.title {
+  @extend %oneLine;
+
+  font-weight: 500;
+  line-height: $headerHeight;
+  max-width: calc(100% - #{($containerPadLeftRight + $btnDim + 10px) * 2});
+  margin: 0 auto;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.btnWrap {
+  padding: 0 $containerPadLeftRight;
+  height: $headerHeight;
+  box-sizing: content-box;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+
+  svg {
+    height: $btnDim;
+    width: $btnDim;
+  }
+}

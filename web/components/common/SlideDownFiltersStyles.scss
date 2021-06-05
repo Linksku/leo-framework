@@ -1,0 +1,69 @@
+$filterPadding: 5px;
+
+.filters {
+  display: flex;
+}
+
+.filter {
+  flex-basis: 0;
+  flex-grow: 1;
+  text-align: center;
+  padding: $filterPadding;
+  font-size: 0.9em;
+  color: $lightTextColor;
+  transition: color 0.2s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:first-child {
+    padding-left: max($containerPadLeftRight, $filterPadding);
+  }
+
+  &:last-child {
+    padding-right: max($containerPadLeftRight, $filterPadding);
+  }
+
+  svg {
+    height: 16px;
+    width: 16px;
+    fill: $fadedTextColor;
+    transition: fill 0.2s;
+  }
+}
+
+.filterActive {
+  color: $textColor;
+
+  svg {
+    fill: $textColor;
+  }
+}
+
+.label {
+  padding-left: 4px;
+}
+
+.options {
+  height: 0;
+  overflow: hidden;
+  transition: opacity 0.4s;
+  opacity: 0;
+}
+
+.optionsShown {
+  opacity: 1;
+}
+
+.option {
+  padding: 10px $containerPadLeftRight;
+  color: $lightTextColor;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.optionActive {
+  color: $textColor;
+  font-weight: 500;
+}

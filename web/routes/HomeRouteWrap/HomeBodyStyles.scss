@@ -1,0 +1,21 @@
+.sidebarWrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: $zIndexSidebar;
+}
+
+.body {
+  @extend %maxWidthContainer;
+
+  position: fixed;
+  top: $headerHeight;
+  left: 0;
+  right: 0;
+  bottom: $headerHeight;
+  z-index: $zIndexFixed;
+  overflow-y: scroll;
+  flex-grow: 1;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  touch-action: pan-y;
+}

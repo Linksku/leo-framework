@@ -1,0 +1,474 @@
+diff --git a/node_modules/knex/CHANGELOG.md b/node_modules/knex/CHANGELOG.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/CONTRIBUTING.md b/node_modules/knex/CONTRIBUTING.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/LICENSE b/node_modules/knex/LICENSE
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/README.md b/node_modules/knex/README.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/UPGRADING.md b/node_modules/knex/UPGRADING.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/bin/utils/cli-config-utils.js b/node_modules/knex/bin/utils/cli-config-utils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/bin/utils/constants.js b/node_modules/knex/bin/utils/constants.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/bin/utils/migrationsLister.js b/node_modules/knex/bin/utils/migrationsLister.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/knex.js b/node_modules/knex/knex.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/builder-interface-augmenter.js b/node_modules/knex/lib/builder-interface-augmenter.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/client.js b/node_modules/knex/lib/client.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/constants.js b/node_modules/knex/lib/constants.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mssql/index.js b/node_modules/knex/lib/dialects/mssql/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mssql/mssql-formatter.js b/node_modules/knex/lib/dialects/mssql/mssql-formatter.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mssql/query/mssql-querycompiler.js b/node_modules/knex/lib/dialects/mssql/query/mssql-querycompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mssql/schema/mssql-columncompiler.js b/node_modules/knex/lib/dialects/mssql/schema/mssql-columncompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mssql/schema/mssql-compiler.js b/node_modules/knex/lib/dialects/mssql/schema/mssql-compiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mssql/schema/mssql-tablecompiler.js b/node_modules/knex/lib/dialects/mssql/schema/mssql-tablecompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mssql/transaction.js b/node_modules/knex/lib/dialects/mssql/transaction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mysql/index.js b/node_modules/knex/lib/dialects/mysql/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mysql/query/mysql-querycompiler.js b/node_modules/knex/lib/dialects/mysql/query/mysql-querycompiler.js
+old mode 100644
+new mode 100755
+index 832a453..825187c
+--- a/node_modules/knex/lib/dialects/mysql/query/mysql-querycompiler.js
++++ b/node_modules/knex/lib/dialects/mysql/query/mysql-querycompiler.js
+@@ -76,12 +76,14 @@ class QueryCompiler_MySQL extends QueryCompiler {
+ 
+   // Update method, including joins, wheres, order & limits.
+   update() {
++    const withSQL = this.with();
+     const join = this.join();
+     const updates = this._prepUpdate(this.single.update);
+     const where = this.where();
+     const order = this.order();
+     const limit = this.limit();
+     return (
++      withSQL +
+       `update ${this.tableName}` +
+       (join ? ` ${join}` : '') +
+       ' set ' +
+diff --git a/node_modules/knex/lib/dialects/mysql/schema/mysql-columncompiler.js b/node_modules/knex/lib/dialects/mysql/schema/mysql-columncompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mysql/schema/mysql-compiler.js b/node_modules/knex/lib/dialects/mysql/schema/mysql-compiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mysql/schema/mysql-tablecompiler.js b/node_modules/knex/lib/dialects/mysql/schema/mysql-tablecompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mysql/transaction.js b/node_modules/knex/lib/dialects/mysql/transaction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mysql2/index.js b/node_modules/knex/lib/dialects/mysql2/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/mysql2/transaction.js b/node_modules/knex/lib/dialects/mysql2/transaction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracle/DEAD_CODE.md b/node_modules/knex/lib/dialects/oracle/DEAD_CODE.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracle/index.js b/node_modules/knex/lib/dialects/oracle/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracle/query/oracle-querycompiler.js b/node_modules/knex/lib/dialects/oracle/query/oracle-querycompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracle/schema/internal/incrementUtils.js b/node_modules/knex/lib/dialects/oracle/schema/internal/incrementUtils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracle/schema/internal/trigger.js b/node_modules/knex/lib/dialects/oracle/schema/internal/trigger.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracle/schema/oracle-columnbuilder.js b/node_modules/knex/lib/dialects/oracle/schema/oracle-columnbuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracle/schema/oracle-columncompiler.js b/node_modules/knex/lib/dialects/oracle/schema/oracle-columncompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracle/schema/oracle-compiler.js b/node_modules/knex/lib/dialects/oracle/schema/oracle-compiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracle/schema/oracle-tablecompiler.js b/node_modules/knex/lib/dialects/oracle/schema/oracle-tablecompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracle/utils.js b/node_modules/knex/lib/dialects/oracle/utils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracledb/index.js b/node_modules/knex/lib/dialects/oracledb/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracledb/query/oracledb-querycompiler.js b/node_modules/knex/lib/dialects/oracledb/query/oracledb-querycompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracledb/schema/oracledb-columncompiler.js b/node_modules/knex/lib/dialects/oracledb/schema/oracledb-columncompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracledb/transaction.js b/node_modules/knex/lib/dialects/oracledb/transaction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracledb/utils.js b/node_modules/knex/lib/dialects/oracledb/utils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/postgres/execution/pg-transaction.js b/node_modules/knex/lib/dialects/postgres/execution/pg-transaction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/postgres/index.js b/node_modules/knex/lib/dialects/postgres/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/postgres/query/pg-querycompiler.js b/node_modules/knex/lib/dialects/postgres/query/pg-querycompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/postgres/schema/pg-columncompiler.js b/node_modules/knex/lib/dialects/postgres/schema/pg-columncompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/postgres/schema/pg-compiler.js b/node_modules/knex/lib/dialects/postgres/schema/pg-compiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/postgres/schema/pg-tablecompiler.js b/node_modules/knex/lib/dialects/postgres/schema/pg-tablecompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/redshift/index.js b/node_modules/knex/lib/dialects/redshift/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/redshift/query/redshift-querycompiler.js b/node_modules/knex/lib/dialects/redshift/query/redshift-querycompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/redshift/schema/redshift-columnbuilder.js b/node_modules/knex/lib/dialects/redshift/schema/redshift-columnbuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/redshift/schema/redshift-columncompiler.js b/node_modules/knex/lib/dialects/redshift/schema/redshift-columncompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/redshift/schema/redshift-compiler.js b/node_modules/knex/lib/dialects/redshift/schema/redshift-compiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/redshift/schema/redshift-tablecompiler.js b/node_modules/knex/lib/dialects/redshift/schema/redshift-tablecompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/redshift/transaction.js b/node_modules/knex/lib/dialects/redshift/transaction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/execution/sqlite-transaction.js b/node_modules/knex/lib/dialects/sqlite3/execution/sqlite-transaction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/index.js b/node_modules/knex/lib/dialects/sqlite3/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/query/sqlite-querycompiler.js b/node_modules/knex/lib/dialects/sqlite3/query/sqlite-querycompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/ddl.js b/node_modules/knex/lib/dialects/sqlite3/schema/ddl.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/internal/compiler.js b/node_modules/knex/lib/dialects/sqlite3/schema/internal/compiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/internal/parser-combinator.js b/node_modules/knex/lib/dialects/sqlite3/schema/internal/parser-combinator.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/internal/parser.js b/node_modules/knex/lib/dialects/sqlite3/schema/internal/parser.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/internal/sqlite-ddl-operations.js b/node_modules/knex/lib/dialects/sqlite3/schema/internal/sqlite-ddl-operations.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/internal/tokenizer.js b/node_modules/knex/lib/dialects/sqlite3/schema/internal/tokenizer.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/sqlite-columncompiler.js b/node_modules/knex/lib/dialects/sqlite3/schema/sqlite-columncompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/sqlite-compiler.js b/node_modules/knex/lib/dialects/sqlite3/schema/sqlite-compiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/sqlite-tablecompiler.js b/node_modules/knex/lib/dialects/sqlite3/schema/sqlite-tablecompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/execution/batch-insert.js b/node_modules/knex/lib/execution/batch-insert.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/execution/internal/delay.js b/node_modules/knex/lib/execution/internal/delay.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/execution/internal/ensure-connection-callback.js b/node_modules/knex/lib/execution/internal/ensure-connection-callback.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/execution/internal/query-executioner.js b/node_modules/knex/lib/execution/internal/query-executioner.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/execution/runner.js b/node_modules/knex/lib/execution/runner.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/execution/transaction.js b/node_modules/knex/lib/execution/transaction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/formatter.js b/node_modules/knex/lib/formatter.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/formatter/formatterUtils.js b/node_modules/knex/lib/formatter/formatterUtils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/formatter/rawFormatter.js b/node_modules/knex/lib/formatter/rawFormatter.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/formatter/wrappingFormatter.js b/node_modules/knex/lib/formatter/wrappingFormatter.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/index.js b/node_modules/knex/lib/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/knex-builder/FunctionHelper.js b/node_modules/knex/lib/knex-builder/FunctionHelper.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/knex-builder/Knex.js b/node_modules/knex/lib/knex-builder/Knex.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/knex-builder/internal/config-resolver.js b/node_modules/knex/lib/knex-builder/internal/config-resolver.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/knex-builder/internal/parse-connection.js b/node_modules/knex/lib/knex-builder/internal/parse-connection.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/knex-builder/make-knex.js b/node_modules/knex/lib/knex-builder/make-knex.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/logger.js b/node_modules/knex/lib/logger.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/MigrationGenerator.js b/node_modules/knex/lib/migrations/migrate/MigrationGenerator.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/Migrator.js b/node_modules/knex/lib/migrations/migrate/Migrator.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/configuration-merger.js b/node_modules/knex/lib/migrations/migrate/configuration-merger.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/migrate-stub.js b/node_modules/knex/lib/migrations/migrate/migrate-stub.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/migration-list-resolver.js b/node_modules/knex/lib/migrations/migrate/migration-list-resolver.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/sources/fs-migrations.js b/node_modules/knex/lib/migrations/migrate/sources/fs-migrations.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/cjs.stub b/node_modules/knex/lib/migrations/migrate/stub/cjs.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/coffee.stub b/node_modules/knex/lib/migrations/migrate/stub/coffee.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/eg.stub b/node_modules/knex/lib/migrations/migrate/stub/eg.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/js.stub b/node_modules/knex/lib/migrations/migrate/stub/js.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/knexfile-coffee.stub b/node_modules/knex/lib/migrations/migrate/stub/knexfile-coffee.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/knexfile-eg.stub b/node_modules/knex/lib/migrations/migrate/stub/knexfile-eg.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/knexfile-js.stub b/node_modules/knex/lib/migrations/migrate/stub/knexfile-js.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/knexfile-ls.stub b/node_modules/knex/lib/migrations/migrate/stub/knexfile-ls.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/knexfile-ts.stub b/node_modules/knex/lib/migrations/migrate/stub/knexfile-ts.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/ls.stub b/node_modules/knex/lib/migrations/migrate/stub/ls.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/ts.stub b/node_modules/knex/lib/migrations/migrate/stub/ts.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/table-creator.js b/node_modules/knex/lib/migrations/migrate/table-creator.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/table-resolver.js b/node_modules/knex/lib/migrations/migrate/table-resolver.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/seed/Seeder.js b/node_modules/knex/lib/migrations/seed/Seeder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/seed/seed-stub.js b/node_modules/knex/lib/migrations/seed/seed-stub.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/seed/stub/coffee.stub b/node_modules/knex/lib/migrations/seed/stub/coffee.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/seed/stub/eg.stub b/node_modules/knex/lib/migrations/seed/stub/eg.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/seed/stub/js.stub b/node_modules/knex/lib/migrations/seed/stub/js.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/seed/stub/ls.stub b/node_modules/knex/lib/migrations/seed/stub/ls.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/seed/stub/ts.stub b/node_modules/knex/lib/migrations/seed/stub/ts.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/util/fs.js b/node_modules/knex/lib/migrations/util/fs.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/util/import-file.js b/node_modules/knex/lib/migrations/util/import-file.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/util/is-module-type.js b/node_modules/knex/lib/migrations/util/is-module-type.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/util/template.js b/node_modules/knex/lib/migrations/util/template.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/util/timestamp.js b/node_modules/knex/lib/migrations/util/timestamp.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/query/analytic.js b/node_modules/knex/lib/query/analytic.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/query/constants.js b/node_modules/knex/lib/query/constants.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/query/joinclause.js b/node_modules/knex/lib/query/joinclause.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/query/method-constants.js b/node_modules/knex/lib/query/method-constants.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/query/querybuilder.js b/node_modules/knex/lib/query/querybuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/query/querycompiler.js b/node_modules/knex/lib/query/querycompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/raw.js b/node_modules/knex/lib/raw.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/ref.js b/node_modules/knex/lib/ref.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/schema/builder.js b/node_modules/knex/lib/schema/builder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/schema/columnbuilder.js b/node_modules/knex/lib/schema/columnbuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/schema/columncompiler.js b/node_modules/knex/lib/schema/columncompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/schema/compiler.js b/node_modules/knex/lib/schema/compiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/schema/internal/helpers.js b/node_modules/knex/lib/schema/internal/helpers.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/schema/tablebuilder.js b/node_modules/knex/lib/schema/tablebuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/schema/tablecompiler.js b/node_modules/knex/lib/schema/tablecompiler.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/util/finally-mixin.js b/node_modules/knex/lib/util/finally-mixin.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/util/helpers.js b/node_modules/knex/lib/util/helpers.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/util/is.js b/node_modules/knex/lib/util/is.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/util/nanoid.js b/node_modules/knex/lib/util/nanoid.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/util/noop.js b/node_modules/knex/lib/util/noop.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/util/save-async-stack.js b/node_modules/knex/lib/util/save-async-stack.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/util/string.js b/node_modules/knex/lib/util/string.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/util/timeout.js b/node_modules/knex/lib/util/timeout.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/build.js b/node_modules/knex/scripts/build.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/docker-compose.yml b/node_modules/knex/scripts/docker-compose.yml
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/next-release-howto.md b/node_modules/knex/scripts/next-release-howto.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/release.sh b/node_modules/knex/scripts/release.sh
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/runkit-example.js b/node_modules/knex/scripts/runkit-example.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/stress-test/README.txt b/node_modules/knex/scripts/stress-test/README.txt
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/stress-test/docker-compose.yml b/node_modules/knex/scripts/stress-test/docker-compose.yml
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/stress-test/knex-stress-test.js b/node_modules/knex/scripts/stress-test/knex-stress-test.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/stress-test/mysql2-random-hanging-every-now-and-then.js b/node_modules/knex/scripts/stress-test/mysql2-random-hanging-every-now-and-then.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/stress-test/mysql2-sudden-exit-without-error.js b/node_modules/knex/scripts/stress-test/mysql2-sudden-exit-without-error.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/scripts/stress-test/reconnect-test-mysql-based-drivers.js b/node_modules/knex/scripts/stress-test/reconnect-test-mysql-based-drivers.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/types/index.d.ts b/node_modules/knex/types/index.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/types/result.d.ts b/node_modules/knex/types/result.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/types/tables.d.ts b/node_modules/knex/types/tables.d.ts
+old mode 100644
+new mode 100755

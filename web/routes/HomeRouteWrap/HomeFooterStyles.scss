@@ -1,0 +1,44 @@
+.container {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: $zIndexFixed;
+  background-color: #fff;
+  border-top: 1px solid $separatorColor;
+  height: $headerHeight;
+}
+
+.containerInner {
+  @extend %maxWidthContainer;
+
+  display: flex;
+  justify-content: space-evenly;
+}
+
+.tabIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 $containerPadLeftRight;
+  height: $headerHeight;
+  border: 0;
+  cursor: pointer;
+  flex-basis: 0;
+  flex-grow: 1;
+
+  svg {
+    height: 24px;
+    width: 24px;
+    opacity: 0.6;
+    transition: all 0.2s;
+  }
+}
+
+.tabActive svg {
+  opacity: 1;
+  height: 28px;
+  width: 28px;
+  margin-left: -2px;
+  margin-right: -2px;
+}

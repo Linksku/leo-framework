@@ -1,0 +1,44 @@
+diff --git a/node_modules/fast-deep-equal/LICENSE b/node_modules/fast-deep-equal/LICENSE
+old mode 100644
+new mode 100755
+diff --git a/node_modules/fast-deep-equal/README.md b/node_modules/fast-deep-equal/README.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/fast-deep-equal/es6/index.d.ts b/node_modules/fast-deep-equal/es6/index.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/fast-deep-equal/es6/index.js b/node_modules/fast-deep-equal/es6/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/fast-deep-equal/es6/react.d.ts b/node_modules/fast-deep-equal/es6/react.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/fast-deep-equal/es6/react.js b/node_modules/fast-deep-equal/es6/react.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/fast-deep-equal/index.d.ts b/node_modules/fast-deep-equal/index.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/fast-deep-equal/index.js b/node_modules/fast-deep-equal/index.js
+old mode 100644
+new mode 100755
+index 30dd1ba..ce3926b
+--- a/node_modules/fast-deep-equal/index.js
++++ b/node_modules/fast-deep-equal/index.js
+@@ -22,8 +22,8 @@ module.exports = function equal(a, b) {
+ 
+ 
+     if (a.constructor === RegExp) return a.source === b.source && a.flags === b.flags;
+-    if (a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();
+-    if (a.toString !== Object.prototype.toString) return a.toString() === b.toString();
++    if (a.valueOf && a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();
++    if (a.toString && a.toString !== Object.prototype.toString) return a.toString() === b.toString();
+ 
+     keys = Object.keys(a);
+     length = keys.length;
+diff --git a/node_modules/fast-deep-equal/react.d.ts b/node_modules/fast-deep-equal/react.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/fast-deep-equal/react.js b/node_modules/fast-deep-equal/react.js
+old mode 100644
+new mode 100755

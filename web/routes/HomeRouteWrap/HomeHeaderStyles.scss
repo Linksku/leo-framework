@@ -1,0 +1,52 @@
+$iconDim: 20px;
+
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: $zIndexFixed;
+  height: $headerHeight;
+  background-color: #fff;
+  border-bottom: 1px solid $separatorColor;
+}
+
+.containerInner {
+  @extend %maxWidthContainer;
+
+  height: $headerHeight;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.rightIcon {
+  display: flex;
+  align-items: center;
+  padding: 0 $containerPadLeftRight;
+  line-height: $headerHeight;
+  border: 0;
+  cursor: pointer;
+  position: relative;
+
+  svg {
+    height: $iconDim;
+    width: $iconDim;
+  }
+}
+
+.notifsCount {
+  position: absolute;
+  top: ($headerHeight - $iconDim) / 2 - 8px;
+  right: $containerPadLeftRight - 8px;
+  font-size: 10px;
+  font-weight: 700;
+  background-color: #f02849;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 15px;
+  width: 15px;
+  line-height: 1em;
+}

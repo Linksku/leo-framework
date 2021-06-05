@@ -1,0 +1,23 @@
+.container {
+  height: 100vh;
+  height: var(--vh100, 100vh);
+  width: 100vw;
+  min-width: $bodyMinWidth;
+  display: flex;
+  flex-direction: column;
+}
+
+.topBarWrap {
+  flex-shrink: 0;
+  z-index: $zIndexFixed;
+  height: $headerHeight;
+}
+
+.body {
+  @extend %maxWidthContainer;
+
+  flex-grow: 1;
+  overflow-y: scroll;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  touch-action: pan-y;
+}

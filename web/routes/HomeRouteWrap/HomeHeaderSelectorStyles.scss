@@ -1,0 +1,22 @@
+.btn {
+  margin-right: auto;
+  padding: 0 $containerPadLeftRight;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  height: $headerHeight;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.menu {
+  height: 16px;
+  width: 16px;
+  fill: $lightTextColor;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.title {
+  flex-grow: 1;
+}

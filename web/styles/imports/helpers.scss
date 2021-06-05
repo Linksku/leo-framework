@@ -1,0 +1,30 @@
+%fullWidth {
+  width: 100%;
+}
+
+%oneLine {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+%label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+%maxWidthContainer {
+  width: 100%;
+  max-width: $containerMaxWidth;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+%hideScrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

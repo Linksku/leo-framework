@@ -1,0 +1,29 @@
+.container {
+  @extend %hideScrollbar;
+
+  overflow-y: scroll;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  touch-action: pan-y;
+  transform: translateZ(0);
+
+  &.reverse {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+}
+
+.columns {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+.container.reverse .columns {
+  align-items: flex-end;
+}
+
+.column {
+  flex-basis: 0;
+  flex-grow: 1;
+  width: 0;
+  min-width: 0;
+}

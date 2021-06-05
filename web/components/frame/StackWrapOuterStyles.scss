@@ -1,0 +1,12 @@
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: $zIndexStack;
+  background: #fff;
+  transform: translateZ(0) translateX(0%);
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  touch-action: none;
+}

@@ -1,0 +1,14 @@
+.listItem {
+  flex-shrink: 0;
+  min-height: 1px;
+  overflow-anchor: none;
+  overflow: hidden;
+}
+
+.spinner {
+  padding: 50px 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

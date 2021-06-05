@@ -1,0 +1,88 @@
+.leftSvg,
+.rightSvg {
+  fill: #fff;
+  height: 20px;
+  width: 20px;
+}
+
+.leftSvgWithLabel {
+  margin-right: 8px;
+}
+
+.rightSvgWithLabel {
+  margin-left: 8px;
+}
+
+.btn {
+  padding: 4px 8px;
+  line-height: 28px;
+  background-color: $primaryColor;
+  color: #fff;
+  border: 1px solid transparent;
+  margin: 0;
+  border-radius: 4px;
+  overflow: visible;
+  text-transform: none;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 16px;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+
+  &.fullWidth {
+    width: 100%;
+  }
+
+  &:active,
+  &.active {
+    background-color: scale-color($primaryColor, $lightness: -25%);
+    border-color: scale-color($primaryColor, $lightness: -30%);
+  }
+
+  &.disabled {
+    background-color: #ccc;
+    color: #eee;
+
+    .leftSvg,
+    .rightSvg {
+      fill: #eee;
+    }
+  }
+
+  &.outline {
+    border: 2px solid $primaryColor;
+    color: $primaryColor;
+    background-color: #fff;
+
+    .leftSvg:not(.disabled),
+    .rightSvg:not(.disabled) {
+      fill: $primaryColor;
+    }
+
+    &:active {
+      color: scale-color($primaryColor, $lightness: -25%);
+      background-color: #fff;
+    }
+
+    &.disabled {
+      background-color: #fff;
+      border-color: $fadedPrimaryColor;
+      color: $fadedPrimaryColor;
+
+      .leftSvg,
+      .rightSvg {
+        fill: $fadedPrimaryColor;
+      }
+    }
+  }
+
+  &.borderless {
+    border: 0 !important;
+    background-color: transparent !important;
+  }
+}

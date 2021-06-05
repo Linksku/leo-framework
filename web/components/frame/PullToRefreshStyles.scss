@@ -1,0 +1,27 @@
+.container {
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  touch-action: none;
+}
+
+.refreshSpinner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
+  background-color: #fff;
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
+  border: 1px solid $separatorColor;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: 32px;
+
+  svg {
+    height: 16px;
+    width: 16px;
+    fill: $primaryColor;
+  }
+}

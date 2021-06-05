@@ -1,0 +1,160 @@
+import SseConnectionsManager from 'services/SseConnectionsManager';
+import PubSubManager from 'services/PubSubManager';
+import serializeEvent from 'lib/serializeEvent';
+
+type SubUnsubMessage = {
+  sessionId: string,
+  eventType: string,
+};
+
+const SUBSCRIBE_EVENT_NAME = 'SseManager.subscribe';
+const UNSUBSCRIBE_EVENT_NAME = 'SseManager.unsubscribe';
+
+const sessionIdToEventTypes = Object.create(null) as ObjectOf<Set<string>>;
+const eventTypesToSessionIds = Object.create(null) as ObjectOf<Set<string>>;
+
+const SseBroadcastManager = {
+  subscribe(sessionId: string, eventName: string, eventParams: Pojo) {
+    const eventType = serializeEvent(eventName, eventParams);
+    SseBroadcastManager.subscribeRaw(sessionId, eventType);
+  },
+
+  subscribeRaw(sessionId: string, eventType: string) {
+    const conn = SseConnectionsManager.getConn(sessionId);
+    if (!conn) {
+      PubSubManager.publish(SUBSCRIBE_EVENT_NAME, JSON.stringify({
+        sessionId,
+        eventType,
+      }));
+      return;
+    }
+
+    if (!sessionIdToEventTypes[sessionId]) {
+      sessionIdToEventTypes[sessionId] = new Set();
+    }
+    if (!eventTypesToSessionIds[eventType]) {
+      eventTypesToSessionIds[eventType] = new Set();
+      PubSubManager.subscribe(
+        eventType,
+        (data: string) => SseBroadcastManager.handleData(eventType, data),
+      );
+    }
+    sessionIdToEventTypes[sessionId].add(eventType);
+    eventTypesToSessionIds[eventType].add(sessionId);
+  },
+
+  unsubscribe(sessionId: string, eventName: string, eventParams: Pojo) {
+    const eventType = serializeEvent(eventName, eventParams);
+    SseBroadcastManager.unsubscribeRaw(sessionId, eventType);
+  },
+
+  unsubscribeRaw(sessionId: string, eventType: string) {
+    const conn = SseConnectionsManager.getConn(sessionId);
+    if (!conn) {
+      PubSubManager.publish(UNSUBSCRIBE_EVENT_NAME, JSON.stringify({
+        sessionId,
+        eventType,
+      }));
+      return;
+    }
+
+    if (sessionIdToEventTypes[sessionId]) {
+      sessionIdToEventTypes[sessionId].delete(eventType);
+    }
+    if (!sessionIdToEventTypes) {
+      delete sessionIdToEventTypes[sessionId];
+    }
+
+    if (eventTypesToSessionIds[eventType]) {
+      eventTypesToSessionIds[eventType].delete(sessionId);
+    }
+    if (!eventTypesToSessionIds[eventType].size) {
+      delete eventTypesToSessionIds[eventType];
+      PubSubManager.unsubscribeAll(eventType);
+    }
+  },
+
+  unsubscribeAll(sessionId: string) {
+    if (!sessionIdToEventTypes[sessionId]) {
+      return;
+    }
+
+    for (const eventType of sessionIdToEventTypes[sessionId]) {
+      if (eventTypesToSessionIds[eventType]) {
+        eventTypesToSessionIds[eventType].delete(sessionId);
+      }
+      if (!eventTypesToSessionIds[eventType].size) {
+        delete eventTypesToSessionIds[eventType];
+        PubSubManager.unsubscribeAll(eventType);
+      }
+    }
+
+    delete sessionIdToEventTypes[sessionId];
+  },
+
+  broadcastData(
+    eventName: string,
+    eventParams: Pojo,
+    // todo: mid/hard unify with api data format.
+    { data = null, entities, included = null, meta = null }: {
+      data?: any,
+      entities: Entity[] | Entity,
+      included?: Entity[] | Entity | null,
+      meta?: any,
+    },
+  ) {
+    const eventType = serializeEvent(eventName, eventParams);
+    const dataStr = JSON.stringify({
+      type: eventType,
+      ...data && { data },
+      entities,
+      ...included && { included },
+      ...meta && { meta },
+    });
+
+    SseBroadcastManager.handleData(eventType, dataStr);
+    PubSubManager.publish(
+      eventType,
+      dataStr,
+    );
+  },
+
+  handleData(eventType: string, data: string) {
+    if (!eventTypesToSessionIds[eventType]) {
+      return;
+    }
+
+    for (const sessionId of eventTypesToSessionIds[eventType]) {
+      SseConnectionsManager.sendMessage(sessionId, data);
+    }
+  },
+};
+
+// User called `subscribe` API and connected to different server.
+PubSubManager.subscribe(SUBSCRIBE_EVENT_NAME, (msg: string) => {
+  let data: SubUnsubMessage;
+  try {
+    data = JSON.parse(msg);
+  } catch {
+    return;
+  }
+
+  if (data?.sessionId && SseConnectionsManager.getConn(data.sessionId)) {
+    SseBroadcastManager.subscribeRaw(data.sessionId, data.eventType);
+  }
+});
+
+PubSubManager.subscribe(UNSUBSCRIBE_EVENT_NAME, (msg: string) => {
+  let data: SubUnsubMessage;
+  try {
+    data = JSON.parse(msg);
+  } catch {
+    return;
+  }
+
+  if (data?.sessionId && SseConnectionsManager.getConn(data.sessionId)) {
+    SseBroadcastManager.unsubscribeRaw(data.sessionId, data.eventType);
+  }
+});
+
+export default SseBroadcastManager;

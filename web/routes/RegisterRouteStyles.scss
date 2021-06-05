@@ -1,0 +1,13 @@
+.container {
+  padding: 10px $containerPadLeftRight;
+}
+
+.form {
+  margin-bottom: 20px;
+}
+
+.hint {
+  margin-top: -5px;
+  color: $fadedTextColor;
+  font-size: 0.9em;
+}

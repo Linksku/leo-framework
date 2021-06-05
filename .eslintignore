@@ -1,0 +1,3 @@
+web/vendors
+src-template
+**/types/generated/*.d.ts
