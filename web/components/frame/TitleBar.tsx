@@ -36,6 +36,7 @@ function renderBtn(
 }
 
 type Props = {
+  title?: string,
   onLeftBtnClick?: Memoed<React.MouseEventHandler>,
   leftBtnText?: string,
   leftBtnProps?: Memoed<Parameters<typeof Button>[0]>,
@@ -56,6 +57,7 @@ type Props = {
 
 function TitleBar({
   children,
+  title,
   onLeftBtnClick,
   leftBtnText,
   leftBtnProps,
@@ -76,9 +78,9 @@ function TitleBar({
       {...bindSwipe?.()}
       {...props}
     >
-      <div className={styles.title}>
-        {children}
-      </div>
+      <h1 className={styles.title}>
+        {title ?? children}
+      </h1>
       <div className={styles.buttons}>
         {renderBtn(onLeftBtnClick, leftBtnText, leftBtnProps, LeftSvg, leftSvgDim)}
         {renderBtn(onRightBtnClick, rightBtnText, rightBtnProps, RightSvg, rightSvgDim)}

@@ -1,8 +1,9 @@
+const timed = new Set();
 export default process.env.NODE_ENV !== 'production'
   ? function useTimeComponentPerf(name: string) {
     const ref = useRef({
-      hasStarted: false,
-      hasEnded: false,
+      hasStarted: timed.has(name),
+      hasEnded: timed.has(name),
     });
     if (!ref.current.hasStarted) {
       console.time(name);

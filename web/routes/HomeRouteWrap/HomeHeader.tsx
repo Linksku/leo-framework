@@ -14,7 +14,7 @@ function HomeHeader() {
 
   const { data } = useApi(
     'notifsCount',
-    {},
+    EMPTY_OBJ,
     {
       shouldFetch: !!currentUser,
     },

@@ -181,7 +181,7 @@ function useDeferredApi<
             }
             onError?.(err);
           });
-          return null;
+          throw err;
         });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

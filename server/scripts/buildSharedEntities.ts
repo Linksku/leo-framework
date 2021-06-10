@@ -21,11 +21,13 @@ export default async function buildSharedEntities() {
   await mkdirp(path.resolve('./src/shared/types/generated'));
   await fs.writeFile(
     path.resolve('./src/shared/types/generated/entities.d.ts'),
-    `type TypeToEntity = {
+    `type TypeToEntity<T extends EntityType> = {
 ${
   entities.map(e => `  ${e.type}: ${e.name},`).join('\n')
 }
-};
+}[T];
+
+type EntityType = '${entities.map(e => e.type).join(`' | '`)}';
 `,
   );
 }

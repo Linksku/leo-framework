@@ -123,14 +123,14 @@ const [
 
     const _useDeleteEntities = useCallback(<T extends EntityType>(
       type: T,
-      shouldDelete: (e: TypeToEntity[T]) => boolean,
+      shouldDelete: (e: TypeToEntity<T>) => boolean,
     ) => {
       if (!ref.current.entities[type]) {
         return;
       }
 
       const entitiesOfType = ref.current.entities[type] as unknown as ObjectOf<
-        Memoed<TypeToEntity[T]>
+        Memoed<TypeToEntity<T>>
       >;
       const deleteEntities = Object.values(entitiesOfType)
         .filter(e => shouldDelete(e));
@@ -192,7 +192,7 @@ const [
 function useEntity<T extends EntityType>(
   type: T,
   id: Nullish<EntityId>,
-): Memoed<TypeToEntity[T]> | null {
+): Memoed<TypeToEntity<T>> | null {
   const { current } = useEntitiesStore();
   const forceUpdate = useForceUpdate();
   const ref = useRef({
@@ -230,14 +230,14 @@ function useEntity<T extends EntityType>(
   }, [current.ee, type, id, delayedForceUpdate]);
 
   return id
-    ? (current.entities[type]?.[id] as unknown as Memoed<TypeToEntity[T]>)
+    ? (current.entities[type]?.[id] as unknown as Memoed<TypeToEntity<T>>)
     : null;
 }
 
 function useRequiredEntity<T extends EntityType>(
   type: T,
   id: EntityId,
-): Memoed<TypeToEntity[T]> {
+): Memoed<TypeToEntity<T>> {
   const ent = useEntity(type, id);
   if (!ent) {
     throw new Error(`Required entity ${type} not found.`);

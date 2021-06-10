@@ -74,11 +74,12 @@ defineApi(
       },
     ));
 
+    // todo: hard/high stream batched results as they become available
     return {
       data: {
         results: results.map(r => r.data),
       },
-      entities: results.map(r => r.entities ?? []).flat(),
+      entities: results.flatMap(r => r.entities ?? []),
     };
   },
 );

@@ -5,8 +5,6 @@ type TabType = ValueOf<typeof HOME_TABS>;
 const [
   HomeRouteProvider,
   useHomeRouteStore,
-  useHomeTab,
-  useHomeParts,
 ] = constate(
   function HomeRouteStore() {
     const ref = useRef<{
@@ -48,31 +46,29 @@ const [
       newHomeTab: TabType,
       ...newParts: string[]
     ) => {
-      const parts: [TabType, ...string[]] = [
-        newHomeTab || ref.current.homeTab,
-      ];
-      for (let i = 0; i < ref.current.homeParts.length && i < newParts.length; i++) {
-        if (!newParts[i] && !ref.current.homeParts[i]) {
-          break;
+      let newPath = `/${newHomeTab}`;
+      if (!newParts.length) {
+        if (newHomeTab === ref.current.homeTab && !ref.current.homeParts.length) {
+          return;
         }
-        parts.push(newParts[i] || ref.current.homeParts[i]);
-      }
-      if (parts[0] === ref.current.homeTab && parts.length === 1) {
-        return;
-      }
-
-      if (!parts[0] || parts[0] === HOME_TABS.FEED) {
-        parts.pop();
-      }
-
-      const newPath = `/${parts.join('/')}`;
-      if (curState.path === '/' && !curState.query) {
-        pushPath(newPath);
-      } else if (newPath === '/' && prevState?.path === '/' && !prevState?.query) {
-        window.history.back();
+        if (newHomeTab === HOME_TABS.FEED) {
+          newPath = '/';
+        }
       } else {
-        replacePath(newPath);
+        newPath += `/${newParts.join('/')}`;
       }
+
+      if (!curState.query && !prevState?.query) {
+        if (newPath === prevState?.path) {
+          window.history.back();
+          return;
+        }
+        if (curState.path === '/' && !prevState?.path) {
+          pushPath(newPath);
+          return;
+        }
+      }
+      replacePath(newPath);
     }, [
       curState.path,
       curState.query,
@@ -90,15 +86,6 @@ const [
       homeParts: ref.current.homeParts,
     });
   },
-  function HomeRouteStore(val) {
-    return val;
-  },
-  function HomeTab(val) {
-    return val.homeTab;
-  },
-  function HomeParts(val) {
-    return val.homeParts;
-  },
 );
 
-export { HomeRouteProvider, useHomeRouteStore, useHomeTab, useHomeParts };
+export { HomeRouteProvider, useHomeRouteStore };

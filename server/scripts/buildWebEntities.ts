@@ -31,7 +31,6 @@ ${
   await mkdirp(path.resolve('./src/web/types/generated'));
   await fs.writeFile(
     path.resolve('./src/web/types/generated/entities.d.ts'),
-    `${interfaces.join('\n')}
-`,
+    interfaces.join('\n'),
   );
 }

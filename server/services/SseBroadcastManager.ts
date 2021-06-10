@@ -15,6 +15,9 @@ const eventTypesToSessionIds = Object.create(null) as ObjectOf<Set<string>>;
 
 const SseBroadcastManager = {
   subscribe(sessionId: string, eventName: string, eventParams: Pojo) {
+    if ((!eventName || !eventParams) && process.env.NODE_ENV !== 'production') {
+      throw new Error('SseBroadcastManager.subscribe: invalid params.');
+    }
     const eventType = serializeEvent(eventName, eventParams);
     SseBroadcastManager.subscribeRaw(sessionId, eventType);
   },

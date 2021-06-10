@@ -57,19 +57,30 @@ defineApi(
     name: 'sseSubscribe',
     paramsSchema: {
       type: 'object',
-      required: ['sessionId', 'eventName', 'eventParams'],
+      required: ['sessionId', 'events'],
       properties: {
         sessionId: { type: 'string', minLength: 22 },
-        eventName: SchemaConstants.name,
-        eventParams: { type: 'object', properties: {} },
+        events: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['name', 'params'],
+            properties: {
+              name: SchemaConstants.name,
+              params: { type: 'object', properties: {} },
+            },
+          },
+        },
       },
       additionalProperties: false,
     },
   },
-  function sseSubscribe({ sessionId, eventName, eventParams }) {
+  function sseSubscribe({ sessionId, events }) {
     // todo: high/hard validate event permissions
 
-    SseBroadcastManager.subscribe(sessionId, eventName, eventParams);
+    for (const event of events) {
+      SseBroadcastManager.subscribe(sessionId, event.name, event.params);
+    }
 
     return {
       data: null,
@@ -83,17 +94,28 @@ defineApi(
     name: 'sseUnsubscribe',
     paramsSchema: {
       type: 'object',
-      required: ['sessionId', 'eventName', 'eventParams'],
+      required: ['sessionId', 'events'],
       properties: {
         sessionId: { type: 'string', minLength: 22 },
-        eventName: SchemaConstants.name,
-        eventParams: { type: 'object', properties: {} },
+        events: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['name', 'params'],
+            properties: {
+              name: SchemaConstants.name,
+              params: { type: 'object', properties: {} },
+            },
+          },
+        },
       },
       additionalProperties: false,
     },
   },
-  function sseUnsubscribe({ sessionId, eventName, eventParams }) {
-    SseBroadcastManager.unsubscribe(sessionId, eventName, eventParams);
+  function sseUnsubscribe({ sessionId, events }) {
+    for (const event of events) {
+      SseBroadcastManager.unsubscribe(sessionId, event.name, event.params);
+    }
 
     return {
       data: null,

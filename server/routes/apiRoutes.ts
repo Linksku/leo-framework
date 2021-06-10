@@ -15,7 +15,7 @@ const upload = multer({ dest: '/tmp' });
 
 async function addUserMiddleware(
   req: ExpressRequest,
-  res: ExpressResponse,
+  _res: ExpressResponse,
   next: NextFunction,
 ) {
   const cookieJwt = req.cookies.authToken;
@@ -41,7 +41,7 @@ async function requireAuthMiddleware(
 }
 
 function apiNotFound(
-  req: ExpressRequest,
+  _req: ExpressRequest,
   res: ExpressResponse,
 ) {
   res.status(404).json({

@@ -3,17 +3,33 @@ import jwt from 'jsonwebtoken';
 import SseConnectionsManager from 'services/SseConnectionsManager';
 import serializeEvent from 'lib/serializeEvent';
 import generateUuid from 'lib/generateUuid';
+import SseBroadcastManager from 'services/SseBroadcastManager';
+import handleApiError from 'lib/apiWrap/handleApiError';
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  const otpJwt = req.query.otp as Nullish<string>;
-  let currentUserId: number | null = null;
+  try {
+    let params = {} as {
+      otp: Nullish<string>,
+      events: Nullish<{
+        name: string,
+        params: any,
+      }[]>,
+    };
+    if (typeof req.query.params === 'string') {
+      try {
+        params = JSON.parse(req.query.params);
+      } catch {}
+    }
 
-  if (otpJwt) {
-    currentUserId = await new Promise(succ => {
-      jwt.verify(
-        otpJwt,
+    const { otp, events } = params;
+    let currentUserId: number | null = null;
+
+    if (otp) {
+      currentUserId = await new Promise(succ => {
+        jwt.verify(
+          otp,
         process.env.SSE_JWT_KEY as string,
         {},
         (err, obj: any) => {
@@ -23,38 +39,48 @@ router.get('/', async (req, res) => {
             succ(obj?.id ?? null);
           }
         },
-      );
+        );
+      });
+    }
+
+    let sessionId = generateUuid();
+    if (currentUserId) {
+      sessionId = `${currentUserId}:${sessionId}`;
+    }
+    SseConnectionsManager.addConn(sessionId, currentUserId, res);
+
+    req.on('close', () => {
+      SseConnectionsManager.removeConn(sessionId);
     });
+
+    req.on('end', () => {
+      SseConnectionsManager.removeConn(sessionId);
+    });
+
+    if (events) {
+      console.log(events);
+      for (const event of events) {
+        SseBroadcastManager.subscribe(sessionId, event.name, event.params);
+      }
+    }
+
+    res.status(200).set({
+      connection: 'keep-alive',
+      'cache-control': 'no-cache',
+      'content-type': 'text/event-stream',
+    });
+
+    // todo: low/mid move types into shared constants
+    SseConnectionsManager.sendMessage(sessionId, JSON.stringify({
+      type: serializeEvent('sseConnected'),
+      entities: [],
+      meta: {
+        sessionId,
+      },
+    }));
+  } catch (err) {
+    handleApiError(res, err, 'sseRoute');
   }
-
-  res.status(200).set({
-    connection: 'keep-alive',
-    'cache-control': 'no-cache',
-    'content-type': 'text/event-stream',
-  });
-
-  let sessionId = generateUuid();
-  if (currentUserId) {
-    sessionId = `${currentUserId}:${sessionId}`;
-  }
-  SseConnectionsManager.addConn(sessionId, currentUserId, res);
-
-  req.on('close', () => {
-    SseConnectionsManager.removeConn(sessionId);
-  });
-
-  req.on('end', () => {
-    SseConnectionsManager.removeConn(sessionId);
-  });
-
-  // todo: low/mid move types into shared constants
-  SseConnectionsManager.sendMessage(sessionId, JSON.stringify({
-    type: serializeEvent('sseConnected'),
-    entities: [],
-    meta: {
-      sessionId,
-    },
-  }));
 });
 
 export default router;

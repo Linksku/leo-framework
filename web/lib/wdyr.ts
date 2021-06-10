@@ -4,8 +4,11 @@ if (process.env.NODE_ENV !== 'production') {
   whyDidYouRender(React, {
     trackAllPureComponents: true,
     notifier(props) {
-      // console.log(props);
-      // console.log((new Error()).stack);
+      const stack = (new Error('notifier')).stack ?? '';
+      if (stack.includes('useSWR')) {
+        return;
+      }
+      // console.log(props, stack);
       whyDidYouRender.defaultNotifier(props);
     },
   });

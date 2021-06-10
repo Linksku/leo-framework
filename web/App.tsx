@@ -2,8 +2,9 @@ import Router from 'Router';
 import { AlertsProvider } from 'stores/AlertsStore';
 import { AuthProvider } from 'stores/AuthStore';
 import { EntitiesProvider } from 'stores/EntitiesStore';
-import { SseProvider } from 'stores/SseStore';
+import { GlobalMemoProvider } from 'stores/GlobalMemoStore';
 import { HistoryProvider } from 'stores/HistoryStore';
+import { SseProvider } from 'stores/SseStore';
 import { SlideUpProvider } from 'stores/SlideUpStore';
 import { StacksProvider } from 'stores/StacksStore';
 import { ToastsProvider } from 'stores/ToastsStore';
@@ -18,6 +19,7 @@ export default function App() {
   let router = <Router />;
   for (const Component of [
     // Core
+    GlobalMemoProvider,
     HistoryProvider,
     StacksProvider,
 

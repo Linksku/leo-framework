@@ -8,13 +8,11 @@ import HomeRouteWrap from 'routes/HomeRouteWrap';
 import LoadingRoute from 'routes/LoadingRoute';
 import useEffectIfReady from 'lib/hooks/useEffectIfReady';
 import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
-import { useHomeTab } from 'stores/routes/HomeRouteStore';
 
 export default function Router() {
   useTimeComponentPerf('Router');
 
   const currentUser = useCurrentUser();
-  const homeTab = useHomeTab();
   const {
     stackBot,
     stackTop,
@@ -22,9 +20,6 @@ export default function Router() {
   } = useStacksStore();
   const { isReplaced, curState } = useHistoryStore();
   const { isReloadingAfterAuth, setCurrentUserId } = useAuthStore();
-  const ref = useRef({
-    homeTabsLoaded: new Set([homeTab]),
-  });
   const replacePath = useReplacePath();
 
   // todo: low/mid prefetch currentUser
@@ -39,10 +34,6 @@ export default function Router() {
       }
     }, []),
   });
-
-  if (!ref.current.homeTabsLoaded.has(homeTab)) {
-    ref.current.homeTabsLoaded.add(homeTab);
-  }
 
   const {
     type: stackBotType,

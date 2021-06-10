@@ -17,17 +17,14 @@ const StackWrapInnerHeader = React.memo(
     return (
       <PullToRefresh>
         <TitleBar
+          title={title}
           onLeftBtnClick={useCallback(e => {
             e.stopPropagation();
             backStack();
           }, [backStack])}
           LeftSvg={ChevronLeftSvg}
           {...props}
-        >
-          <h1>
-            {title}
-          </h1>
-        </TitleBar>
+        />
       </PullToRefresh>
     );
   },

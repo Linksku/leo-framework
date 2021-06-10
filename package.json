@@ -5,7 +5,8 @@
   "scripts": {
     "postinstall": "patch-package",
     "prepare": "husky install",
-    "clean": "rm -rf build/* && rm -rf node_modules/.build && rm -rf node_modules/.cache",
+    "src": "yarn --cwd src --modules-folder ../node_modules",
+    "clean": "rm -rf build/* && rm -rf node_modules/.build && rm -rf node_modules/.cache && rm -f .eslintcache",
     "watch": "webpack -w --config webpack.web.dev.js",
     "watch-server": "mkdir build/server && touch build/server/main.js && npx concurrently --kill-others \"webpack -w --config webpack.server.dev.js\" \"TZ=UTC nodemon --inspect build/server/main.js --watch build/server/ --delay 2\"",
     "serve": "export $(grep -v '^#' src/env | xargs -d '\\n') && yarn clean && yarn build-index && npx concurrently --kill-others \"yarn watch-server\" \"yarn watch\"",
@@ -17,20 +18,17 @@
     "serve-static": "node scripts/serve-static.js",
     "serve-prod": "yarn build-web && yarn build-server && TZ=UTC node build/server/main.js",
     "lint": "eslint *.js web server shared scripts src --ext=js,jsx,ts,tsx --quiet --cache --rule '@typescript-eslint/promise-function-async: 2' --rule '@typescript-eslint/no-floating-promises: 2' && stylelint 'web/**/*.css' 'web/**/*.scss'",
-    "build-types": "scripts/build-types.sh",
+    "build-types": "export $(grep -v '^#' src/env | xargs -d '\\n') && scripts/build-types.sh",
     "tsc": "concurrently \"tsc --p src/web/tsconfig.json\" \"tsc --p src/server/tsconfig.json\"",
-    "mysqldump": "scripts/mysqldump.sh",
+    "mysqldump": "export $(grep -v '^#' src/env | xargs -d '\\n') && scripts/mysqldump.sh",
     "stats": "mkdir -p build/web/js && NODE_ENV=production BABEL_ENV=production ANALYZER=1 node node_modules/webpack/bin/webpack.js --config webpack.web.production.js --mode production --profile --json > build/web/stats.json && webpack-bundle-analyzer build/web/stats.json -p 6970",
-    "ss": "TZ=UTC scripts/run-server-script.sh",
+    "ss": "export $(grep -v '^#' src/env | xargs -d '\\n') && scripts/run-server-script.sh",
     "todos": "scripts/get-todos.sh"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "eslint --quiet --cache",
     "*.{css,scss}": "stylelint"
   },
-  "workspaces": [
-    "src"
-  ],
   "dependencies": {
     "@babel/cli": "^7.13.16",
     "@babel/core": "^7.13.16",

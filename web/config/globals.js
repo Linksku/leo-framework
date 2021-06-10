@@ -59,6 +59,7 @@ const globals = {
   useEntities: ['./web/stores/EntitiesStore', 'useEntities'],
   useEntitiesEE: ['./web/stores/EntitiesStore', 'useEntitiesEE'],
   useEntity: ['./web/stores/EntitiesStore', 'useEntity'],
+  useGlobalMemo: ['./web/stores/GlobalMemoStore', 'useGlobalMemo'],
   useHideSlideUp: ['./web/stores/SlideUpStore', 'useHideSlideUp'],
   useLoadEntities: ['./web/stores/EntitiesStore', 'useLoadEntities'],
   usePushPath: ['./web/stores/HistoryStore', 'usePushPath'],

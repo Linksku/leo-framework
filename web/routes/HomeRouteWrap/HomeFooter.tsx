@@ -4,7 +4,7 @@ import { useHomeRouteStore } from 'stores/routes/HomeRouteStore';
 import styles from './HomeFooterStyles.scss';
 
 function HomeFooter() {
-  const { navigateHome, homeTab } = useHomeRouteStore();
+  const { navigateHome, homeTab, homeParts } = useHomeRouteStore();
 
   // todo: mid/hard add explore page
   return (
@@ -15,7 +15,7 @@ function HomeFooter() {
           return (
             <div
               key={tab}
-              onClick={() => navigateHome(tab)}
+              onClick={() => navigateHome(tab, ...homeParts)}
               className={cn(styles.tabIcon, {
                 [styles.tabActive]: homeTab === tab,
               })}

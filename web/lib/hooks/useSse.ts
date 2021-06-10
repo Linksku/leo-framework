@@ -8,37 +8,17 @@ export default function useSse(
     isReady = true,
   } = {},
 ) {
-  const { sessionId, initSse } = useSseStore();
+  const { sessionId, initSse, addSubscription, removeSubscription } = useSseStore();
   const paramsMemo = useDeepMemoObj(eventParams);
-
-  const { fetchApi: sseSubscribe } = useDeferredApi(
-    'sseSubscribe',
-    { eventName, eventParams: paramsMemo },
-    {
-      type: 'load',
-      method: 'post',
-      noReturnState: true,
-    },
-  );
-
-  const { fetchApi: sseUnsubscribe } = useDeferredApi(
-    'sseSubscribe',
-    { eventName, eventParams: paramsMemo },
-    {
-      type: 'load',
-      method: 'post',
-      noReturnState: true,
-    },
-  );
 
   // todo: low/mid multiple components using same event.
   useEffectIfReady(() => {
-    void sseSubscribe({ sessionId: sessionId as string });
+    void addSubscription(eventName, paramsMemo);
 
     return () => {
-      void sseUnsubscribe({ sessionId: sessionId as string });
+      void removeSubscription(eventName, paramsMemo);
     };
-  }, [sseSubscribe, sseUnsubscribe], isReady && !!sessionId);
+  }, [addSubscription, removeSubscription], isReady && !!sessionId);
 
   useEffectIfReady(initSse, [], isReady);
 }

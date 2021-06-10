@@ -1,8 +1,6 @@
 #!/bin/bash
-if [[ -z "$SERVER" ]] || [[ -z "$REMOTE_SERVER_IP" ]]; then
-  echo "Env variables not set."
-  exit 1
-fi
+export $(grep -v '^#' src/env | xargs -d '\n')
+export $(grep -v '^#' src/.env | xargs -d '\n')
 
 yarn
 if [[ $? != 0 ]]; then

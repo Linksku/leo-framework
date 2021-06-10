@@ -303,7 +303,10 @@ module.exports = {
       ts: 'never',
       tsx: 'never',
     }],
-    'import/no-extraneous-dependencies': [2, { devDependencies: true }],
+    'import/no-extraneous-dependencies': [2, {
+      devDependencies: true,
+      packageDir: ['.', './src'],
+    }],
     'react/require-default-props': [2, { ignoreFunctionalComponents: true }],
     'jsx-a11y/accessible-emoji': 0,
     'unicorn/prevent-abbreviations': 0,

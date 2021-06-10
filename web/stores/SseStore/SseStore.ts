@@ -1,7 +1,5 @@
-import qs from 'query-string';
-
 import SseEventEmitter from 'lib/singletons/SseEventEmitter';
-import { unserializeEvent } from 'lib/serializeEvent';
+import serializeEvent, { unserializeEvent } from 'lib/serializeEvent';
 import { HOME_URL } from 'settings';
 import useRepliesSse from './useRepliesSse';
 
@@ -17,7 +15,12 @@ const [
       source: null as EventSource | null,
       ee: SseEventEmitter,
       initializedEe: false,
+      subscriptions: new Set<string>(),
+      sessionId: null as string | null,
+      otp: null as Nullish<string>,
+      isEventSourceOpen: false,
     });
+    ref.current.sessionId = state.sessionId;
     const authToken = useAuthToken();
 
     if (!ref.current.initializedEe) {
@@ -28,15 +31,40 @@ const [
       });
     }
 
-    const startSse = useCallback((otp: Nullish<string>) => {
-      ref.current.source = new EventSource(
-        `${HOME_URL}/sse?${qs.stringify({
-          otp,
-        })}`,
-        { withCredentials: true },
-      );
+    const { fetchApi: sseSubscribe } = useDeferredApi(
+      'sseSubscribe',
+      {},
+      {
+        type: 'load',
+        method: 'post',
+        noReturnState: true,
+      },
+    );
 
-      ref.current.source.addEventListener('message', msg => {
+    const { fetchApi: sseUnsubscribe } = useDeferredApi(
+      'sseSubscribe',
+      {},
+      {
+        type: 'load',
+        method: 'post',
+        noReturnState: true,
+      },
+    );
+
+    const updateEventSource = useCallback(() => {
+      ref.current.source?.close();
+      const source = new EventSource(
+        `${HOME_URL}/sse?params=${encodeURIComponent(JSON.stringify({
+          otp: ref.current.otp,
+          events: [...ref.current.subscriptions].map(sub => unserializeEvent(sub)),
+        }))}`,
+        {
+          withCredentials: true,
+        },
+      );
+      ref.current.source = source;
+
+      source.addEventListener('message', msg => {
         let data;
         try {
           data = JSON.parse(msg.data);
@@ -53,7 +81,57 @@ const [
         const { name, params } = unserializeEvent(data.type);
         ref.current.ee.emit(name, params, data);
       });
+
+      source.addEventListener('open', () => {
+        ref.current.isEventSourceOpen = true;
+      });
+
+      source.addEventListener('error', err => {
+        console.error(err);
+        ref.current.isEventSourceOpen = false;
+
+        updateEventSource();
+      });
     }, []);
+
+    const addSubscription = useCallback((name: string, params: Memoed<Pojo>) => {
+      const event = serializeEvent(name, params);
+      const hadEvent = ref.current.subscriptions.has(event);
+      ref.current.subscriptions.add(event);
+
+      if (ref.current.source) {
+        if (!ref.current.isEventSourceOpen) {
+          updateEventSource();
+        } else if (ref.current.sessionId && !hadEvent) {
+          void sseSubscribe({
+            sessionId: ref.current.sessionId,
+            events: [{ name, params }],
+          });
+        }
+      }
+    }, [sseSubscribe, updateEventSource]);
+
+    const removeSubscription = useCallback((name: string, params: Memoed<Pojo>) => {
+      const event = serializeEvent(name, params);
+      const hadEvent = ref.current.subscriptions.has(event);
+      ref.current.subscriptions.delete(serializeEvent(name, params));
+
+      if (ref.current.source) {
+        if (!ref.current.isEventSourceOpen) {
+          updateEventSource();
+        } else if (ref.current.sessionId && hadEvent) {
+          void sseUnsubscribe({
+            sessionId: ref.current.sessionId,
+            events: [{ name, params }],
+          });
+        }
+      }
+    }, [sseUnsubscribe, updateEventSource]);
+
+    const startSse = useCallback((otp: Nullish<string>) => {
+      ref.current.otp = otp;
+      updateEventSource();
+    }, [updateEventSource]);
 
     // todo: low/mid fetch sse otp using useApi
     const { fetchApi: fetchOtp } = useDeferredApi('sseOtp', {}, {
@@ -66,7 +144,6 @@ const [
       onError: NOOP,
     });
 
-    // todo: high/hard handle reconnect
     const initSse = useCallback(async () => {
       if (ref.current.source === null) {
         if (authToken) {
@@ -82,6 +159,8 @@ const [
     return useDeepMemoObj({
       sseEmitter: ref.current.ee,
       sessionId: state.sessionId,
+      addSubscription,
+      removeSubscription,
       initSse,
     });
   },
