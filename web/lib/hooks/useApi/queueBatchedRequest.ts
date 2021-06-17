@@ -1,4 +1,4 @@
-import fetcher from 'lib/fetcher';
+import fetcher, { getErrorFromApiData } from 'lib/fetcher';
 import type { OnFetchType, OnErrorType } from './useApiTypes';
 
 interface BatchedRequest<Name extends ApiName> {
@@ -30,7 +30,11 @@ async function fetchBatchedRequest() {
   try {
     const { name, params, authToken, handleApiEntities } = curBatched[0];
     let response: ApiResponse<any>;
-    let results: ApiNameToData[ApiName][];
+    let results: {
+      status: number,
+      data: ApiNameToData[ApiName],
+      error?: any,
+    }[];
     if (curBatched.length === 1) {
       response = await fetcher.get(
         `/api/${name}`,
@@ -39,7 +43,10 @@ async function fetchBatchedRequest() {
         },
         { authToken },
       );
-      results = [response.data];
+      results = [{
+        status: 200,
+        data: response.data,
+      }];
     } else {
       response = await fetcher.get(
         '/api/batched',
@@ -59,16 +66,24 @@ async function fetchBatchedRequest() {
     if (results.length !== curBatched.length) {
       throw new Error('Batched API response has wrong length.');
     }
+    // todo: low/mid simplify queueBatchedRequest
     batchedUpdates(() => {
       handleApiEntities(response);
-
       for (const [idx, result] of results.entries()) {
-        curBatched[idx].onFetch?.(result, {});
+        if (result.status !== 200 || result.error) {
+          curBatched[idx].onError?.(getErrorFromApiData(result));
+        } else {
+          curBatched[idx].onFetch?.(result.data, {});
+        }
       }
     });
 
     for (const [idx, result] of results.entries()) {
-      curBatched[idx].succPromise(result);
+      if (result.status !== 200 || result.error) {
+        curBatched[idx].failPromise(getErrorFromApiData(result));
+      } else {
+        curBatched[idx].succPromise(result.data);
+      }
     }
   } catch (err) {
     console.error(err);

@@ -58,7 +58,6 @@ router.get('/', async (req, res) => {
     });
 
     if (events) {
-      console.log(events);
       for (const event of events) {
         SseBroadcastManager.subscribe(sessionId, event.name, event.params);
       }
@@ -79,7 +78,8 @@ router.get('/', async (req, res) => {
       },
     }));
   } catch (err) {
-    handleApiError(res, err, 'sseRoute');
+    const { status, errorData } = handleApiError(err, 'sseRoute');
+    res.status(status).json(errorData);
   }
 });
 

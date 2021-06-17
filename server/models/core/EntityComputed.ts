@@ -23,11 +23,14 @@ export default class EntityComputed extends EntityBase {
   }
 
   // node -> db
-  $formatDatabaseJson(obj: ObjectOf<any>): ObjectOf<any> {
+  $formatDatabaseJson(
+    obj: ObjectOf<any>,
+  ): ObjectOf<any> {
     obj = super.$formatDatabaseJson(obj);
-    const cls = this.constructor as typeof Entity;
+    const cls = (this.constructor as typeof EntityComputed);
     for (const property of Object.keys(obj)) {
-      if (cls.computedProperties.has(property)) {
+      // @ts-ignore casting Object.keys doesn't work
+      if (cls.getComputedProperties().has(property)) {
         const name = ucFirst(property);
         obj[`computed${name}`] = obj[property];
         delete obj[property];

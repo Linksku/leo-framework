@@ -20,6 +20,7 @@ dotenv.config({
 
 require('lib/initCheckTimeZone');
 
+// todo: mid/mid investigate why restarting server is slow
 if (cluster.isMaster) {
   const numCpus = process.env.NODE_ENV === 'production'
     ? os.cpus().length

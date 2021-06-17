@@ -1,26 +1,26 @@
 import styles from './SelectStyles.scss';
 
-type Props = {
+type Props<T extends string> = {
   className?: string,
-  options: Memoed<{ key: string, name: string }[]>,
-  defaultValue?: string,
+  options: Memoed<{ key: T, name: string }[]>,
+  defaultKey?: T,
   placeholder?: string,
   label?: ReactNode,
-  renderClickable?: (key?: string, name?: string) => ReactElement,
+  renderClickable?: (key?: T, name?: string) => ReactElement,
   onChange?: React.ChangeEventHandler<HTMLSelectElement>,
 } & React.SelectHTMLAttributes<HTMLSelectElement>;
 
-function Select({
+function Select<T extends string>({
   className,
   options,
-  defaultValue,
+  defaultKey,
   placeholder,
   label,
   renderClickable,
   onChange,
   ...props
-}: Props, ref?: React.ForwardedRef<HTMLSelectElement>) {
-  const [selectedValue, setSelectedValue] = useState(defaultValue);
+}: Props<T>, ref?: React.ForwardedRef<HTMLSelectElement>) {
+  const [selectedValue, setSelectedValue] = useState<T | undefined>(defaultKey);
   const selectedName = useMemo(
     () => options.find(o => o.key === selectedValue)?.name,
     [selectedValue, options],
@@ -38,7 +38,7 @@ function Select({
       )}
       value={selectedValue ?? undefined}
       onChange={event => {
-        setSelectedValue(event.target.value);
+        setSelectedValue(event.target.value as T);
         onChange?.(event);
       }}
       {...props}

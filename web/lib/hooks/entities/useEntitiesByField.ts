@@ -4,19 +4,19 @@ import useEntitiesByFields from './useEntitiesByFields';
 function useEntitiesByField<T extends EntityType>(
   type: T,
   field: string,
-  opts?: OptsWithoutSet
+  opts?: OptsWithoutSet<T>
 ): Memoed<ObjectOf<TypeToEntity<T>[]>>;
 
 function useEntitiesByField<T extends EntityType, F extends keyof TypeToEntity<T>>(
   type: T,
   field: F,
-  opts?: OptsWithSet
+  opts?: OptsWithSet<T>
 ): Memoed<ObjectOf<Set<TypeToEntity<T>[F]>>>;
 
 function useEntitiesByField<T extends EntityType>(
   type: T,
   field: string,
-  opts?: OptsWithoutSet | OptsWithSet,
+  opts?: OptsWithoutSet<T> | OptsWithSet<T>,
 ) {
   return useEntitiesByFields(
     type,

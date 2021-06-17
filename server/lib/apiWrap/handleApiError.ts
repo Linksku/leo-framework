@@ -1,31 +1,40 @@
 import { ValidationError, UniqueViolationError } from 'objection';
 
+import type { RouteRet } from 'services/ApiManager';
+
 export default function handleApiError(
-  res: ExpressResponse,
   err: Error,
   name: string,
-) {
+): {
+  status: number,
+  errorData: RouteRet<any>['error'],
+} {
   console.error(name, err);
 
-  const stack = process.env.NODE_ENV === 'production' ? null : err.stack?.split('\n');
+  const stack = process.env.NODE_ENV === 'production' ? undefined : err.stack?.split('\n');
   if (err instanceof ValidationError) {
-    res.status(400).json({
-      error: {
+    return {
+      status: 400,
+      errorData: {
         msg: err.message,
         stack,
       },
-    });
-  } else if (err instanceof UniqueViolationError) {
-    res.status(400).json({
-      error: {
+    };
+  }
+  if (err instanceof UniqueViolationError) {
+    return {
+      status: 400,
+      errorData: {
         title: `That ${err.constraint} already exists.`,
         msg: `That ${err.constraint} already exists.`,
         stack,
       },
-    });
-  } else if (err instanceof HandledError) {
-    res.status(err.status).json({
-      error: {
+    };
+  }
+  if (err instanceof HandledError) {
+    return {
+      status: err.status,
+      errorData: {
         title: err.message,
         msg: err.message || err.toString(),
         stack,
@@ -33,23 +42,25 @@ export default function handleApiError(
           ? null
           : err.debugDetails,
       },
-    });
-  } else if ('fatal' in err) {
-    res.status(503).json({
-      error: {
+    };
+  }
+  if ('fatal' in err) {
+    return {
+      status: 503,
+      errorData: {
         title: 'Database unavailable.',
         msg: 'Database unavailable.',
         stack,
       },
-    });
-  } else {
-    res.status(500).json({
-      error: {
-        msg: process.env.NODE_ENV === 'production'
-          ? 'Unknown error occurred.'
-          : err.message || err.toString(),
-        stack,
-      },
-    });
+    };
   }
+  return {
+    status: 500,
+    errorData: {
+      msg: process.env.NODE_ENV === 'production'
+        ? 'Unknown error occurred.'
+        : err.message || err.toString(),
+      stack,
+    },
+  };
 }

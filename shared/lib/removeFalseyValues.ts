@@ -1,16 +1,16 @@
 function removeFalseyValues<T extends ObjectOf<any>>(
   obj: T,
 ) {
-  const newObj = {};
-  for (const k of Object.keys(obj)) {
-    if (obj[k] !== null && typeof obj[k] !== 'undefined' && obj[k] !== false) {
-      newObj[k] = obj[k];
+  const newObj = {} as {
+    [P in keyof T]-?: Exclude<T[P], null | undefined | false>
+  };
+  for (const [k, v] of Object.entries(obj)) {
+    if (v !== null && typeof v !== 'undefined' && v !== false) {
+      newObj[k] = v;
     }
   }
 
-  return newObj as {
-    [P in keyof T]-?: Exclude<T[P], null | undefined | false>
-  };
+  return newObj;
 }
 
 export default removeFalseyValues;

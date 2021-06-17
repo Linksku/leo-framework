@@ -2,6 +2,22 @@ import removeFalseyValues from 'lib/removeFalseyValues';
 import promiseTimeout from 'lib/promiseTimeout';
 import { HOME_URL, HTTP_TIMEOUT } from 'settings';
 
+export function getErrorFromApiData(data: ObjectOf<any> | undefined): Error {
+  const err = new Error(
+    data?.error?.msg
+      || data?.error
+      || (typeof data === 'object' && JSON.stringify(data))
+      || data
+      || 'Unknown error occurred while fetching data.',
+  );
+  err.title = data?.error?.title;
+  err.status = data?.error?.status ?? 503;
+  if (data?.error?.stack) {
+    err.stack = data.error?.stack;
+  }
+  return err;
+}
+
 type FetcherOpts = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   authToken?: string | null,
@@ -47,10 +63,16 @@ async function _fetcher(
   request.headers = removeFalseyValues(request.headers);
 
   // Using Promises is half the size of async/await.
+  const timeoutErr = new Error('Fetch timed out.');
+  timeoutErr.status = 503;
   return promiseTimeout(
-    fetch(`${HOME_URL}${path}`, request),
+    fetch(`${HOME_URL}${path}`, request)
+      .catch(err => {
+        err.status = 503;
+        throw err;
+      }),
     HTTP_TIMEOUT,
-    'Fetch timed out.',
+    timeoutErr,
   )
     .then((res: Response) => {
       if (res.status === 204) {
@@ -67,19 +89,7 @@ async function _fetcher(
           }
 
           if (!res.ok || !data || data.error) {
-            const title = data?.error?.title;
-            const msg = data?.error?.msg
-              || data?.error
-              || (typeof data === 'object' && JSON.stringify(data))
-              || data
-              || res.statusText
-              || 'Unknown error occurred while fetching data.';
-            const err = new Error(msg);
-            err.title = title;
-            err.status = res.status;
-            if (data?.error?.stack) {
-              err.stack = data.error.stack;
-            }
+            const err = getErrorFromApiData(data);
             throw err;
           }
 

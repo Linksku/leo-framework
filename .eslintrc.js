@@ -329,7 +329,6 @@ module.exports = {
     'no-void': [2, { allowAsStatement: true }],
     'max-classes-per-file': 0,
     'no-use-before-define': 1,
-    'unicorn/numeric-separators-style': 1,
     'unicorn/prefer-array-flat-map': 1,
   },
   overrides: [

@@ -7,6 +7,8 @@ import { RESET_PASSWORD_HASH } from 'consts/coreUserMetaKeys';
 import BaseUser from 'models/core/BaseUser';
 import { APP_NAME, HOME_URL } from 'settings';
 import { DEFAULT_AUTH_EXPIRATION, USE_SECURE_COOKIES } from 'serverSettings';
+import UsersManager from 'services/UsersManager';
+import { MIN_USER_AGE, MAX_USER_AGE } from 'consts/users';
 
 const dataSchema = {
   type: 'object' as const,
@@ -56,6 +58,25 @@ defineApi(
     dataSchema,
   },
   async function registerUser({ email, password, name, birthday }, res) {
+    const diffYears = dayjs().diff(birthday, 'year', true);
+    if (diffYears < MIN_USER_AGE) {
+      throw new HandledError(`You must be at least ${MIN_USER_AGE} to join.`, 400);
+    }
+    if (diffYears > MAX_USER_AGE) {
+      throw new HandledError('Invalid age.', 400);
+    }
+
+    const invalidPasswordReason = UsersManager.getPasswordInvalidReason(password);
+    if (invalidPasswordReason) {
+      throw new HandledError(invalidPasswordReason, 400);
+    }
+
+    name = name.trim();
+    const nameInvalidReason = UsersManager.getNameInvalidReason(name);
+    if (nameInvalidReason) {
+      throw new HandledError(nameInvalidReason, 400);
+    }
+
     let userId: number;
     try {
       userId = await BaseUser.insert({ email, password, name, birthday });

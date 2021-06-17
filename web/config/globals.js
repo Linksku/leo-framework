@@ -37,6 +37,7 @@ const globals = {
   // Lib.
   EMPTY_ARR: ['./web/lib/emptyArr', 'default'],
   EMPTY_OBJ: ['./web/lib/emptyObj', 'default'],
+  hasOwnProperty: ['./shared/lib/hasOwnProperty', 'default'],
   markMemoed: ['./web/lib/markMemoed', 'default'],
   NOOP: ['./web/lib/noop', 'default'],
   pause: ['./shared/lib/pause', 'default'],

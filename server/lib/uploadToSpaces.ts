@@ -26,8 +26,8 @@ export default async function uploadToSpaces({
           Body: file,
         })
         .promise(),
-      10000,
-      'Uploading file timed out.',
+      10_000,
+      new Error('Uploading file timed out.'),
     );
 
     return uploaded.Location;

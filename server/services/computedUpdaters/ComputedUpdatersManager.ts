@@ -31,7 +31,6 @@ if (process.env.NODE_ENV !== 'production') {
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 queue.process(async job => {
   const { updater, startTime } = job.data;
-
   return computedUpdaters[updater].updateMulti(startTime);
 });
 

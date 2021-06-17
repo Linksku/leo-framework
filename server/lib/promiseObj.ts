@@ -1,12 +1,12 @@
 export default async function promiseObj<T>(
   obj: { [P in keyof T]: PromiseLike<T[P]> | T[P] },
 ) {
-  const keys = Object.keys(obj);
-  const results = await Promise.all(keys.map(k => obj[k]));
+  const keys = Object.keys(obj) as (keyof T)[];
+  const results = (await Promise.all(keys.map(k => obj[k]))) as ValueOf<T>[];
 
-  const newObj = {};
+  const newObj = {} as { [P in keyof T]: T[P] };
   for (const [i, k] of keys.entries()) {
     newObj[k] = results[i];
   }
-  return newObj as { [P in keyof T]: T[P] };
+  return newObj;
 }

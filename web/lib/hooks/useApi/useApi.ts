@@ -1,3 +1,4 @@
+import type { Revalidator, SWRConfiguration } from 'swr';
 import useSWR from 'swr';
 
 import useDeepMemoObj from 'lib/hooks/useDeepMemoObj';
@@ -85,7 +86,26 @@ function useApi<Name extends ApiName>(
     }),
     {
       focusThrottleInterval: 60 * 1000,
-      errorRetryInterval: 30 * 1000,
+      onErrorRetry: (
+        err: Error,
+        _,
+        config: SWRConfiguration,
+        revalidate: Revalidator,
+        { retryCount },
+      ) => {
+        if (!config.isDocumentVisible?.()) {
+          return;
+        }
+
+        if (err.status && err.status !== 503) {
+          return;
+        }
+
+        setTimeout(
+          async () => revalidate({ retryCount: retryCount + 1 }),
+          5000 * (2 ** Math.min(10, retryCount)),
+        );
+      },
     },
   );
 

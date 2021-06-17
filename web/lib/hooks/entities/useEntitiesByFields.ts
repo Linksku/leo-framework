@@ -1,75 +1,104 @@
-interface RetArr<T extends EntityType> {
-  [key: string]: Memoed<TypeToEntity<T>[]> | RetArr<T>;
+type ObjArr<T extends EntityType> = {
+  [k: string]: Memoed<TypeToEntity<T>[]> | ObjArr<T>;
 }
 
-interface RetSet<T extends EntityType> {
-  [key: string]: Memoed<Set<any>> | RetSet<T>;
+type ObjSet<T extends EntityType> = {
+  [k: string]: Memoed<Set<any>> | ObjSet<T>;
 }
 
-export type OptsWithoutSet = {
-  sortField?: string,
+export type OptsWithoutSet<T extends EntityType> = {
+  sortField?: keyof TypeToEntity<T>,
   sortDirection?: 'desc' | 'asc',
   fieldForSet?: never,
 };
 
-export type OptsWithSet = {
-  sortField?: string,
+export type OptsWithSet<T extends EntityType> = {
+  sortField?: keyof TypeToEntity<T>,
   sortDirection?: 'desc' | 'asc',
-  fieldForSet: string,
+  fieldForSet: keyof TypeToEntity<T>,
 };
 
-function useEntitiesByFields<T extends EntityType>(
-  type: T,
-  fields: Memoed<string[]>,
-  opts?: OptsWithoutSet,
-): Memoed<RetArr<T>>;
+type RetArr<
+  T extends EntityType,
+  Fields extends readonly any[]
+> = Fields extends readonly [any, ...infer R]
+  ? { [k: string]: RetArr<T, R> }
+  : Memoed<TypeToEntity<T>[]>;
 
-function useEntitiesByFields<T extends EntityType>(
-  type: T,
-  fields: Memoed<string[]>,
-  opts?: OptsWithSet,
-): Memoed<RetSet<T>>;
+type RetSet<
+  T extends EntityType,
+  Fields extends readonly any[]
+> = Fields extends readonly [any, ...infer R]
+  ? { [k: string]: RetSet<T, R> }
+  : Memoed<Set<any>>;
 
-function useEntitiesByFields<T extends EntityType>(
+function useEntitiesByFields<T extends EntityType, Fields extends readonly string[]>(
   type: T,
-  fields: Memoed<string[]>,
-  { sortField, sortDirection, fieldForSet }: OptsWithoutSet | OptsWithSet = {},
-) {
+  fields: Memoed<Fields>,
+  opts?: OptsWithoutSet<T>,
+): Memoed<RetArr<T, Fields>>;
+
+function useEntitiesByFields<T extends EntityType, Fields extends readonly string[]>(
+  type: T,
+  fields: Memoed<Fields>,
+  opts?: OptsWithSet<T>,
+): Memoed<RetSet<T, Fields>>;
+
+function useEntitiesByFields<
+  T extends EntityType,
+  Fields extends readonly(keyof TypeToEntity<T>)[]
+>(
+  type: T,
+  fields: Memoed<Fields>,
+  { sortField, sortDirection, fieldForSet }: OptsWithoutSet<T> | OptsWithSet<T> = {}) {
   const entities = useEntities(type);
   const entitiesByFields = useGlobalMemo(
     `useEntitiesByFields(${type}, ${fields.join(', ')})`,
     () => {
-      const obj = Object.create(null);
+      const obj = Object.create(null) as ObjArr<T> | ObjSet<T>;
       for (const e of Object.values(entities)) {
-        const obj2 = obj;
+        let obj2 = obj;
         for (const field of fields.slice(0, -1)) {
-          if (!obj2[e[field]]) {
-            obj2[e[field]] = Object.create(null);
+          const val = e[field] as unknown as string;
+          if (!obj2[val]) {
+            obj2[val] = Object.create(null);
+          }
+          obj2 = obj2[val] as ObjArr<T> | ObjSet<T>;
+        }
+
+        const lastField = fields[fields.length - 1];
+        const lastVal = e[lastField] as unknown as string;
+        if (fieldForSet) {
+          const tempSet = (obj2[lastVal] ?? new Set()) as Memoed<Set<any>>;
+          obj2[lastVal] = tempSet;
+          tempSet.add(e[fieldForSet]);
+        } else {
+          const tempArr = (obj2[lastVal] ?? []) as Memoed<TypeToEntity<T>[]>;
+          obj2[lastVal] = tempArr;
+          tempArr.push(e);
+        }
+      }
+
+      if (!fieldForSet && sortField) {
+        const multiplier = sortDirection === 'desc' ? -1 : 1;
+        const stack = [obj as ObjArr<T>];
+        while (stack.length) {
+          const obj2 = stack.shift();
+          if (Array.isArray(obj2)) {
+            obj2.sort((a, b) => (
+              a[sortField] > b[sortField]
+                ? multiplier
+                : -1 * multiplier
+            ));
+          } else if (obj2) {
+            for (const k of Object.keys(obj2)) {
+              stack.push(obj2[k] as ObjArr<T>);
+            }
           }
         }
-        const lastField = fields[fields.length - 1];
-        if (!obj[e[lastField]]) {
-          obj[e[lastField]] = [];
-        }
-        obj[e[lastField]].push(e);
       }
 
-      if (fieldForSet) {
-        for (const k of Object.keys(obj)) {
-          obj[k] = new Set(obj[k].map(e => e[fieldForSet]));
-        }
-      } else if (sortField) {
-        const multiplier = sortDirection === 'desc' ? -1 : 1;
-        for (const k of Object.keys(obj)) {
-          obj[k] = obj[k].sort((a, b) => (
-            a[sortField] > b[sortField]
-              ? multiplier
-              : -1 * multiplier
-          ));
-        }
-      }
-
-      return obj;
+      return obj as RetArr<T, Fields> | RetSet<T, Fields>;
     },
     [entities, fields],
   );

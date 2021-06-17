@@ -1,6 +1,4 @@
-const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
 
 const mergeReplaceArrays = require('./shared/lib/mergeReplaceArrays');
 const baseConfig = require('./webpack.web');
@@ -41,14 +39,6 @@ module.exports = mergeReplaceArrays(baseConfig, {
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
       chunkFilename: 'css/chunks/[name].css',
-    }),
-    new CopyPlugin({
-      patterns: [
-        {
-          from: path.resolve('./web/public'),
-          to: path.resolve('./build/web'),
-        },
-      ],
     }),
     // Limiting to 1 chunk is slower.
   ],

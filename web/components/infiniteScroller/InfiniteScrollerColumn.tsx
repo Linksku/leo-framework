@@ -249,7 +249,7 @@ export default function InfiniteScrollerColumn({
   const handleItemMount = useCallback((item: Item) => {
     ref.current.idToItem.set(item.id, item);
     ref.current.elemToId.set(item.elem, item.id);
-    ref.current.observer?.observe(item.elem);
+    ref.current.observer.observe(item.elem);
   }, []);
 
   const handleItemInnerLoad = useCallback((id, height: number | null) => {
@@ -265,7 +265,7 @@ export default function InfiniteScrollerColumn({
   const handleItemUnmount = useCallback((id: number) => {
     const item = ref.current.idToItem.get(id);
     if (item) {
-      ref.current.observer?.unobserve(item.elem);
+      ref.current.observer.unobserve(item.elem);
       ref.current.elemToId.delete(item.elem);
       ref.current.idToItem.delete(item.id);
     }

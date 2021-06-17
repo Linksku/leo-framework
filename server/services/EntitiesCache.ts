@@ -9,7 +9,7 @@ export type CachedEntity<T = Entity> = {
 
 const CACHE_EXPIRE_TIME = 60 * 1000;
 
-const lru = new QuickLRU<string, CachedEntity>({ maxSize: 10000 });
+const lru = new QuickLRU<string, CachedEntity>({ maxSize: 10_000 });
 
 PubSubManager.subscribe('invalidateEntityCache', (data: string) => {
   try {
@@ -22,7 +22,7 @@ PubSubManager.subscribe('invalidateEntityCache', (data: string) => {
 
 function getCacheKeyFromKV<T extends EntityModel>(
   Model: T,
-  key: string,
+  key: InstanceKeys<T>,
   val: string | number,
 ) : string {
   return `${Model.type}:${key}=${val}`;
@@ -30,20 +30,20 @@ function getCacheKeyFromKV<T extends EntityModel>(
 
 function getCacheKeyFromEntity<T extends EntityModel>(
   Model: T,
-  key: string | string[],
+  key: InstanceKeys<T> | (InstanceKeys<T>)[],
   obj: Partial<InstanceType<T>>,
 ) : string {
-  if (typeof key === 'string') {
-    return `${Model.type}:${key}=${obj[key]}`;
+  if (Array.isArray(key)) {
+    const pairs = key.map(k => `${k}=${obj[k]}`);
+    return `${Model.type}:${pairs.join(',')}`;
   }
-  const pairs = key.map(k => `${k}=${obj[k]}`);
-  return `${Model.type}:${pairs.join(',')}`;
+  return `${Model.type}:${key}=${obj[key]}`;
 }
 
 const EntitiesCache = {
   getCacheForKV<T extends EntityModel>(
     Model: T,
-    key: string,
+    key: InstanceKeys<T>,
     val: string | number,
   ): Promise<InstanceType<T> | null> | null {
     const cacheKey = getCacheKeyFromKV(Model, key, val);
@@ -58,12 +58,15 @@ const EntitiesCache = {
     Model: T,
     entity: Partial<InstanceType<T>>,
   ): Promise<InstanceType<T> | null> | null {
-    for (const key of Model.uniqueProperties) {
+    for (const key of Model.getUniqueProperties()) {
       let cacheKey;
-      if (typeof key === 'string' && entity[key]) {
-        cacheKey = getCacheKeyFromKV(Model, key, entity[key]);
-      } else if (Array.isArray(key) && key.every(k => entity[k])) {
-        cacheKey = getCacheKeyFromEntity(Model, key, entity);
+      const val = typeof key === 'string' && entity[key];
+      if (Array.isArray(key)) {
+        if (key.every(k => entity[k])) {
+          cacheKey = getCacheKeyFromEntity(Model, key, entity);
+        }
+      } else if (typeof val === 'string' || typeof val === 'number') {
+        cacheKey = getCacheKeyFromKV(Model, key, val);
       }
 
       if (cacheKey) {
@@ -79,7 +82,7 @@ const EntitiesCache = {
 
   setCacheForKV<T extends EntityModel>(
     Model: T,
-    key: string,
+    key: InstanceKeys<T>,
     val: string | number,
     promise: Promise<InstanceType<T> | null>,
   ): void {
@@ -100,7 +103,7 @@ const EntitiesCache = {
       promise,
       expires: Date.now() + CACHE_EXPIRE_TIME,
     };
-    for (const key of Model.uniqueProperties) {
+    for (const key of Model.getUniqueProperties()) {
       const cacheKey = getCacheKeyFromEntity(Model, key, entity);
       lru.set(cacheKey, cached);
     }
@@ -108,7 +111,7 @@ const EntitiesCache = {
 
   clearCacheForKV<T extends EntityModel>(
     Model: T,
-    key: string,
+    key: InstanceKeys<T>,
     val: string | number,
   ): void {
     lru.delete(getCacheKeyFromKV(Model, key, val));
@@ -118,7 +121,7 @@ const EntitiesCache = {
     Model: T,
     entity: Partial<InstanceType<T>>,
   ): void {
-    for (const key of Model.uniqueProperties) {
+    for (const key of Model.getUniqueProperties()) {
       const cacheKey = getCacheKeyFromEntity(Model, key, entity);
       lru.delete(cacheKey);
     }
@@ -129,7 +132,7 @@ const EntitiesCache = {
     obj: Partial<InstanceType<T>>,
   ): void {
     const cacheKeys = [] as string[];
-    for (const key of Model.uniqueProperties) {
+    for (const key of Model.getUniqueProperties()) {
       cacheKeys.push(getCacheKeyFromEntity(Model, key, obj));
     }
 

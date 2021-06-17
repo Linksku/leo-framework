@@ -1,5 +1,6 @@
 declare module '*.txt' {
-  export default string;
+  const content: string;
+  export default content;
 }
 
 type ObjectOf<T> = Record<string, T>;
@@ -13,7 +14,17 @@ type Nullish<T> = T | null | undefined;
 type EmptyObj = Record<string, never>;
 
 interface Object {
-  hasOwnProperty<K extends PropertyKey>(key: K): this is Record<K, unknown>;
+  hasOwnProperty<T extends ObjectOf<any>>(this: T, key: any): key is keyof T;
+}
+
+type _ObjectEntries<T extends ObjectOf<any>> = {
+  [K in keyof T]: [K, T[K]];
+}[keyof T][];
+
+interface ObjectConstructor {
+  entries<T extends ObjectOf<any>>(o: T): _ObjectEntries<{
+    [P in keyof T]-?: T[P];
+  }>;
 }
 
 type Primitive = string | number | boolean | null | undefined;
@@ -30,3 +41,5 @@ type RequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[k
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 type OptionalKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? K : never }[keyof T];
+
+type InstanceKeys<T extends new () => any> = keyof InstanceType<T> & string;

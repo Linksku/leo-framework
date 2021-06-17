@@ -13,13 +13,18 @@ function getDataLoader<T extends EntityModel>(
 ): DataLoader<any, InstanceType<T> | null> {
   if (!dataLoaders[Model.type]) {
     dataLoaders[Model.type] = new DataLoader(
-      async (kvPairs: readonly [string, string | number][]) => {
+      async (kvPairs: readonly [
+        InstanceKeys<T>,
+        InstanceType<T>[InstanceKeys<T>] & (string | number),
+      ][]) => {
         let query = Model.query();
         for (const pair of kvPairs) {
           query = query.orWhere(pair[0], pair[1]);
         }
-        const results = await query;
-        return kvPairs.map(pair => results.find(r => r[pair[0]] === pair[1]) || null);
+        const results = (await query) as InstanceType<T>[];
+        return kvPairs.map(
+          pair => results.find(r => r[pair[0]] === pair[1]) || null,
+        );
       },
       {
         maxBatchSize: 100,
@@ -32,14 +37,14 @@ function getDataLoader<T extends EntityModel>(
 
 function validateUniqueKV<T extends EntityModel>(
   Model: T,
-  key: string,
+  key: InstanceKeys<T>,
   val: string | number,
 ): void {
-  if (!Model.uniqueProperties.has(key)) {
+  if (!Model.getUniqueProperties().has(key)) {
     throw new Error(`validateUniqueKV: non-unique property: ${key}`);
   }
 
-  const type = Model.jsonSchema.properties[key]?.type;
+  const type: string = Model.jsonSchema.properties[key]?.type;
   if ((type === 'string' && typeof val !== 'string')
     || (['number', 'integer'].includes(type) && typeof val !== 'number')) {
     throw new Error(`validateUniqueKV: val (${val}: ${typeof val}) doesn't match schema (${type}).`);
@@ -49,7 +54,7 @@ function validateUniqueKV<T extends EntityModel>(
 export default class EntityLoader extends EntityDates {
   static async findOne<T extends EntityModel>(
     this: T,
-    key: string,
+    key: InstanceKeys<T>,
     val: Nullish<string | number>,
   ): Promise<InstanceType<T> | null> {
     if (!val) {
@@ -79,7 +84,8 @@ export default class EntityLoader extends EntityDates {
     obj: Partial<InstanceType<T>>,
   ): Promise<number> {
     let hasUniqueKey = false;
-    for (const key of this.uniqueProperties) {
+    const uniqueProperties = this.getUniqueProperties();
+    for (const key of uniqueProperties) {
       if (key !== 'id') {
         if (typeof key === 'string' && obj[key]) {
           hasUniqueKey = true;
@@ -95,11 +101,11 @@ export default class EntityLoader extends EntityDates {
       const cached = EntitiesCache.getCacheForEntity(this, obj);
       if (cached) {
         const entity = await cached;
-        const firstUniqueKey = [...this.uniqueProperties].find(p => p !== 'id');
+        const firstUniqueKey = [...uniqueProperties].find(p => p !== 'id');
         if (entity && firstUniqueKey) {
-          const duplicateColumns = typeof firstUniqueKey === 'string'
-            ? `${firstUniqueKey}=${entity[firstUniqueKey]}`
-            : firstUniqueKey.map(k => `${k}=${entity[k]}`).join(', ');
+          const duplicateColumns = Array.isArray(firstUniqueKey)
+            ? firstUniqueKey.map(k => `${k}=${entity[k]}`).join(', ')
+            : `${firstUniqueKey}=${entity[firstUniqueKey]}`;
           // @ts-ignore typings are wrong.
           throw new UniqueViolationError({
             nativeError: new Error(`Already have entity ${this.type} with ${duplicateColumns}`),
@@ -165,7 +171,7 @@ export default class EntityLoader extends EntityDates {
 
   static async patch<T extends EntityModel>(
     this: T,
-    key: string,
+    key: InstanceKeys<T>,
     val: string | number,
     obj: Partial<InstanceType<T>>,
   ): Promise<void> {
@@ -231,7 +237,7 @@ export default class EntityLoader extends EntityDates {
 
   static async delete<T extends EntityModel>(
     this: T,
-    key: string,
+    key: InstanceKeys<T>,
     val: string | number,
   ): Promise<void> {
     validateUniqueKV(this, key, val);

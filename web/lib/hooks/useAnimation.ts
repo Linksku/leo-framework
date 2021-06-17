@@ -9,14 +9,11 @@ export type AnimatedValueProps = {
   onComplete?: (val: number) => void,
 };
 
-export type PropsToStyle = {
+export type ValToStyle = Partial<{
   [k in keyof React.CSSProperties]: (x: number) => React.CSSProperties[k];
-};
+}>;
 
-export type AnimationStyle = (
-  animatedValue: AnimatedValue,
-  propsToStyle: PropsToStyle,
-) => React.CSSProperties;
+export type Style = Partial<React.CSSProperties>;
 
 // todo: low/mid change eventemitter to something lightweight
 export class AnimatedValue extends EventEmitter {
@@ -35,18 +32,23 @@ export class AnimatedValue extends EventEmitter {
   }
 }
 
-function getStyle(propsToStyle: PropsToStyle, value: number, duration: number) {
-  const keys = Object.keys(propsToStyle) as (keyof React.CSSProperties)[];
-  const style = {} as React.CSSProperties;
+function getStyle(valToStyle: ValToStyle, value: number, duration: number) {
+  const keys = Object.keys(valToStyle) as (keyof ValToStyle)[];
+  const style = {} as Style;
 
   if (keys.length) {
     style.transitionProperty = keys.map(k => styleDeclarationToCss(k)).join(',');
     style.transitionDuration = `${duration}ms`;
     style.transitionTimingFunction = 'ease-out';
   }
-  for (const k of Object.keys(propsToStyle)) {
-    style[k] = propsToStyle[k](value);
-  }
+
+  // eslint-disable-next-line unicorn/no-array-for-each
+  Object.entries(valToStyle).forEach(<T extends keyof React.CSSProperties>([k, v]: [
+    T,
+    (x: number) => React.CSSProperties[T],
+  ]) => {
+    style[k] = v(value);
+  });
 
   return style;
 }
@@ -80,41 +82,49 @@ export function useAnimation<T extends HTMLElement>() {
   const ref = useRef({
     hasInit: false,
     animatedValue: null as AnimatedValue | null,
-    propsToStyle: null as PropsToStyle | null,
+    valToStyle: null as ValToStyle | null,
     hadFirstTransition: false,
   });
 
   const cb = useCallback((value: number, duration: number) => {
-    if (!animationRef.current || !ref.current.propsToStyle || !ref.current.animatedValue) {
+    if (!animationRef.current || !ref.current.valToStyle || !ref.current.animatedValue) {
       return;
     }
 
     if (!ref.current.hadFirstTransition) {
       // Force repaint.
+      // eslint-disable-next-line no-unused-expressions
       animationRef.current.scrollTop;
       ref.current.hadFirstTransition = true;
     }
 
     const style = getStyle(
-      ref.current.propsToStyle,
+      ref.current.valToStyle,
       ref.current.animatedValue.value,
       duration,
     );
-    for (const k of Object.keys(style)) {
-      animationRef.current.style[k] = style[k];
+    for (const [k, v] of Object.entries(style)) {
+      animationRef.current.style.setProperty(k, v.toString());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const animationStyle: AnimationStyle = useCallback((animatedValue, propsToStyle) => {
+  const animationStyle = useCallback((
+    animatedValue: AnimatedValue,
+    valToStyle: ValToStyle,
+  ) => {
     if (!ref.current.hasInit) {
       ref.current.hasInit = true;
       animatedValue.on('setValue', cb);
 
       ref.current.animatedValue = animatedValue;
-      ref.current.propsToStyle = propsToStyle;
+      ref.current.valToStyle = valToStyle;
     }
-    return getStyle(propsToStyle, animatedValue.value, animatedValue.duration);
+    return getStyle(
+      valToStyle,
+      animatedValue.value,
+      animatedValue.duration,
+    ) as Partial<React.CSSProperties>;
   }, [cb]);
 
   useEffect(

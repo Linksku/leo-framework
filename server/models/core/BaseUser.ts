@@ -18,7 +18,7 @@ export default class BaseUser extends Entity {
     additionalProperties: false,
   };
 
-  static uniqueProperties = new Set(['id', 'email']);
+  protected static uniqueProperties = new Set(['id', 'email']);
 
   birthday!: string;
   email!: string;

@@ -57,10 +57,10 @@ const SseConnectionsManager = {
     if (timer) {
       clearTimeout(timer);
     }
-    timer = setTimeout(SseConnectionsManager.sendHeartbeat, 10000);
+    timer = setTimeout(SseConnectionsManager.sendHeartbeat, 10_000);
   },
 };
 
-timer = setTimeout(SseConnectionsManager.sendHeartbeat, 10000);
+timer = setTimeout(SseConnectionsManager.sendHeartbeat, 10_000);
 
 export default SseConnectionsManager;

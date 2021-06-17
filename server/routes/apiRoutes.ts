@@ -8,6 +8,7 @@ import { fetchUserIdByJwt } from 'lib/authHelpers';
 import './api/authApis';
 import './api/batchedApi';
 import './api/notifsApi';
+import './api/reportsApis';
 import './api/sseApis';
 import '../../src/server/config/apis';
 

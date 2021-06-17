@@ -1,7 +1,7 @@
 {
-  "name": "Campus",
-  "short_name": "Campus",
-  "start_url": "/",
+  "name": "%APP_NAME%",
+  "short_name": "%APP_NAME%",
+  "start_url": "/%BASE_PATH%",
   "icons": [],
   "theme_color": "#2196f3",
   "background_color": "#FFFFFF",

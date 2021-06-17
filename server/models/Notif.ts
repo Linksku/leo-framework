@@ -21,7 +21,7 @@ export default class Notif extends Entity {
     return ['params'];
   }
 
-  static uniqueProperties = new Set(['id']);
+  protected static uniqueProperties = new Set(['id']);
 
   notifType!: string;
   userId!: number;

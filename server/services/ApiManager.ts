@@ -5,6 +5,12 @@ import ajv from 'lib/ajv';
 // todo: low/hard conditionally mark meta as optional https://stackoverflow.com/questions/64703742/
 export type RouteRet<Name extends ApiName> = {
   data: ApiNameToData[Name] | null,
+  error?: {
+    title?: string,
+    msg: string,
+    stack?: string[],
+    debugDetails?: any,
+  },
   entities?: Nullish<Entity>[] | Nullish<Entity>,
   deletedIds?: ObjectOf<number[]>,
 };
@@ -43,6 +49,7 @@ export type Api<Name extends ApiName> = {
 export const apis = [] as Api<any>[];
 export const nameToApi = {} as ObjectOf<Api<any>>;
 
+// todo: high/hard rate limit apis
 export function defineApi<Name extends ApiName>(
   config: ApiConfig<Name>,
   handler: (

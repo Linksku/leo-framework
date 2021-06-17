@@ -26,7 +26,7 @@ export default function lazyComponent<P>(
     useEffect(() => {
       mountedRef.current = true;
       if (Component) {
-        return () => {};
+        return NOOP;
       }
 
       const promise = process.env.NODE_ENV === 'production'

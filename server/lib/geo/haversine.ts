@@ -29,7 +29,7 @@ export default function haversine(
   let finalDistance = RADIUS_OF_EARTH_IN_KM * c;
 
   if (isMiles) {
-    finalDistance /= 1.60934;
+    finalDistance /= 1.609_34;
   }
 
   return finalDistance;

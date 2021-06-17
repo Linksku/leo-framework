@@ -24,7 +24,7 @@ export default function useGeolocation({
         });
       }
     },
-    { timeout: 10000 },
+    { timeout: 10_000 },
   );
 
   const handleError = (error: GeolocationPositionError) => {

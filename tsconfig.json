@@ -16,7 +16,7 @@
     "strictNullChecks": true,
     "resolveJsonModule": true,
     "types": ["node"],
-    "jsx": "react"
+    "jsx": "react",
   },
   "include": [
     ".",

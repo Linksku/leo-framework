@@ -39,7 +39,7 @@ declare function useMemo<T extends any>(
 
 declare function useState<S>(
   initialState: S | (() => S),
-): [Memoed<S>, Memoed<Dispatch<SetStateAction<S>>>];
+): [Memoed<S>, Memoed<SetState<S>>];
 
 declare function useEffect(
   effect: React.EffectCallback,

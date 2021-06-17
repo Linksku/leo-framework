@@ -1,5 +1,6 @@
 import StackWrapInner from 'components/frame/StackWrapInner';
 import HookFormErrors from 'components/HookFormErrors';
+import { MIN_USER_AGE, MAX_USER_AGE } from 'consts/users';
 
 import styles from './RegisterRouteStyles.scss';
 
@@ -97,10 +98,10 @@ function RegisterRoute() {
             required: 'Birthday is required.',
             validate(date) {
               const diffYears = dayjs().diff(date, 'year', true);
-              if (diffYears < 13) {
-                return 'You must be at least 13 to join.';
+              if (diffYears < MIN_USER_AGE) {
+                return `You must be at least ${MIN_USER_AGE} to join.`;
               }
-              if (diffYears > 100) {
+              if (diffYears > MAX_USER_AGE) {
                 return 'Invalid age.';
               }
               return true;

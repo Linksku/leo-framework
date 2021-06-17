@@ -50,7 +50,8 @@ export default function apiWrap<Name extends ApiName>(
 
       res.json(processApiRet<Name>(ret));
     } catch (err) {
-      handleApiError(res, err, api.config.name);
+      const { status, errorData } = handleApiError(err, api.config.name);
+      res.status(status).json(errorData);
     }
   };
 }
