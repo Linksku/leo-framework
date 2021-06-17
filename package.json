@@ -6,7 +6,7 @@
   "scripts": {
     "postinstall": "patch-package",
     "prepare": "husky install",
-    "src": "yarn --cwd src --modules-folder ../node_modules",
+    "src": "scripts/yarn-src.sh",
     "clean": "rm -rf build/* && rm -rf node_modules/.build && rm -rf node_modules/.cache && rm -f .eslintcache",
     "watch": "webpack -w --config webpack.web.dev.js",
     "watch-server": "mkdir build/server && touch build/server/main.js && npx concurrently --kill-others \"webpack -w --config webpack.server.dev.js\" \"TZ=UTC nodemon --inspect build/server/main.js --watch build/server/ --delay 2\"",
