@@ -1,7 +1,12 @@
 type ApiResponse<Name extends typeof ApiNameToData> = {
-  entities: SerializedEntity | SerializedEntity[],
   data: ApiNameToData[Name],
-  deletedIds: {
+  entities: SerializedEntity[],
+  deletedIds?: {
     [T in EntityType]?: number[];
   },
+  meta?: ObjectOf<{
+    dateProps?: {
+      [T in EntityType]?: string[];
+    },
+  }>,
 };

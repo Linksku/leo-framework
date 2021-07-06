@@ -1,8 +1,7 @@
 import Bull from 'bull';
 
+import computedUpdaters from 'config/computedUpdaters';
 import type BaseComputedUpdater from './BaseComputedUpdater';
-
-import computedUpdaters from '../../../src/server/config/computedUpdaters';
 
 const TRIGGERED_UPDATES: ObjectOf<string[]> = {};
 for (const k of Object.keys(computedUpdaters)) {
@@ -31,6 +30,7 @@ if (process.env.NODE_ENV !== 'production') {
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 queue.process(async job => {
   const { updater, startTime } = job.data;
+  // todo: mid/easy log Bull errors
   return computedUpdaters[updater].updateMulti(startTime);
 });
 

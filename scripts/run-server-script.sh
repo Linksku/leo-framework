@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -o allexport; source src/env; set +o allexport
+
 name=$1
 shift
 if [ -f "build/server/$name.js" ]; then

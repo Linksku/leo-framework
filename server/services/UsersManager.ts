@@ -20,7 +20,7 @@ const UsersManager = {
       return 'Name contains invalid characters.';
     }
     const words = tokenizeString(name);
-    if (!isNameInappropriate(words) || !isNameForbidden(words)) {
+    if (isNameInappropriate(words) || isNameForbidden(words)) {
       return 'Name isn\'t allowed.';
     }
 

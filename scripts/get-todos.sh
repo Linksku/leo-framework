@@ -1,4 +1,5 @@
 #!/bin/bash
+
 if [ "$1" = "high" ]; then
   search='todo: high'
 elif [ "$1" = "mid" ]; then

@@ -40,3 +40,9 @@ yarn src
 ## Deploying to Prod ##
 
 1. Run `yarn deploy`.
+
+## Building Mobile ##
+
+1. Run `npx cap add android` or `npx cap add ios`.
+
+2. Continue in Android Studio or XCode.

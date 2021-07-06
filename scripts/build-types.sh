@@ -1,3 +1,7 @@
+#!/bin/bash
+
+set -o allexport; source src/env; set +o allexport
+
 npx concurrently \
   "node scripts/build-global-types web/config/globals.js src/web/types/generated/globals.d.ts" \
   "node scripts/build-global-types src/web/config/globals.js src/web/types/generated/globalsSrc.d.ts" \

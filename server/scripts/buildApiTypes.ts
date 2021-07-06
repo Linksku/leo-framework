@@ -1,10 +1,11 @@
+import type { JSONSchema4 } from 'json-schema';
 import { compile } from 'json-schema-to-typescript';
 import { promises as fs } from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
 
 import 'routes/apiRoutes';
-import '../../src/server/config/apis';
+import 'config/apis';
 import { apis } from 'services/ApiManager';
 
 export default async function buildApiTypes() {
@@ -14,7 +15,7 @@ export default async function buildApiTypes() {
   for (const api of apis) {
     if (api.config.paramsSchema) {
       const fields = await compile(
-        api.config.paramsSchema,
+        api.config.paramsSchema as JSONSchema4,
         'Foo',
         {
           bannerComment: '',
@@ -29,7 +30,7 @@ ${fields.split('\n').slice(1, -2).join('\n').replace(/"/g, '\'')}
 
     if (api.config.dataSchema) {
       const fields = await compile(
-        api.config.dataSchema,
+        api.config.dataSchema as JSONSchema4,
         'Foo',
         {
           bannerComment: '',

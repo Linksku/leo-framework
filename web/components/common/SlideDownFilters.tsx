@@ -20,6 +20,7 @@ type Props<T> = {
   optionsClassName?: string,
 };
 
+// todo: low/mid maybe move state to parent of slidedownfilters
 export default function SlideDownFilters<T extends ObjectOf<string>>({
   filters,
   defaultOptions,

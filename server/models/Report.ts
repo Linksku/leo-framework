@@ -1,4 +1,4 @@
-export default class Report extends Entity {
+export default class Report extends Entity implements IReport {
   static type = 'report' as const;
   static tableName = 'reports' as const;
 
@@ -10,7 +10,7 @@ export default class Report extends Entity {
       reporterId: SchemaConstants.id,
       entityType: SchemaConstants.name,
       entityId: SchemaConstants.id,
-      time: SchemaConstants.datetime,
+      time: SchemaConstants.datetimeDefaultNow,
     },
     additionalProperties: false,
   };
@@ -20,7 +20,7 @@ export default class Report extends Entity {
       reporter: {
         relation: Model.BelongsToOneRelation,
         // eslint-disable-next-line global-require
-        modelClass: require('../../src/server/config/userModel').default,
+        modelClass: require('config/userModel').default,
         join: {
           from: 'reports.reporterId',
           to: 'users.id',
@@ -29,9 +29,10 @@ export default class Report extends Entity {
     };
   }
 
+  type = 'report' as const;
   reporterId!: number;
   entityType!: string;
   entityId!: number;
-  time!: Date | InstanceType<typeof dayjs.Dayjs>;
+  time!: Date;
   reporter!: User;
 }

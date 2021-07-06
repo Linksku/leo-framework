@@ -1,4 +1,5 @@
 import fetcher, { getErrorFromApiData } from 'lib/fetcher';
+import { API_URL } from 'settings';
 import type { OnFetchType, OnErrorType } from './useApiTypes';
 
 interface BatchedRequest<Name extends ApiName> {
@@ -37,7 +38,7 @@ async function fetchBatchedRequest() {
     }[];
     if (curBatched.length === 1) {
       response = await fetcher.get(
-        `/api/${name}`,
+        `${API_URL}/api/${name}`,
         {
           params: JSON.stringify(params),
         },
@@ -49,7 +50,7 @@ async function fetchBatchedRequest() {
       }];
     } else {
       response = await fetcher.get(
-        '/api/batched',
+        `${API_URL}/api/batched`,
         {
           params: JSON.stringify({
             apis: curBatched.map(b => ({
@@ -86,7 +87,7 @@ async function fetchBatchedRequest() {
       }
     }
   } catch (err) {
-    console.error(err);
+    ErrorLogger.warning(err, `queueBatchedRequest: ${curBatched.map(v => v.name).join(',')} failed`);
 
     batchedUpdates(() => {
       for (const b of curBatched) {

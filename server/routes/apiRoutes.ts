@@ -1,4 +1,5 @@
 import type { NextFunction } from 'express';
+import type { RouteRet } from 'services/ApiManager';
 import multer from 'multer';
 
 import { apis } from 'services/ApiManager';
@@ -10,7 +11,7 @@ import './api/batchedApi';
 import './api/notifsApi';
 import './api/reportsApis';
 import './api/sseApis';
-import '../../src/server/config/apis';
+import 'config/apis';
 
 const upload = multer({ dest: '/tmp' });
 
@@ -32,10 +33,12 @@ async function requireAuthMiddleware(
 ) {
   if (typeof req.currentUserId !== 'number' || req.currentUserId <= 0) {
     res.status(401).json({
+      status: 401,
+      data: null,
       error: {
-        title: 'Not authenticated',
+        msg: 'Not authenticated',
       },
-    });
+    } as RouteRet<any>);
   } else {
     next();
   }

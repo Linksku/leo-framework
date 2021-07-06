@@ -24,9 +24,9 @@ const [
     const pathParts = curState.path.slice(1).split('/');
     const prevPathParts = prevState ? prevState.path.slice(1).split('/') : null;
     ref.current.isHome = pathParts[0] === ''
-      || Object.prototype.hasOwnProperty.call(HOME_TABS, pathParts[0].toUpperCase());
+      || hasOwnProperty(HOME_TABS, pathParts[0].toUpperCase());
     ref.current.wasHome = !!prevPathParts && (prevPathParts[0] === ''
-      || Object.prototype.hasOwnProperty.call(HOME_TABS, prevPathParts[0].toUpperCase()));
+      || hasOwnProperty(HOME_TABS, prevPathParts[0].toUpperCase()));
 
     if (ref.current.isHome) {
       stackBot = curState;

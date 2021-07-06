@@ -1,8 +1,8 @@
-import type { AnimatedValue, AnimationStyle } from 'lib/hooks/useAnimation';
+import type { AnimatedValue, ValToStyle, Style } from 'lib/hooks/useAnimation';
 
 import useSwipeNavigation from 'lib/hooks/useSwipeNavigation';
 import { useHomeRouteStore } from 'stores/routes/HomeRouteStore';
-import { HomeSidebarInner } from '../../../src/web/config/homeComponents';
+import { HomeSidebarInner } from 'config/homeComponents';
 
 import styles from './HomeSidebarStyles.scss';
 
@@ -10,9 +10,9 @@ type Props = {
   sidebarPercent: AnimatedValue,
   setSidebarPercent: Memoed<(percent: number) => void>,
   sidebarRef: React.MutableRefObject<HTMLDivElement | null>,
-  sidebarStyle: AnimationStyle,
+  sidebarStyle: Memoed<(animatedValue: AnimatedValue, valToStyle: ValToStyle) => Style>,
   dialogRef: React.MutableRefObject<HTMLDivElement | null>,
-  dialogStyle: AnimationStyle,
+  dialogStyle: Memoed<(animatedValue: AnimatedValue, valToStyle: ValToStyle) => Style>,
 };
 
 function HomeSidebar({

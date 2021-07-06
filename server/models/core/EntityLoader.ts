@@ -14,8 +14,8 @@ function getDataLoader<T extends EntityModel>(
   if (!dataLoaders[Model.type]) {
     dataLoaders[Model.type] = new DataLoader(
       async (kvPairs: readonly [
-        InstanceKeys<T>,
-        InstanceType<T>[InstanceKeys<T>] & (string | number),
+        InstanceKey<T>,
+        InstanceType<T>[InstanceKey<T>] & (string | number),
       ][]) => {
         let query = Model.query();
         for (const pair of kvPairs) {
@@ -37,16 +37,16 @@ function getDataLoader<T extends EntityModel>(
 
 function validateUniqueKV<T extends EntityModel>(
   Model: T,
-  key: InstanceKeys<T>,
+  key: InstanceKey<T>,
   val: string | number,
 ): void {
   if (!Model.getUniqueProperties().has(key)) {
     throw new Error(`validateUniqueKV: non-unique property: ${key}`);
   }
 
-  const type: string = Model.jsonSchema.properties[key]?.type;
+  const type = Model.jsonSchema.properties[key]?.type;
   if ((type === 'string' && typeof val !== 'string')
-    || (['number', 'integer'].includes(type) && typeof val !== 'number')) {
+    || ((type === 'number' || type === 'integer') && typeof val !== 'number')) {
     throw new Error(`validateUniqueKV: val (${val}: ${typeof val}) doesn't match schema (${type}).`);
   }
 }
@@ -54,7 +54,7 @@ function validateUniqueKV<T extends EntityModel>(
 export default class EntityLoader extends EntityDates {
   static async findOne<T extends EntityModel>(
     this: T,
-    key: InstanceKeys<T>,
+    key: InstanceKey<T>,
     val: Nullish<string | number>,
   ): Promise<InstanceType<T> | null> {
     if (!val) {
@@ -171,7 +171,7 @@ export default class EntityLoader extends EntityDates {
 
   static async patch<T extends EntityModel>(
     this: T,
-    key: InstanceKeys<T>,
+    key: InstanceKey<T>,
     val: string | number,
     obj: Partial<InstanceType<T>>,
   ): Promise<void> {
@@ -237,7 +237,7 @@ export default class EntityLoader extends EntityDates {
 
   static async delete<T extends EntityModel>(
     this: T,
-    key: InstanceKeys<T>,
+    key: InstanceKey<T>,
     val: string | number,
   ): Promise<void> {
     validateUniqueKV(this, key, val);

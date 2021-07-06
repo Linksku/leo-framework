@@ -5,8 +5,8 @@ import { getCookieJwt, getHeaderJwt, isPasswordValid } from 'lib/authHelpers';
 import sendEmail from 'lib/sendEmail';
 import { RESET_PASSWORD_HASH } from 'consts/coreUserMetaKeys';
 import BaseUser from 'models/core/BaseUser';
-import { APP_NAME, HOME_URL } from 'settings';
-import { DEFAULT_AUTH_EXPIRATION, USE_SECURE_COOKIES } from 'serverSettings';
+import { APP_NAME, HOME_URL, DOMAIN_NAME } from 'settings';
+import { DEFAULT_AUTH_EXPIRATION } from 'serverSettings';
 import UsersManager from 'services/UsersManager';
 import { MIN_USER_AGE, MAX_USER_AGE } from 'consts/users';
 
@@ -29,7 +29,13 @@ async function _sendAuthToken(userId: number, res: ExpressResponse) {
   res.cookie('authToken', cookieJwt, {
     maxAge: DEFAULT_AUTH_EXPIRATION,
     httpOnly: true,
-    secure: USE_SECURE_COOKIES,
+    ...(process.env.SERVER === 'production'
+      ? {
+        secure: true,
+        sameSite: 'none',
+        domain: `.${DOMAIN_NAME}`,
+      }
+      : null),
   });
   return {
     entities: [],
@@ -79,7 +85,12 @@ defineApi(
 
     let userId: number;
     try {
-      userId = await BaseUser.insert({ email, password, name, birthday });
+      userId = await BaseUser.insert({
+        email,
+        password,
+        name,
+        birthday: new Date(birthday),
+      });
     } catch (err) {
       if (err.name === 'UniqueViolationError'
         && (err.constraint === 'email' || err.constraint === 'users.email')) {

@@ -22,7 +22,7 @@ PubSubManager.subscribe('invalidateEntityCache', (data: string) => {
 
 function getCacheKeyFromKV<T extends EntityModel>(
   Model: T,
-  key: InstanceKeys<T>,
+  key: InstanceKey<T>,
   val: string | number,
 ) : string {
   return `${Model.type}:${key}=${val}`;
@@ -30,7 +30,7 @@ function getCacheKeyFromKV<T extends EntityModel>(
 
 function getCacheKeyFromEntity<T extends EntityModel>(
   Model: T,
-  key: InstanceKeys<T> | (InstanceKeys<T>)[],
+  key: InstanceKey<T> | (InstanceKey<T>)[],
   obj: Partial<InstanceType<T>>,
 ) : string {
   if (Array.isArray(key)) {
@@ -43,7 +43,7 @@ function getCacheKeyFromEntity<T extends EntityModel>(
 const EntitiesCache = {
   getCacheForKV<T extends EntityModel>(
     Model: T,
-    key: InstanceKeys<T>,
+    key: InstanceKey<T>,
     val: string | number,
   ): Promise<InstanceType<T> | null> | null {
     const cacheKey = getCacheKeyFromKV(Model, key, val);
@@ -59,7 +59,7 @@ const EntitiesCache = {
     entity: Partial<InstanceType<T>>,
   ): Promise<InstanceType<T> | null> | null {
     for (const key of Model.getUniqueProperties()) {
-      let cacheKey;
+      let cacheKey: string | undefined;
       const val = typeof key === 'string' && entity[key];
       if (Array.isArray(key)) {
         if (key.every(k => entity[k])) {
@@ -82,7 +82,7 @@ const EntitiesCache = {
 
   setCacheForKV<T extends EntityModel>(
     Model: T,
-    key: InstanceKeys<T>,
+    key: InstanceKey<T>,
     val: string | number,
     promise: Promise<InstanceType<T> | null>,
   ): void {
@@ -111,7 +111,7 @@ const EntitiesCache = {
 
   clearCacheForKV<T extends EntityModel>(
     Model: T,
-    key: InstanceKeys<T>,
+    key: InstanceKey<T>,
     val: string | number,
   ): void {
     lru.delete(getCacheKeyFromKV(Model, key, val));

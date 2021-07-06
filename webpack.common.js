@@ -2,8 +2,6 @@ const path = require('path');
 const childProcess = require('child_process');
 const webpack = require('webpack');
 
-const { ASSETS_URL } = require('./shared/settings');
-
 const ROOT = path.resolve('.');
 const WEB_ROOT = path.resolve('./web');
 const WEB_SRC_ROOT = path.resolve('./src/web');
@@ -12,31 +10,24 @@ const SERVER_SRC_ROOT = path.resolve('./src/server');
 
 const ENV_KEYS = [
   'SERVER',
-  'REMOTE_SERVER_IP',
-  'REMOTE_ROOT_DIR',
-  'MYSQL_DB',
-  'MYSQL_HOST',
-  'MYSQL_USER',
-  'NOREPLY_EMAIL',
-  'MOBILE_APP_ID',
-  'APP_NAME',
-  'APP_NAME_SLUG',
-  'USE_SSL',
   'DOMAIN_NAME',
   'PORT',
   'BASE_PATH',
+  'TZ',
+  'MYSQL_DB',
+  'NOREPLY_EMAIL',
+  'MOBILE_APP_ID',
+  'APP_NAME',
+  'APP_NAME_LOWER',
   'FB_APP_ID',
   'GA_ID',
+  'SENTRY_DSN_WEB',
+  'SENTRY_DSN_SERVER',
 ];
 
 // todo: mid/hard memory usage.
 module.exports = {
   mode: 'development',
-  output: {
-    publicPath: `${ASSETS_URL}/`,
-    filename: 'js/[name].js',
-    chunkFilename: `js/chunks/[name].js`,
-  },
   module: {
     rules: [
       {
@@ -130,7 +121,7 @@ module.exports = {
   plugins: [
     new webpack.EnvironmentPlugin({
       JS_VERSION: Number.parseInt(
-        (childProcess.execSync('cd src; git rev-list --count master; cd ..').toString()).trim(),
+        (childProcess.execSync('git rev-list --count master').toString()).trim(),
         10,
       ),
       SCRIPT_PATH: process.env.SCRIPT_PATH || '',

@@ -1,8 +1,6 @@
 import ExclamationSvg from '@fortawesome/fontawesome-free/svgs/solid/exclamation-circle.svg';
 
-import styles from './SlideUpReportListItemStyles.scss';
-
-export default function SlideUpReportListItem({
+export default function PostSlideUpReportListItem({
   entityType,
   entityId,
 }: {
@@ -25,8 +23,9 @@ export default function SlideUpReportListItem({
   );
   return (
     <div
-      className={styles.listItem}
-      onClick={async () => fetchApi()}
+      onClick={() => {
+        void fetchApi();
+      }}
       role="button"
       tabIndex={-1}
     >

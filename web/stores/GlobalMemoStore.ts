@@ -22,7 +22,9 @@ function useGlobalMemo<T>(
   // todo: mid/mid warn if triggered too often
   if (process.env.NODE_ENV !== 'production'
     && !key.startsWith('use')
-    && !/^[A-Z]/.test(key)) {
+    && !/^[A-Z]/.test(key)
+    && !key.includes(':')
+    && !key.includes('.')) {
     throw new Error('useGlobalMemo: key must contain hook or component name');
   }
   const allVals = useGlobalMemoStore();

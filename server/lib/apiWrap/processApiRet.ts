@@ -1,5 +1,9 @@
+import pickBy from 'lodash/pickBy';
+
 import type { RouteRet } from 'services/ApiManager';
 import removeFalseyValues from 'lib/removeFalseyValues';
+import entityTypeToModel from 'lib/entityTypeToModel';
+import { isPropDate } from 'models/core/EntityDates';
 
 function _filterDuplicates(entities: SerializedEntity[]) {
   const uniqs = new Set<string>();
@@ -16,9 +20,7 @@ function _filterDuplicates(entities: SerializedEntity[]) {
 // entity or entities => entities
 function _normalizeEntities(
   rawEntities: Entity[],
-): {
-  entities: SerializedEntity[],
-} {
+): SerializedEntity[] {
   const entities: SerializedEntity[] = rawEntities.map(e => e.toJSON());
   const included = [] as SerializedEntity[];
   function extractIncluded(data: any): data is SerializedEntity {
@@ -52,9 +54,26 @@ function _normalizeEntities(
     // @ts-ignore ignore type being overwritten
     uniqEntities = uniqEntities.map(e => ({ type: e.type, ...e }));
   }
-  return {
-    entities: uniqEntities,
-  };
+  return uniqEntities;
+}
+
+function _getDateProps(entities: SerializedEntity[]): ObjectOf<string[]> {
+  const dateProps: ObjectOf<string[]> = {};
+  for (const e of entities) {
+    if (dateProps[e.type]) {
+      continue;
+    }
+    dateProps[e.type] = [];
+
+    const { jsonSchema } = entityTypeToModel[e.type];
+    for (const k of Object.keys(jsonSchema.properties)) {
+      if (isPropDate(jsonSchema, k)) {
+        dateProps[e.type].push(k);
+      }
+    }
+  }
+
+  return pickBy(dateProps, arr => arr.length);
 }
 
 export default function processApiRet<Path extends ApiName>({
@@ -77,10 +96,18 @@ export default function processApiRet<Path extends ApiName>({
   if (!entitiesFiltered.every(d => d instanceof Entity)) {
     throw new HandledError('Api didn\'t return entities.', 500);
   }
+  const normalizedEntities = _normalizeEntities(entitiesFiltered);
+  const dateProps = _getDateProps(normalizedEntities);
 
-  return {
-    ..._normalizeEntities(entitiesFiltered),
-    data: removeFalseyValues(data ?? {}),
+  const ret: RouteRet<Path> = {
+    entities: normalizedEntities,
+    data: removeFalseyValues(data ?? {}) as ApiNameToData[Path],
     deletedIds,
   };
+  if (Object.keys(dateProps).length) {
+    ret.meta = {
+      dateProps,
+    };
+  }
+  return ret;
 }

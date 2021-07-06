@@ -27,7 +27,7 @@ function LoginRoute() {
     },
   );
 
-  // todo: high/mid google/fb login
+  // todo: high/hard google/fb login
   return (
     <StackWrapInner title="Login">
       <div className={styles.container}>

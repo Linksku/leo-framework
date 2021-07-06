@@ -1,4 +1,4 @@
-import type { Api } from 'services/ApiManager';
+import type { Api, RouteRet } from 'services/ApiManager';
 import processApiRet from './processApiRet';
 import handleApiError from './handleApiError';
 import validateApiData from './validateApiData';
@@ -51,7 +51,11 @@ export default function apiWrap<Name extends ApiName>(
       res.json(processApiRet<Name>(ret));
     } catch (err) {
       const { status, errorData } = handleApiError(err, api.config.name);
-      res.status(status).json(errorData);
+      res.status(status).json({
+        status,
+        data: null,
+        error: errorData,
+      } as RouteRet<Name>);
     }
   };
 }

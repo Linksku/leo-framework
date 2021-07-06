@@ -69,12 +69,12 @@ const [
         try {
           data = JSON.parse(msg.data);
         } catch {
-          console.error('Invalid SSE data:', msg);
+          ErrorLogger.warning(new Error('Can\'t parse SSE data'), msg.data.slice(0, 200));
           return;
         }
 
         if (!data.type || !data.entities) {
-          console.error('Invalid SSE data:', msg);
+          ErrorLogger.warning(new Error('Invalid SSE data'), data.slice(0, 200));
           return;
         }
 
@@ -86,8 +86,8 @@ const [
         ref.current.isEventSourceOpen = true;
       });
 
-      source.addEventListener('error', err => {
-        console.error(err);
+      source.addEventListener('error', e => {
+        ErrorLogger.warning((e as ErrorEvent).error, 'SseStore: error event');
         ref.current.isEventSourceOpen = false;
 
         updateEventSource();

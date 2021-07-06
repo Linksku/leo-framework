@@ -6,16 +6,32 @@ import EntityBase from './EntityBase';
 
 let ComputedUpdatersManager: typeof ComputedUpdatersManagerType | undefined;
 
+export function getPropWithComputed(Model: typeof EntityBase, prop: string) {
+  // @ts-ignore don't know how to fix
+  if (Model.getComputedProperties().has(prop)) {
+    return `computed${ucFirst(prop)}`;
+  }
+  return prop;
+}
+
+export function getPropWithoutComputed(prop: string) {
+  if (prop.startsWith('computed')) {
+    const newProp = prop.slice('computed'.length);
+    return newProp[0].toLowerCase() + newProp.slice(1);
+  }
+  return prop;
+}
+
 export default class EntityComputed extends EntityBase {
   // db -> node
   $parseDatabaseJson(obj: ObjectOf<any>): ObjectOf<any> {
     obj = super.$parseDatabaseJson(obj);
 
-    for (const col of Object.keys(obj)) {
-      if (col.startsWith('computed')) {
-        const name = col.slice('computed'.length);
-        obj[name[0].toLowerCase() + name.slice(1)] = obj[col];
-        delete obj[col];
+    for (const prop of Object.keys(obj)) {
+      const newProp = getPropWithoutComputed(prop);
+      if (newProp !== prop) {
+        obj[newProp] = obj[prop];
+        delete obj[prop];
       }
     }
 
@@ -23,17 +39,14 @@ export default class EntityComputed extends EntityBase {
   }
 
   // node -> db
-  $formatDatabaseJson(
-    obj: ObjectOf<any>,
-  ): ObjectOf<any> {
+  $formatDatabaseJson(obj: ObjectOf<any>): ObjectOf<any> {
     obj = super.$formatDatabaseJson(obj);
     const cls = (this.constructor as typeof EntityComputed);
-    for (const property of Object.keys(obj)) {
-      // @ts-ignore casting Object.keys doesn't work
-      if (cls.getComputedProperties().has(property)) {
-        const name = ucFirst(property);
-        obj[`computed${name}`] = obj[property];
-        delete obj[property];
+    for (const prop of Object.keys(obj)) {
+      const newProp = getPropWithComputed(cls, prop);
+      if (newProp !== prop) {
+        obj[newProp] = obj[prop];
+        delete obj[prop];
       }
     }
     return obj;

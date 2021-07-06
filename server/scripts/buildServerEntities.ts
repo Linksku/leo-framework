@@ -2,16 +2,15 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
 
-import getModels from 'lib/getModels';
+import entityModels from 'lib/entityModels';
 
 export default async function buildServerEntities() {
   const imports = [] as string[];
-  const declarations = [] as string[];
+  const interfaces = [] as string[];
 
-  const models = await getModels();
-  for (const model of Object.keys(models)) {
+  for (const model of Object.keys(entityModels)) {
     imports.push(`import type _${model} from 'models/${model}';`);
-    declarations.push(`type ${model} = _${model};`, `type ${model}Model = typeof _${model};`);
+    interfaces.push(`type ${model} = _${model};`, `type ${model}Model = typeof Base${model};`);
   }
 
   await mkdirp(path.resolve('./src/server/types/generated'));
@@ -20,7 +19,7 @@ export default async function buildServerEntities() {
     `${imports.join('\n')}
 
 declare global {
-  ${declarations.join('\n  ')}
+  ${interfaces.join('\n  ')}
 }
 `,
   );

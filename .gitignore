@@ -26,4 +26,9 @@ stats.json
 /*.zip
 .git/
 .git-framework/
+.gitignore-temp
+*.pepk
+*.jks
 src/
+android/
+resources/

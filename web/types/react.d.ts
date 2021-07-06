@@ -11,6 +11,7 @@ class __MEMOED {
   private _memoed = true;
 }
 
+// todo: low/mid: maybe fork constate to add memoed
 type Memoed<T> = T extends Primitive ? T
   : T extends __MEMOED ? T
   : T & __MEMOED;
@@ -39,7 +40,7 @@ declare function useMemo<T extends any>(
 
 declare function useState<S>(
   initialState: S | (() => S),
-): [Memoed<S>, Memoed<SetState<S>>];
+): [Memoed<S>, SetState<S>];
 
 declare function useEffect(
   effect: React.EffectCallback,

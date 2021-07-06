@@ -25,7 +25,6 @@ export default function handleApiError(
     return {
       status: 400,
       errorData: {
-        title: `That ${err.constraint} already exists.`,
         msg: `That ${err.constraint} already exists.`,
         stack,
       },
@@ -35,12 +34,9 @@ export default function handleApiError(
     return {
       status: err.status,
       errorData: {
-        title: err.message,
         msg: err.message || err.toString(),
         stack,
-        debugDetails: process.env.NODE_ENV === 'production'
-          ? null
-          : err.debugDetails,
+        ...process.env.NODE_ENV === 'production' ? { debugDetails: err.debugDetails } : null,
       },
     };
   }
@@ -48,7 +44,6 @@ export default function handleApiError(
     return {
       status: 503,
       errorData: {
-        title: 'Database unavailable.',
         msg: 'Database unavailable.',
         stack,
       },

@@ -1,5 +1,6 @@
 import { inspect } from 'util';
 import dotenv from 'dotenv';
+import chalk from 'chalk';
 
 if (!process.env.SCRIPT_PATH) {
   throw new Error('Script not found.');
@@ -32,6 +33,7 @@ if (promise && promise.then) {
       process.exit(0);
     })
     .catch(err => {
+      console.log(chalk.redBright.bold(err.message));
       console.log(inspect(err, { depth: 10 }));
       process.exit(1);
     });

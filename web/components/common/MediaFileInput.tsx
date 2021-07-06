@@ -5,9 +5,9 @@ import styles from './MediaFileInputStyles.scss';
 
 type Props = {
   acceptedTypes: string,
-  defaultUrl?: string,
+  defaultUrl?: string | null,
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>,
-  renderPreview?: (file: Memoed<File> | null, defaultUrl?: string) => ReactElement,
+  renderPreview?: (file: Memoed<File> | null, defaultUrl?: string | null) => ReactElement,
   className?: string,
   label?: string,
   clearField?: () => void,

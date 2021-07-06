@@ -6,12 +6,16 @@ const globals = {
   dayjs: 'dayjs',
   express: 'express',
   fetch: 'node-fetch',
+  // Built-ins.
+  hasOwnProperty: ['./shared/lib/builtIns/hasOwnProperty', 'default'],
+  objectEntries: ['./shared/lib/builtIns/objectEntries', 'default'],
+  objectKeys: ['./shared/lib/builtIns/objectKeys', 'default'],
   // Lib.
+  defined: ['./shared/lib/defined', 'default'],
   EMPTY_ARR: ['./server/lib/emptyArr', 'default'],
   EMPTY_OBJ: ['./server/lib/emptyObj', 'default'],
   Entity: ['./server/models/core/Entity', 'default'],
   HandledError: ['./server/lib/HandledError', 'default'],
-  hasOwnProperty: ['./shared/lib/hasOwnProperty', 'default'],
   Model: ['objection', 'Model'],
   NOOP: ['./server/lib/noop', 'default'],
   pause: ['./shared/lib/pause', 'default'],

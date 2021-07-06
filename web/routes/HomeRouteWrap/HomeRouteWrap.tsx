@@ -1,5 +1,6 @@
 import { HomeRouteProvider } from 'stores/routes/HomeRouteStore';
 import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
+import ErrorBoundary from 'components/ErrorBoundary';
 
 import HomeHeader from './HomeHeader';
 import HomeBody from './HomeBody';
@@ -16,7 +17,9 @@ function HomeRouteWrap({ children }: Props) {
     <div className={styles.container}>
       <HomeHeader />
       <HomeBody>
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </HomeBody>
       <HomeFooter />
     </div>

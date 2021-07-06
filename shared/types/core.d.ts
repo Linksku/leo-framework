@@ -11,21 +11,11 @@ type Nullable<T> = { [P in keyof T]: T[P] | null };
 
 type Nullish<T> = T | null | undefined;
 
+type Mutable<T> = {
+  -readonly [K in keyof T]: Mutable<T[K]>;
+}
+
 type EmptyObj = Record<string, never>;
-
-interface Object {
-  hasOwnProperty<T extends ObjectOf<any>>(this: T, key: any): key is keyof T;
-}
-
-type _ObjectEntries<T extends ObjectOf<any>> = {
-  [K in keyof T]: [K, T[K]];
-}[keyof T][];
-
-interface ObjectConstructor {
-  entries<T extends ObjectOf<any>>(o: T): _ObjectEntries<{
-    [P in keyof T]-?: T[P];
-  }>;
-}
 
 type Primitive = string | number | boolean | null | undefined;
 
@@ -42,4 +32,4 @@ type RequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[k
 // eslint-disable-next-line @typescript-eslint/ban-types
 type OptionalKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? K : never }[keyof T];
 
-type InstanceKeys<T extends new () => any> = keyof InstanceType<T> & string;
+type InstanceKey<T extends new () => any> = keyof InstanceType<T> & string;

@@ -1,11 +1,55 @@
 import type { JSONSchema, ModelOptions } from 'objection';
+import type { Dayjs } from 'dayjs';
 import { AjvValidator } from 'objection';
 
-import { toMysqlDateTime } from 'lib/mysqlDate';
+import { toMysqlDateTime, toMysqlDate } from 'lib/mysqlDate';
 
 import EntityComputed from './EntityComputed';
 
 const MYSQL_DATE_TIME_REGEX = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/;
+
+export function isPropDate(schema: JSONSchema, prop: string): boolean {
+  const desc = schema.properties?.[prop];
+  return typeof desc === 'object'
+    && (
+      (Array.isArray(desc.type) && desc.type.includes('string'))
+      || desc.type === 'string'
+    )
+    && !!desc.format
+    && ['date', 'date-time', 'mysql-date-time'].includes(desc.format);
+}
+
+export function unserializeDbProp(schema: JSONSchema, prop: string, val: any) {
+  if (isPropDate(schema, prop)) {
+    return dayjs(val);
+  }
+  return val;
+}
+
+export function serializeJsonProp(schema: JSONSchema, prop: string, val: any) {
+  if (isPropDate(schema, prop)) {
+    return dayjs(val).toISOString();
+  }
+  return val;
+}
+
+export function serializeDbProp(schema: JSONSchema, prop: string, val: any) {
+  if (isPropDate(schema, prop)) {
+    const desc = schema.properties?.[prop];
+    if (typeof desc === 'object' && (val instanceof Date || val instanceof dayjs)) {
+      if (desc.format === 'date') {
+        return toMysqlDate(val as Date | Dayjs);
+      }
+      if (desc.format === 'date-time') {
+        return (val as Date | Dayjs).toISOString();
+      }
+      if (desc.format === 'mysql-date-time') {
+        return toMysqlDateTime(val as Date | Dayjs);
+      }
+    }
+  }
+  return val;
+}
 
 export default class EntityDates extends EntityComputed {
   static createValidator() {
@@ -20,12 +64,9 @@ export default class EntityDates extends EntityComputed {
   $parseDatabaseJson(obj: ObjectOf<any>): ObjectOf<any> {
     obj = super.$parseDatabaseJson(obj);
 
-    const { properties } = (this.constructor as typeof Entity).jsonSchema;
-    for (const k of Object.keys(properties)) {
-      if (properties[k].type === 'string'
-        && ['date', 'date-time', 'mysql-date-time'].includes(properties[k].format)) {
-        obj[k] = dayjs(obj[k]);
-      }
+    const schema = (this.constructor as typeof Entity).jsonSchema;
+    for (const k of Object.keys(schema.properties)) {
+      obj[k] = unserializeDbProp(schema, k, obj[k]);
     }
 
     return obj;
@@ -34,12 +75,9 @@ export default class EntityDates extends EntityComputed {
   // node -> json
   $formatJson(obj: ObjectOf<any>): ObjectOf<any> {
     obj = super.$formatJson(obj);
-    const { properties } = (this.constructor as typeof Entity).jsonSchema;
-    for (const k of Object.keys(properties)) {
-      if (properties[k].type === 'string'
-        && ['date', 'date-time', 'mysql-date-time'].includes(properties[k].format)) {
-        obj[k] = dayjs(obj[k]).toISOString();
-      }
+    const schema = (this.constructor as typeof Entity).jsonSchema;
+    for (const k of Object.keys(schema)) {
+      obj[k] = serializeJsonProp(schema, k, obj[k]);
     }
     return obj;
   }
@@ -51,16 +89,7 @@ export default class EntityDates extends EntityComputed {
     }
 
     for (const k of Object.keys(schema.properties)) {
-      const desc = schema.properties[k];
-      if (typeof desc === 'object'
-        && desc.type === 'string'
-        && (obj[k] instanceof Date || obj[k] instanceof dayjs)) {
-        if (desc.format === 'mysql-date-time') {
-          obj[k] = toMysqlDateTime(obj[k]);
-        } else if (desc.format === 'date-time') {
-          obj[k] = obj[k].toISOString();
-        }
-      }
+      obj[k] = serializeDbProp(schema, k, obj[k]);
     }
 
     return schema;

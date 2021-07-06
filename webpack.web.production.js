@@ -1,5 +1,4 @@
 const path = require('path');
-const childProcess = require('child_process');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 
@@ -11,18 +10,13 @@ if (!process.env.SERVER || !process.env.NODE_ENV) {
   throw new Error('Env vars not set.');
 }
 
-const JS_VERSION = Number.parseInt(
-  (childProcess.execSync('cd src; git rev-list --count master; cd ..').toString()).trim(),
-  10,
-);
-
 module.exports = mergeReplaceArrays(baseConfig, {
   entry: {
     '../sw': path.resolve('./web/sw.ts'),
   },
   mode: 'production',
   output: {
-    chunkFilename: `js/chunks/[name].${JS_VERSION}.js`,
+    chunkFilename: `js/chunks/[name].js`,
   },
   module: {
     rules: baseConfig.module.rules.map(rule => {
@@ -67,7 +61,7 @@ module.exports = mergeReplaceArrays(baseConfig, {
     ...baseConfig.plugins,
     new MiniCssExtractPlugin({
       filename: `css/[name].css`,
-      chunkFilename: `css/chunks/[name].${JS_VERSION}.css`,
+      chunkFilename: `css/chunks/[name].css`,
     }),
   ],
   optimization: {
@@ -84,6 +78,7 @@ module.exports = mergeReplaceArrays(baseConfig, {
             comments: false,
           },
         },
+        extractComments: false,
       }),
     ],
     splitChunks: {

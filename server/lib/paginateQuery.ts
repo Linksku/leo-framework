@@ -54,12 +54,12 @@ export default async function paginateQuery<T extends Entity>(
   }
 
   const entities = await query;
-  return promiseObj({
+  return {
     entities,
     data: {
       entityIds: entities.map(e => e.id),
       cursor: entities[entities.length - 1]?.id,
       hasCompleted: entities.length < limit,
     },
-  });
+  };
 }

@@ -2,7 +2,10 @@
   "name": "%APP_NAME%",
   "short_name": "%APP_NAME%",
   "start_url": "/%BASE_PATH%",
-  "icons": [],
+  "icons": [{
+    "src": "icon.svg",
+    "sizes": "any"
+  }],
   "theme_color": "#2196f3",
   "background_color": "#FFFFFF",
   "display": "standalone",

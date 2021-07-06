@@ -2,6 +2,8 @@ import type { Revalidator, SWRConfiguration } from 'swr';
 import useSWR from 'swr';
 
 import useDeepMemoObj from 'lib/hooks/useDeepMemoObj';
+import useLocalStorage from 'lib/hooks/useLocalStorage';
+import { HTTP_TIMEOUT } from 'settings';
 import queueBatchedRequest from './queueBatchedRequest';
 import useHandleApiEntities from './useHandleApiEntities';
 import type { OnFetchType, OnErrorType } from './useApiTypes';
@@ -42,8 +44,10 @@ function useApi<Name extends ApiName>(
     onError,
   }: Opts & Partial<OptsCallbacks<Name>> = {},
 ) {
+  useDebugValue(name);
+
   const paramsMemo = useDeepMemoObj(params);
-  const authToken = useAuthToken();
+  const [authToken] = useLocalStorage('authToken', '', { raw: true });
   const handleApiEntities = useHandleApiEntities<Name>('load');
   const ref = useRef({
     mounted: false,
@@ -76,16 +80,24 @@ function useApi<Name extends ApiName>(
 
   const { data, isValidating, error } = useSWR<Memoed<ApiNameToData[Name]> | null>(
     shouldFetch ? [name, paramsMemo] : null,
-    async () => queueBatchedRequest<Name>({
-      name,
-      params: paramsMemo,
-      onFetch: onFetchWrap,
-      onError: onErrorWrap,
-      authToken,
-      handleApiEntities,
-    }),
+    async () => {
+      try {
+        return await queueBatchedRequest<Name>({
+          name,
+          params: paramsMemo,
+          onFetch: onFetchWrap,
+          onError: onErrorWrap,
+          authToken,
+          handleApiEntities,
+        });
+      } catch (err) {
+        ErrorLogger.warning(err, `useApi: ${name} failed`);
+        throw err;
+      }
+    },
     {
       focusThrottleInterval: 60 * 1000,
+      loadingTimeout: HTTP_TIMEOUT,
       onErrorRetry: (
         err: Error,
         _,

@@ -8,6 +8,7 @@ import HomeRouteWrap from 'routes/HomeRouteWrap';
 import LoadingRoute from 'routes/LoadingRoute';
 import useEffectIfReady from 'lib/hooks/useEffectIfReady';
 import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
+import { loadErrorLogger } from 'lib/ErrorLogger';
 
 export default function Router() {
   useTimeComponentPerf('Router');
@@ -19,21 +20,8 @@ export default function Router() {
     stackActive,
   } = useStacksStore();
   const { isReplaced, curState } = useHistoryStore();
-  const { isReloadingAfterAuth, setCurrentUserId } = useAuthStore();
+  const { isReloadingAfterAuth, loggedInStatus } = useAuthStore();
   const replacePath = useReplacePath();
-
-  // todo: low/mid prefetch currentUser
-  const { fetching } = useApi('currentUser', {}, {
-    shouldFetch: !!window.localStorage.getItem('authToken') && !isReloadingAfterAuth,
-    onFetch: useCallback(data => {
-      setCurrentUserId(data.currentUserId);
-    }, [setCurrentUserId]),
-    onError: useCallback(err => {
-      if (err.status === 401 || err.status === 404) {
-        window.localStorage.removeItem('authToken');
-      }
-    }, []),
-  });
 
   const {
     type: stackBotType,
@@ -54,9 +42,12 @@ export default function Router() {
     if (!isBotAuth || !isTopAuth) {
       replacePath('/login');
     }
-  }, [isBotAuth, isTopAuth, replacePath], !fetching);
+    loadErrorLogger(currentUser?.id);
+  }, [isBotAuth, isTopAuth, replacePath], loggedInStatus !== 'fetching');
 
-  if (!currentUser && (fetching || isReloadingAfterAuth)) {
+  if (!currentUser
+    && (loggedInStatus === 'fetching' || isReloadingAfterAuth)
+    && (stackBotAuth || stackTopAuth)) {
     return (
       <LoadingRoute />
     );

@@ -2,11 +2,13 @@ const path = require('path');
 const nodeExternals = require('webpack-node-externals');
 const mapValues = require('lodash/mapValues');
 const webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const mergeReplaceArrays = require('./shared/lib/mergeReplaceArrays');
 const globals = require('./server/config/globals');
 const globalsSrc = require('./src/server/config/globals');
 const baseConfig = require('./webpack.common');
+const transformWebpackCopied = require('./shared/lib/transformWebpackCopied');
 
 module.exports = mergeReplaceArrays(baseConfig, {
   target: 'node',
@@ -14,7 +16,7 @@ module.exports = mergeReplaceArrays(baseConfig, {
     main: path.resolve('./server/server.ts'),
   },
   output: {
-    path: path.resolve('./build/server/'),
+    path: path.resolve('./build/server'),
     filename: '[name].js',
   },
   module: {
@@ -46,6 +48,20 @@ module.exports = mergeReplaceArrays(baseConfig, {
       }
       return Array.isArray(v) ? [p, v[1]] : p;
     })),
+    new CopyPlugin({
+      patterns: [
+        {
+          from: path.resolve('./server/public'),
+          to: path.resolve('./build/server'),
+          transform: transformWebpackCopied,
+        },
+        {
+          from: path.resolve('./src/server/public'),
+          to: path.resolve('./build/server'),
+          transform: transformWebpackCopied,
+        },
+      ],
+    }),
   ],
   externals: [nodeExternals()],
 });

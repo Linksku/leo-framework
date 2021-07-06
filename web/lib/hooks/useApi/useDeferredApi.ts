@@ -1,5 +1,7 @@
 import fetcher from 'lib/fetcher';
+import promiseTimeout from 'lib/promiseTimeout';
 import removeFalseyValues from 'lib/removeFalseyValues';
+import { HTTP_TIMEOUT, API_URL } from 'settings';
 import useHandleApiEntities from './useHandleApiEntities';
 import type { OnFetchType, OnErrorType } from './useApiTypes';
 
@@ -96,6 +98,8 @@ function useDeferredApi<
     noReturnState = false,
   }: Opts & Partial<OptsCallbacks<Name>> = {},
 ) {
+  useDebugValue(name);
+
   const method = _method ?? (type === 'load' ? 'get' : 'post');
 
   const paramsMemo = useDeepMemoObj(params as unknown as Pojo);
@@ -139,50 +143,57 @@ function useDeferredApi<
       // >
       const combinedParams = { ...params, ...params2 } as unknown as ApiNameToParams[Name];
 
-      return fetcher[method](
-        `/api/${name}`,
-        {
-          params: JSON.stringify(removeFalseyValues(combinedParams)),
-          ...files,
-        },
-        { authToken },
-      )
-        .then((response: Memoed<ApiResponse<Name>>) => {
-          ref.current.isFetching = false;
-          if (numFetches <= ref.current.numCancelled) {
-            // If cache gets updated for cancelled requests, entities also need to be updated.
-            return null;
-          }
-
-          const data = response.data as Memoed<ApiNameToData[Name]>;
-          batchedUpdates(() => {
-            handleApiEntities(response);
-            if (!noReturnState) {
-              setState({
-                fetching: false,
-                data,
-                error: null,
-              });
+      const timeoutErr = new Error(`Fetch(${name}) timed out`);
+      timeoutErr.status = 503;
+      return promiseTimeout(
+        fetcher[method](
+          `${API_URL}/api/${name}`,
+          {
+            params: JSON.stringify(removeFalseyValues(combinedParams)),
+            ...files,
+          },
+          { authToken },
+        )
+          .then((response: Memoed<ApiResponse<Name>>) => {
+            ref.current.isFetching = false;
+            if (numFetches <= ref.current.numCancelled) {
+              // If cache gets updated for cancelled requests, entities also need to be updated.
+              return null;
             }
-            onFetch?.(response.data, (params2 ?? {}) as Partial<ApiNameToParams[Name]>);
-          });
 
-          return data;
-        })
-        .catch(err => {
-          ref.current.isFetching = false;
-          batchedUpdates(() => {
-            if (!noReturnState) {
-              setState({
-                fetching: false,
-                data: null,
-                error: markMemoed(err),
-              });
-            }
-            onError?.(err);
-          });
-          throw err;
-        });
+            const data = response.data as Memoed<ApiNameToData[Name]>;
+            batchedUpdates(() => {
+              handleApiEntities(response);
+              if (!noReturnState) {
+                setState({
+                  fetching: false,
+                  data,
+                  error: null,
+                });
+              }
+              onFetch?.(response.data, (params2 ?? {}) as Partial<ApiNameToParams[Name]>);
+            });
+
+            return data;
+          })
+          .catch(err => {
+            ref.current.isFetching = false;
+            batchedUpdates(() => {
+              if (!noReturnState) {
+                setState({
+                  fetching: false,
+                  data: null,
+                  error: markMemoed(err),
+                });
+              }
+              onError?.(err);
+              ErrorLogger.warning(err, `useDeferredApi: ${name} failed`);
+            });
+            throw err;
+          }),
+        HTTP_TIMEOUT,
+        timeoutErr,
+      );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [

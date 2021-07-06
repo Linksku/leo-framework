@@ -5,7 +5,7 @@ import { NOREPLY_EMAIL } from 'serverSettings';
 
 AWS.config.update({ region: process.env.AWS_REGION });
 
-// todo: find another service to send emails
+// todo: mid/hard find another service to send emails
 const client = new SES({
   accessKeyId: process.env.AWS_ACCESS_ID,
   secretAccessKey: process.env.AWS_SECRET_KEY,

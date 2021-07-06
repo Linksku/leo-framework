@@ -13,9 +13,8 @@
   },
   "include": [
     ".",
-    "**/.*",
-    "../shared",
-    "../src/web/types",
+    "../shared/types",
+    "../src/web",
     "../src/shared/types"
   ]
 }

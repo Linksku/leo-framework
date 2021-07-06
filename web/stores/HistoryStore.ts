@@ -25,10 +25,6 @@ function getStateFromLocation(stateId: number): HistoryState {
   });
 }
 
-let nextStateId = window.history.state?.id
-  ? Number.parseInt(window.history.state?.id, 10) || 0
-  : 0;
-
 const [
   HistoryProvider,
   useHistoryStore,
@@ -36,13 +32,20 @@ const [
   useReplacePath,
 ] = constate(
   function HistoryStore() {
-    const ref = useRef({
-      prevState: null as HistoryState | null,
-      curState: useMemo(() => getStateFromLocation(nextStateId), []),
-      nextState: null as HistoryState | null,
-      direction: 'none' as 'none' | 'back' | 'forward', // none, back, forward
-      isReplaced: false,
-    });
+    const ref = useRef(useMemo(() => {
+      const initialStateId = window.history.state?.id
+        ? Number.parseInt(window.history.state?.id, 10) || 0
+        : 0;
+      return {
+        prevState: null as HistoryState | null,
+        curState: getStateFromLocation(initialStateId),
+        nextState: null as HistoryState | null,
+        direction: 'none' as 'none' | 'back' | 'forward', // none, back, forward
+        isReplaced: false,
+        nextStateId: initialStateId,
+        isInitialState: true,
+      };
+    }, []));
     const forceUpdate = useForceUpdate();
 
     const _pushPath = useCallback((
@@ -57,8 +60,8 @@ const [
         return;
       }
 
-      nextStateId++;
-      ref.current = {
+      ref.current.nextStateId++;
+      ref.current = markMemoed({
         ...ref.current,
         prevState: ref.current.curState,
         curState: markMemoed({
@@ -66,11 +69,12 @@ const [
           query: markMemoed(query),
           queryStr,
           hash,
-          id: nextStateId,
+          id: ref.current.nextStateId,
         }),
         direction: 'forward',
         isReplaced: false,
-      };
+        isInitialState: false,
+      });
 
       let fullPath = path;
       if (query) {
@@ -80,7 +84,7 @@ const [
         fullPath += `#${hash}`;
       }
       window.history.pushState(
-        { id: nextStateId },
+        { id: ref.current.nextStateId },
         '',
         fullPath,
       );
@@ -99,14 +103,18 @@ const [
         return;
       }
 
-      ref.current.curState = markMemoed({
-        path,
-        query: markMemoed(query),
-        queryStr,
-        hash,
-        id: ref.current.curState.id,
+      ref.current = markMemoed({
+        ...ref.current,
+        curState: markMemoed({
+          path,
+          query: markMemoed(query),
+          queryStr,
+          hash,
+          id: ref.current.curState.id,
+        }),
+        isReplaced: true,
+        isInitialState: false,
       });
-      ref.current.isReplaced = true;
       window.history.replaceState(
         { id: ref.current.curState.id },
         '',
@@ -118,7 +126,7 @@ const [
     const handlePopState = useCallback((event: PopStateEvent) => {
       const stateId = event.state?.id;
       const poppedStateId = typeof stateId === 'number' ? stateId : 0;
-      ref.current = {
+      ref.current = markMemoed({
         ...ref.current,
         prevState: ref.current.curState,
         curState: poppedStateId === ref.current.prevState?.id
@@ -126,8 +134,9 @@ const [
           : getStateFromLocation(poppedStateId),
         direction: poppedStateId >= ref.current.curState.id ? 'forward' : 'back',
         isReplaced: false,
-      };
-      nextStateId = Math.max(nextStateId, poppedStateId);
+        isInitialState: false,
+      });
+      ref.current.nextStateId = Math.max(ref.current.nextStateId, poppedStateId);
       forceUpdate();
     }, [forceUpdate]);
 
@@ -191,6 +200,7 @@ const [
       curState: ref.current.curState,
       direction: ref.current.direction,
       isReplaced: ref.current.isReplaced,
+      isInitialState: ref.current.isInitialState,
       _pushPath,
       _replacePath,
     });

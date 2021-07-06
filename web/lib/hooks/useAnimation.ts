@@ -33,7 +33,7 @@ export class AnimatedValue extends EventEmitter {
 }
 
 function getStyle(valToStyle: ValToStyle, value: number, duration: number) {
-  const keys = Object.keys(valToStyle) as (keyof ValToStyle)[];
+  const keys = objectKeys(valToStyle);
   const style = {} as Style;
 
   if (keys.length) {
@@ -43,7 +43,7 @@ function getStyle(valToStyle: ValToStyle, value: number, duration: number) {
   }
 
   // eslint-disable-next-line unicorn/no-array-for-each
-  Object.entries(valToStyle).forEach(<T extends keyof React.CSSProperties>([k, v]: [
+  objectEntries(valToStyle).forEach(<T extends keyof React.CSSProperties>([k, v]: [
     T,
     (x: number) => React.CSSProperties[T],
   ]) => {
@@ -103,8 +103,8 @@ export function useAnimation<T extends HTMLElement>() {
       ref.current.animatedValue.value,
       duration,
     );
-    for (const [k, v] of Object.entries(style)) {
-      animationRef.current.style.setProperty(k, v.toString());
+    for (const [k, v] of objectEntries(style)) {
+      animationRef.current.style.setProperty(styleDeclarationToCss(k), v.toString());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

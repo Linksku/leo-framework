@@ -14,34 +14,36 @@ export default function SlideUpList({
   items = [],
 }: Props) {
   const hideSlideUp = useHideSlideUp();
+  const itemsShown = items.filter(item => !item.hidden);
+
+  useEffect(() => {
+    if (!itemsShown.length) {
+      ErrorLogger.warning(
+        new Error(`SlideUpList: no items shown, keys: ${items.map(item => item.key).join(',')}`),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className={styles.list}>
-      {items.map(item => (
-        item.hidden
-          ? null
-          : (
-            <div
-              key={item.key}
-              onClick={e => {
-                if (item.disabled) {
-                  return;
-                }
+      {itemsShown.map(item => (
+        <div
+          key={item.key}
+          onClick={e => {
+            if (item.disabled) {
+              return;
+            }
 
-                const ret = item.onClick(e);
-                if (ret instanceof Promise) {
-                  ret.finally(() => hideSlideUp());
-                } else {
-                  hideSlideUp();
-                }
-              }}
-              role="button"
-              tabIndex={-1}
-              className={styles.listItem}
-            >
-              {item.content}
-            </div>
-          )
+            hideSlideUp();
+            void item.onClick(e);
+          }}
+          role="button"
+          tabIndex={-1}
+          className={styles.listItem}
+        >
+          {item.content}
+        </div>
       ))}
     </div>
   );

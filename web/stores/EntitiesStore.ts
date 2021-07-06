@@ -8,7 +8,7 @@ function hasNewExtrasKeys(oldEntity: Entity, newEntity: Entity): boolean {
   }
 
   for (const k of Object.keys(newEntity.extras)) {
-    if (!Object.prototype.hasOwnProperty.call(oldEntity.extras, k)) {
+    if (!hasOwnProperty(oldEntity.extras, k)) {
       return true;
     }
   }
@@ -55,8 +55,7 @@ const [
       );
       for (const entity of entities) {
         if (!entity.id || !entity.type) {
-          // eslint-disable-next-line no-console
-          console.log('Invalid entity:', entity);
+          ErrorLogger.warning(new Error(`EntitiesStore: invalid entity ${entity.type}, ${entity.id}`));
           continue;
         }
 
@@ -65,8 +64,8 @@ const [
         }
 
         if (!newEntities[entity.type][entity.id]
-            || overwrite
-            || hasNewExtrasKeys(newEntities[entity.type][entity.id], entity)) {
+          || overwrite
+          || hasNewExtrasKeys(newEntities[entity.type][entity.id], entity)) {
           if (newEntities[entity.type] === ref.current.entities[entity.type]) {
             newEntities[entity.type] = Object.assign(
               Object.create(null),
@@ -100,6 +99,7 @@ const [
       const changed = addOrUpdateEntities(entities);
 
       for (const entity of changed) {
+        // todo: mid/mid see if batchupdates is needed
         ref.current.ee.emit(`load,${entity.type}`, entity);
         ref.current.ee.emit(`load,${entity.type},${entity.id}`, entity);
       }

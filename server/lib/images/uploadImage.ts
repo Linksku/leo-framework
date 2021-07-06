@@ -13,6 +13,9 @@ export default async function uploadImage(img: sharp.Sharp, outPath: string, {
 }: Opts = {}): Promise<string> {
   const file = await img
     .withMetadata()
+    .flatten({
+      background: { r: 255, g: 255, b: 255 },
+    })
     .jpeg({ quality })
     .toBuffer();
   return uploadToSpaces({

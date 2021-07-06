@@ -5,7 +5,7 @@
   bottom: 0;
   z-index: $zIndexFixed;
   background-color: #fff;
-  border-top: 1px solid $separatorColor;
+  border-top: 1px solid darken($separatorColor, 5%);
   height: $headerHeight;
 }
 
@@ -28,15 +28,15 @@
   flex-grow: 1;
 
   svg {
-    height: 24px;
-    width: 24px;
-    opacity: 0.6;
+    height: 28px;
+    width: 28px;
+    fill: $lightTextColor;
     transition: all 0.2s;
   }
 }
 
 .tabActive svg {
-  opacity: 1;
+  fill: #000;
   height: 28px;
   width: 28px;
   margin-left: -2px;

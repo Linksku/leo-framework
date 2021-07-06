@@ -1,6 +1,6 @@
 import BarsSvg from '@fortawesome/fontawesome-free/svgs/solid/bars.svg';
 
-import { HomeHeaderTitle } from '../../../src/web/config/homeComponents';
+import { HomeHeaderTitle } from 'config/homeComponents';
 
 import styles from './HomeHeaderSelectorStyles.scss';
 

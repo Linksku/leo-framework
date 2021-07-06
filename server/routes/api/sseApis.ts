@@ -30,7 +30,7 @@ defineApi(
     const otp = await new Promise<Nullish<string>>(succ => {
       jwt.sign(
         { id: currentUserId },
-        process.env.SSE_JWT_KEY as string,
+        defined(process.env.SSE_JWT_KEY),
         {
           expiresIn: 60 * 1000,
         },

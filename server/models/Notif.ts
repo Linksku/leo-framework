@@ -1,18 +1,18 @@
-export default class Notif extends Entity {
+export default class Notif extends Entity implements INotif {
   static type = 'notif' as const;
   static tableName = 'notifs' as const;
 
   static jsonSchema = {
     type: 'object',
-    required: ['type', 'userId'],
+    required: ['notifType', 'userId', 'groupingId'],
     properties: {
       id: SchemaConstants.id,
       notifType: { type: 'string' },
       userId: SchemaConstants.id,
       groupingId: SchemaConstants.id,
-      time: SchemaConstants.datetime,
-      params: { type: 'object', properties: {} },
-      hasRead: { type: 'boolean' },
+      time: SchemaConstants.datetimeDefaultNow,
+      params: { type: 'object', properties: {}, default: {} },
+      hasRead: { type: 'boolean', default: false },
     },
     additionalProperties: false,
   };
@@ -23,10 +23,11 @@ export default class Notif extends Entity {
 
   protected static uniqueProperties = new Set(['id']);
 
+  type = 'notif' as const;
   notifType!: string;
   userId!: number;
   groupingId!: number;
-  time!: Date | InstanceType<typeof dayjs.Dayjs>;
+  time!: Date;
   params!: ObjectOf<any>;
   hasRead!: boolean;
 }

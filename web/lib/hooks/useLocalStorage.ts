@@ -7,7 +7,7 @@ export default function useLocalStorage<T>(
     throw new Error('useLocalStorage raw initialVal must be string.');
   }
 
-  const [state, setState] = useState<T | null>(() => {
+  const [state, setState] = useGlobalState<T | null>(`useLocalStorage:${key}`, () => {
     try {
       const val = window.localStorage.getItem(key);
       if (val) {
@@ -31,14 +31,14 @@ export default function useLocalStorage<T>(
       );
     } catch {}
     setState(val);
-  }, [key, opts?.raw]);
+  }, [key, opts?.raw, setState]);
 
   const removeValue = useCallback(() => {
     try {
       window.localStorage.removeItem(key);
     } catch {}
     setState(null);
-  }, [key]);
+  }, [key, setState]);
 
   return [state, setValue, removeValue];
 }

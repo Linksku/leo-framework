@@ -20,6 +20,10 @@ const globals = {
   useReducer: ['react', 'useReducer'],
   useRef: ['react', 'useRef'],
   useState: ['react', 'useState'],
+  // Built-ins.
+  hasOwnProperty: ['./shared/lib/builtIns/hasOwnProperty', 'default'],
+  objectEntries: ['./shared/lib/builtIns/objectEntries', 'default'],
+  objectKeys: ['./shared/lib/builtIns/objectKeys', 'default'],
   // Core components.
   Button: ['./web/components/ui/Button', 'default'],
   Card: ['./web/components/ui/Card', 'default'],
@@ -35,9 +39,10 @@ const globals = {
   Typeahead: ['./web/components/ui/Typeahead', 'default'],
   UncontrolledCheckbox: ['./web/components/ui/UncontrolledCheckbox', 'default'],
   // Lib.
+  defined: ['./shared/lib/defined', 'default'],
   EMPTY_ARR: ['./web/lib/emptyArr', 'default'],
   EMPTY_OBJ: ['./web/lib/emptyObj', 'default'],
-  hasOwnProperty: ['./shared/lib/hasOwnProperty', 'default'],
+  ErrorLogger: ['./web/lib/ErrorLogger', 'default'],
   markMemoed: ['./web/lib/markMemoed', 'default'],
   NOOP: ['./web/lib/noop', 'default'],
   pause: ['./shared/lib/pause', 'default'],
@@ -61,6 +66,7 @@ const globals = {
   useEntitiesEE: ['./web/stores/EntitiesStore', 'useEntitiesEE'],
   useEntity: ['./web/stores/EntitiesStore', 'useEntity'],
   useGlobalMemo: ['./web/stores/GlobalMemoStore', 'useGlobalMemo'],
+  useGlobalState: ['./web/stores/GlobalStateStore', 'useGlobalState'],
   useHideSlideUp: ['./web/stores/SlideUpStore', 'useHideSlideUp'],
   useLoadEntities: ['./web/stores/EntitiesStore', 'useLoadEntities'],
   usePushPath: ['./web/stores/HistoryStore', 'usePushPath'],

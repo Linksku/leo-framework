@@ -20,7 +20,7 @@ export default async function getVideoMetadata(path: string) {
 
   return {
     duration: (typeof stream.duration === 'number' ? stream.duration : null) as number | null,
-    height: stream.height as number,
-    width: stream.width as number,
+    height: defined(stream.height),
+    width: defined(stream.width),
   };
 }

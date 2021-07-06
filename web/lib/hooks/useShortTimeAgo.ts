@@ -22,9 +22,12 @@ dayjs.locale('useShortTimeAgo', {
 
 const cache = Object.create(null) as ObjectOf<string>;
 
-export default function useShortTimeAgo(time?: number | string) {
+export default function useShortTimeAgo(time?: number | string | Date) {
   if (!time) {
     return null;
+  }
+  if (time instanceof Date) {
+    time = time.getTime();
   }
   if (!cache[time]) {
     cache[time] = dayjs(time).locale('useShortTimeAgo').fromNow(true);

@@ -303,7 +303,7 @@ module.exports = {
       ts: 'never',
       tsx: 'never',
     }],
-    'import/no-extraneous-dependencies': [2, {
+    'import/no-extraneous-dependencies': [1, {
       devDependencies: true,
       packageDir: ['.', './src'],
     }],

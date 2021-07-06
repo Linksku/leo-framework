@@ -67,7 +67,7 @@ function InfiniteScrollerListItem({
     ref.current.innerRef = innerRef;
     if (innerRef) {
       const prevHeight = ref.current.height;
-      ref.current.height = innerRef.clientHeight as number;
+      ref.current.height = innerRef.clientHeight;
       if (ref.current.outerRef) {
         // Somehow this fixes a scroll anchoring issue.
         ref.current.outerRef.style.height = `${ref.current.height}px`;
@@ -85,7 +85,7 @@ function InfiniteScrollerListItem({
   useEffect(() => {
     const { innerRef, outerRef, height: prevHeight } = ref.current;
     if (innerRef && outerRef && prevHeight) {
-      ref.current.height = innerRef.clientHeight as number;
+      ref.current.height = innerRef.clientHeight;
       scrollParentRelative(ref.current.height - prevHeight);
       outerRef.style.height = `${ref.current.height}px`;
     }
@@ -277,7 +277,7 @@ export default function InfiniteScrollerColumn({
       if (item && ref.current.curVisibleIds.has(id)) {
         const innerElem = item.elem.firstElementChild;
         if (innerElem) {
-          item.height = innerElem.clientHeight as number;
+          item.height = innerElem.clientHeight;
           item.elem.style.height = `${item.height}px`;
         }
       }

@@ -30,15 +30,15 @@ router.get('/', async (req, res) => {
       currentUserId = await new Promise(succ => {
         jwt.verify(
           otp,
-        process.env.SSE_JWT_KEY as string,
-        {},
-        (err, obj: any) => {
-          if (err) {
-            succ(null);
-          } else {
-            succ(obj?.id ?? null);
-          }
-        },
+          defined(process.env.SSE_JWT_KEY),
+          {},
+          (err, obj: any) => {
+            if (err) {
+              succ(null);
+            } else {
+              succ(obj?.id ?? null);
+            }
+          },
         );
       });
     }
@@ -67,6 +67,7 @@ router.get('/', async (req, res) => {
       connection: 'keep-alive',
       'cache-control': 'no-cache',
       'content-type': 'text/event-stream',
+      'access-control-allow-credentials': 'true',
     });
 
     // todo: low/mid move types into shared constants

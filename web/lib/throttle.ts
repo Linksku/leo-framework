@@ -41,13 +41,13 @@ function createThrottle(
         current.lastRunTime = Date.now();
         const res = fn.apply(current.lastCtx, current.lastArgs);
         if (res instanceof Promise) {
-          res.catch(err => console.error(err));
+          res.catch(err => ErrorLogger.warning(err, `throttle: ${fn.name}`));
         }
       } else {
         const res = fn.apply(current.lastCtx, current.lastArgs);
         if (res instanceof Promise) {
           res
-            .catch(err => console.error(err))
+            .catch(err => ErrorLogger.warning(err, `throttle: ${fn.name}`))
             .finally(() => {
               current.lastRunTime = Date.now();
             });
@@ -57,6 +57,7 @@ function createThrottle(
       }
     }
 
+    // todo low/mid: if fn returns a promise, maybe this should return a promise too
     return function throttleReturn(this: T, ...args: any[]) {
       const { current } = state;
       current.lastArgs = args;

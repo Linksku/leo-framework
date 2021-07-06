@@ -1,5 +1,5 @@
-import customRoutes from '../../src/web/config/routes';
-import defaultRoutes from '../routes/defaultRoutes';
+import customRoutes from 'config/routes';
+import defaultRoutes from 'routes/defaultRoutes';
 
 const MATCHES_CACHE: Map<string | RegExp, Map<string, string[] | null>> = new Map();
 export default function pathToRoute(

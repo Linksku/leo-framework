@@ -10,7 +10,7 @@ function HomeFooter() {
   return (
     <div className={styles.container}>
       <div className={styles.containerInner}>
-        {Object.entries(TAB_ICONS).map(([tab, Svg]) => (
+        {objectEntries(TAB_ICONS).map(([tab, Svg]) => (
           <div
             key={tab}
             onClick={() => navigateHome(tab, ...homeParts)}

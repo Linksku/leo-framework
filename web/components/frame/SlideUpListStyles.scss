@@ -17,4 +17,9 @@
     width: 24px;
     flex-shrink: 0;
   }
+
+  > div {
+    display: flex;
+    align-items: center;
+  }
 }

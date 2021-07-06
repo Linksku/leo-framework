@@ -1,9 +1,9 @@
 type ObjArr<T extends EntityType> = {
-  [k: string]: Memoed<TypeToEntity<T>[]> | ObjArr<T>;
+  [k: string]: Memoed<Memoed<TypeToEntity<T>>[]> | ObjArr<T>;
 }
 
 type ObjSet<T extends EntityType> = {
-  [k: string]: Memoed<Set<any>> | ObjSet<T>;
+  [k: string]: Memoed<Set<Memoed<any>>> | ObjSet<T>;
 }
 
 export type OptsWithoutSet<T extends EntityType> = {
@@ -53,7 +53,7 @@ function useEntitiesByFields<
   { sortField, sortDirection, fieldForSet }: OptsWithoutSet<T> | OptsWithSet<T> = {}) {
   const entities = useEntities(type);
   const entitiesByFields = useGlobalMemo(
-    `useEntitiesByFields(${type}, ${fields.join(', ')})`,
+    `useEntitiesByFields:${type},${fields.join(', ')}`,
     () => {
       const obj = Object.create(null) as ObjArr<T> | ObjSet<T>;
       for (const e of Object.values(entities)) {
@@ -69,11 +69,11 @@ function useEntitiesByFields<
         const lastField = fields[fields.length - 1];
         const lastVal = e[lastField] as unknown as string;
         if (fieldForSet) {
-          const tempSet = (obj2[lastVal] ?? new Set()) as Memoed<Set<any>>;
+          const tempSet = (obj2[lastVal] ?? new Set()) as Memoed<Set<Memoed<any>>>;
           obj2[lastVal] = tempSet;
           tempSet.add(e[fieldForSet]);
         } else {
-          const tempArr = (obj2[lastVal] ?? []) as Memoed<TypeToEntity<T>[]>;
+          const tempArr = (obj2[lastVal] ?? []) as Memoed<Memoed<TypeToEntity<T>>[]>;
           obj2[lastVal] = tempArr;
           tempArr.push(e);
         }

@@ -1,19 +1,15 @@
 import removeFalseyValues from 'lib/removeFalseyValues';
-import promiseTimeout from 'lib/promiseTimeout';
-import { HOME_URL, HTTP_TIMEOUT } from 'settings';
 
-export function getErrorFromApiData(data: ObjectOf<any> | undefined): Error {
+export function getErrorFromApiData(data: ObjectOf<any> | undefined, status?: number): Error {
   const err = new Error(
     data?.error?.msg
-      || data?.error
       || (typeof data === 'object' && JSON.stringify(data))
-      || data
       || 'Unknown error occurred while fetching data.',
   );
   err.title = data?.error?.title;
-  err.status = data?.error?.status ?? 503;
+  err.status = status ?? data?.error?.status ?? 503;
   if (data?.error?.stack) {
-    err.stack = data.error?.stack;
+    err.stack = data.error.stack;
   }
   return err;
 }
@@ -27,7 +23,7 @@ type FetcherOpts = {
 };
 
 async function _fetcher(
-  path: string,
+  url: string,
   method: string,
   body = null as BodyInit | null,
   {
@@ -37,19 +33,20 @@ async function _fetcher(
     redirect = 'error' as RequestRedirect,
   }: FetcherOpts = {},
 ) {
-  const request = {
+  const headers: HeadersInit = {};
+  const request: RequestInit = {
     method,
     cache,
     redirect,
-    headers: {} as ObjectOf<string>,
     body: null as BodyInit | null,
+    credentials: 'include',
   };
 
   if (body) {
     if (contentType === 'multipart/form-data') {
       // Let fetch add automatically.
     } else if (contentType) {
-      request.headers['content-type'] = contentType;
+      headers['content-type'] = contentType;
     }
     request.body = body;
   }
@@ -58,88 +55,79 @@ async function _fetcher(
     authToken = window.localStorage.getItem('authToken');
   }
   if (authToken !== null) {
-    request.headers.authorization = authToken;
+    headers.authorization = authToken;
   }
-  request.headers = removeFalseyValues(request.headers);
+  request.headers = removeFalseyValues(headers);
 
-  // Using Promises is half the size of async/await.
-  const timeoutErr = new Error('Fetch timed out.');
-  timeoutErr.status = 503;
-  return promiseTimeout(
-    fetch(`${HOME_URL}${path}`, request)
-      .catch(err => {
-        err.status = 503;
-        throw err;
-      }),
-    HTTP_TIMEOUT,
-    timeoutErr,
-  )
-    .then((res: Response) => {
-      if (res.status === 204) {
-        return null;
-      }
+  let res: Response;
+  try {
+    res = await fetch(url, request);
+  } catch (err) {
+    err.status = 503;
+    throw err;
+  }
+  if (res.status === 204) {
+    return null;
+  }
 
-      let data: any;
-      return res.text()
-        .then(text => {
-          try {
-            data = JSON.parse(text);
-          } catch {
-            console.error('Unable to parse JSON:', text);
-          }
+  let data: any;
+  const text = await res.text();
+  try {
+    data = JSON.parse(text);
+  } catch {
+    ErrorLogger.warning(new Error('fetcher: unable to parse JSON'), text.slice(0, 200));
+  }
 
-          if (!res.ok || !data || data.error) {
-            const err = getErrorFromApiData(data);
-            throw err;
-          }
+  if (!res.ok || !data || data.error) {
+    const err = getErrorFromApiData(data, res.status);
+    throw err;
+  }
 
-          return data;
-        });
-    });
+  return data;
 }
 
-function _createPath(path: string, params: ObjectOf<string | number | boolean>) {
+function _createFullUrl(url: string, params: ObjectOf<string | number | boolean>) {
   const newParams = removeFalseyValues(params);
   if (!Object.keys(newParams).length) {
-    return path;
+    return url;
   }
 
-  let newPath = `${path}?`;
+  let newUrl = `${url}?`;
   for (const k of Object.keys(newParams)) {
-    newPath += `${encodeURIComponent(k)}=${encodeURIComponent(newParams[k])}&`;
+    newUrl += `${encodeURIComponent(k)}=${encodeURIComponent(newParams[k])}&`;
   }
-  return newPath.slice(0, -1);
+  return newUrl.slice(0, -1);
 }
 
 const fetcher = {
   async get(
-    path: string,
+    url: string,
     params: ObjectOf<string | number | boolean> = {},
     opts: FetcherOpts = {},
   ) {
-    const fullPath = _createPath(path, params);
-    return _fetcher(fullPath, opts.method || 'GET', null, opts);
+    const fullUrl = _createFullUrl(url, params);
+    return _fetcher(fullUrl, opts.method || 'GET', null, opts);
   },
 
   async getWithoutCache(
-    path: string,
+    url: string,
     params: ObjectOf<string | number | boolean> = {},
     opts: FetcherOpts = {},
   ) {
-    const fullPath = _createPath(path, params);
+    const fullUrl = _createFullUrl(url, params);
 
-    return _fetcher(fullPath, opts.method || 'GET', null, {
+    return _fetcher(fullUrl, opts.method || 'GET', null, {
       cache: 'no-cache',
       ...opts,
     });
   },
 
-  async post(path: string, _body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+  async post(url: string, _body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
     const body = Object.keys(_body).length ? JSON.stringify(_body) : '';
-    return _fetcher(path, opts.method || 'POST', body, opts);
+    return _fetcher(url, opts.method || 'POST', body, opts);
   },
 
-  async postForm(path: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+  async postForm(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
     opts.contentType = 'multipart/form-data';
     const formData = new FormData();
     for (const key of Object.keys(body)) {
@@ -152,19 +140,19 @@ const fetcher = {
       }
     }
 
-    return _fetcher(path, opts.method || 'POST', formData, opts);
+    return _fetcher(url, opts.method || 'POST', formData, opts);
   },
 
-  async patch(path: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
-    return fetcher.post(path, body, { method: 'PATCH', ...opts });
+  async patch(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+    return fetcher.post(url, body, { method: 'PATCH', ...opts });
   },
 
-  async put(path: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
-    return fetcher.post(path, body, { method: 'PUT', ...opts });
+  async put(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+    return fetcher.post(url, body, { method: 'PUT', ...opts });
   },
 
-  async delete(path: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
-    return fetcher.post(path, body, { method: 'DELETE', ...opts });
+  async delete(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+    return fetcher.post(url, body, { method: 'DELETE', ...opts });
   },
 };
 

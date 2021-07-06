@@ -1,5 +1,37 @@
-export SERVER='development'
-export REMOTE_SERVER_IP=''
-export TZ='UTC'
-export MOBILE_APP_ID=''
-export APP_NAME=''
+# Put secrets in .env
+
+# NODE
+TZ=UTC
+NODE_ENV=development
+
+# Remote Server
+REMOTE_DOMAIN_NAME=example.com
+REMOTE_SERVER_IP=
+REMOTE_ROOT_DIR=/var/www/example
+
+# DB
+MYSQL_DB=example
+
+# Misc
+NOREPLY_EMAIL=noreply@example.com
+
+## Below will be exposed to client
+
+# Server
+SERVER=development
+DOMAIN_NAME=localhost
+DEV_PORT=80
+BASE_PATH=
+
+# Build
+MOBILE_APP_ID=com.example
+
+# Content
+APP_NAME=Example
+APP_NAME_LOWER=example
+DESCRIPTION=
+
+# APIs
+FB_APP_ID=
+GA_ID=
+SENTRY_DSN=

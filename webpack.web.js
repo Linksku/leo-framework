@@ -7,16 +7,8 @@ const mergeReplaceArrays = require('./shared/lib/mergeReplaceArrays');
 const globals = require('./web/config/globals');
 const globalsSrc = require('./src/web/config/globals');
 const baseConfig = require('./webpack.common');
-
-function transformCopied(content, absoluteFrom) {
-  if (!['html', 'css', 'js', 'json', 'txt'].includes(absoluteFrom.replace(/^.+\./, ''))) {
-    return content;
-  }
-  return content
-    .toString()
-    .replace(/%APP_NAME%/g, process.env.APP_NAME)
-    .replace(/%BASE_PATH%/g, process.env.BASE_PATH);
-}
+const transformWebpackCopied = require('./shared/lib/transformWebpackCopied');
+const { ASSETS_URL } = require('./shared/settings');
 
 module.exports = mergeReplaceArrays(baseConfig, {
   entry: {
@@ -25,7 +17,11 @@ module.exports = mergeReplaceArrays(baseConfig, {
       : path.resolve('./web/web.tsx'),
   },
   output: {
+    publicPath: `${ASSETS_URL}/`,
+    // todo: high/mid separate dirs for prod and dev
     path: path.resolve('./build/web'),
+    filename: 'js/[name].js',
+    chunkFilename: `js/chunks/[name].js`,
   },
   plugins: [
     ...baseConfig.plugins,
@@ -42,12 +38,12 @@ module.exports = mergeReplaceArrays(baseConfig, {
         {
           from: path.resolve('./web/public'),
           to: path.resolve('./build/web'),
-          transform: transformCopied,
+          transform: transformWebpackCopied,
         },
         {
           from: path.resolve('./src/web/public'),
           to: path.resolve('./build/web'),
-          transform: transformCopied,
+          transform: transformWebpackCopied,
         },
       ],
     }),

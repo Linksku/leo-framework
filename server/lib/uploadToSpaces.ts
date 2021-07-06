@@ -18,12 +18,13 @@ export default async function uploadToSpaces({
     const uploaded = await promiseTimeout(
       Spaces
         .upload({
-          Bucket: process.env.DO_SPACES_BUCKET as string,
+          Bucket: defined(process.env.DO_SPACES_BUCKET),
           Key: outPath,
+          Body: file,
           ACL: 'public-read',
+          CacheControl: `public, max-age=${7 * 24 * 60 * 60}`,
           ContentType: contentType,
           ContentDisposition: `inline; filename=${path.basename(outPath)}`,
-          Body: file,
         })
         .promise(),
       10_000,

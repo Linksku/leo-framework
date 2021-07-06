@@ -1,5 +1,5 @@
 module.exports = {
-  name: process.env.APP_NAME_SLUG,
+  name: '%APP_NAME_LOWER%',
   cwd: 'build/server',
   script: 'main.js',
   min_uptime: '10s',

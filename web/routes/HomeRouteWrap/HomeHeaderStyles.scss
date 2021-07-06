@@ -1,4 +1,4 @@
-$iconDim: 20px;
+$iconDim: 24px;
 
 .container {
   position: fixed;
@@ -8,7 +8,7 @@ $iconDim: 20px;
   z-index: $zIndexFixed;
   height: $headerHeight;
   background-color: #fff;
-  border-bottom: 1px solid $separatorColor;
+  border-bottom: 1px solid darken($separatorColor, 5%);
 }
 
 .containerInner {
@@ -31,6 +31,7 @@ $iconDim: 20px;
   svg {
     height: $iconDim;
     width: $iconDim;
+    fill: $lightTextColor;
   }
 }
 

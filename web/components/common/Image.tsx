@@ -3,7 +3,7 @@ import ImageSvg from '@fortawesome/fontawesome-free/svgs/regular/image.svg';
 import styles from './ImageStyles.scss';
 
 type Props = {
-  url?: string,
+  url?: string | null,
   height?: number,
   width?: number,
   heightPercent?: number,
@@ -50,13 +50,16 @@ export default function Image({
       />
     );
   }
+
   const Svg = defaultSvg ?? ImageSvg;
   return (
     <div
-      className={cn(styles.defaultImg, className)}
+      className={cn(styles.svgOuter, className)}
       style={dims}
     >
-      <Svg />
+      <div className={styles.svgInner}>
+        <Svg />
+      </div>
     </div>
   );
 }
