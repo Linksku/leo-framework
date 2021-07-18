@@ -11,6 +11,7 @@ type Opts = {
   concurrentMode?: 'allowConcurrent' | 'ignoreNext' | 'ignorePrev',
   cancelOnUnmount?: boolean,
   noReturnState?: boolean,
+  showToastOnError?: boolean,
 };
 
 type OptsCallbacks<Name extends ApiName> = {
@@ -96,6 +97,7 @@ function useDeferredApi<
     cancelOnUnmount = true,
     // Don't call setState.
     noReturnState = false,
+    showToastOnError = false,
   }: Opts & Partial<OptsCallbacks<Name>> = {},
 ) {
   useDebugValue(name);
@@ -115,6 +117,7 @@ function useDeferredApi<
   });
   const authToken = useAuthToken();
   const handleApiEntities = useHandleApiEntities<Name>(type);
+  const showToast = useShowToast();
 
   const fetchApi: FetchApi<Name, Params> = useCallback(
     async (params2, files) => {
@@ -141,7 +144,7 @@ function useDeferredApi<
       // ObjectOf<
       //   Nullable<ApiNameToParams[Name]>["currentUserId"] | undefined
       // >
-      const combinedParams = { ...params, ...params2 } as unknown as ApiNameToParams[Name];
+      const combinedParams = { ...paramsMemo, ...params2 } as unknown as ApiNameToParams[Name];
 
       const timeoutErr = new Error(`Fetch(${name}) timed out`);
       timeoutErr.status = 503;
@@ -186,6 +189,13 @@ function useDeferredApi<
                   error: markMemoed(err),
                 });
               }
+
+              if (showToastOnError && err.message) {
+                showToast({
+                  msg: err.message,
+                });
+              }
+
               onError?.(err);
               ErrorLogger.warning(err, `useDeferredApi: ${name} failed`);
             });
@@ -195,16 +205,17 @@ function useDeferredApi<
         timeoutErr,
       );
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       name,
       paramsMemo,
       authToken,
       method,
-      type,
+      handleApiEntities,
       onFetch,
       onError,
       noReturnState,
+      showToastOnError,
+      showToast,
     ],
   );
 

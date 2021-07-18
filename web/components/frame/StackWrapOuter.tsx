@@ -22,7 +22,7 @@ export default function StackWrapOuter({
     defaultValue: slideIn ? 100 : 0,
   });
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
-  const { backStack, forwardStack } = useStacksStore();
+  const { backStack, forwardStack } = useStacksNavStore();
 
   const { ref, bindSwipe } = useSwipeNavigation({
     onNavigate: backStack,

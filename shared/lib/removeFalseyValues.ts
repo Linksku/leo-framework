@@ -1,5 +1,6 @@
 import objectEntries from './builtIns/objectEntries';
 
+// Not removing 0, '', etc.
 function removeFalseyValues<T extends ObjectOf<any>>(
   obj: T,
 ) {

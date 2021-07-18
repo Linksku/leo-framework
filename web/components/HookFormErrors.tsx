@@ -1,4 +1,4 @@
-import type { FieldErrors } from 'react-hook-form';
+import type { FieldErrors, FieldError } from 'react-hook-form';
 
 import styles from './HookFormErrorsStyles.scss';
 
@@ -11,12 +11,12 @@ export default function HookFormErrors({
   errors,
   additionalError,
 }: Props) {
-  const errorValues = Object.values(errors);
+  const errorValues: FieldError[] = Object.values(errors);
   if ((!errors || !errorValues.length) && !additionalError) {
     return null;
   }
 
-  if (process.env.NODE_ENV !== 'production' && errorValues.some(val => !val.message)) {
+  if (process.env.NODE_ENV !== 'production' && errorValues.some(err => !err.message)) {
     console.error('Missing error message.', errors);
   }
   return (
@@ -28,7 +28,7 @@ export default function HookFormErrors({
           </p>
         )
         : null}
-      {[...new Set(Object.values(errors).map(err => err.message ?? 'Unknown error'))].map(msg => (
+      {[...new Set(errorValues.map(err => err.message ?? 'Unknown error'))].map(msg => (
         <p
           key={msg}
           className={styles.error}

@@ -64,7 +64,7 @@ export default class EntityDates extends EntityComputed {
   $parseDatabaseJson(obj: ObjectOf<any>): ObjectOf<any> {
     obj = super.$parseDatabaseJson(obj);
 
-    const schema = (this.constructor as typeof Entity).jsonSchema;
+    const schema = (this.constructor as typeof Entity).dbJsonSchema;
     for (const k of Object.keys(schema.properties)) {
       obj[k] = unserializeDbProp(schema, k, obj[k]);
     }
@@ -75,7 +75,7 @@ export default class EntityDates extends EntityComputed {
   // node -> json
   $formatJson(obj: ObjectOf<any>): ObjectOf<any> {
     obj = super.$formatJson(obj);
-    const schema = (this.constructor as typeof Entity).jsonSchema;
+    const schema = (this.constructor as typeof Entity).allJsonSchema;
     for (const k of Object.keys(schema)) {
       obj[k] = serializeJsonProp(schema, k, obj[k]);
     }

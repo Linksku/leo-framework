@@ -1,10 +1,9 @@
 import { TAB_ICONS } from 'config/homeTabs';
-import { useHomeRouteStore } from 'stores/routes/HomeRouteStore';
 
 import styles from './HomeFooterStyles.scss';
 
 function HomeFooter() {
-  const { navigateHome, homeTab, homeParts } = useHomeRouteStore();
+  const { navigateHome, homeTab, homeParts } = useHomeNavStore();
 
   // todo: mid/hard add explore page
   return (

@@ -42,7 +42,7 @@ export default abstract class BaseComputedUpdater {
           const vals: any[] = [];
           for (const row of rows) {
             query2 += 'WHEN ? THEN ? ';
-            vals.push(row.id, serializeDbProp(Model.jsonSchema, col, row[col]));
+            vals.push(row.id, serializeDbProp(Model.dbJsonSchema, col, row[col]));
           }
           query2 += 'ELSE ?? END)';
           vals.push(getPropWithComputed(Model, col));

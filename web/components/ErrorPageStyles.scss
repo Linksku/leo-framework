@@ -1,5 +1,5 @@
 .container {
-  padding: $containerPadLeftRight * 3 $containerPadLeftRight;
+  padding: calc(var(--containerPadLeftRight) * 3) var(--containerPadLeftRight);
   overflow: hidden;
   text-align: center;
   width: 100%;

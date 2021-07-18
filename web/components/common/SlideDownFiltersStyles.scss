@@ -1,5 +1,3 @@
-$filterPadding: 5px;
-
 .filters {
   display: flex;
 }
@@ -8,7 +6,7 @@ $filterPadding: 5px;
   flex-basis: 0;
   flex-grow: 1;
   text-align: center;
-  padding: $filterPadding;
+  padding: 5px;
   font-size: 0.9em;
   color: $lightTextColor;
   transition: color 0.2s;
@@ -18,11 +16,11 @@ $filterPadding: 5px;
   justify-content: center;
 
   &:first-child {
-    padding-left: max($containerPadLeftRight, $filterPadding);
+    padding-left: var(--containerPadLeftRight);
   }
 
   &:last-child {
-    padding-right: max($containerPadLeftRight, $filterPadding);
+    padding-right: var(--containerPadLeftRight);
   }
 
   svg {
@@ -57,7 +55,7 @@ $filterPadding: 5px;
 }
 
 .option {
-  padding: 10px $containerPadLeftRight;
+  padding: 10px var(--containerPadLeftRight);
   color: $lightTextColor;
   font-size: 0.9em;
   cursor: pointer;

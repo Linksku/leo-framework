@@ -35,7 +35,7 @@ function useGlobalMemo<T>(
       deps,
     };
   }
-  return allVals[key].val;
+  return defined(allVals[key]).val;
 }
 
 export { GlobalMemoProvider, useGlobalMemoStore, useGlobalMemo };

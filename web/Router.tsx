@@ -18,7 +18,7 @@ export default function Router() {
     stackBot,
     stackTop,
     stackActive,
-  } = useStacksStore();
+  } = useStacksNavStore();
   const { isReplaced, curState } = useHistoryStore();
   const { isReloadingAfterAuth, loggedInStatus } = useAuthStore();
   const replacePath = useReplacePath();

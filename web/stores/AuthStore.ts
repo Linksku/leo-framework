@@ -14,7 +14,7 @@ const [
     );
     const [state, setState] = useState({
       currentUserId: null as number | null,
-      loggedInStatus: 'fetching' as 'fetching' | 'in' | 'out',
+      loggedInStatus: (window.localStorage.getItem('authToken') ? 'fetching' : 'out') as 'fetching' | 'in' | 'out',
       isReloadingAfterAuth: false,
       authToken: curAuthToken ?? null,
     });

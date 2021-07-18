@@ -2,12 +2,25 @@ import styles from './TitleBarStyles.scss';
 
 function renderBtn(
   onClick?: Memoed<React.MouseEventHandler>,
-  btnText?: string,
   btnProps?: Memoed<Parameters<typeof Button>[0]>,
   Svg?: React.SVGFactory,
   svgDim?: number,
 ) {
-  if (!onClick || (!btnText && !Svg)) {
+  if (btnProps) {
+    if (!onClick || btnProps.onClick || btnProps.href) {
+      if (process.env.NODE_ENV !== 'production') {
+        throw new Error('Titlebar: use onClick for button.');
+      }
+      return null;
+    }
+  } else if (Svg) {
+    if (!onClick) {
+      if (process.env.NODE_ENV !== 'production') {
+        throw new Error('Titlebar: onClick is required.');
+      }
+      return null;
+    }
+  } else {
     return null;
   }
 
@@ -19,9 +32,9 @@ function renderBtn(
       tabIndex={-1}
     >
       {(() => {
-        if (btnText) {
+        if (btnProps) {
           return (
-            <Button label={btnText} {...btnProps} />
+            <Button {...btnProps} />
           );
         }
         if (Svg) {
@@ -38,12 +51,10 @@ function renderBtn(
 type Props = {
   title?: string,
   onLeftBtnClick?: Memoed<React.MouseEventHandler>,
-  leftBtnText?: string,
   leftBtnProps?: Memoed<Parameters<typeof Button>[0]>,
   LeftSvg?: React.SVGFactory,
   leftSvgDim?: number,
   onRightBtnClick?: Memoed<React.MouseEventHandler>,
-  rightBtnText?: string,
   rightBtnProps?: Memoed<Parameters<typeof Button>[0]>,
   RightSvg?: React.SVGFactory,
   rightSvgDim?: number,
@@ -59,12 +70,10 @@ function TitleBar({
   children,
   title,
   onLeftBtnClick,
-  leftBtnText,
   leftBtnProps,
   LeftSvg,
   leftSvgDim = 18,
   onRightBtnClick,
-  rightBtnText,
   rightBtnProps,
   RightSvg,
   rightSvgDim = 18,
@@ -82,8 +91,8 @@ function TitleBar({
         {title ?? children}
       </h1>
       <div className={styles.buttons}>
-        {renderBtn(onLeftBtnClick, leftBtnText, leftBtnProps, LeftSvg, leftSvgDim)}
-        {renderBtn(onRightBtnClick, rightBtnText, rightBtnProps, RightSvg, rightSvgDim)}
+        {renderBtn(onLeftBtnClick, leftBtnProps, LeftSvg, leftSvgDim)}
+        {renderBtn(onRightBtnClick, rightBtnProps, RightSvg, rightSvgDim)}
       </div>
     </div>
   );

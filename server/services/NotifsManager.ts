@@ -70,7 +70,7 @@ export function createNotifType<Params, T extends string = string>(
 queue.process(async job => {
   const { type, params, currentUserId } = job.data;
 
-  let notifs = await notifTypes[type].genNotifs(params, currentUserId);
+  let notifs = await defined(notifTypes[type]).genNotifs(params, currentUserId);
   notifs = notifs.filter(n => n.userId !== currentUserId);
   for (const n of notifs) {
     if (n.groupingId === null) {
@@ -98,7 +98,7 @@ queue.process(async job => {
 export async function decorateNotifs(notifs: Notif[]) {
   const renderedArr = await Promise.all(
     notifs.map(
-      async notif => notifTypes[notif.notifType].render(notif, notif.params),
+      async notif => defined(notifTypes[notif.notifType]).render(notif, notif.params),
     ),
   );
 

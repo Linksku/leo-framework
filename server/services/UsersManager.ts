@@ -1,4 +1,6 @@
 import {
+  MIN_USER_AGE,
+  MAX_USER_AGE,
   MIN_USER_NAME_LENGTH,
   MAX_USER_NAME_LENGTH,
   MIN_PASSWORD_LENGTH,
@@ -6,9 +8,20 @@ import {
 } from 'consts/users';
 import tokenizeString from 'lib/nlp/tokenizeString';
 import isNameInappropriate from 'lib/isNameInappropriate';
-import isNameForbidden from 'lib/isNameForbidden';
 
 const UsersManager = {
+  getBirthdayInvalidReason(birthday: string): string | null {
+    const diffYears = dayjs().diff(birthday, 'year', true);
+    if (diffYears < MIN_USER_AGE) {
+      return `You must be at least ${MIN_USER_AGE} to join.`;
+    }
+    if (diffYears > MAX_USER_AGE) {
+      return 'Invalid age.';
+    }
+
+    return null;
+  },
+
   getNameInvalidReason(name: string): string | null {
     if (name.length < MIN_USER_NAME_LENGTH) {
       return 'Name too short.';
@@ -20,7 +33,7 @@ const UsersManager = {
       return 'Name contains invalid characters.';
     }
     const words = tokenizeString(name);
-    if (isNameInappropriate(words) || isNameForbidden(words)) {
+    if (isNameInappropriate(words)) {
       return 'Name isn\'t allowed.';
     }
 

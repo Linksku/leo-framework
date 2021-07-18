@@ -60,6 +60,6 @@ export default class EntityComputed extends EntityBase {
       ComputedUpdatersManager = require('services/computedUpdaters/ComputedUpdatersManager').default;
     }
 
-    ComputedUpdatersManager!.triggerUpdates((this.constructor as typeof Entity).type);
+    defined(ComputedUpdatersManager).triggerUpdates((this.constructor as typeof Entity).type);
   }
 }

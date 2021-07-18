@@ -295,7 +295,8 @@ module.exports = {
     }],
     '@typescript-eslint/return-await': 2,
     '@typescript-eslint/no-explicit-any': 0,
-    '@typescript-eslint/no-non-null-assertion': 0,
+    // use shared/lib/defined
+    '@typescript-eslint/no-non-null-assertion': 2,
     '@typescript-eslint/no-empty-function': 0,
     'import/extensions': [2, 'ignorePackages', {
       js: 'never',

@@ -76,7 +76,7 @@ module.exports = {
             loader: 'sass-resources-loader',
             options: {
               resources: [
-                path.resolve('./web/styles/imports/variables.scss'),
+                path.resolve('./web/styles/imports/sassVariables.scss'),
                 path.resolve('./web/styles/imports/mixins.scss'),
                 path.resolve('./web/styles/imports/helpers.scss'),
               ],

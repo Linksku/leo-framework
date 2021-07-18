@@ -1,3 +1,4 @@
+import type { JSONSchemaDefinition } from 'objection';
 import type { JSONSchema4 } from 'json-schema';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -11,48 +12,63 @@ import { isPropDate } from 'models/core/EntityDates';
 // @ts-ignore
 global.Model = class Model {};
 
+function isValidValSchema(val: JSONSchemaDefinition) {
+  if (typeof val === 'boolean') {
+    return false;
+  }
+  if (val.anyOf) {
+    return val.anyOf.some(v => isValidValSchema(v));
+  }
+  if (val.allOf) {
+    return val.allOf.every(v => isValidValSchema(v));
+  }
+  if (Array.isArray(val.type) && val.type.includes('null')) {
+    return true;
+  }
+  if (hasOwnProperty(val, 'default')) {
+    return true;
+  }
+
+  return false;
+}
+
 export default async function buildSharedEntities() {
   const entities = [] as { type: string, name: string }[];
   const interfaces = [] as string[];
 
-  for (const model of Object.keys(entityModels)) {
-    const EntityModel = entityModels[model];
-
-    for (const [prop, val] of Object.entries(EntityModel.jsonSchema.properties)) {
+  for (const [model, EntityModel] of objectEntries(entityModels)) {
+    const { allJsonSchema } = EntityModel;
+    for (const [prop, val] of Object.entries(allJsonSchema.properties)) {
       if (prop === 'id') {
         continue;
       }
-      if (EntityModel.jsonSchema.required.includes(prop)) {
+      if (allJsonSchema.required.includes(prop)) {
         continue;
       }
       if ((EntityModel.getComputedProperties() as Set<string>).has(prop)) {
         continue;
       }
-      if (Array.isArray(val.type) && val.type.includes('null')) {
-        continue;
-      }
-      if (hasOwnProperty(val, 'default')) {
+      if (isValidValSchema(val)) {
         continue;
       }
 
       throw new Error(`${model}.${prop} must be auto-incremented (id), required, computed, nullable or have default.`);
     }
 
-    for (const [prop, val] of Object.entries(EntityModel.jsonSchema.properties)) {
-      if (isPropDate(EntityModel.jsonSchema, prop)) {
+    for (const [prop, val] of Object.entries(allJsonSchema.properties)) {
+      if (isPropDate(allJsonSchema, prop)) {
         // @ts-ignore custom prop from json-schema-to-typescript
         val.tsType = 'Date';
       }
     }
 
     const fields = await compile(
-      EntityModel.jsonSchema as JSONSchema4,
+      allJsonSchema as JSONSchema4,
       'Foo',
       { bannerComment: '' },
     );
     interfaces.push(`interface I${model} {
   type: '${EntityModel.type}';
-  id: number;
 ${
   fields.split('\n').slice(1, -2).join('\n')
     .replace(/\?: /g, ': ')

@@ -3,7 +3,12 @@ declare module '*.txt' {
   export default content;
 }
 
-type ObjectOf<T> = Record<string, T>;
+// Useful until TS distinguishes between optional and undefined.
+class __WITH_UNDEFINED {
+  private [Symbol('__WITH_UNDEFINED')] = true;
+}
+
+type ObjectOf<T> = Partial<Record<string, T>>;
 
 type ValueOf<T> = T[keyof T];
 

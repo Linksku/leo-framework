@@ -16,6 +16,7 @@ function Alerts() {
   const {
     title,
     msg,
+    textAlign,
     closeable,
     showOk,
     okText,
@@ -72,6 +73,7 @@ function Alerts() {
     >
       <div
         className={styles.alert}
+        style={{ textAlign }}
         onClick={event => event.stopPropagation()}
         role="dialog"
       >

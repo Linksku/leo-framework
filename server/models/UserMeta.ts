@@ -2,7 +2,7 @@ export default class UserMeta extends Entity implements IUserMeta {
   static type = 'userMeta' as const;
   static tableName = 'usersMeta' as const;
 
-  static jsonSchema = {
+  static dbJsonSchema = {
     type: 'object',
     required: ['userId', 'metaKey', 'metaValue'],
     properties: {
@@ -19,7 +19,7 @@ export default class UserMeta extends Entity implements IUserMeta {
       user: {
         relation: Model.BelongsToOneRelation,
         // eslint-disable-next-line global-require
-        modelClass: require('config/userModel').default,
+        modelClass: require('config/models').default.User,
         join: {
           from: 'usersMeta.userId',
           to: 'users.id',

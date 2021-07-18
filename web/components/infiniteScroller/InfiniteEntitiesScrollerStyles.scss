@@ -1,5 +1,5 @@
 .msg {
-  padding: 10px $containerPadLeftRight;
+  padding: 10px var(--containerPadLeftRight);
   color: $lightTextColor;
   margin-bottom: 0;
 }

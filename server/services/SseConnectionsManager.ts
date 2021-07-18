@@ -45,7 +45,7 @@ const SseConnectionsManager = {
   },
 
   sendHeartbeat() {
-    for (const conn of Object.values(conns)) {
+    for (const conn of objectValues(conns)) {
       if (Date.now() - conn.lastMsgTime > MIN_HEARTBEAT_TIME) {
         try {
           conn.res.write(':\n\n');

@@ -8,7 +8,6 @@ import BaseUser from 'models/core/BaseUser';
 import { APP_NAME, HOME_URL, DOMAIN_NAME } from 'settings';
 import { DEFAULT_AUTH_EXPIRATION } from 'serverSettings';
 import UsersManager from 'services/UsersManager';
-import { MIN_USER_AGE, MAX_USER_AGE } from 'consts/users';
 
 const dataSchema = {
   type: 'object' as const,
@@ -64,12 +63,9 @@ defineApi(
     dataSchema,
   },
   async function registerUser({ email, password, name, birthday }, res) {
-    const diffYears = dayjs().diff(birthday, 'year', true);
-    if (diffYears < MIN_USER_AGE) {
-      throw new HandledError(`You must be at least ${MIN_USER_AGE} to join.`, 400);
-    }
-    if (diffYears > MAX_USER_AGE) {
-      throw new HandledError('Invalid age.', 400);
+    const invalidBirthdayReason = UsersManager.getBirthdayInvalidReason(birthday);
+    if (invalidBirthdayReason) {
+      throw new HandledError(invalidBirthdayReason, 400);
     }
 
     const invalidPasswordReason = UsersManager.getPasswordInvalidReason(password);

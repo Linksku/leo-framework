@@ -132,7 +132,7 @@ const [
       const entitiesOfType = ref.current.entities[type] as unknown as ObjectOf<
         Memoed<TypeToEntity<T>>
       >;
-      const deleteEntities = Object.values(entitiesOfType)
+      const deleteEntities = objectValues(entitiesOfType)
         .filter(e => shouldDelete(e));
       if (!deleteEntities.length) {
         return;

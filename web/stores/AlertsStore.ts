@@ -2,6 +2,7 @@ export type Alert = {
   id: number,
   title: string,
   msg: string | ReactElement,
+  textAlign: 'center' | 'left' | 'right',
   closeable: boolean,
   closeAfter: number | null,
   showOk: boolean,
@@ -23,10 +24,16 @@ const [
 ] = constate(
   function AlertsStore() {
     const [alerts, setAlerts] = useState([] as Alert[]);
+    const ref = useRef({
+      shown: !!alerts.length,
+    });
+    ref.current.shown = !!alerts.length;
+    const { addPopHandler } = useHistoryStore();
 
     const showAlert = useCallback(({
-      msg = '',
       title = '',
+      msg = '',
+      textAlign = 'center',
       closeable = true,
       closeAfter = null as number | null,
       showOk = true,
@@ -44,6 +51,7 @@ const [
         id: alertId,
         title,
         msg,
+        textAlign,
         closeable,
         closeAfter,
         showOk,
@@ -55,12 +63,20 @@ const [
         onCancel,
       }]);
 
+      addPopHandler(() => {
+        if (ref.current.shown) {
+          setAlerts([]);
+          return true;
+        }
+        return false;
+      });
+
       if (closeAfter !== null) {
         window.setTimeout(() => {
           setAlerts(arr => arr.filter(a => a.id !== alertId));
         }, closeAfter);
       }
-    }, [setAlerts]);
+    }, [setAlerts, addPopHandler]);
 
     const showConfirm = useCallback(async (
       props: Partial<Omit<Alert, 'id'>>,

@@ -1,6 +1,10 @@
 import type { JSONSchema } from 'objection';
 
+import mergeConcatArrays from 'lib/mergeConcatArrays';
+
 export default class EntityBase extends Model {
+  // todo: mid/mid maybe replace id with random int
+  // last_insert_id((0xe8e5* last_insert_id()) % power(2, 32))
   static idColumn = 'id';
 
   static type: EntityType;
@@ -8,12 +12,28 @@ export default class EntityBase extends Model {
   static virtualAttributes = ['type'];
 
   // todo: mid/hard validate json schema against mysql
-  static jsonSchema = {
+  static dbJsonSchema = {
     type: 'object',
     required: [] as string[],
-    properties: {} as ObjectOf<JSONSchema>,
+    properties: {} as Record<string, JSONSchema>,
     additionalProperties: false,
   };
+
+  // For Objection to validate before updating DB.
+  static get jsonSchema() {
+    return this.dbJsonSchema;
+  }
+
+  static otherJsonSchema = {
+    type: 'object',
+    required: [] as string[],
+    properties: {} as Record<string, JSONSchema>,
+    additionalProperties: false,
+  };
+
+  static get allJsonSchema() {
+    return mergeConcatArrays(this.dbJsonSchema, this.otherJsonSchema);
+  }
 
   static pickJsonSchemaProperties = true;
 

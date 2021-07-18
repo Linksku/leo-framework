@@ -32,18 +32,16 @@ const SseBroadcastManager = {
       return;
     }
 
-    if (!sessionIdToEventTypes[sessionId]) {
-      sessionIdToEventTypes[sessionId] = new Set();
-    }
-    if (!eventTypesToSessionIds[eventType]) {
-      eventTypesToSessionIds[eventType] = new Set();
+    const eventTypes = objValOrSetDefault(sessionIdToEventTypes, sessionId, new Set());
+    const sessionIds = objValOrSetDefault(eventTypesToSessionIds, eventType, new Set());
+    if (!sessionIds.size) {
       PubSubManager.subscribe(
         eventType,
         (data: string) => SseBroadcastManager.handleData(eventType, data),
       );
     }
-    sessionIdToEventTypes[sessionId].add(eventType);
-    eventTypesToSessionIds[eventType].add(sessionId);
+    eventTypes.add(eventType);
+    sessionIds.add(sessionId);
   },
 
   unsubscribe(sessionId: string, eventName: string, eventParams: Pojo) {
@@ -61,34 +59,37 @@ const SseBroadcastManager = {
       return;
     }
 
-    if (sessionIdToEventTypes[sessionId]) {
-      sessionIdToEventTypes[sessionId].delete(eventType);
-    }
-    if (!sessionIdToEventTypes) {
-      delete sessionIdToEventTypes[sessionId];
+    const eventTypes = sessionIdToEventTypes[sessionId];
+    if (eventTypes) {
+      eventTypes.delete(eventType);
+      if (!eventTypes.size) {
+        delete sessionIdToEventTypes[sessionId];
+      }
     }
 
-    if (eventTypesToSessionIds[eventType]) {
-      eventTypesToSessionIds[eventType].delete(sessionId);
-    }
-    if (!eventTypesToSessionIds[eventType].size) {
-      delete eventTypesToSessionIds[eventType];
-      PubSubManager.unsubscribeAll(eventType);
+    const sessionIds = eventTypesToSessionIds[eventType];
+    if (sessionIds) {
+      sessionIds.delete(sessionId);
+      if (!sessionIds.size) {
+        delete eventTypesToSessionIds[eventType];
+        PubSubManager.unsubscribeAll(eventType);
+      }
     }
   },
 
   unsubscribeAll(sessionId: string) {
-    if (!sessionIdToEventTypes[sessionId]) {
+    if (!hasDefinedProperty(sessionIdToEventTypes, sessionId)) {
       return;
     }
 
     for (const eventType of sessionIdToEventTypes[sessionId]) {
-      if (eventTypesToSessionIds[eventType]) {
-        eventTypesToSessionIds[eventType].delete(sessionId);
-      }
-      if (!eventTypesToSessionIds[eventType].size) {
-        delete eventTypesToSessionIds[eventType];
-        PubSubManager.unsubscribeAll(eventType);
+      const sessionIds = eventTypesToSessionIds[eventType];
+      if (sessionIds) {
+        sessionIds.delete(sessionId);
+        if (!sessionIds.size) {
+          delete eventTypesToSessionIds[eventType];
+          PubSubManager.unsubscribeAll(eventType);
+        }
       }
     }
 
@@ -123,7 +124,7 @@ const SseBroadcastManager = {
   },
 
   handleData(eventType: string, data: string) {
-    if (!eventTypesToSessionIds[eventType]) {
+    if (!hasDefinedProperty(eventTypesToSessionIds, eventType)) {
       return;
     }
 

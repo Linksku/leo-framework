@@ -60,20 +60,20 @@ function _normalizeEntities(
 function _getDateProps(entities: SerializedEntity[]): ObjectOf<string[]> {
   const dateProps: ObjectOf<string[]> = {};
   for (const e of entities) {
-    if (dateProps[e.type]) {
+    if (dateProps[e.type] || !hasDefinedProperty(entityTypeToModel, e.type)) {
       continue;
     }
     dateProps[e.type] = [];
 
-    const { jsonSchema } = entityTypeToModel[e.type];
-    for (const k of Object.keys(jsonSchema.properties)) {
-      if (isPropDate(jsonSchema, k)) {
-        dateProps[e.type].push(k);
+    const { allJsonSchema } = entityTypeToModel[e.type];
+    for (const k of Object.keys(allJsonSchema.properties)) {
+      if (isPropDate(allJsonSchema, k)) {
+        defined(dateProps[e.type]).push(k);
       }
     }
   }
 
-  return pickBy(dateProps, arr => arr.length);
+  return pickBy(dateProps, arr => defined(arr).length);
 }
 
 export default function processApiRet<Path extends ApiName>({

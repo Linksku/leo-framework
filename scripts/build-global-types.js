@@ -22,6 +22,9 @@ for (const varName of Object.keys(globals)) {
   }
 
   if (Array.isArray(v)) {
+    if (v.length !== 2) {
+      throw new Error(`build-global-types: invalid value for ${varName}`);
+    }
     imports.push(`import type { ${v[1]} as _${varName} } from '${p}';`);
   } else {
     imports.push(`import type _${varName} from '${p}';`);

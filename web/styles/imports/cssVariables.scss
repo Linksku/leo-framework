@@ -1,0 +1,12 @@
+// todo: mid/easy decrease font-size for small screens
+:root {
+  --containerPadLeftRight: 5px;
+
+  @include gtXs {
+    --containerPadLeftRight: 10px;
+  }
+
+  @include gtMd {
+    --containerPadLeftRight: 15px;
+  }
+}

@@ -1,6 +1,7 @@
+// @ts-nocheck
 import uniqueArray from 'lib/uniqueArray';
 
-export default function mergeConcatArrays(obj1: any, obj2: any) {
+export default function mergeConcatArrays<T1, T2>(obj1: T1, obj2: T2): T1 & T2 {
   if (obj1 === obj2) {
     return obj1;
   }
@@ -14,15 +15,16 @@ export default function mergeConcatArrays(obj1: any, obj2: any) {
     return uniqueArray([...obj1, ...obj2]);
   }
   if (typeof obj1 === 'object' && typeof obj2 === 'object') {
+    const newObj = {};
     for (const k of Object.keys(obj1)) {
-      obj1[k] = mergeConcatArrays(obj1[k], obj2[k]);
+      newObj[k] = mergeConcatArrays(obj1[k], obj2[k]);
     }
     for (const k of Object.keys(obj2)) {
       if (!Object.prototype.hasOwnProperty.call(obj1, k)) {
-        obj1[k] = obj2[k];
+        newObj[k] = obj2[k];
       }
     }
-    return obj1;
+    return newObj;
   }
   return obj2;
 }

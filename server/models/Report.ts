@@ -2,7 +2,7 @@ export default class Report extends Entity implements IReport {
   static type = 'report' as const;
   static tableName = 'reports' as const;
 
-  static jsonSchema = {
+  static dbJsonSchema = {
     type: 'object',
     required: ['reporterId', 'entityType', 'entityId'],
     properties: {
@@ -20,7 +20,7 @@ export default class Report extends Entity implements IReport {
       reporter: {
         relation: Model.BelongsToOneRelation,
         // eslint-disable-next-line global-require
-        modelClass: require('config/userModel').default,
+        modelClass: require('config/models').default.User,
         join: {
           from: 'reports.reporterId',
           to: 'users.id',

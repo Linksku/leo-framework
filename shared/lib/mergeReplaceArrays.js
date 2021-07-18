@@ -12,15 +12,16 @@ module.exports = function mergeReplaceArrays(obj1, obj2) {
     return obj2;
   }
   if (typeof obj1 === 'object' && typeof obj2 === 'object') {
+    const newObj = {};
     for (const k of Object.keys(obj1)) {
-      obj1[k] = mergeReplaceArrays(obj1[k], obj2[k]);
+      newObj[k] = mergeReplaceArrays(obj1[k], obj2[k]);
     }
     for (const k of Object.keys(obj2)) {
       if (!Object.prototype.hasOwnProperty.call(obj1, k)) {
-        obj1[k] = obj2[k];
+        newObj[k] = obj2[k];
       }
     }
-    return obj1;
+    return newObj;
   }
   return obj2;
 };

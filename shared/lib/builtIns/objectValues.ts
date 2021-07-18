@@ -1,15 +1,15 @@
 type _EntryType<T extends ObjectOf<any>> = {
-  [K in keyof T]: [K, T[K]];
+  [K in keyof T]: T[K];
 }[keyof T];
 
-function objectEntries<Obj extends ObjectOf<any>>(
+function objectValues<Obj extends ObjectOf<any>>(
   obj: Obj,
   keepUndefined?: false,
 ): _EntryType<{
   [K in keyof Obj]-?: Exclude<Obj[K], undefined>;
 }>[];
 
-function objectEntries<
+function objectValues<
   Obj extends ObjectOf<any>
 >(
   obj: Obj,
@@ -18,16 +18,16 @@ function objectEntries<
   [K in keyof Obj]: Obj[K];
 }>, undefined>[];
 
-function objectEntries<Obj extends ObjectOf<any>>(
+function objectValues<Obj extends ObjectOf<any>>(
   obj: Obj,
   keepUndefined?: boolean,
 ) {
   if (keepUndefined) {
-    return Object.entries(obj);
+    return Object.values(obj);
   }
-  return Object.entries(obj).filter(
-    arr => typeof arr[1] !== 'undefined',
+  return Object.values(obj).filter(
+    val => typeof val !== 'undefined',
   );
 }
 
-export default objectEntries;
+export default objectValues;

@@ -26,5 +26,6 @@ module.exports = {
       ignore: ['css3-cursors-newer'],
     }],
     'at-rule-empty-line-before': null,
+    'value-keyword-case': null,
   },
 };

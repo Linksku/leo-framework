@@ -3,6 +3,7 @@
 
 @import './vendors/fonts';
 @import './imports/elements';
+@import './imports/cssVariables';
 
 :global(.oneLine) {
   @extend %oneLine;

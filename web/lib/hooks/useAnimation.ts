@@ -43,12 +43,15 @@ function getStyle(valToStyle: ValToStyle, value: number, duration: number) {
   }
 
   // eslint-disable-next-line unicorn/no-array-for-each
-  objectEntries(valToStyle).forEach(<T extends keyof React.CSSProperties>([k, v]: [
-    T,
-    (x: number) => React.CSSProperties[T],
-  ]) => {
-    style[k] = v(value);
-  });
+  objectEntries(valToStyle, true).forEach(
+    <T extends keyof React.CSSProperties>([k, v]: [
+      T,
+      ((x: number) => React.CSSProperties[T]) | undefined,
+    ]) => {
+      // @ts-ignore union type that is too complex to represent
+      style[k] = v?.(value);
+    },
+  );
 
   return style;
 }
@@ -104,7 +107,10 @@ export function useAnimation<T extends HTMLElement>() {
       duration,
     );
     for (const [k, v] of objectEntries(style)) {
-      animationRef.current.style.setProperty(styleDeclarationToCss(k), v.toString());
+      animationRef.current.style.setProperty(
+        styleDeclarationToCss(k),
+        v.toString(),
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

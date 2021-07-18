@@ -2,6 +2,7 @@ import type SentryType from '@sentry/browser';
 import type { Severity } from '@sentry/types';
 
 import detectOs from 'lib/detectOs';
+import getIsMobile from 'lib/getIsMobile';
 
 let Sentry: {
   init: typeof SentryType.init,
@@ -82,7 +83,7 @@ export const loadErrorLogger = (userId?: number) => {
         scope.setUser({ id: latestUserId?.toString() });
         scope.setTag('userId', latestUserId);
         scope.setTag('jsVersion', process.env.JS_VERSION);
-        scope.setTag('isMobile', os === 'android' || os === 'ios');
+        scope.setTag('isMobile', getIsMobile());
         scope.setTag('language', window.navigator.language);
         scope.setTag('os', os);
         scope.setTag('userAgent', window.navigator.userAgent);

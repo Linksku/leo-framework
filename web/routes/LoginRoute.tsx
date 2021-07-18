@@ -56,9 +56,11 @@ function LoginRoute() {
             registerOpts={{
               required: 'Password is required.',
               minLength: 8,
+              maxLength: 64,
             }}
             disabled={fetching}
             required
+            placeholder="********"
           />
 
           <Button

@@ -1,11 +1,8 @@
-import type { BackButtonListenerEvent } from '@capacitor/app';
-
 import 'lib/hacks/consoleTimeImports';
 
 import 'styles/styles.scss';
 
 import { render } from 'react-dom';
-import { App as Capacitor } from '@capacitor/app';
 
 import 'lib/wdyr';
 import App from 'App';
@@ -25,15 +22,6 @@ window.addEventListener('unhandledrejection', e => {
 
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('gesturechange', e => e.preventDefault());
-
-// Capacitor Android.
-void Capacitor.addListener('backButton', (event: BackButtonListenerEvent) => {
-  if (event.canGoBack) {
-    window.history.back();
-  } else {
-    Capacitor.exitApp();
-  }
-});
 
 preventClicksAfterMove();
 setVhCssVar();

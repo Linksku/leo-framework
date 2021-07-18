@@ -1,4 +1,4 @@
-@keyframes fadein {
+@keyframes fadeIn {
   from {
     filter: opacity(0%);
   }
@@ -24,6 +24,6 @@
 
   &.visible {
     filter: opacity(100%);
-    animation: fadein 0.2s;
+    animation: fadeIn 0.2s;
   }
 }

@@ -35,7 +35,7 @@ defineApi(
             properties: {
               status: SchemaConstants.nonNegInt,
               data: {
-                oneOf: [
+                anyOf: [
                   { type: 'null' },
                   { type: 'object' },
                 ],

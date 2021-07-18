@@ -1,4 +1,6 @@
+import type { BackButtonListenerEvent } from '@capacitor/app';
 import qs from 'query-string';
+import { App as Capacitor } from '@capacitor/app';
 
 import useForceUpdate from 'lib/hooks/useForceUpdate';
 
@@ -25,6 +27,17 @@ function getStateFromLocation(stateId: number): HistoryState {
   });
 }
 
+function getFullPath(path: string, queryStr: string | null, hash: string | null) {
+  let fullPath = path;
+  if (queryStr) {
+    fullPath += `?${queryStr}`;
+  }
+  if (hash) {
+    fullPath += `#${hash}`;
+  }
+  return fullPath;
+}
+
 const [
   HistoryProvider,
   useHistoryStore,
@@ -34,16 +47,16 @@ const [
   function HistoryStore() {
     const ref = useRef(useMemo(() => {
       const initialStateId = window.history.state?.id
-        ? Number.parseInt(window.history.state?.id, 10) || 0
+        ? Number.parseInt(window.history.state.id, 10) || 0
         : 0;
       return {
         prevState: null as HistoryState | null,
         curState: getStateFromLocation(initialStateId),
-        nextState: null as HistoryState | null,
-        direction: 'none' as 'none' | 'back' | 'forward', // none, back, forward
+        direction: 'none' as 'none' | 'back' | 'forward',
         isReplaced: false,
-        nextStateId: initialStateId,
         isInitialState: true,
+        hadExistingHistoryState: !!window.history?.state,
+        popHandlers: [] as (() => boolean)[],
       };
     }, []));
     const forceUpdate = useForceUpdate();
@@ -60,7 +73,6 @@ const [
         return;
       }
 
-      ref.current.nextStateId++;
       ref.current = markMemoed({
         ...ref.current,
         prevState: ref.current.curState,
@@ -69,24 +81,19 @@ const [
           query: markMemoed(query),
           queryStr,
           hash,
-          id: ref.current.nextStateId,
+          id: ref.current.curState.id + 1,
         }),
         direction: 'forward',
         isReplaced: false,
         isInitialState: false,
       });
 
-      let fullPath = path;
-      if (query) {
-        fullPath += `?${queryStr}`;
-      }
-      if (hash) {
-        fullPath += `#${hash}`;
-      }
       window.history.pushState(
-        { id: ref.current.nextStateId },
+        {
+          id: ref.current.curState.id,
+        },
         '',
-        fullPath,
+        getFullPath(path, queryStr, hash),
       );
       forceUpdate();
     }, [forceUpdate]);
@@ -116,16 +123,18 @@ const [
         isInitialState: false,
       });
       window.history.replaceState(
-        { id: ref.current.curState.id },
+        {
+          id: ref.current.curState.id,
+        },
         '',
-        query ? `${path}?${queryStr}` : path,
+        getFullPath(path, queryStr, hash),
       );
       forceUpdate();
     }, [forceUpdate]);
 
+    // Called for both back and forward.
     const handlePopState = useCallback((event: PopStateEvent) => {
-      const stateId = event.state?.id;
-      const poppedStateId = typeof stateId === 'number' ? stateId : 0;
+      const poppedStateId: number = typeof event.state?.id === 'number' ? event.state.id : 0;
       ref.current = markMemoed({
         ...ref.current,
         prevState: ref.current.curState,
@@ -136,7 +145,13 @@ const [
         isReplaced: false,
         isInitialState: false,
       });
-      ref.current.nextStateId = Math.max(ref.current.nextStateId, poppedStateId);
+
+      // Can't cancel pop event, so clear all pop handlers.
+      while (ref.current.popHandlers.length) {
+        const lastHandler = ref.current.popHandlers.shift();
+        lastHandler?.();
+      }
+
       forceUpdate();
     }, [forceUpdate]);
 
@@ -166,22 +181,31 @@ const [
       }
     }, [_pushPath]);
 
+    const addPopHandler = useCallback((popHandler: () => boolean) => {
+      ref.current.popHandlers.push(popHandler);
+    }, []);
+
     useEffect(() => {
       window.addEventListener('popstate', handlePopState);
       window.addEventListener('click', handleClick);
 
-      // todo: mid/mid store prevUrl in history state to check is prevUrl is in app
-      // todo: mid/mid fix logic of adding home to history
-      /*
-      const { path, query, hash } = ref.current.curState;
-      if (!ref.current.prevState?.path && path && path !== '/'
-        && nextStateId === 0) {
-        batchedUpdates(() => {
-          _replacePath('/', null);
-          _pushPath(path, query, hash);
-        });
-      }
-      */
+      // Capacitor Android.
+      void Capacitor.addListener('backButton', (event: BackButtonListenerEvent) => {
+        while (ref.current.popHandlers.length) {
+          const lastHandler = ref.current.popHandlers.shift();
+          const handled = lastHandler?.();
+          if (handled) {
+            return;
+          }
+        }
+
+        if (event.canGoBack) {
+          window.history.back();
+        } else {
+          // todo: mid/easy confirm before exiting
+          Capacitor.exitApp();
+        }
+      });
 
       return () => {
         window.removeEventListener('popstate', handlePopState);
@@ -195,12 +219,25 @@ const [
       }
     }, [ref.current.curState.hash]);
 
+    // Add home to history.
+    useEffect(() => {
+      const { path, query, hash } = ref.current.curState;
+      if (!ref.current.hadExistingHistoryState && path !== '/') {
+        batchedUpdates(() => {
+          _replacePath('/', null);
+          _pushPath(path, query, hash);
+        });
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return useDeepMemoObj({
       prevState: ref.current.prevState,
       curState: ref.current.curState,
       direction: ref.current.direction,
       isReplaced: ref.current.isReplaced,
       isInitialState: ref.current.isInitialState,
+      addPopHandler,
       _pushPath,
       _replacePath,
     });

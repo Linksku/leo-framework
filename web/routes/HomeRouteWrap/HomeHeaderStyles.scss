@@ -22,7 +22,7 @@ $iconDim: 24px;
 .rightIcon {
   display: flex;
   align-items: center;
-  padding: 0 $containerPadLeftRight;
+  padding: 0 var(--containerPadLeftRight);
   line-height: $headerHeight;
   border: 0;
   cursor: pointer;
@@ -38,7 +38,7 @@ $iconDim: 24px;
 .notifsCount {
   position: absolute;
   top: ($headerHeight - $iconDim) / 2 - 8px;
-  right: $containerPadLeftRight - 8px;
+  right: calc(var(--containerPadLeftRight) - 8px);
   font-size: 10px;
   font-weight: 700;
   background-color: #f02849;

@@ -38,6 +38,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
               <span
                 onClick={e => {
                   e.preventDefault();
+                  // @ts-ignore reload(true) is still supported
                   window.location.reload(true);
                 }}
                 role="button"

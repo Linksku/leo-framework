@@ -13,7 +13,7 @@ type InnerProps = {
 
 const StackWrapInnerHeader = React.memo(
   function StackWrapInnerHeader({ title, ...props }: InnerProps) {
-    const { backStack } = useStacksStore();
+    const { backStack } = useStacksNavStore();
     return (
       <PullToRefresh>
         <TitleBar

@@ -1,5 +1,5 @@
 declare module '*.scss' {
-  const styles: ObjectOf<string>;
+  const styles: Record<string, string>;
   export default styles;
 }
 
@@ -20,7 +20,7 @@ interface Error {
 
 type HistoryState = Memoed<{
   path: string,
-  query: Memoed<ObjectOf<any>> | null,
+  query: Memoed<ObjectOf<unknown>> | null,
   queryStr: string | null,
   hash: string | null,
   id: number,
@@ -29,7 +29,7 @@ type HistoryState = Memoed<{
 type RouteProps = {
   matches: string[],
   path: string,
-  query: Memoed<ObjectOf<any>> | null,
+  query: Memoed<ObjectOf<unknown>> | null,
   queryStr: string | null,
   hash: string | null,
 };

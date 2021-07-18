@@ -34,7 +34,7 @@ export default function useHandleApiEntities<Name extends ApiName>(
         throw new Error('deletedIds exists when type isn\'t delete');
       }
 
-      for (const [entityType, ids] of objectEntries(deletedIds)) {
+      for (const [entityType, ids] of objectEntries(deletedIds, true)) {
         deleteEntities(
           entityType,
           e => ids?.includes(e.id) ?? false,

@@ -4,12 +4,10 @@ import computedUpdaters from 'config/computedUpdaters';
 import type BaseComputedUpdater from './BaseComputedUpdater';
 
 const TRIGGERED_UPDATES: ObjectOf<string[]> = {};
-for (const k of Object.keys(computedUpdaters)) {
-  for (const dep of (computedUpdaters[k].constructor as typeof BaseComputedUpdater).dependencies) {
-    if (!TRIGGERED_UPDATES[dep]) {
-      TRIGGERED_UPDATES[dep] = [];
-    }
-    TRIGGERED_UPDATES[dep].push(k);
+for (const [k, updater] of objectEntries(computedUpdaters)) {
+  for (const dep of (updater.constructor as typeof BaseComputedUpdater).dependencies) {
+    objValOrSetDefault(TRIGGERED_UPDATES, dep, [])
+      .push(k);
   }
 }
 
@@ -31,12 +29,12 @@ if (process.env.NODE_ENV !== 'production') {
 queue.process(async job => {
   const { updater, startTime } = job.data;
   // todo: mid/easy log Bull errors
-  return computedUpdaters[updater].updateMulti(startTime);
+  return computedUpdaters[updater]?.updateMulti(startTime);
 });
 
 const ComputedUpdatersManager = {
   triggerUpdates(type: EntityType) {
-    if (!TRIGGERED_UPDATES[type]) {
+    if (!hasDefinedProperty(TRIGGERED_UPDATES, type)) {
       return;
     }
 

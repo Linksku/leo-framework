@@ -44,7 +44,7 @@ function validateUniqueKV<T extends EntityModel>(
     throw new Error(`validateUniqueKV: non-unique property: ${key}`);
   }
 
-  const type = Model.jsonSchema.properties[key]?.type;
+  const type = Model.dbJsonSchema.properties[key]?.type;
   if ((type === 'string' && typeof val !== 'string')
     || ((type === 'number' || type === 'integer') && typeof val !== 'number')) {
     throw new Error(`validateUniqueKV: val (${val}: ${typeof val}) doesn't match schema (${type}).`);

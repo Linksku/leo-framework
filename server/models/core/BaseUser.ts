@@ -5,7 +5,7 @@ export default class BaseUser extends Entity {
   static type = 'user' as const;
   static tableName = 'users' as const;
 
-  static jsonSchema = {
+  static dbJsonSchema = {
     type: 'object',
     required: ['email', 'password', 'name', 'birthday'],
     properties: {
@@ -49,8 +49,7 @@ export default class BaseUser extends Entity {
 
   $formatJson(json: ObjectOf<any>): ObjectOf<any> {
     json = super.$formatJson(json);
-    // todo: mid/mid conditionally show email
-    delete json.email;
+    // todo: high/mid conditionally hide email
     delete json.password;
     return json;
   }

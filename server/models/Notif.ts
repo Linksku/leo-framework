@@ -2,7 +2,7 @@ export default class Notif extends Entity implements INotif {
   static type = 'notif' as const;
   static tableName = 'notifs' as const;
 
-  static jsonSchema = {
+  static dbJsonSchema = {
     type: 'object',
     required: ['notifType', 'userId', 'groupingId'],
     properties: {

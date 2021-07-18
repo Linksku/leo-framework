@@ -8,7 +8,7 @@ type StaticTypes = SetState<any>
 | (React.SVGFactory | undefined);
 
 class __MEMOED {
-  private _memoed = true;
+  private [Symbol('__MEMOED')] = true;
 }
 
 // todo: low/mid: maybe fork constate to add memoed

@@ -21,6 +21,7 @@ export default function PullToRefresh({
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
 
   const { ref, bindSwipe } = useSwipeNavigation({
+    // @ts-ignore reload(true) is still supported
     onNavigate: () => window.location.reload(true),
     setPercent: p => setTop(p),
     direction: 'down',

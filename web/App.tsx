@@ -5,9 +5,10 @@ import { EntitiesProvider } from 'stores/EntitiesStore';
 import { GlobalMemoProvider } from 'stores/GlobalMemoStore';
 import { GlobalStateProvider } from 'stores/GlobalStateStore';
 import { HistoryProvider } from 'stores/HistoryStore';
+import { HomeNavProvider } from 'stores/HomeNavStore';
 import { SseProvider } from 'stores/SseStore';
 import { SlideUpProvider } from 'stores/SlideUpStore';
-import { StacksProvider } from 'stores/StacksStore';
+import { StacksNavProvider } from 'stores/StacksNavStore';
 import { ToastsProvider } from 'stores/ToastsStore';
 import ErrorBoundary from 'components/ErrorBoundary';
 import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
@@ -23,7 +24,8 @@ export default function App() {
     GlobalMemoProvider,
     GlobalStateProvider,
     HistoryProvider,
-    StacksProvider,
+    HomeNavProvider,
+    StacksNavProvider,
 
     // UI
     AlertsProvider,

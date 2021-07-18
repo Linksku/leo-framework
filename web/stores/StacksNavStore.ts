@@ -1,17 +1,10 @@
-import { HOME_TABS } from 'config/homeTabs';
+import { useHomeNavStore } from './HomeNavStore';
 
 const [
-  StacksProvider,
-  useStacksStore,
+  StacksNavProvider,
+  useStacksNavStore,
 ] = constate(
-  function StacksStore() {
-    const ref = useRef<{
-      isHome: boolean,
-      wasHome: boolean,
-    }>({
-      isHome: false,
-      wasHome: false,
-    });
+  function StacksNavStore() {
     let stackBot: HistoryState | null = null;
     let stackTop: HistoryState | null = null;
     let stackActive = 'bot';
@@ -21,20 +14,15 @@ const [
       curState,
       direction,
     } = useHistoryStore();
-    const pathParts = curState.path.slice(1).split('/');
-    const prevPathParts = prevState ? prevState.path.slice(1).split('/') : null;
-    ref.current.isHome = pathParts[0] === ''
-      || hasOwnProperty(HOME_TABS, pathParts[0].toUpperCase());
-    ref.current.wasHome = !!prevPathParts && (prevPathParts[0] === ''
-      || hasOwnProperty(HOME_TABS, prevPathParts[0].toUpperCase()));
+    const { isHome, wasHome } = useHomeNavStore();
 
-    if (ref.current.isHome) {
+    if (isHome) {
       stackBot = curState;
-      if (!ref.current.wasHome) {
+      if (!wasHome) {
         // Stack -> home.
         stackTop = prevState;
       }
-    } else if (ref.current.wasHome) {
+    } else if (wasHome) {
       // Home -> stack.
       stackBot = prevState;
       stackTop = curState;
@@ -52,31 +40,28 @@ const [
     }
 
     const backStack = useCallback(() => {
-      if (!ref.current.isHome) {
+      if (!isHome) {
         window.history.back();
       }
-    }, []);
+    }, [isHome]);
 
     const forwardStack = useCallback(() => {
-      if (!ref.current.wasHome) {
+      if (!wasHome) {
         window.history.forward();
       }
-    }, []);
+    }, [wasHome]);
 
-    stackBot = markMemoed(stackBot);
-    stackTop = markMemoed(stackTop);
     return useDeepMemoObj({
       stackBot,
       stackTop,
       stackActive,
       backStack,
       forwardStack,
-      isHome: ref.current.isHome,
     });
   },
 );
 
 export {
-  StacksProvider,
-  useStacksStore,
+  StacksNavProvider,
+  useStacksNavStore,
 };

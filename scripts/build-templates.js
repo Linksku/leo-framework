@@ -22,6 +22,7 @@ const recursiveReaddir = require('../server/lib/recursiveReaddir');
     const template = await fs.promises.readFile(resolvedInPath);
 
     await mkdirp(path.dirname(resolvedOutPath));
+    // todo: mid/share add og tags, maybe change this to server script
     await fs.promises.writeFile(
       resolvedOutPath,
       ejs.render(template.toString(), {

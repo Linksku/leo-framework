@@ -16,7 +16,7 @@ $btnDim: 18px;
 
   font-weight: 500;
   line-height: $headerHeight;
-  max-width: calc(100% - #{($containerPadLeftRight + $btnDim + 10px) * 2});
+  max-width: calc(100% - (var(--containerPadLeftRight) + #{$btnDim + 10px}) * 2);
   margin: 0 auto;
 }
 
@@ -32,15 +32,10 @@ $btnDim: 18px;
 }
 
 .btnWrap {
-  padding: 0 $containerPadLeftRight;
+  padding: 0 var(--containerPadLeftRight);
   height: $headerHeight;
   box-sizing: content-box;
   display: flex;
   align-items: center;
   cursor: pointer;
-
-  svg {
-    height: $btnDim;
-    width: $btnDim;
-  }
 }
