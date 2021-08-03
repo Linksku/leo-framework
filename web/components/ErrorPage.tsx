@@ -11,7 +11,7 @@ export default function ErrorPage({
 }: Props) {
   return (
     <div className={styles.container}>
-      <h2>{title}</h2>
+      <h2 className={styles.title}>{title}</h2>
       {content
         ? (
           <p>

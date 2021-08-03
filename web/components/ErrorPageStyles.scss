@@ -1,6 +1,10 @@
 .container {
-  padding: calc(var(--containerPadLeftRight) * 3) var(--containerPadLeftRight);
+  padding: $containerPadLeftRight * 3 $containerPadLeftRight;
   overflow: hidden;
   text-align: center;
   width: 100%;
+}
+
+.title {
+  margin-bottom: 20px;
 }

@@ -4,22 +4,24 @@ import type { Severity } from '@sentry/types';
 import detectOs from 'lib/detectOs';
 import getIsMobile from 'lib/getIsMobile';
 
+type SupportedSeverity = 'debug' | 'warning' | 'error' | 'fatal';
+
 let Sentry: {
   init: typeof SentryType.init,
   configureScope: typeof SentryType.configureScope,
   withScope: typeof SentryType.withScope,
   captureException: typeof SentryType.captureException,
 } | null = null;
-let queuedErrors: { level: Severity, err: Error, ctx: string }[] = [];
+let queuedErrors: { level: SupportedSeverity, err: Error, ctx: string }[] = [];
 let latestUserId: number | null = null;
 
-const _queueError = (level: Severity, err: Error, ctx: string) => {
+const _queueError = (level: SupportedSeverity, err: Error, ctx: string) => {
   if (process.env.NODE_ENV !== 'production' || process.env.SERVER !== 'production') {
     return;
   }
   if (Sentry) {
     Sentry.withScope(scope => {
-      scope.setLevel(level);
+      scope.setLevel(level as Severity);
       scope.setExtra('ctx', ctx);
       Sentry?.captureException(err);
     });
@@ -42,22 +44,22 @@ const ErrorLogger = {
   debug(err: Error, ctx = '') {
     // eslint-disable-next-line no-console
     console.log(`${ctx} ${err.stack || err}`);
-    _queueError('debug' as Severity, err, ctx);
+    _queueError('debug', err, ctx);
   },
 
   warning(err: Error, ctx = '') {
     console.warn(`${ctx} ${err.stack || err}`);
-    _queueError('warning' as Severity, err, ctx);
+    _queueError('warning', err, ctx);
   },
 
   error(err: Error, ctx = '') {
     console.error(`${ctx} ${err.stack || err}`);
-    _queueError('error' as Severity, err, ctx);
+    _queueError('error', err, ctx);
   },
 
   fatal(err: Error, ctx = '') {
     console.error(`${ctx} ${err.stack || err}`);
-    _queueError('fatal' as Severity, err, ctx);
+    _queueError('fatal', err, ctx);
   },
 } as const;
 

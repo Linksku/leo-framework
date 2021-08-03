@@ -1,7 +1,10 @@
-import type { Api, RouteRet } from 'services/ApiManager';
+import omit from 'lodash/omit';
+
+import type { Api } from 'services/ApiManager';
 import { defineApi, nameToApi } from 'services/ApiManager';
 import validateApiData from 'lib/apiWrap/validateApiData';
 import handleApiError from 'lib/apiWrap/handleApiError';
+import filterNulls from 'lib/filterNulls';
 
 defineApi(
   {
@@ -19,6 +22,7 @@ defineApi(
               name: SchemaConstants.content,
               params: { type: 'object' },
             },
+            additionalProperties: false,
           },
         },
       },
@@ -31,17 +35,31 @@ defineApi(
         results: {
           type: 'array',
           items: {
-            type: 'object',
-            properties: {
-              status: SchemaConstants.nonNegInt,
-              data: {
-                anyOf: [
-                  { type: 'null' },
-                  { type: 'object' },
-                ],
+            oneOf: [
+              {
+                type: 'object',
+                required: ['status', 'data'],
+                properties: {
+                  status: SchemaConstants.nonNegInt,
+                  data: {
+                    anyOf: [
+                      { type: 'null' },
+                      { type: 'object' },
+                    ],
+                  },
+                },
+                additionalProperties: false,
               },
-              error: { type: 'object' },
-            },
+              {
+                type: 'object',
+                required: ['status', 'error'],
+                properties: {
+                  status: SchemaConstants.nonNegInt,
+                  error: { type: 'object' },
+                },
+                additionalProperties: false,
+              },
+            ],
           },
         },
       },
@@ -50,7 +68,7 @@ defineApi(
   },
   async function batched({ apis, currentUserId }, res) {
     const typedApis = apis as { name: ApiName, params: ApiNameToParams[ApiName] }[];
-    const results = await Promise.all<RouteRet<any> & { status: number }>(typedApis.map(
+    const results = await Promise.all<ApiResponse<any>>(typedApis.map(
       async <Name extends ApiName>({ name, params }: {
         name: Name,
         params: ApiNameToParams[Name],
@@ -85,14 +103,13 @@ defineApi(
           return {
             status: 200,
             ...ret,
+            entities: filterNulls(ret.entities ?? []),
           };
         } catch (err) {
           const { status, errorData } = handleApiError(err, name);
           return {
             status,
-            data: null,
             error: errorData,
-            entities: [],
           };
         }
       },
@@ -101,13 +118,9 @@ defineApi(
     // todo: high/hard stream batched results as they become available
     return {
       data: {
-        results: results.map(r => ({
-          status: r.status,
-          data: r.data,
-          error: r.error,
-        })),
+        results: results.map(r => (hasDefinedProperty(r, 'entities') ? omit(r, 'entities') : r)),
       },
-      entities: results.flatMap(r => r.entities ?? []),
+      entities: results.flatMap(r => (hasDefinedProperty(r, 'entities') ? r.entities : [])),
     };
   },
 );

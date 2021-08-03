@@ -20,22 +20,24 @@ export default function App() {
 
   let router = <Router />;
   for (const Component of [
-    // Core
+    // Lib
     GlobalMemoProvider,
     GlobalStateProvider,
     HistoryProvider,
-    HomeNavProvider,
-    StacksNavProvider,
 
     // UI
     AlertsProvider,
     SlideUpProvider,
     ToastsProvider,
 
-    // Important
+    // Data
     EntitiesProvider,
     AuthProvider,
     SseProvider,
+
+    // Nav
+    HomeNavProvider,
+    StacksNavProvider,
 
     // Custom
     ...providers,

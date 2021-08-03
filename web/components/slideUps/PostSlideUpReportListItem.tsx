@@ -8,6 +8,7 @@ export default function PostSlideUpReportListItem({
   entityId: number,
 }) {
   const showToast = useShowToast();
+  // todo: mid/mid hide post after reporting, maybe hide from future loads
   const { fetchApi } = useDeferredApi(
     'report',
     { entityType, entityId },
@@ -16,9 +17,7 @@ export default function PostSlideUpReportListItem({
       onFetch: useCallback(() => {
         showToast({ msg: 'Reported successfully.' });
       }, [showToast]),
-      onError: useCallback(() => {
-        showToast({ msg: 'Failed to report.' });
-      }, [showToast]),
+      onError: NOOP,
     },
   );
   return (

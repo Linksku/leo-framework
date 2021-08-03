@@ -4,12 +4,14 @@ import useSWR from 'swr';
 import useDeepMemoObj from 'lib/hooks/useDeepMemoObj';
 import useLocalStorage from 'lib/hooks/useLocalStorage';
 import { HTTP_TIMEOUT } from 'settings';
+import useDynamicCallback from 'lib/hooks/useDynamicCallback';
 import queueBatchedRequest from './queueBatchedRequest';
 import useHandleApiEntities from './useHandleApiEntities';
 import type { OnFetchType, OnErrorType } from './useApiTypes';
 
 type Opts = {
   shouldFetch?: boolean,
+  key?: string,
 };
 
 type OptsCallbacks<Name extends ApiName> = {
@@ -20,6 +22,7 @@ type OptsCallbacks<Name extends ApiName> = {
 type Return<Name extends ApiName> = {
   data: Memoed<ApiNameToData[Name]> | null,
   fetching: boolean,
+  fetchingFirstTime: boolean,
   error: Memoed<Error> | null,
 };
 
@@ -39,9 +42,12 @@ function useApi<Name extends ApiName>(
   name: Name,
   params: ApiNameToParams[Name],
   {
+    // If this is true once, changing to false doesn't do anything.
     shouldFetch = true,
     onFetch,
     onError,
+    // When key changes, refetch.
+    key,
   }: Opts & Partial<OptsCallbacks<Name>> = {},
 ) {
   useDebugValue(name);
@@ -51,23 +57,23 @@ function useApi<Name extends ApiName>(
   const handleApiEntities = useHandleApiEntities<Name>('load');
   const ref = useRef({
     mounted: false,
-    onFetch,
-    onError,
+    hasFetched: false,
+    fetchingFirstTime: true,
   });
-  ref.current.onFetch = onFetch;
-  ref.current.onError = onError;
 
-  const onFetchWrap = useCallback(results => {
+  const onFetchWrap = useDynamicCallback(results => {
+    ref.current.fetchingFirstTime = false;
     if (ref.current.mounted) {
-      ref.current.onFetch?.(results, {});
+      onFetch?.(results, {});
     }
-  }, []);
+  });
 
-  const onErrorWrap = useCallback(results => {
+  const onErrorWrap = useDynamicCallback(results => {
+    ref.current.fetchingFirstTime = false;
     if (ref.current.mounted) {
-      ref.current.onError?.(results);
+      onError?.(results);
     }
-  }, []);
+  });
 
   useEffect(() => {
     ref.current.mounted = true;
@@ -79,8 +85,9 @@ function useApi<Name extends ApiName>(
   }, []);
 
   const { data, isValidating, error } = useSWR<Memoed<ApiNameToData[Name]> | null>(
-    shouldFetch ? [name, paramsMemo] : null,
+    shouldFetch || ref.current.hasFetched ? [name, paramsMemo, key] : null,
     async () => {
+      ref.current.hasFetched = true;
       try {
         return await queueBatchedRequest<Name>({
           name,
@@ -91,7 +98,11 @@ function useApi<Name extends ApiName>(
           handleApiEntities,
         });
       } catch (err) {
-        ErrorLogger.warning(err, `useApi: ${name} failed`);
+        if (process.env.NODE_ENV === 'production') {
+          ErrorLogger.warning(err, `useApi: ${name} failed`);
+        } else {
+          console.error(err);
+        }
         throw err;
       }
     },
@@ -124,6 +135,7 @@ function useApi<Name extends ApiName>(
   return {
     data: data ?? null,
     fetching: isValidating,
+    fetchingFirstTime: isValidating && ref.current.fetchingFirstTime,
     error,
   };
 }

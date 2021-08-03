@@ -51,6 +51,7 @@ function validateUniqueKV<T extends EntityModel>(
   }
 }
 
+// todo: high/veryhard add object cache layer like tao/entql
 export default class EntityLoader extends EntityDates {
   static async findOne<T extends EntityModel>(
     this: T,
@@ -87,9 +88,9 @@ export default class EntityLoader extends EntityDates {
     const uniqueProperties = this.getUniqueProperties();
     for (const key of uniqueProperties) {
       if (key !== 'id') {
-        if (typeof key === 'string' && obj[key]) {
+        if (typeof key === 'string' && hasOwnProperty(obj, key)) {
           hasUniqueKey = true;
-        } else if (Array.isArray(key) && key.every(k => obj[k])) {
+        } else if (Array.isArray(key) && key.every(k => hasOwnProperty(obj, k))) {
           hasUniqueKey = true;
         } else {
           throw new Error(`${this.constructor.name}.insert: missing unique property: ${key}`);

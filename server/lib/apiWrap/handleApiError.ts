@@ -1,13 +1,11 @@
 import { ValidationError, UniqueViolationError } from 'objection';
 
-import type { RouteRet } from 'services/ApiManager';
-
 export default function handleApiError(
   err: Error,
   name: string,
 ): {
   status: number,
-  errorData: RouteRet<any>['error'],
+  errorData: ApiErrorData,
 } {
   console.error(name, err);
 
@@ -36,7 +34,7 @@ export default function handleApiError(
       errorData: {
         msg: err.message || err.toString(),
         stack,
-        ...process.env.NODE_ENV === 'production' ? { debugDetails: err.debugDetails } : null,
+        ...process.env.NODE_ENV !== 'production' ? { debugDetails: err.debugDetails } : null,
       },
     };
   }

@@ -1,5 +1,5 @@
-import usePrevious from 'lib/hooks/usePrevious';
-import useForceUpdate from 'lib/hooks/useForceUpdate';
+import usePrevious from 'react-use/lib/usePrevious';
+import useUpdate from 'react-use/lib/useUpdate';
 
 import styles from './ToastsStyles.scss';
 
@@ -10,24 +10,29 @@ function Toasts() {
   });
   const { toasts, hideFirstToast } = useToastsStore();
   const prevToasts = usePrevious(toasts);
-  const forceUpdate = useForceUpdate();
+  const update = useUpdate();
 
   const {
     msg,
   } = toasts[0] ?? prevToasts?.[0] ?? {};
 
-  if (prevToasts?.length && !toasts.length && !ref.current.isHiding) {
-    ref.current.isHiding = true;
-    ref.current.hideTimer = window.setTimeout(() => {
+  const startHiding = !!prevToasts?.length && !toasts.length && !ref.current.isHiding;
+  useEffect(() => {
+    if (startHiding) {
+      ref.current.isHiding = true;
+      ref.current.hideTimer = window.setTimeout(() => {
+        requestAnimationFrame(() => {
+          ref.current.isHiding = false;
+          update();
+        });
+      }, 200);
+    } else if (toasts.length) {
+      clearTimeout(ref.current.hideTimer);
       ref.current.isHiding = false;
-      forceUpdate();
-    }, 200);
-  } else if (toasts.length) {
-    clearTimeout(ref.current.hideTimer);
-    ref.current.isHiding = false;
-  }
+    }
+  }, [startHiding, update, toasts]);
 
-  if (!toasts.length && !ref.current.isHiding) {
+  if (!toasts.length && !ref.current.isHiding && !startHiding) {
     return null;
   }
 

@@ -1,6 +1,8 @@
-import fetcher, { getErrorFromApiData } from 'lib/fetcher';
+import fetcher from 'lib/fetcher';
+import ApiError from 'lib/ApiError';
 import { API_URL } from 'settings';
 import type { OnFetchType, OnErrorType } from './useApiTypes';
+import isErrorResponse from './isErrorResponse';
 
 interface BatchedRequest<Name extends ApiName> {
   name: Name,
@@ -10,7 +12,7 @@ interface BatchedRequest<Name extends ApiName> {
   succPromise: (results: Memoed<ApiNameToData[Name]>) => void,
   failPromise: (err: Error) => void,
   authToken: string | null,
-  handleApiEntities: Memoed<(response: ApiResponse<Name>) => void>,
+  handleApiEntities: Memoed<(response: ApiSuccessResponse<Name>) => void>,
 }
 
 let timer: number | null = null;
@@ -30,26 +32,15 @@ async function fetchBatchedRequest() {
   batched = [];
   try {
     const { name, params, authToken, handleApiEntities } = curBatched[0];
-    let response: ApiResponse<any>;
-    let results: {
-      status: number,
-      data: ApiNameToData[ApiName],
-      error?: any,
-    }[];
-    if (curBatched.length === 1) {
-      response = await fetcher.get(
+    const { data: fullResponse, status } = curBatched.length === 1
+      ? await fetcher.get(
         `${API_URL}/api/${name}`,
         {
           params: JSON.stringify(params),
         },
         { authToken },
-      );
-      results = [{
-        status: 200,
-        data: response.data,
-      }];
-    } else {
-      response = await fetcher.get(
+      )
+      : await fetcher.get(
         `${API_URL}/api/batched`,
         {
           params: JSON.stringify({
@@ -61,43 +52,45 @@ async function fetchBatchedRequest() {
         },
         { authToken },
       );
-      ({ results } = response.data);
+
+    if (isErrorResponse(fullResponse)) {
+      throw new ApiError('batched', fullResponse?.status ?? status, fullResponse?.error);
     }
+
+    const results: ApiResponse<any>[] = curBatched.length === 1
+      ? [fullResponse]
+      : (fullResponse as ApiSuccessResponse<'batched'>).data.results;
 
     if (results.length !== curBatched.length) {
       throw new Error('Batched API response has wrong length.');
     }
-    // todo: low/mid simplify queueBatchedRequest
+
     batchedUpdates(() => {
-      handleApiEntities(response);
+      handleApiEntities(fullResponse);
       for (const [idx, result] of results.entries()) {
-        if (result.status !== 200 || result.error) {
-          curBatched[idx].onError?.(getErrorFromApiData(result));
+        if (isErrorResponse(result)) {
+          const err = new ApiError(
+            curBatched[idx].name,
+            result.status ?? status,
+            result.error,
+          );
+          curBatched[idx].onError?.(err);
+          curBatched[idx].failPromise(err);
         } else {
-          curBatched[idx].onFetch?.(result.data, {});
+          curBatched[idx].onFetch?.(result.data, curBatched[idx].params);
+          curBatched[idx].succPromise(result.data);
         }
       }
     });
-
-    for (const [idx, result] of results.entries()) {
-      if (result.status !== 200 || result.error) {
-        curBatched[idx].failPromise(getErrorFromApiData(result));
-      } else {
-        curBatched[idx].succPromise(result.data);
-      }
-    }
   } catch (err) {
     ErrorLogger.warning(err, `queueBatchedRequest: ${curBatched.map(v => v.name).join(',')} failed`);
 
     batchedUpdates(() => {
       for (const b of curBatched) {
         b.onError?.(err);
+        b.failPromise(err);
       }
     });
-
-    for (const b of curBatched) {
-      b.failPromise(err);
-    }
   }
 }
 
@@ -114,7 +107,7 @@ export default async function queueBatchedRequest<Name extends ApiName>({
   onFetch?: OnFetchType<Name>,
   onError?: OnErrorType,
   authToken: string | null,
-  handleApiEntities: Memoed<(response: ApiResponse<Name>) => void>,
+  handleApiEntities: Memoed<(response: ApiSuccessResponse<Name>) => void>,
 }): Promise<Memoed<ApiNameToData[Name]>> {
   if (!timer) {
     setTimeout(fetchBatchedRequest, 0);

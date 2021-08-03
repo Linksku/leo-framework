@@ -24,10 +24,7 @@ const [
 ] = constate(
   function AlertsStore() {
     const [alerts, setAlerts] = useState([] as Alert[]);
-    const ref = useRef({
-      shown: !!alerts.length,
-    });
-    ref.current.shown = !!alerts.length;
+    const shownRef = useRef(!!alerts.length);
     const { addPopHandler } = useHistoryStore();
 
     const showAlert = useCallback(({
@@ -64,7 +61,7 @@ const [
       }]);
 
       addPopHandler(() => {
-        if (ref.current.shown) {
+        if (shownRef.current) {
           setAlerts([]);
           return true;
         }
@@ -72,8 +69,10 @@ const [
       });
 
       if (closeAfter !== null) {
-        window.setTimeout(() => {
-          setAlerts(arr => arr.filter(a => a.id !== alertId));
+        setTimeout(() => {
+          requestAnimationFrame(() => {
+            setAlerts(arr => arr.filter(a => a.id !== alertId));
+          });
         }, closeAfter);
       }
     }, [setAlerts, addPopHandler]);
@@ -95,6 +94,10 @@ const [
     const hideFirstAlert = useCallback(() => {
       setAlerts(arr => arr.slice(1));
     }, [setAlerts]);
+
+    useEffect(() => {
+      shownRef.current = !!alerts.length;
+    }, [alerts.length]);
 
     return useDeepMemoObj({
       alerts,

@@ -66,8 +66,7 @@ export function createNotifType<Params, T extends string = string>(
   return notifType;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-queue.process(async job => {
+void queue.process(async job => {
   const { type, params, currentUserId } = job.data;
 
   let notifs = await defined(notifTypes[type]).genNotifs(params, currentUserId);

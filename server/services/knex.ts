@@ -5,6 +5,7 @@ if (!process.env.MYSQL_USER) {
   throw new Error('MYSQL_USER env var not set.');
 }
 
+// todo: high/hard add at least 1 mysql local read replica
 const knex = Knex({
   client: 'mysql',
   connection: {

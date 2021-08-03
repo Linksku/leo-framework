@@ -12,7 +12,7 @@ import { isPropDate } from 'models/core/EntityDates';
 // @ts-ignore
 global.Model = class Model {};
 
-function isValidValSchema(val: JSONSchemaDefinition) {
+function isValidValSchema(val: JSONSchemaDefinition): boolean {
   if (typeof val === 'boolean') {
     return false;
   }
@@ -57,7 +57,7 @@ export default async function buildSharedEntities() {
 
     for (const [prop, val] of Object.entries(allJsonSchema.properties)) {
       if (isPropDate(allJsonSchema, prop)) {
-        // @ts-ignore custom prop from json-schema-to-typescript
+        // @ts-ignore custom prop for json-schema-to-typescript
         val.tsType = 'Date';
       }
     }

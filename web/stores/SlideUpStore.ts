@@ -7,15 +7,12 @@ const [
   function SlideUpStore() {
     const [state, setState] = useState({
       shown: false,
-      element: null as React.ReactElement | null,
+      element: null as ReactElement | null,
     });
-    const ref = useRef({
-      shown: state.shown,
-    });
-    ref.current.shown = state.shown;
+    const shownRef = useRef(state.shown);
     const { addPopHandler } = useHistoryStore();
 
-    const hideSlideUp = useCallback((instant = false) => {
+    const hideSlideUp = useCallback((instant?: boolean) => {
       if (instant) {
         setState(s => ({ ...s, shown: false, element: null }));
       } else {
@@ -23,17 +20,21 @@ const [
       }
     }, [setState]);
 
-    const showSlideUp = useCallback((element: React.ReactElement) => {
+    const showSlideUp = useCallback((element: ReactElement) => {
       setState({ shown: true, element });
 
       addPopHandler(() => {
-        if (ref.current.shown) {
+        if (shownRef.current) {
           hideSlideUp();
           return true;
         }
         return false;
       });
     }, [setState, addPopHandler, hideSlideUp]);
+
+    useEffect(() => {
+      shownRef.current = state.shown;
+    }, [state.shown]);
 
     return useDeepMemoObj({
       showSlideUp,

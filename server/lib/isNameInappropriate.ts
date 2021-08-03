@@ -8,7 +8,7 @@ const inappropriateWords = new Set(inappropriateWordsRaw
   .split('\n')
   .filter(line => line && !line.includes(' ')));
 
-// Names that may be allowed for adult clubs.
+// Names that may be allowed for adult content.
 export default function isNameInappropriate(name: string | string[]) {
   if (typeof name === 'string') {
     name = tokenizeString(name);

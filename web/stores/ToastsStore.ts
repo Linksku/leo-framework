@@ -29,8 +29,10 @@ const [
         closeAfter,
       }]);
 
-      window.setTimeout(() => {
-        setToasts(arr => arr.filter(a => a.id !== toastId));
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          setToasts(arr => arr.filter(a => a.id !== toastId));
+        });
       }, closeAfter ?? DEFAULT_CLOSE_AFTER);
     }, [setToasts]);
 

@@ -1,4 +1,5 @@
 import QuickLRU from 'quick-lru';
+import { performance } from 'perf_hooks';
 
 import PubSubManager from 'services/PubSubManager';
 
@@ -48,7 +49,7 @@ const EntitiesCache = {
   ): Promise<InstanceType<T> | null> | null {
     const cacheKey = getCacheKeyFromKV(Model, key, val);
     const cached = lru.get(cacheKey) as CachedEntity<InstanceType<T>> | undefined;
-    if (!cached || cached.expires < Date.now()) {
+    if (!cached || cached.expires < performance.now()) {
       return null;
     }
     return cached.promise;
@@ -71,7 +72,7 @@ const EntitiesCache = {
 
       if (cacheKey) {
         const cached = lru.get(cacheKey) as CachedEntity<InstanceType<T>> | undefined;
-        if (!cached || cached.expires < Date.now()) {
+        if (!cached || cached.expires < performance.now()) {
           return null;
         }
         return cached.promise;
@@ -88,7 +89,7 @@ const EntitiesCache = {
   ): void {
     const cached = {
       promise,
-      expires: Date.now() + CACHE_EXPIRE_TIME,
+      expires: performance.now() + CACHE_EXPIRE_TIME,
     };
     const cacheKey = getCacheKeyFromKV(Model, key, val);
     lru.set(cacheKey, cached);
@@ -101,7 +102,7 @@ const EntitiesCache = {
   ): void {
     const cached = {
       promise,
-      expires: Date.now() + CACHE_EXPIRE_TIME,
+      expires: performance.now() + CACHE_EXPIRE_TIME,
     };
     for (const key of Model.getUniqueProperties()) {
       const cacheKey = getCacheKeyFromEntity(Model, key, entity);

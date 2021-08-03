@@ -1,3 +1,5 @@
+import useFirstMountState from 'react-use/lib/useFirstMountState';
+
 import SseEventEmitter from 'lib/singletons/SseEventEmitter';
 import serializeEvent, { unserializeEvent } from 'lib/serializeEvent';
 import { HOME_URL } from 'settings';
@@ -8,26 +10,19 @@ const [
   useSseStore,
 ] = constate(
   function SseStore() {
-    const [state, setState] = useState({
-      sessionId: null as string | null,
-    });
+    const [sessionId, setSessionId] = useState<string | null>(null);
     const ref = useRef({
       source: null as EventSource | null,
-      ee: SseEventEmitter,
-      initializedEe: false,
       subscriptions: new Set<string>(),
-      sessionId: null as string | null,
       otp: null as Nullish<string>,
       isEventSourceOpen: false,
     });
-    ref.current.sessionId = state.sessionId;
     const authToken = useAuthToken();
 
-    if (!ref.current.initializedEe) {
-      ref.current.initializedEe = true;
+    if (useFirstMountState()) {
       // todo: low/mid types for sse
-      ref.current.ee.on('sseConnected', (_, { meta: { sessionId } }) => {
-        setState(s => ({ ...s, sessionId }));
+      SseEventEmitter.on('sseConnected', (_: any, data: { meta: { sessionId: string } }) => {
+        setSessionId(data.meta.sessionId);
       });
     }
 
@@ -38,6 +33,7 @@ const [
         type: 'load',
         method: 'post',
         noReturnState: true,
+        showToastOnError: false,
       },
     );
 
@@ -48,6 +44,7 @@ const [
         type: 'load',
         method: 'post',
         noReturnState: true,
+        showToastOnError: false,
       },
     );
 
@@ -79,15 +76,17 @@ const [
         }
 
         const { name, params } = unserializeEvent(data.type);
-        ref.current.ee.emit(name, params, data);
+        SseEventEmitter.emit(name, params, data);
       });
 
       source.addEventListener('open', () => {
         ref.current.isEventSourceOpen = true;
       });
 
-      source.addEventListener('error', e => {
-        ErrorLogger.warning((e as ErrorEvent).error, 'SseStore: error event');
+      source.addEventListener('error', (e: Event | ErrorEvent) => {
+        ErrorLogger.warning(
+          e instanceof ErrorEvent ? e.error : new Error('SseStore: error event'),
+        );
         ref.current.isEventSourceOpen = false;
 
         updateEventSource();
@@ -102,14 +101,14 @@ const [
       if (ref.current.source) {
         if (!ref.current.isEventSourceOpen) {
           updateEventSource();
-        } else if (ref.current.sessionId && !hadEvent) {
+        } else if (sessionId && !hadEvent) {
           void sseSubscribe({
-            sessionId: ref.current.sessionId,
+            sessionId,
             events: [{ name, params }],
           });
         }
       }
-    }, [sseSubscribe, updateEventSource]);
+    }, [sseSubscribe, updateEventSource, sessionId]);
 
     const removeSubscription = useCallback((name: string, params: Memoed<Pojo>) => {
       const event = serializeEvent(name, params);
@@ -119,14 +118,14 @@ const [
       if (ref.current.source) {
         if (!ref.current.isEventSourceOpen) {
           updateEventSource();
-        } else if (ref.current.sessionId && hadEvent) {
+        } else if (sessionId && hadEvent) {
           void sseUnsubscribe({
-            sessionId: ref.current.sessionId,
+            sessionId,
             events: [{ name, params }],
           });
         }
       }
-    }, [sseUnsubscribe, updateEventSource]);
+    }, [sseUnsubscribe, updateEventSource, sessionId]);
 
     const startSse = useCallback((otp: Nullish<string>) => {
       ref.current.otp = otp;
@@ -142,6 +141,7 @@ const [
         startSse(data.otp);
       }, [startSse]),
       onError: NOOP,
+      showToastOnError: false,
     });
 
     const initSse = useCallback(async () => {
@@ -154,11 +154,11 @@ const [
       }
     }, [authToken, fetchOtp, startSse]);
 
-    useRepliesSse(ref.current.ee);
+    // todo: low/mid inject these sse hooks
+    useRepliesSse();
 
     return useDeepMemoObj({
-      sseEmitter: ref.current.ee,
-      sessionId: state.sessionId,
+      sessionId,
       addSubscription,
       removeSubscription,
       initSse,

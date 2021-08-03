@@ -7,7 +7,7 @@ const [
   useAuthToken,
 ] = constate(
   function AuthStore() {
-    const [curAuthToken, setAuthToken, removeAuthToken] = useLocalStorage(
+    const [curAuthToken, setAuthToken, removeAuthToken] = useLocalStorage<string>(
       'authToken',
       '',
       { raw: true },

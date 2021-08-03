@@ -1,5 +1,6 @@
+import useUpdate from 'react-use/lib/useUpdate';
+
 import GlobalStateEventEmitter from 'lib/singletons/GlobalStateEventEmitter';
-import useForceUpdate from 'lib/hooks/useForceUpdate';
 
 const [
   GlobalStateProvider,
@@ -36,13 +37,13 @@ function useGlobalState<T>(
     }
 
     allVals[key] = newVal;
-    GlobalStateEventEmitter.emit(key, newVal);
+    GlobalStateEventEmitter.emit(key);
   }, [allVals, key]);
 
-  const forceUpdate = useForceUpdate();
+  const update = useUpdate();
   useEffect(() => {
     const cb = () => {
-      forceUpdate();
+      update();
     };
 
     GlobalStateEventEmitter.addListener(key, cb);
@@ -50,7 +51,7 @@ function useGlobalState<T>(
     return () => {
       GlobalStateEventEmitter.removeListener(key, cb);
     };
-  }, [key, forceUpdate]);
+  }, [key, update]);
 
   return [
       allVals[key] as Memoed<T>,

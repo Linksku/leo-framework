@@ -1,3 +1,5 @@
+import { performance } from 'perf_hooks';
+
 type Conn = {
   userId: number | null,
   res: ExpressResponse,
@@ -16,7 +18,7 @@ const SseConnectionsManager = {
       conns[sessionId] = {
         userId,
         res,
-        lastMsgTime: Date.now(),
+        lastMsgTime: performance.now(),
       };
     }
   },
@@ -40,17 +42,17 @@ const SseConnectionsManager = {
     const conn = conns[sessionId];
     if (conn) {
       conn.res.write(`data: ${data}\n\n`);
-      conn.lastMsgTime = Date.now();
+      conn.lastMsgTime = performance.now();
     }
   },
 
   sendHeartbeat() {
     for (const conn of objectValues(conns)) {
-      if (Date.now() - conn.lastMsgTime > MIN_HEARTBEAT_TIME) {
+      if (performance.now() - conn.lastMsgTime > MIN_HEARTBEAT_TIME) {
         try {
           conn.res.write(':\n\n');
         } catch {}
-        conn.lastMsgTime = Date.now();
+        conn.lastMsgTime = performance.now();
       }
     }
 

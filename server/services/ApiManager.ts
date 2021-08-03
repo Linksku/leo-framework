@@ -3,20 +3,11 @@ import type { JSONSchema } from 'objection';
 
 import ajv from 'lib/ajv';
 
-// todo: low/hard conditionally mark meta as optional https://stackoverflow.com/questions/64703742/
-export type RouteRet<Name extends ApiName> = {
-  data: ApiNameToData[Name] | null,
-  error?: {
-    msg: string,
-    stack?: string[],
-    debugDetails?: any,
-  },
-  entities?: Nullish<SerializedEntity>[],
-  // todo: low/mid move deleteIds to meta
-  deletedIds?: ObjectOf<number[]>,
-  meta?: ObjectOf<{
-    dateProps?: ObjectOf<string[]>,
-  }>,
+export type RouteRet<Name extends ApiName> = Pick<
+  ApiSuccessResponse<Name>,
+  'data' | 'deletedIds'
+> & {
+  entities?: Nullish<ArrayElement<ApiSuccessResponse<Name>['entities']>>[];
 };
 
 export type ApiConfig<Name extends ApiName> = {
@@ -35,7 +26,7 @@ export type ApiConfig<Name extends ApiName> = {
     properties: ObjectOf<JSONSchema>,
     additionalProperties: false,
   },
-  fileFields?: { name: string, maxCount: number }[],
+  fileFields?: { name: (keyof ApiNameToParams[Name]) & string, maxCount: number }[],
 };
 
 export type ApiHandler<Name extends ApiName> = (

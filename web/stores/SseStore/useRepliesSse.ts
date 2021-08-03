@@ -1,4 +1,6 @@
-export default function useRepliesSse(sseEmitter) {
+import SseEventEmitter from 'lib/singletons/SseEventEmitter';
+
+export default function useRepliesSse() {
   const createEntities = useCreateEntities();
   const loadEntities = useLoadEntities();
   const deleteEntities = useDeleteEntities();
@@ -11,16 +13,16 @@ export default function useRepliesSse(sseEmitter) {
   }, [createEntities, loadEntities]);
 
   useEffect(() => {
-    sseEmitter.on('createdPostReply', handleCreatedEntities);
-    sseEmitter.on('createdRoomReply', handleCreatedEntities);
-    sseEmitter.on('createdChatReply', handleCreatedEntities);
+    SseEventEmitter.on('createdPostReply', handleCreatedEntities);
+    SseEventEmitter.on('createdRoomReply', handleCreatedEntities);
+    SseEventEmitter.on('createdChatReply', handleCreatedEntities);
 
     return () => {
-      sseEmitter.off('createdPostReply', handleCreatedEntities);
-      sseEmitter.off('createdRoomReply', handleCreatedEntities);
-      sseEmitter.off('createdChatReply', handleCreatedEntities);
+      SseEventEmitter.off('createdPostReply', handleCreatedEntities);
+      SseEventEmitter.off('createdRoomReply', handleCreatedEntities);
+      SseEventEmitter.off('createdChatReply', handleCreatedEntities);
     };
-  }, [sseEmitter, handleCreatedEntities]);
+  }, [handleCreatedEntities]);
 
   const handleDeletedEntities = useCallback((_params, {
     data: {
@@ -32,14 +34,14 @@ export default function useRepliesSse(sseEmitter) {
   }, [deleteEntities]);
 
   useEffect(() => {
-    sseEmitter.on('deletedPostReply', handleDeletedEntities);
-    sseEmitter.on('deletedRoomReply', handleDeletedEntities);
-    sseEmitter.on('deletedChatReply', handleDeletedEntities);
+    SseEventEmitter.on('deletedPostReply', handleDeletedEntities);
+    SseEventEmitter.on('deletedRoomReply', handleDeletedEntities);
+    SseEventEmitter.on('deletedChatReply', handleDeletedEntities);
 
     return () => {
-      sseEmitter.off('deletedPostReply', handleDeletedEntities);
-      sseEmitter.off('deletedRoomReply', handleDeletedEntities);
-      sseEmitter.off('deletedChatReply', handleDeletedEntities);
+      SseEventEmitter.off('deletedPostReply', handleDeletedEntities);
+      SseEventEmitter.off('deletedRoomReply', handleDeletedEntities);
+      SseEventEmitter.off('deletedChatReply', handleDeletedEntities);
     };
-  }, [sseEmitter, handleDeletedEntities]);
+  }, [handleDeletedEntities]);
 }

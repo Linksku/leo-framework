@@ -1,11 +1,9 @@
-import styles from './InfiniteScrollerColumnStyles.scss';
+import useMountedState from 'react-use/lib/useMountedState';
 
-export type RenderItemType = Memoed<(props: {
-  id: number,
-  prevId: number,
-  nextId: number,
-  columnIdx: number,
-}) => ReactElement>;
+import useLatest from 'lib/hooks/useLatest';
+import { useThrottle } from 'lib/throttle';
+
+import styles from './WindowedInfiniteScrollerColumnStyles.scss';
 
 export type Item = {
   id: number,
@@ -14,6 +12,19 @@ export type Item = {
   setBlock: (block: boolean) => void,
   elem: HTMLDivElement,
   height?: number | null,
+};
+
+export type ItemRendererProps<
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  OtherProps extends ObjectOf<any> = {}
+> = {
+  otherItemProps?: Memoed<OtherProps>,
+  ItemRenderer: React.MemoExoticComponent<React.ComponentType<{
+    itemId: number,
+    prevItemId: number,
+    nextItemId: number,
+    columnIdx: number,
+  } & OtherProps>>,
 };
 
 type ListItemProps = {
@@ -27,17 +38,17 @@ type ListItemProps = {
   onMount: Memoed<(params: Item) => void>,
   onInnerLoad: Memoed<(id: number, height: number | null) => void>,
   onUnmount: Memoed<(id: number) => void>,
-  renderItem: RenderItemType,
   scrollParentRelative: Memoed<(px: number) => void>,
-};
+} & ItemRendererProps;
 
-function InfiniteScrollerListItem({
+function WindowedInfiniteScrollerListItem({
   id,
   idx,
   prevId,
   nextId,
   columnIdx,
-  renderItem,
+  ItemRenderer,
+  otherItemProps,
   defaultVisible,
   defaultBlock,
   onMount,
@@ -135,7 +146,14 @@ function InfiniteScrollerListItem({
       {state.visible
         ? (
           <div ref={handleInnerLoad}>
-            {renderItem({ id, prevId, nextId, columnIdx })}
+            {/* @ts-ignore no idea */}
+            <ItemRenderer
+              itemId={id}
+              prevItemId={prevId}
+              nextItemId={nextId}
+              columnIdx={columnIdx}
+              {...otherItemProps}
+            />
           </div>
         )
         : null}
@@ -146,9 +164,8 @@ function InfiniteScrollerListItem({
 export type ColumnProps = {
   reverse: boolean,
   hasCompleted: boolean,
-  renderItem: RenderItemType,
   onReachedEnd: () => void,
-};
+} & ItemRendererProps;
 
 type Props = {
   columnIdx: number,
@@ -158,44 +175,49 @@ type Props = {
   scrollParentRelative: Memoed<(px: number) => void>,
 } & ColumnProps;
 
-export default function InfiniteScrollerColumn({
+export default function WindowedInfiniteScrollerColumn({
   columnIdx,
   itemIds,
   initialVisibleIds,
   reverse,
   hasCompleted,
   idToItem,
-  renderItem,
+  ItemRenderer,
+  otherItemProps,
   onReachedEnd,
   scrollParentRelative,
 }: Props) {
   const [spinnerShown, setSpinnerShown] = useState(!hasCompleted);
-  const ref = useRef(useMemo(() => ({
-    itemIds: [] as number[],
-    isMounted: false,
-    idToItem: new Map() as Map<number, Item>,
-    elemToId: new Map() as Map<HTMLDivElement, number>,
+  const latestRef = useLatest({
+    itemIds,
+    idToItem,
     onReachedEnd,
-    curVisibleIds: new Set<number>(initialVisibleIds),
     hasCompleted,
+  });
+  const isMounted = useMountedState();
+  const ref = useRef(useMemo(() => ({
+    elemToId: new Map() as Map<HTMLDivElement, number>,
+    curVisibleIds: new Set<number>(initialVisibleIds),
+    // todo: low/hard maybe split this into separate IntersectionObservers in each item
     observer: new IntersectionObserver(entries => {
-      if (!ref.current.isMounted) {
+      if (!isMounted()) {
         return;
       }
+
       const changed = new Set<number>();
       for (const entry of entries) {
         const elem = entry.target as HTMLDivElement;
         const id = ref.current.elemToId.get(elem);
-        const item = id ? ref.current.idToItem.get(id) : null;
+        const item = id ? latestRef.current.idToItem.get(id) : null;
         if (!id || !item) {
           continue;
         }
 
         if (entry.intersectionRatio > 0 || entry.isIntersecting) {
-          if (item.idx === ref.current.itemIds.length - 1) {
-            if (!ref.current.hasCompleted) {
+          if (item.idx === latestRef.current.itemIds.length - 1) {
+            if (!latestRef.current.hasCompleted) {
               setTimeout(() => {
-                ref.current.onReachedEnd();
+                latestRef.current.onReachedEnd();
               }, 0);
             } else {
               setSpinnerShown(false);
@@ -209,17 +231,17 @@ export default function InfiniteScrollerColumn({
         }
       }
 
-      if (changed.size && ref.current.isMounted) {
+      if (changed.size) {
         batchedUpdates(() => {
           for (const id of changed) {
-            const item = ref.current.idToItem.get(id);
+            const item = latestRef.current.idToItem.get(id);
             if (item && ref.current.curVisibleIds.has(id)) {
               item.setVisible(true);
 
-              const itemIdx = ref.current.itemIds.indexOf(id);
-              const nextId = ref.current.itemIds[itemIdx + 1];
+              const itemIdx = latestRef.current.itemIds.indexOf(id);
+              const nextId = latestRef.current.itemIds[itemIdx + 1];
               if (nextId) {
-                ref.current.idToItem.get(nextId)?.setBlock(true);
+                latestRef.current.idToItem.get(nextId)?.setBlock(true);
               }
             } else if (item) {
               item.setVisible(false);
@@ -232,57 +254,52 @@ export default function InfiniteScrollerColumn({
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []));
-  ref.current.itemIds = itemIds;
-  ref.current.idToItem = idToItem;
-  ref.current.onReachedEnd = onReachedEnd;
-  ref.current.hasCompleted = hasCompleted;
-
-  useEffect(() => {
-    ref.current.isMounted = true;
-
-    return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      ref.current.isMounted = false;
-    };
-  }, []);
 
   const handleItemMount = useCallback((item: Item) => {
-    ref.current.idToItem.set(item.id, item);
+    latestRef.current.idToItem.set(item.id, item);
     ref.current.elemToId.set(item.elem, item.id);
     ref.current.observer.observe(item.elem);
-  }, []);
+  }, [latestRef]);
 
   const handleItemInnerLoad = useCallback((id, height: number | null) => {
     if (!height) {
       return;
     }
-    const item = ref.current.idToItem.get(id);
+    const item = latestRef.current.idToItem.get(id);
     if (item) {
       item.height = height;
     }
-  }, []);
+  }, [latestRef]);
 
   const handleItemUnmount = useCallback((id: number) => {
-    const item = ref.current.idToItem.get(id);
+    const item = latestRef.current.idToItem.get(id);
     if (item) {
       ref.current.observer.unobserve(item.elem);
       ref.current.elemToId.delete(item.elem);
-      ref.current.idToItem.delete(item.id);
+      latestRef.current.idToItem.delete(item.id);
     }
-  }, []);
+  }, [latestRef]);
 
-  const handleResize = useCallback(() => {
-    for (const id of ref.current.itemIds) {
-      const item = ref.current.idToItem.get(id);
-      if (item && ref.current.curVisibleIds.has(id)) {
-        const innerElem = item.elem.firstElementChild;
-        if (innerElem) {
-          item.height = innerElem.clientHeight;
-          item.elem.style.height = `${item.height}px`;
+  const handleResize = useThrottle(
+    () => {
+      requestAnimationFrame(() => {
+        for (const id of latestRef.current.itemIds) {
+          const item = latestRef.current.idToItem.get(id);
+          if (item && ref.current.curVisibleIds.has(id)) {
+            const innerElem = item.elem.firstElementChild;
+            if (innerElem) {
+              item.height = innerElem.clientHeight;
+              item.elem.style.height = `${item.height}px`;
+            }
+          }
         }
-      }
-    }
-  }, []);
+      });
+    },
+    {
+      timeout: 100,
+      allowSchedulingDuringDelay: true,
+    },
+  );
 
   useEffect(() => {
     window.addEventListener('resize', handleResize);
@@ -295,7 +312,7 @@ export default function InfiniteScrollerColumn({
   return (
     <>
       {itemIds.map((id, idx) => (
-        <InfiniteScrollerListItem
+        <WindowedInfiniteScrollerListItem
           key={id}
           id={id}
           idx={idx}
@@ -310,18 +327,17 @@ export default function InfiniteScrollerColumn({
           onMount={handleItemMount}
           onInnerLoad={handleItemInnerLoad}
           onUnmount={handleItemUnmount}
-          renderItem={renderItem}
+          ItemRenderer={ItemRenderer}
+          otherItemProps={otherItemProps}
           scrollParentRelative={scrollParentRelative}
         />
       ))}
 
-      {spinnerShown && !hasCompleted
-        ? (
-          <div className={styles.spinner}>
-            <Spinner />
-          </div>
-        )
-        : null}
+      {spinnerShown && !hasCompleted && (
+        <div className={styles.spinner}>
+          <Spinner />
+        </div>
+      )}
     </>
   );
 }

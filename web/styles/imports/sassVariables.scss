@@ -28,8 +28,8 @@ $zIndexAlert: 700;
 $zIndexToast: 800;
 
 // Inputs.
-$inputHeight: 42px;
-$inputPadding: 10px;
+$inputHeight: 4.2rem;
+$inputPadding: 1rem;
 $inputBorderColor: #ccc;
 $inputBorder: 1px solid $inputBorderColor;
 $inputBorderRadius: 4px;
@@ -39,7 +39,8 @@ $inputPlaceholderColor: #aaa;
 // Layout.
 $bodyMinWidth: 300px;
 $containerMaxWidth: $screenLg;
+$containerPadLeftRight: 1rem;
 $sidebarMinWidth: 250px;
 $sidebarMaxWidth: 500px;
-$headerHeight: 45px;
-$footerHeight: 45px;
+$headerHeight: 4.5rem;
+$footerHeight: 4.5rem;

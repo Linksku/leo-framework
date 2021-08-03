@@ -1,25 +1,24 @@
-export default function useShallowMemoObject(
-  obj: ObjectOf<any>,
+import useUpdatedState from 'lib/hooks/useUpdatedState';
+
+export default function useShallowMemoObject<T extends ObjectOf<any>>(
+  obj: T,
 ) {
-  const ref = useRef({
-    prevObj: obj,
-    changeCount: 0,
-  });
+  return useUpdatedState(
+    obj as Memoed<T>,
+    prevObj => {
+      const curKeys = Object.keys(obj);
+      const prevKeys = Object.keys(prevObj);
 
-  const curKeys = Object.keys(obj);
-  const prevKeys = Object.keys(ref.current.prevObj);
-  if (curKeys.length !== prevKeys.length) {
-    ref.current.changeCount++;
-  } else {
-    for (const k of curKeys) {
-      if (obj[k] !== ref.current.prevObj[k]) {
-        ref.current.changeCount++;
-        break;
+      if (curKeys.length !== prevKeys.length) {
+        return obj as Memoed<T>;
       }
-    }
-  }
-  ref.current.prevObj = obj;
+      for (const k of curKeys) {
+        if (obj[k] !== prevObj[k]) {
+          return obj as Memoed<T>;
+        }
+      }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => obj, [ref.current.changeCount]);
+      return prevObj;
+    },
+  );
 }

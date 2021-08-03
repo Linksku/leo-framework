@@ -1,5 +1,5 @@
-import usePrevious from 'lib/hooks/usePrevious';
-import useForceUpdate from 'lib/hooks/useForceUpdate';
+import usePrevious from 'react-use/lib/usePrevious';
+import useUpdate from 'react-use/lib/useUpdate';
 
 import styles from './AlertsStyles.scss';
 
@@ -11,7 +11,7 @@ function Alerts() {
   const { alerts, hideFirstAlert } = useAlertsStore();
   const disabled = !alerts.length;
   const prevAlerts = usePrevious(alerts);
-  const forceUpdate = useForceUpdate();
+  const update = useUpdate();
 
   const {
     title,
@@ -27,18 +27,23 @@ function Alerts() {
     onClose,
   } = alerts[0] ?? prevAlerts?.[0] ?? {};
 
-  if (prevAlerts?.length && !alerts.length && !ref.current.isHiding) {
-    ref.current.isHiding = true;
-    ref.current.hideTimer = window.setTimeout(() => {
+  const startHiding = !!prevAlerts?.length && !alerts.length && !ref.current.isHiding;
+  useEffect(() => {
+    if (startHiding) {
+      ref.current.isHiding = true;
+      ref.current.hideTimer = window.setTimeout(() => {
+        requestAnimationFrame(() => {
+          ref.current.isHiding = false;
+          update();
+        });
+      }, 200);
+    } else if (alerts.length) {
+      clearTimeout(ref.current.hideTimer);
       ref.current.isHiding = false;
-      forceUpdate();
-    }, 200);
-  } else if (alerts.length) {
-    clearTimeout(ref.current.hideTimer);
-    ref.current.isHiding = false;
-  }
+    }
+  }, [startHiding, alerts, update]);
 
-  if (!alerts.length && !ref.current.isHiding) {
+  if (!alerts.length && !ref.current.isHiding && !startHiding) {
     return null;
   }
 

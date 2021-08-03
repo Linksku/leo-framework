@@ -25,7 +25,7 @@ function HomeHeader() {
   return (
     <PullToRefresh className={styles.container}>
       <div className={styles.containerInner}>
-        <HomeHeaderSelector onClick={() => setSidebarShown(true)} />
+        <HomeHeaderSelector onClick={() => setSidebarShown(s => !s)} />
         {homeHeaderLinks.map(({ path, Svg, label }) => (
           <a
             key={path}

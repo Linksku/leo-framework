@@ -1,5 +1,4 @@
 import type { NextFunction } from 'express';
-import type { RouteRet } from 'services/ApiManager';
 import multer from 'multer';
 
 import { apis } from 'services/ApiManager';
@@ -38,7 +37,7 @@ async function requireAuthMiddleware(
       error: {
         msg: 'Not authenticated',
       },
-    } as RouteRet<any>);
+    } as ApiErrorResponse);
   } else {
     next();
   }

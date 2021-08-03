@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 
 import { DOMAIN_NAME, PORT } from 'settings';
+import getServerId from 'lib/getServerId';
 
 if (!process.env.SERVER || !process.env.NODE_ENV) {
   throw new Error('Env vars not set.');
@@ -52,7 +53,7 @@ if (cluster.isMaster) {
         }, app)
         .listen(
           443,
-          () => console.log(`Server started on worker ${cluster.worker.id}`),
+          () => console.log(`Server started on worker ${getServerId()}`),
         );
 
       const http = express();
@@ -63,7 +64,7 @@ if (cluster.isMaster) {
 
     app.listen(
       PORT,
-      () => console.log(`Server started on worker ${cluster.worker.id}`),
+      () => console.log(`Server started on worker ${getServerId()}`),
     );
   })()
     .catch(err => {

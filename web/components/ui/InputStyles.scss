@@ -1,7 +1,7 @@
 .inputGroup {
   display: block;
   overflow: hidden;
-  margin-bottom: 15px;
+  margin-bottom: 1.5rem;
 }
 
 .inputWrap {
@@ -10,7 +10,7 @@
 }
 
 .labelWrap {
-  padding-top: 25px;
+  padding-top: 2.5rem;
   position: relative;
 }
 
@@ -97,6 +97,7 @@
   border-top-left-radius: $inputBorderRadius;
   border-bottom-left-radius: $inputBorderRadius;
   border-right: 0;
+  padding-right: 0;
 }
 
 .suffix {
@@ -104,4 +105,5 @@
   border-top-right-radius: $inputBorderRadius;
   border-bottom-right-radius: $inputBorderRadius;
   border-left: 0;
+  padding-left: 0;
 }

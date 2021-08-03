@@ -65,4 +65,4 @@ function Select<T extends string>({
   );
 }
 
-export default React.forwardRef(Select);
+export default React.forwardRef(Select) as typeof Select;

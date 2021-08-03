@@ -20,25 +20,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 var(--containerPadLeftRight);
+  padding: 0 $containerPadLeftRight;
   height: $headerHeight;
-  border: 0;
-  cursor: pointer;
+  border: 0.2rem;
   flex-basis: 0;
   flex-grow: 1;
 
   svg {
-    height: 28px;
-    width: 28px;
-    fill: $lightTextColor;
+    height: 2.6rem;
+    width: 2.6rem;
+    fill: $fadedTextColor;
     transition: all 0.2s;
   }
 }
 
-.tabActive svg {
-  fill: #000;
-  height: 28px;
-  width: 28px;
-  margin-left: -2px;
-  margin-right: -2px;
+.tabActive {
+  border: 0;
+
+  svg {
+    height: 3rem;
+    width: 3rem;
+    fill: #000;
+  }
 }

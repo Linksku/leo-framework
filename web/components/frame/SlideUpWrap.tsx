@@ -1,47 +1,43 @@
 import useSwipeNavigation from 'lib/hooks/useSwipeNavigation';
-
+import ErrorBoundary from 'components/ErrorBoundary';
 import { useAnimatedValue, useAnimation } from 'lib/hooks/useAnimation';
 import mergeRefs from 'lib/mergeRefs';
 
 import styles from './SlideUpWrapStyles.scss';
 
-export type Props = EmptyObj;
-
-export default function SlideUpWrap(_: Props) {
+export default function SlideUpWrap() {
   const { hideSlideUp, slideUpShown, slideUpElement } = useSlideUpStore();
-  const [shownPercent, setShownPercent] = useAnimatedValue({
-    defaultValue: slideUpShown ? 100 : 0,
-  });
+  const animatedShownPercent = useAnimatedValue(slideUpShown ? 100 : 0);
   const [dialogRef, dialogStyle] = useAnimation<HTMLDivElement>();
   const [containerRef, containerStyle] = useAnimation<HTMLDivElement>();
   const { ref, bindSwipe } = useSwipeNavigation({
     onNavigate: hideSlideUp,
-    setPercent: p => setShownPercent(100 - p),
+    setPercent: p => animatedShownPercent.setVal(100 - p),
     direction: 'down',
     enabled: slideUpShown,
   });
 
   useEffect(() => {
-    setShownPercent(slideUpShown ? 100 : 0);
-  }, [setShownPercent, slideUpShown]);
+    animatedShownPercent.setVal(slideUpShown ? 100 : 0);
+  }, [animatedShownPercent, slideUpShown]);
 
   return (
     <>
       <div
         ref={dialogRef}
-        style={dialogStyle(shownPercent, {
+        style={dialogStyle(animatedShownPercent, {
           filter: x => `opacity(${x}%)`,
           display: x => (x < 1 ? 'none' : 'block'),
           pointerEvents: x => (x < 50 ? 'none' : 'auto'),
-        })}
+        }, [1, 50])}
         className={styles.overlay}
-        onClick={hideSlideUp}
+        onClick={() => hideSlideUp()}
         role="dialog"
         {...bindSwipe()}
       />
       <div
         ref={mergeRefs(ref, containerRef)}
-        style={containerStyle(shownPercent, {
+        style={containerStyle(animatedShownPercent, {
           transform: x => `translateY(${100 - x}%)`,
         })}
         className={styles.container}
@@ -49,9 +45,11 @@ export default function SlideUpWrap(_: Props) {
       >
         <div className={styles.dragSymbol} />
         <div className={styles.containerInner}>
-          <React.Suspense fallback={<Spinner />}>
-            {slideUpElement}
-          </React.Suspense>
+          <ErrorBoundary>
+            <React.Suspense fallback={<Spinner />}>
+              {slideUpElement}
+            </React.Suspense>
+          </ErrorBoundary>
         </div>
       </div>
     </>

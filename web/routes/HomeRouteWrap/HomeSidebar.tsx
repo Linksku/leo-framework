@@ -1,4 +1,4 @@
-import type { AnimatedValue, ValToStyle, Style } from 'lib/hooks/useAnimation';
+import type { AnimatedValue, AnimationStyle } from 'lib/hooks/useAnimation';
 
 import useSwipeNavigation from 'lib/hooks/useSwipeNavigation';
 import { useHomeRouteStore } from 'stores/routes/HomeRouteStore';
@@ -7,17 +7,15 @@ import { HomeSidebarInner } from 'config/homeComponents';
 import styles from './HomeSidebarStyles.scss';
 
 type Props = {
-  sidebarPercent: AnimatedValue,
-  setSidebarPercent: Memoed<(percent: number) => void>,
+  animatedSidebarPercent: AnimatedValue,
   sidebarRef: React.MutableRefObject<HTMLDivElement | null>,
-  sidebarStyle: Memoed<(animatedValue: AnimatedValue, valToStyle: ValToStyle) => Style>,
+  sidebarStyle: AnimationStyle,
   dialogRef: React.MutableRefObject<HTMLDivElement | null>,
-  dialogStyle: Memoed<(animatedValue: AnimatedValue, valToStyle: ValToStyle) => Style>,
+  dialogStyle: AnimationStyle,
 };
 
 function HomeSidebar({
-  sidebarPercent,
-  setSidebarPercent,
+  animatedSidebarPercent,
   sidebarRef,
   sidebarStyle,
   dialogRef,
@@ -31,7 +29,7 @@ function HomeSidebar({
 
   const { bindSwipe } = useSwipeNavigation({
     onNavigate: () => setSidebarShown(false),
-    setPercent: (p: number) => setSidebarPercent(100 - p),
+    setPercent: (p: number) => animatedSidebarPercent.setVal(100 - p),
     direction: 'left',
     elementRef: sidebarRef,
   });
@@ -40,11 +38,11 @@ function HomeSidebar({
     <>
       <div
         ref={dialogRef}
-        style={dialogStyle(sidebarPercent, {
+        style={dialogStyle(animatedSidebarPercent, {
           filter: x => `opacity(${x}%)`,
           display: x => (x < 1 ? 'none' : 'block'),
           pointerEvents: x => (x < 50 ? 'none' : 'auto'),
-        })}
+        }, [1, 50])}
         className={styles.overlay}
         onClick={() => setSidebarShown(false)}
         role="dialog"
@@ -52,7 +50,7 @@ function HomeSidebar({
       />
       <div
         ref={sidebarRef}
-        style={sidebarStyle(sidebarPercent, {
+        style={sidebarStyle(animatedSidebarPercent, {
           transform: x => `translateX(${x - 100}%)`,
         })}
         className={styles.sidebar}

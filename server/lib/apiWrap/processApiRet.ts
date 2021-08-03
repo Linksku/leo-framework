@@ -1,7 +1,7 @@
 import pickBy from 'lodash/pickBy';
 
 import type { RouteRet } from 'services/ApiManager';
-import removeFalseyValues from 'lib/removeFalseyValues';
+import removeUndefinedValues from 'lib/removeUndefinedValues';
 import entityTypeToModel from 'lib/entityTypeToModel';
 import { isPropDate } from 'models/core/EntityDates';
 
@@ -99,9 +99,10 @@ export default function processApiRet<Path extends ApiName>({
   const normalizedEntities = _normalizeEntities(entitiesFiltered);
   const dateProps = _getDateProps(normalizedEntities);
 
-  const ret: RouteRet<Path> = {
+  const ret: ApiSuccessResponse<Path> = {
+    status: 200,
     entities: normalizedEntities,
-    data: removeFalseyValues(data ?? {}) as ApiNameToData[Path],
+    data: removeUndefinedValues(data ?? {}) as ApiNameToData[Path],
     deletedIds,
   };
   if (Object.keys(dateProps).length) {

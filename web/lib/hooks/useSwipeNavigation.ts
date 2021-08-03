@@ -86,7 +86,7 @@ export default function useSwipeNavigation({
         distToEdge: directionMultiplier === 1 ? ref.current.windowDim - x : x,
         movedAbs: mx * directionMultiplier,
         movedPercent: swipePercent,
-        timeSinceLastMove: Date.now() - ref.current.lastMoveTime,
+        timeSinceLastMove: performance.now() - ref.current.lastMoveTime,
         lastVelocity: vx * directionMultiplier,
       })) {
         setPercent(100);
@@ -103,7 +103,7 @@ export default function useSwipeNavigation({
       setPercent(swipePercent);
     }
 
-    ref.current.lastMoveTime = Date.now();
+    ref.current.lastMoveTime = performance.now();
   }, {
     ...options,
     axis,

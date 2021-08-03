@@ -1,7 +1,7 @@
 export default function mergeRefs<T = any>(
   ...refs: Array<Nullish<React.Ref<T>>>
 ) {
-  return value => {
+  return (value: T) => {
     for (const ref of refs) {
       if (typeof ref === 'function') {
         ref(value);

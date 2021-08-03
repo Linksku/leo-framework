@@ -1,6 +1,8 @@
-import EntitiesData from 'lib/singletons/EntitiesData';
+import useUpdate from 'react-use/lib/useUpdate';
+
 import EntitiesEventEmitter from 'lib/singletons/EntitiesEventEmitter';
-import useForceUpdate from 'lib/hooks/useForceUpdate';
+
+type ActionType = 'load' | 'create' | 'update' | 'delete';
 
 function hasNewExtrasKeys(oldEntity: Entity, newEntity: Entity): boolean {
   if (!oldEntity.extras || !newEntity.extras) {
@@ -23,16 +25,16 @@ const [
   useCreateEntities,
   useUpdateEntities,
   useDeleteEntities,
-  useEntitiesEE,
 ] = constate(
   function EntitiesStore() {
-    const ref = useRef({
-      entities: EntitiesData,
-      ee: EntitiesEventEmitter,
-    });
+    const entitiesRef = useRef(Object.create(null) as ObjectOf<
+      Memoed<ObjectOf<
+        Entity
+      >>
+    >);
 
     if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
-      window.entities = ref.current.entities;
+      window.entities = entitiesRef.current;
     }
 
     // entities: [{ id, type }]
@@ -51,7 +53,7 @@ const [
       const changed: Entity[] = [];
       const newEntities = Object.assign(
         Object.create(null),
-        ref.current.entities,
+        entitiesRef.current,
       );
       for (const entity of entities) {
         if (!entity.id || !entity.type) {
@@ -66,10 +68,10 @@ const [
         if (!newEntities[entity.type][entity.id]
           || overwrite
           || hasNewExtrasKeys(newEntities[entity.type][entity.id], entity)) {
-          if (newEntities[entity.type] === ref.current.entities[entity.type]) {
+          if (newEntities[entity.type] === entitiesRef.current[entity.type]) {
             newEntities[entity.type] = Object.assign(
               Object.create(null),
-              ref.current.entities[entity.type],
+              entitiesRef.current[entity.type],
             );
           }
 
@@ -85,10 +87,10 @@ const [
       }
 
       if (changed.length) {
-        ref.current.entities = newEntities;
+        entitiesRef.current = newEntities;
 
         if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
-          window.entities = ref.current.entities;
+          window.entities = entitiesRef.current;
         }
       }
 
@@ -100,24 +102,25 @@ const [
 
       for (const entity of changed) {
         // todo: mid/mid see if batchupdates is needed
-        ref.current.ee.emit(`load,${entity.type}`, entity);
-        ref.current.ee.emit(`load,${entity.type},${entity.id}`, entity);
+        EntitiesEventEmitter.emit(`load,${entity.type}`, entity.id);
+        EntitiesEventEmitter.emit(`load,${entity.type},${entity.id}`, entity.id);
       }
     }, [addOrUpdateEntities]);
 
+    // todo: mid/hard not all returned entities are newly created
     const _useCreateEntities = useCallback((entities: Entity | Entity[]) => {
       const changed = addOrUpdateEntities(entities, true);
       for (const entity of changed) {
-        ref.current.ee.emit(`create,${entity.type}`, entity);
-        ref.current.ee.emit(`create,${entity.type},${entity.id}`, entity);
+        EntitiesEventEmitter.emit(`create,${entity.type}`, entity.id);
+        EntitiesEventEmitter.emit(`create,${entity.type},${entity.id}`, entity.id);
       }
     }, [addOrUpdateEntities]);
 
     const _useUpdateEntities = useCallback((entities: Entity | Entity[]) => {
       const changed = addOrUpdateEntities(entities, true);
       for (const entity of changed) {
-        ref.current.ee.emit(`update,${entity.type}`, entity);
-        ref.current.ee.emit(`update,${entity.type},${entity.id}`, entity);
+        EntitiesEventEmitter.emit(`update,${entity.type}`, entity.id);
+        EntitiesEventEmitter.emit(`update,${entity.type},${entity.id}`, entity.id);
       }
     }, [addOrUpdateEntities]);
 
@@ -125,11 +128,11 @@ const [
       type: T,
       shouldDelete: (e: TypeToEntity<T>) => boolean,
     ) => {
-      if (!ref.current.entities[type]) {
+      if (!entitiesRef.current[type]) {
         return;
       }
 
-      const entitiesOfType = ref.current.entities[type] as unknown as ObjectOf<
+      const entitiesOfType = entitiesRef.current[type] as unknown as ObjectOf<
         Memoed<TypeToEntity<T>>
       >;
       const deleteEntities = objectValues(entitiesOfType)
@@ -140,29 +143,61 @@ const [
 
       const newEntities = Object.assign(
         Object.create(null),
-        ref.current.entities[type],
+        entitiesRef.current[type],
       );
       for (const entity of deleteEntities) {
         delete newEntities[entity.id];
       }
-      ref.current.entities = Object.assign(
+      entitiesRef.current = Object.assign(
         Object.create(null),
-        ref.current.entities,
+        entitiesRef.current,
         { [type]: newEntities },
       );
 
       if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
-        window.entities = ref.current.entities;
+        window.entities = entitiesRef.current;
       }
 
       for (const entity of deleteEntities) {
-        ref.current.ee.emit(`delete,${type}`, entity);
-        ref.current.ee.emit(`delete,${type},${entity.id}`, entity);
+        EntitiesEventEmitter.emit(`delete,${type}`, entity.id);
+        EntitiesEventEmitter.emit(`delete,${type},${entity.id}`, entity.id);
       }
     }, []);
 
+    const addEntityListener = useCallback(<T extends EntityType>(
+      action: ActionType,
+      type: T,
+      _id: EntityId | ((id: number) => void),
+      _cb?: ((id: number) => void),
+    ) => {
+      const cb = _id instanceof Function ? _id : _cb as ((id: number) => void);
+      const id = _id instanceof Function ? null : _id;
+
+      const key = id ? `${action},${type},${id}` : `${action},${type}`;
+      EntitiesEventEmitter.on(key, cb);
+
+      return () => {
+        EntitiesEventEmitter.off(key, cb);
+      };
+    }, []);
+
+    const removeEntityListener = useCallback(<T extends EntityType>(
+      action: ActionType,
+      type: T,
+      _id: EntityId | ((ent: number) => void),
+      _cb?: ((ent: number) => void),
+    ) => {
+      const cb = _id instanceof Function ? _id : _cb as ((ent: number) => void);
+      const id = _id instanceof Function ? null : _id;
+
+      const key = id ? `${action},${type},${id}` : `${action},${type}`;
+      EntitiesEventEmitter.off(key, cb);
+    }, []);
+
     return useDeepMemoObj({
-      current: ref.current,
+      entitiesRef,
+      addEntityListener,
+      removeEntityListener,
       _useLoadEntities,
       _useCreateEntities,
       _useUpdateEntities,
@@ -184,53 +219,37 @@ const [
   function DeleteEntities(val) {
     return val._useDeleteEntities;
   },
-  function EntitiesEE(val) {
-    return val.current.ee;
-  },
 );
 
+// high/hard this might be triggering multiple times per new entity
 function useEntity<T extends EntityType>(
   type: T,
   id: Nullish<EntityId>,
 ): Memoed<TypeToEntity<T>> | null {
-  const { current } = useEntitiesStore();
-  const forceUpdate = useForceUpdate();
-  const ref = useRef({
-    mounted: false,
-  });
-
-  const delayedForceUpdate = useCallback(() => {
-    setTimeout(() => {
-      if (ref.current.mounted) {
-        forceUpdate();
-      }
-    }, 0);
-  }, [forceUpdate]);
+  const { entitiesRef, addEntityListener } = useEntitiesStore();
+  const update = useUpdate();
 
   useEffect(() => {
-    ref.current.mounted = true;
     if (id == null) {
-      return;
+      // eslint-disable-next-line unicorn/no-useless-undefined
+      return undefined;
     }
 
-    current.ee.on(`load,${type},${id}`, delayedForceUpdate);
-    current.ee.on(`create,${type},${id}`, delayedForceUpdate);
-    current.ee.on(`update,${type},${id}`, delayedForceUpdate);
-    current.ee.on(`delete,${type},${id}`, delayedForceUpdate);
+    const offLoad = addEntityListener('load', type, id, update);
+    const offCreate = addEntityListener('create', type, id, update);
+    const offUpdate = addEntityListener('update', type, id, update);
+    const offDelete = addEntityListener('delete', type, id, update);
 
-    // eslint-disable-next-line consistent-return
     return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      ref.current.mounted = false;
-      current.ee.off(`load,${type},${id}`, delayedForceUpdate);
-      current.ee.off(`create,${type},${id}`, delayedForceUpdate);
-      current.ee.off(`update,${type},${id}`, delayedForceUpdate);
-      current.ee.off(`delete,${type},${id}`, delayedForceUpdate);
+      offLoad();
+      offCreate();
+      offUpdate();
+      offDelete();
     };
-  }, [current.ee, type, id, delayedForceUpdate]);
+  }, [addEntityListener, type, id, update]);
 
   return id
-    ? (current.entities[type]?.[id] as unknown as Memoed<TypeToEntity<T>>)
+    ? (entitiesRef.current[type]?.[id] as unknown as Memoed<TypeToEntity<T>>)
     : null;
 }
 
@@ -247,28 +266,29 @@ function useRequiredEntity<T extends EntityType>(
 }
 
 function useEntities<T extends EntityType>(type: T): Memoed<EntitiesMap<T>> {
-  const { current } = useEntitiesStore();
-  const forceUpdate = useForceUpdate();
+  const { entitiesRef, addEntityListener } = useEntitiesStore();
+  const update = useUpdate();
 
   useEffect(() => {
-    current.ee.on(`load,${type}`, forceUpdate);
-    current.ee.on(`update,${type}`, forceUpdate);
-    current.ee.on(`create,${type}`, forceUpdate);
-    current.ee.on(`delete,${type}`, forceUpdate);
+    const offLoad = addEntityListener('load', type, update);
+    const offUpdate = addEntityListener('update', type, update);
+    const offCreate = addEntityListener('create', type, update);
+    const offDelete = addEntityListener('delete', type, update);
 
     return () => {
-      current.ee.off(`load,${type}`, forceUpdate);
-      current.ee.off(`create,${type}`, forceUpdate);
-      current.ee.off(`update,${type}`, forceUpdate);
-      current.ee.off(`delete,${type}`, forceUpdate);
+      offLoad();
+      offCreate();
+      offUpdate();
+      offDelete();
     };
-  }, [current.ee, type, forceUpdate]);
+  }, [addEntityListener, type, update]);
 
-  return (current.entities[type] || Object.create(null)) as Memoed<EntitiesMap<T>>;
+  return (entitiesRef.current[type] || Object.create(null)) as Memoed<EntitiesMap<T>>;
 }
 
 export {
   EntitiesProvider,
+  useEntitiesStore,
   useEntity,
   useRequiredEntity,
   useEntities,
@@ -276,5 +296,4 @@ export {
   useCreateEntities,
   useUpdateEntities,
   useDeleteEntities,
-  useEntitiesEE,
 };

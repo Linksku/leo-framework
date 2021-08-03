@@ -21,8 +21,7 @@ function RegisterRoute() {
     'registerUser',
     {},
     {
-      type: 'load',
-      method: 'post',
+      type: 'create',
       onFetch: useCallback(data => {
         setAuth({ authToken: data.authToken, redirectPath: '/onboard' });
       }, [setAuth]),
@@ -66,8 +65,8 @@ function RegisterRoute() {
           register={register}
           registerOpts={{
             required: 'Password is required',
-            minLength: 8,
-            maxLength: 64,
+            minLength: { value: 8, message: 'Password needs to be at least 8 characters.' },
+            maxLength: { value: 64, message: 'Password too long.' },
           }}
           disabled={submitting}
           required
@@ -86,7 +85,7 @@ function RegisterRoute() {
           required
         />
         <p className={styles.hint}>
-          * Your real name is not required, but please choose a realistic name.
+          * Real name not required, but please use a realistic name.
         </p>
 
         <Input
@@ -111,7 +110,7 @@ function RegisterRoute() {
           required
         />
         <p className={styles.hint}>
-          * Only used to calculate your age.
+          * Only used to calculate age.
         </p>
 
         <Button
@@ -119,6 +118,7 @@ function RegisterRoute() {
           type="submit"
           fullWidth
           disabled={submitting}
+          value="Register"
         />
       </form>
 

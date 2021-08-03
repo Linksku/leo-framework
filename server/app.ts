@@ -10,6 +10,7 @@ import * as Tracing from '@sentry/tracing';
 import apiRoutes from 'routes/apiRoutes';
 import sseRoute from 'routes/sseRoute';
 import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
+import CronManager from 'services/CronManager';
 
 import 'services/knex';
 
@@ -98,5 +99,7 @@ if (process.env.SERVER !== 'production') {
     res.end();
   });
 }
+
+void CronManager.start();
 
 export default app;

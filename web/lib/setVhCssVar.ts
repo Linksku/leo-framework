@@ -8,10 +8,12 @@ export default function setVhCssVar() {
 
   const handleResize = throttle(
     () => {
-      document.documentElement.style.setProperty(
-        '--vh100',
-        `${window.innerHeight}px`,
-      );
+      requestAnimationFrame(() => {
+        document.documentElement.style.setProperty(
+          '--vh100',
+          `${window.innerHeight}px`,
+        );
+      });
     }, {
       timeout: 100,
     },

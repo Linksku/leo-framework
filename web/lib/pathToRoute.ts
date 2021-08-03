@@ -4,7 +4,7 @@ import defaultRoutes from 'routes/defaultRoutes';
 const MATCHES_CACHE: Map<string | RegExp, Map<string, string[] | null>> = new Map();
 export default function pathToRoute(
   path: Nullish<string>,
-): (RouteConfig & { matches: string[] }) | EmptyObj {
+): (RouteConfig & { matches: string[] }) | StrictlyEmptyObj {
   if (path) {
     for (const route of [...customRoutes, ...defaultRoutes]) {
       const { pattern } = route;

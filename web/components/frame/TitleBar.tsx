@@ -39,7 +39,7 @@ function renderBtn(
         }
         if (Svg) {
           return (
-            <Svg style={{ height: svgDim, width: svgDim }} />
+            <Svg style={{ height: `${svgDim}rem`, width: `${svgDim}rem` }} />
           );
         }
         return null;
@@ -72,11 +72,11 @@ function TitleBar({
   onLeftBtnClick,
   leftBtnProps,
   LeftSvg,
-  leftSvgDim = 18,
+  leftSvgDim = 1.8,
   onRightBtnClick,
   rightBtnProps,
   RightSvg,
-  rightSvgDim = 18,
+  rightSvgDim = 1.8,
   className,
   bindSwipe,
   ...props

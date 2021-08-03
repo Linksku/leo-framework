@@ -1,21 +1,21 @@
 .leftSvg,
 .rightSvg {
   fill: #fff;
-  height: 18px;
-  width: 18px;
+  height: 1.8rem;
+  width: 1.8rem;
 }
 
 .leftSvgWithLabel {
-  margin-right: 8px;
+  margin-right: 0.8rem;
 }
 
 .rightSvgWithLabel {
-  margin-left: 8px;
+  margin-left: 0.8rem;
 }
 
 .btn {
-  padding: 4px 8px;
-  line-height: 24px;
+  padding: 0.4rem 0.8rem;
+  line-height: 2.4rem;
   background-color: $primaryColor;
   color: #fff;
   border: 1px solid transparent;
@@ -28,9 +28,8 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  font-size: 16px;
+  font-size: 1.6rem;
   text-decoration: none;
-  cursor: pointer;
   outline: none;
   transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 

@@ -20,8 +20,8 @@
 
 .spinner {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 6.4rem;
+  height: 6.4rem;
   margin: 5px auto;
   border-color: $primaryColor transparent transparent transparent;
   flex-shrink: 0;
@@ -32,8 +32,8 @@
     box-sizing: border-box;
     display: block;
     position: absolute;
-    width: 51px;
-    height: 51px;
+    width: 5.1rem;
+    height: 5.1rem;
     margin: 6px;
     border: 6px solid transparent;
     border-top-color: inherit;

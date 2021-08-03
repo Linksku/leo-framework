@@ -1,11 +1,11 @@
+import useUpdatedState from 'lib/hooks/useUpdatedState';
+
 export default function useEffectIfReady(
   cb: () => void,
-  deps: any[],
+  deps: MemoDependencyList,
   isReady: boolean,
 ) {
-  const wasReady = useRef(false);
-
-  wasReady.current = wasReady.current || isReady;
+  const wasReady = useUpdatedState(false, s => s || isReady);
 
   useEffect(() => {
     if (!isReady) {
@@ -14,5 +14,5 @@ export default function useEffectIfReady(
     // eslint-disable-next-line consistent-return
     return cb();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, wasReady.current]);
+  }, [...deps, wasReady]);
 }

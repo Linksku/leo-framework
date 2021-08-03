@@ -13,9 +13,7 @@ export default function HomeBody({ children }: React.PropsWithChildren<Props>) {
   const ref = useRef({
     isSwiping: false,
   });
-  const [sidebarPercent, setSidebarPercent] = useAnimatedValue({
-    defaultValue: sidebarShown ? 100 : 0,
-  });
+  const animatedSidebarPercent = useAnimatedValue(sidebarShown ? 100 : 0);
   const [dialogRef, dialogStyle] = useAnimation<HTMLDivElement>();
   const [sidebarRef, sidebarStyle] = useAnimation<HTMLDivElement>();
 
@@ -30,24 +28,23 @@ export default function HomeBody({ children }: React.PropsWithChildren<Props>) {
     onCancelNavigate() {
       ref.current.isSwiping = false;
     },
-    setPercent: setSidebarPercent,
+    setPercent: percent => animatedSidebarPercent.setVal(percent),
     direction: 'right',
     elementRef: sidebarRef,
-    maxSwipeStartDist: 15,
+    maxSwipeStartDist: 30,
   });
 
   useEffect(() => {
     if (!ref.current.isSwiping) {
-      setSidebarPercent(sidebarShown ? 100 : 0);
+      animatedSidebarPercent.setVal(sidebarShown ? 100 : 0);
     }
-  }, [setSidebarPercent, sidebarShown]);
+  }, [animatedSidebarPercent, sidebarShown]);
 
   return (
     <>
       <div className={styles.sidebarWrap}>
         <HomeSidebar
-          sidebarPercent={sidebarPercent}
-          setSidebarPercent={setSidebarPercent}
+          animatedSidebarPercent={animatedSidebarPercent}
           sidebarRef={sidebarRef}
           sidebarStyle={sidebarStyle}
           dialogRef={dialogRef}

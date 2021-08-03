@@ -80,7 +80,15 @@ module.exports = {
     }],
     'react/jsx-one-expression-per-line': [2, { allow: 'single-child' }],
     'object-property-newline': [2, { allowAllPropertiesOnSameLine: true }],
-    'max-len': [2, { code: 100, tabWidth: 2, ignoreTemplateLiterals: true, ignoreStrings: true, ignoreRegExpLiterals: true }],
+    'max-len': [2, {
+      code: 100,
+      comments: 200,
+      tabWidth: 2,
+      ignoreTemplateLiterals: true,
+      ignoreStrings: true,
+      ignoreRegExpLiterals: true,
+      ignoreUrls: true,
+    }],
     'react/jsx-child-element-spacing': 1,
     'react/jsx-no-bind': [2, { ignoreDOMComponents: false, ignoreRefs: false, allowArrowFunctions: true, allowFunctions: false, allowBind: false }],
     indent: [2, 2, {

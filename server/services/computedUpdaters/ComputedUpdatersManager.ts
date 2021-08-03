@@ -25,8 +25,7 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-queue.process(async job => {
+void queue.process(async job => {
   const { updater, startTime } = job.data;
   // todo: mid/easy log Bull errors
   return computedUpdaters[updater]?.updateMulti(startTime);
@@ -39,8 +38,7 @@ const ComputedUpdatersManager = {
     }
 
     for (const updater of TRIGGERED_UPDATES[type]) {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      queue.add({
+      void queue.add({
         updater,
         startTime: Date.now() - START_TIME_BUFFER,
       }, {

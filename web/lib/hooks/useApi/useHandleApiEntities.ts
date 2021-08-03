@@ -8,13 +8,17 @@ export default function useHandleApiEntities<Name extends ApiName>(
   const updateEntities = useUpdateEntities();
   const deleteEntities = useDeleteEntities();
 
-  return useCallback(({ entities, deletedIds, meta }: ApiResponse<Name>) => {
+  return useCallback(({ entities, deletedIds, meta }: ApiSuccessResponse<Name>) => {
     if (entities) {
       if (meta?.dateProps) {
         for (const ent of entities) {
-          if (meta.dateProps[ent.type]) {
-            for (const prop of meta.dateProps[ent.type]) {
-              ent[prop] = new Date(ent[prop]);
+          const dateProps = meta.dateProps[ent.type] as (keyof typeof ent)[] | undefined;
+          if (dateProps) {
+            for (const prop of dateProps) {
+              if (hasOwnProperty(ent, prop)) {
+                // @ts-ignore adding new prop to ent
+                ent[prop] = new Date(ent[prop]);
+              }
             }
           }
         }

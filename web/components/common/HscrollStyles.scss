@@ -2,8 +2,6 @@
   @extend %hideScrollbar;
 
   overflow-x: auto;
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features
-  touch-action: pan-x;
   transform: translateZ(0);
 }
 

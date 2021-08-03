@@ -15,15 +15,13 @@ export default function PullToRefresh({
   className,
   ...props
 }: React.PropsWithChildren<Props>) {
-  const [top, setTop] = useAnimatedValue({
-    defaultValue: 0,
-  });
+  const animatedTop = useAnimatedValue(0);
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
 
   const { ref, bindSwipe } = useSwipeNavigation({
     // @ts-ignore reload(true) is still supported
     onNavigate: () => window.location.reload(true),
-    setPercent: p => setTop(p),
+    setPercent: p => animatedTop.setVal(p),
     direction: 'down',
   });
 
@@ -37,7 +35,7 @@ export default function PullToRefresh({
 
       <div
         ref={mergeRefs(ref, animationRef)}
-        style={animationStyle(top, {
+        style={animationStyle(animatedTop, {
           top: x => `${x}px`,
           transform: x => `translateX(-50%) translateY(-100%) rotate(${x * 1.8}deg)`,
         })}

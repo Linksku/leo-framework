@@ -1,5 +1,6 @@
 import { useThrottle } from 'lib/throttle';
 
+// Use @capacitor/geolocation
 export default function useGeolocation({
   autoStart,
   ...opts

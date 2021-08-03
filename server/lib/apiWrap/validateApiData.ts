@@ -19,7 +19,7 @@ export default async function validateApiData(
     throw new HandledError(
       `Unknown API ${type} error.`,
       500,
-      error ? { dataPath, msg: error.message } : null,
+      error ? { dataPath, error } : null,
     );
   }
 }

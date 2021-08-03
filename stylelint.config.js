@@ -27,5 +27,9 @@ module.exports = {
     }],
     'at-rule-empty-line-before': null,
     'value-keyword-case': null,
+    'declaration-property-unit-allowed-list': {
+      'font-size': ['em', 'rem', 'lh', 'rlh'],
+      'line-height': ['px', 'rem'],
+    },
   },
 };

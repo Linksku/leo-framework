@@ -33,12 +33,12 @@ function createThrottle(
       current.timer = null;
 
       if (current.disabled) {
-        current.lastRunTime = Date.now();
+        current.lastRunTime = performance.now();
         return;
       }
 
       if (!restartTimerAfterFinished) {
-        current.lastRunTime = Date.now();
+        current.lastRunTime = performance.now();
         const res = fn.apply(current.lastCtx, current.lastArgs);
         if (res instanceof Promise) {
           res.catch(err => ErrorLogger.warning(err, `throttle: ${fn.name}`));
@@ -49,10 +49,10 @@ function createThrottle(
           res
             .catch(err => ErrorLogger.warning(err, `throttle: ${fn.name}`))
             .finally(() => {
-              current.lastRunTime = Date.now();
+              current.lastRunTime = performance.now();
             });
         } else {
-          current.lastRunTime = Date.now();
+          current.lastRunTime = performance.now();
         }
       }
     }
@@ -66,9 +66,9 @@ function createThrottle(
         if (allowSchedulingDuringDelay) {
           current.timer = window.setTimeout(
             run,
-            Math.max(0, timeout - (Date.now() - current.lastRunTime)),
+            Math.max(0, timeout - (performance.now() - current.lastRunTime)),
           );
-        } else if (Date.now() - current.lastRunTime >= timeout) {
+        } else if (performance.now() - current.lastRunTime >= timeout) {
           current.timer = window.setTimeout(run, timeout);
         }
       }

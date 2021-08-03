@@ -1,15 +1,17 @@
 import styles from './CheckboxStyles.scss';
 
 type Props = {
+  checked: boolean,
+  onChange: React.ChangeEventHandler<HTMLInputElement>,
   className?: string,
   label?: ReactNode,
-  checked?: boolean,
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 export default function Checkbox({
+  checked,
+  onChange,
   className,
   label,
-  checked = false,
   ...props
 }: Props) {
   return (
@@ -38,6 +40,7 @@ export default function Checkbox({
           type="checkbox"
           className={styles.input}
           checked={!!checked}
+          onChange={onChange}
           {...props}
         />
       </span>

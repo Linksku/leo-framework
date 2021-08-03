@@ -1,5 +1,6 @@
 type ReactNode = React.ReactNode;
 type ReactElement = React.ReactElement;
+// todo: low/mid add Memoed to SetState
 type SetState<T = any> = React.Dispatch<React.SetStateAction<T>>;
 
 type StaticTypes = SetState<any>
@@ -8,7 +9,7 @@ type StaticTypes = SetState<any>
 | (React.SVGFactory | undefined);
 
 class __MEMOED {
-  private [Symbol('__MEMOED')] = true;
+  private __MEMOED = true;
 }
 
 // todo: low/mid: maybe fork constate to add memoed
@@ -19,8 +20,7 @@ type Memoed<T> = T extends Primitive ? T
 type MemoDependencyList = ReadonlyArray<
   Primitive
   | StaticTypes
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  | Memoed<object>
+  | __MEMOED
 >;
 
 // Doesn't work with generics: https://stackoverflow.com/questions/51300602

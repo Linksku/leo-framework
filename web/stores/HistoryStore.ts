@@ -1,8 +1,7 @@
 import type { BackButtonListenerEvent } from '@capacitor/app';
 import qs from 'query-string';
 import { App as Capacitor } from '@capacitor/app';
-
-import useForceUpdate from 'lib/hooks/useForceUpdate';
+import useUpdate from 'react-use/lib/useUpdate';
 
 // Reduce rerenders.
 const QS_CACHE: ObjectOf<Memoed<ObjectOf<any>>> = Object.create(null);
@@ -59,7 +58,7 @@ const [
         popHandlers: [] as (() => boolean)[],
       };
     }, []));
-    const forceUpdate = useForceUpdate();
+    const update = useUpdate();
 
     const _pushPath = useCallback((
       path: string,
@@ -95,8 +94,8 @@ const [
         '',
         getFullPath(path, queryStr, hash),
       );
-      forceUpdate();
-    }, [forceUpdate]);
+      update();
+    }, [update]);
 
     const _replacePath = useCallback((
       path: string,
@@ -129,8 +128,8 @@ const [
         '',
         getFullPath(path, queryStr, hash),
       );
-      forceUpdate();
-    }, [forceUpdate]);
+      update();
+    }, [update]);
 
     // Called for both back and forward.
     const handlePopState = useCallback((event: PopStateEvent) => {
@@ -152,8 +151,8 @@ const [
         lastHandler?.();
       }
 
-      forceUpdate();
-    }, [forceUpdate]);
+      update();
+    }, [update]);
 
     const handleClick = useCallback(event => {
       const el = event.target.closest('a');
@@ -202,7 +201,6 @@ const [
         if (event.canGoBack) {
           window.history.back();
         } else {
-          // todo: mid/easy confirm before exiting
           Capacitor.exitApp();
         }
       });
@@ -213,6 +211,7 @@ const [
       };
     }, [handlePopState, handleClick, _replacePath, _pushPath]);
 
+    // todo: low/mid scroll to hash in homewrap and stackwrap
     useEffect(() => {
       if (ref.current.curState.hash) {
         document.getElementById(ref.current.curState.hash)?.scrollIntoView(true);

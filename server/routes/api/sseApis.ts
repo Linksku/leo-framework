@@ -23,7 +23,7 @@ defineApi(
   async function sseOtp({ currentUserId }) {
     if (!currentUserId) {
       return {
-        data: null,
+        data: {},
       };
     }
 
@@ -69,6 +69,7 @@ defineApi(
               name: SchemaConstants.name,
               params: { type: 'object', properties: {} },
             },
+            additionalProperties: false,
           },
         },
       },
@@ -106,6 +107,7 @@ defineApi(
               name: SchemaConstants.name,
               params: { type: 'object', properties: {} },
             },
+            additionalProperties: false,
           },
         },
       },

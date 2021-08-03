@@ -18,3 +18,4 @@ unzip build.zip
 rm build.zip
 
 pm2 restart $APP_NAME_LOWER
+chmod -R +x scripts

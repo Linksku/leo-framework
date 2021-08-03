@@ -1,11 +1,11 @@
 .inputWrap {
   display: block;
   overflow: hidden;
-  margin-bottom: 15px;
+  margin-bottom: 1.5rem;
 }
 
 .labelWrap {
-  padding-top: 25px;
+  padding-top: 2.5rem;
   position: relative;
 }
 
@@ -28,7 +28,6 @@
   color: $inputColor;
   border: $inputBorder;
   border-radius: $inputBorderRadius;
-  cursor: pointer;
   outline: none;
 
   &:focus {

@@ -58,6 +58,7 @@ const globals = {
   // Constate stores.
   useAlertsStore: ['./web/stores/AlertsStore', 'useAlertsStore'],
   useAuthStore: ['./web/stores/AuthStore', 'useAuthStore'],
+  useEntitiesStore: ['./web/stores/EntitiesStore', 'useEntitiesStore'],
   useHistoryStore: ['./web/stores/HistoryStore', 'useHistoryStore'],
   useHomeNavStore: ['./web/stores/HomeNavStore', 'useHomeNavStore'],
   useSlideUpStore: ['./web/stores/SlideUpStore', 'useSlideUpStore'],
@@ -69,7 +70,6 @@ const globals = {
   useCreateEntities: ['./web/stores/EntitiesStore', 'useCreateEntities'],
   useCurrentUser: ['./web/lib/hooks/useCurrentUser', 'default'],
   useEntities: ['./web/stores/EntitiesStore', 'useEntities'],
-  useEntitiesEE: ['./web/stores/EntitiesStore', 'useEntitiesEE'],
   useEntity: ['./web/stores/EntitiesStore', 'useEntity'],
   useGlobalMemo: ['./web/stores/GlobalMemoStore', 'useGlobalMemo'],
   useGlobalState: ['./web/stores/GlobalStateStore', 'useGlobalState'],

@@ -2,63 +2,49 @@ import { useAnimatedValue, useAnimation } from 'lib/hooks/useAnimation';
 
 import styles from './SlideDownFiltersStyles.scss';
 
-export type Filter = {
+export type Filter<FilterKey extends string, OptionsKey extends string> = {
   icon?: React.SVGFactory,
   iconDim?: number,
-  key: string,
+  key: FilterKey,
   label: string,
-  options: { key: string, label: string }[],
+  options: { key: OptionsKey, label: string }[],
 };
 
-type Props<T> = {
-  filters: Filter[],
-  defaultOptions?: T,
-  onChange: Memoed<(o: T) => void>,
+type Props<FilterKey extends string, OptionsKey extends string> = {
+  filters: Filter<FilterKey, OptionsKey>[],
+  selectedOptions: Record<FilterKey, OptionsKey>,
+  onChange: Memoed<(key: FilterKey, optionKey: OptionsKey) => void>,
   className?: string,
   filtersClassName?: string,
   filterClassName?: string,
   optionsClassName?: string,
 };
 
-// todo: low/mid maybe move state to parent of slidedownfilters
-export default function SlideDownFilters<T extends ObjectOf<string>>({
+export default function SlideDownFilters<
+  FilterKey extends string,
+  OptionsKey extends string,
+>({
   filters,
-  defaultOptions,
+  selectedOptions,
   onChange,
   className,
   filtersClassName,
   filterClassName,
   optionsClassName,
-}: Props<T>) {
-  const [{ openedFilterKey, selectedOptions }, setState] = useState({
-    openedFilterKey: null as string | null,
-    selectedOptions: (defaultOptions ?? {}) as Memoed<T>,
+}: Props<FilterKey, OptionsKey>) {
+  const [{ openedKey, latestOpenedKey }, setState] = useState({
+    openedKey: null as FilterKey | null,
+    latestOpenedKey: null as FilterKey | null,
   });
-  const ref = useRef({
-    prevOpenedFilterKey: openedFilterKey,
-    firstRunRef: true,
-  });
-  if (openedFilterKey) {
-    ref.current.prevOpenedFilterKey = openedFilterKey;
-  }
-  const { prevOpenedFilterKey } = ref.current;
-  const openedFilter = filters.find(f => f.key === prevOpenedFilterKey);
-  const [height, setHeight] = useAnimatedValue({
-    defaultValue: 0,
-  });
+  const openedFilter = filters.find(f => f.key === latestOpenedKey);
+
+  const animatedHeight = useAnimatedValue(0);
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
   const optionsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!ref.current.firstRunRef) {
-      onChange(selectedOptions);
-    }
-    ref.current.firstRunRef = false;
-  }, [onChange, selectedOptions]);
-
-  useEffect(() => {
-    setHeight(openedFilterKey ? optionsRef.current?.offsetHeight ?? 0 : 0);
-  }, [setHeight, openedFilterKey]);
+    animatedHeight.setVal(openedKey ? optionsRef.current?.offsetHeight ?? 0 : 0);
+  }, [animatedHeight, openedKey]);
 
   return (
     <div className={className}>
@@ -69,18 +55,22 @@ export default function SlideDownFilters<T extends ObjectOf<string>>({
             <div
               key={filter.key}
               className={cn(styles.filter, {
-                [styles.filterActive]: filter.key === openedFilterKey,
+                [styles.filterActive]: filter.key === openedKey,
               }, filterClassName)}
               onClick={() => setState(s => ({
                 ...s,
-                openedFilterKey: s.openedFilterKey === filter.key ? null : filter.key,
+                openedKey: s.openedKey === filter.key ? null : filter.key,
+                latestOpenedKey: filter.key,
               }))}
               role="button"
               tabIndex={-1}
             >
               {Icon && (
                 <Icon
-                  style={{ height: `${filter.iconDim}px`, width: `${filter.iconDim}px` }}
+                  style={{
+                    height: filter.iconDim ? `${filter.iconDim}rem` : undefined,
+                    width: filter.iconDim ? `${filter.iconDim}rem` : undefined,
+                  }}
                 />
               )}
               <span className={styles.label}>
@@ -92,26 +82,25 @@ export default function SlideDownFilters<T extends ObjectOf<string>>({
       </div>
       <div
         ref={animationRef}
-        style={animationStyle(height, {
+        style={animationStyle(animatedHeight, {
           height: x => `${x}px`,
         })}
         className={cn(styles.options, optionsClassName, {
-          [styles.optionsShown]: openedFilterKey && openedFilter,
+          [styles.optionsShown]: openedKey && openedFilter,
         })}
       >
         <div ref={optionsRef}>
-          {prevOpenedFilterKey && openedFilter
+          {latestOpenedKey && openedFilter
             ? openedFilter.options.map(o => (
               <div
                 key={o.key}
                 className={cn(styles.option, {
-                  [styles.optionActive]: o.key === selectedOptions[prevOpenedFilterKey],
+                  [styles.optionActive]: o.key === selectedOptions[latestOpenedKey],
                 })}
-                onClick={() => setState(s => ({
-                  ...s,
-                  openedFilterKey: null,
-                  selectedOptions: { ...s.selectedOptions, [prevOpenedFilterKey]: o.key },
-                }))}
+                onClick={() => {
+                  setState(s => ({ ...s, openedKey: null }));
+                  onChange(latestOpenedKey, o.key);
+                }}
                 role="button"
                 tabIndex={-1}
               >

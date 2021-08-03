@@ -6,4 +6,5 @@ export SERVER=production
 export NODE_ENV=production
 
 node scripts/build-templates.js
+npx cordova-res android --skip-config --copy
 npx cap sync android

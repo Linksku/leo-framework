@@ -16,6 +16,7 @@ type Props = {
   registerOpts?: RegisterOptions<any>,
 } & React.LabelHTMLAttributes<HTMLLabelElement>;
 
+// todo: high/veryhard edit uploaded image
 function MediaFileInput({
   acceptedTypes,
   defaultUrl,

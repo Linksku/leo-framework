@@ -1,4 +1,4 @@
-$iconDim: 24px;
+$iconDim: 2.4rem;
 
 .container {
   position: fixed;
@@ -22,10 +22,9 @@ $iconDim: 24px;
 .rightIcon {
   display: flex;
   align-items: center;
-  padding: 0 var(--containerPadLeftRight);
+  padding: 0 $containerPadLeftRight;
   line-height: $headerHeight;
   border: 0;
-  cursor: pointer;
   position: relative;
 
   svg {
@@ -37,9 +36,9 @@ $iconDim: 24px;
 
 .notifsCount {
   position: absolute;
-  top: ($headerHeight - $iconDim) / 2 - 8px;
-  right: calc(var(--containerPadLeftRight) - 8px);
-  font-size: 10px;
+  top: ($headerHeight - $iconDim) / 2 - 0.8rem;
+  right: $containerPadLeftRight - 0.8rem;
+  font-size: 1rem;
   font-weight: 700;
   background-color: #f02849;
   color: #fff;
@@ -47,7 +46,7 @@ $iconDim: 24px;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 15px;
-  width: 15px;
-  line-height: 1em;
+  height: 1.5rem;
+  width: 1.5rem;
+  line-height: 1;
 }

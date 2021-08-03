@@ -10,7 +10,9 @@ module.exports = {
   webDir: 'build/web/capacitor',
   plugins: {
     SplashScreen: {
-      launchShowDuration: 0,
+      backgroundColor: '#FFFFFF',
+      launchShowDuration: 5000,
+      androidScaleType: 'CENTER_CROP',
     },
   },
   server: {

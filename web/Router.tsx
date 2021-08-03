@@ -2,6 +2,7 @@ import Alerts from 'components/frame/Alerts';
 import Toasts from 'components/frame/Toasts';
 import SlideUpWrap from 'components/frame/SlideUpWrap';
 import StackWrapOuter from 'components/frame/StackWrapOuter';
+import { SplashScreen } from '@capacitor/splash-screen';
 
 import pathToRoute from 'lib/pathToRoute';
 import HomeRouteWrap from 'routes/HomeRouteWrap';
@@ -43,6 +44,10 @@ export default function Router() {
       replacePath('/login');
     }
     loadErrorLogger(currentUser?.id);
+
+    setTimeout(() => {
+      void SplashScreen.hide();
+    }, 0);
   }, [isBotAuth, isTopAuth, replacePath], loggedInStatus !== 'fetching');
 
   if (!currentUser
@@ -74,7 +79,9 @@ export default function Router() {
         </React.Suspense>
       ) : null}
       {stackBot && stackBotType !== 'home' && StackBotComponent && isBotAuth ? (
-        <StackWrapOuter key={`${stackBot.path}?${stackBot.queryStr ?? ''}`}>
+        <StackWrapOuter
+          key={`${stackBot.id}|${stackBot.path}?${stackBot.queryStr ?? ''}#${stackBot.hash ?? ''}`}
+        >
           <React.Suspense fallback={<LoadingRoute />}>
             <StackBotComponent
               matches={stackBotMatches}
@@ -88,7 +95,7 @@ export default function Router() {
       ) : null}
       {stackTop && stackTopType !== 'home' && StackTopComponent && isTopAuth ? (
         <StackWrapOuter
-          key={`${stackTop.path}?${stackTop.queryStr ?? ''}`}
+          key={`${stackTop.id}|${stackTop.path}?${stackTop.queryStr ?? ''}#${stackTop.hash ?? ''}`}
           slideIn={showSlide && stackActive === 'top'}
           slideOut={showSlide && stackActive === 'bot'}
         >

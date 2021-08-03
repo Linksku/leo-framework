@@ -1,13 +1,13 @@
-import type { ColumnProps } from './InfiniteScrollerColumn';
-import InfiniteScrollerColumn from './InfiniteScrollerColumn';
+import type { ColumnProps } from './WindowedInfiniteScrollerColumn';
+import WindowedInfiniteScrollerColumn from './WindowedInfiniteScrollerColumn';
 import useItemIdsToColumns from './useItemIdsToColumns';
 
-import styles from './InfiniteScrollerStyles.scss';
+import styles from './WindowedInfiniteScrollerStyles.scss';
 
 type Props = {
-  itemIds: number[],
+  origItemIds: number[],
   addedItemIds: number[],
-  deletedItemIds: number[],
+  deletedItemIds: Set<number>,
   initialId?: number,
   reverse: boolean,
   columns: number,
@@ -17,8 +17,8 @@ type Props = {
 } & ColumnProps;
 
 // Note: itemIds are append-only.
-function InfiniteScroller({
-  itemIds,
+function WindowedInfiniteScroller({
+  origItemIds,
   addedItemIds,
   deletedItemIds,
   initialId,
@@ -39,7 +39,7 @@ function InfiniteScroller({
     columnItemIds,
     idToItem,
     initialVisibleIds,
-  } = useItemIdsToColumns(itemIds, addedItemIds, deletedItemIds, columns);
+  } = useItemIdsToColumns(origItemIds, addedItemIds, deletedItemIds, columns);
 
   const scrollParentRelative = useCallback((px: number) => {
     if (containerRef.current) {
@@ -48,10 +48,10 @@ function InfiniteScroller({
   }, []);
 
   // todo: mid/hard with initialId, scroll to item and handle scrolling in opposite direction
-  const initialIdIdx = initialId && itemIds.indexOf(initialId);
+  const initialIdIdx = initialId && origItemIds.indexOf(initialId);
   if (initialIdIdx && initialIdIdx >= 0) {
     for (let i = 0; i <= initialIdIdx; i++) {
-      initialVisibleIds.add(itemIds[i]);
+      initialVisibleIds.add(origItemIds[i]);
     }
   }
 
@@ -62,7 +62,7 @@ function InfiniteScroller({
     >
       {columns === 1
         ? (
-          <InfiniteScrollerColumn
+          <WindowedInfiniteScrollerColumn
             {...props}
             columnIdx={0}
             itemIds={columnItemIds[0]}
@@ -83,7 +83,7 @@ function InfiniteScroller({
                   paddingLeft: columnIdx === 0 ? 0 : columnMargin,
                 }}
               >
-                <InfiniteScrollerColumn
+                <WindowedInfiniteScrollerColumn
                   {...props}
                   columnIdx={columnIdx}
                   itemIds={ids}
@@ -100,4 +100,4 @@ function InfiniteScroller({
   );
 }
 
-export default React.memo(InfiniteScroller);
+export default React.memo(WindowedInfiniteScroller);

@@ -1,9 +1,11 @@
 import fetcher from 'lib/fetcher';
 import promiseTimeout from 'lib/promiseTimeout';
-import removeFalseyValues from 'lib/removeFalseyValues';
+import removeUndefinedValues from 'lib/removeUndefinedValues';
 import { HTTP_TIMEOUT, API_URL } from 'settings';
-import useHandleApiEntities from './useHandleApiEntities';
+import ApiError from 'lib/ApiError';
 import type { OnFetchType, OnErrorType } from './useApiTypes';
+import useHandleApiEntities from './useHandleApiEntities';
+import isErrorResponse from './isErrorResponse';
 
 type Opts = {
   type?: 'load' | 'create' | 'update' | 'delete',
@@ -97,7 +99,7 @@ function useDeferredApi<
     cancelOnUnmount = true,
     // Don't call setState.
     noReturnState = false,
-    showToastOnError = false,
+    showToastOnError = true,
   }: Opts & Partial<OptsCallbacks<Name>> = {},
 ) {
   useDebugValue(name);
@@ -152,21 +154,26 @@ function useDeferredApi<
         fetcher[method](
           `${API_URL}/api/${name}`,
           {
-            params: JSON.stringify(removeFalseyValues(combinedParams)),
+            params: JSON.stringify(removeUndefinedValues(combinedParams)),
             ...files,
           },
           { authToken },
         )
-          .then((response: Memoed<ApiResponse<Name>>) => {
+          .then(({ data: response, status }) => {
             ref.current.isFetching = false;
             if (numFetches <= ref.current.numCancelled) {
               // If cache gets updated for cancelled requests, entities also need to be updated.
               return null;
             }
 
-            const data = response.data as Memoed<ApiNameToData[Name]>;
+            if (isErrorResponse(response)) {
+              throw new ApiError(name, response?.status ?? status, response?.error);
+            }
+
+            const successResponse = response as ApiSuccessResponse<Name>;
+            const data = markMemoed(successResponse.data);
             batchedUpdates(() => {
-              handleApiEntities(response);
+              handleApiEntities(successResponse);
               if (!noReturnState) {
                 setState({
                   fetching: false,
@@ -174,7 +181,7 @@ function useDeferredApi<
                   error: null,
                 });
               }
-              onFetch?.(response.data, (params2 ?? {}) as Partial<ApiNameToParams[Name]>);
+              onFetch?.(successResponse.data, (params2 ?? {}) as Partial<ApiNameToParams[Name]>);
             });
 
             return data;

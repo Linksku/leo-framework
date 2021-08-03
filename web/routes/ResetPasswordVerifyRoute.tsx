@@ -49,8 +49,8 @@ function ResetPasswordVerifyRoute({ query }: RouteProps) {
             register={register}
             registerOpts={{
               required: 'Password is required.',
-              minLength: 8,
-              maxLength: 64,
+              minLength: { value: 8, message: 'Password needs to be at least 8 characters.' },
+              maxLength: { value: 64, message: 'Password too long.' },
             }}
             disabled={fetching}
             required

@@ -1,18 +1,4 @@
-import removeFalseyValues from 'lib/removeFalseyValues';
-
-export function getErrorFromApiData(data: ObjectOf<any> | undefined, status?: number): Error {
-  const err = new Error(
-    data?.error?.msg
-      || (typeof data === 'object' && JSON.stringify(data))
-      || 'Unknown error occurred while fetching data.',
-  );
-  err.title = data?.error?.title;
-  err.status = status ?? data?.error?.status ?? 503;
-  if (data?.error?.stack) {
-    err.stack = data.error.stack;
-  }
-  return err;
-}
+import removeUndefinedValues from 'lib/removeUndefinedValues';
 
 type FetcherOpts = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
@@ -32,7 +18,10 @@ async function _fetcher(
     cache = 'default' as RequestCache,
     redirect = 'error' as RequestRedirect,
   }: FetcherOpts = {},
-) {
+): Promise<{
+  data?: any,
+  status: number,
+}> {
   const headers: HeadersInit = {};
   const request: RequestInit = {
     method,
@@ -57,17 +46,20 @@ async function _fetcher(
   if (authToken !== null) {
     headers.authorization = authToken;
   }
-  request.headers = removeFalseyValues(headers);
+  request.headers = removeUndefinedValues(headers);
 
   let res: Response;
   try {
     res = await fetch(url, request);
-  } catch (err) {
-    err.status = 503;
-    throw err;
+  } catch {
+    return {
+      status: 503,
+    };
   }
   if (res.status === 204) {
-    return null;
+    return {
+      status: 204,
+    };
   }
 
   let data: any;
@@ -78,16 +70,14 @@ async function _fetcher(
     ErrorLogger.warning(new Error('fetcher: unable to parse JSON'), text.slice(0, 200));
   }
 
-  if (!res.ok || !data || data.error) {
-    const err = getErrorFromApiData(data, res.status);
-    throw err;
-  }
-
-  return data;
+  return {
+    data,
+    status: res.status,
+  };
 }
 
 function _createFullUrl(url: string, params: ObjectOf<string | number | boolean>) {
-  const newParams = removeFalseyValues(params);
+  const newParams = removeUndefinedValues(params);
   if (!Object.keys(newParams).length) {
     return url;
   }

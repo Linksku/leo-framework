@@ -1,10 +1,10 @@
-type ObjArr<T extends EntityType> = {
+type ObjArr<T extends EntityType> = Partial<{
   [k: string]: Memoed<Memoed<TypeToEntity<T>>[]> | ObjArr<T>;
-}
+}>;
 
-type ObjSet<T extends EntityType> = {
+type ObjSet<T extends EntityType> = Partial<{
   [k: string]: Memoed<Set<Memoed<any>>> | ObjSet<T>;
-}
+}>;
 
 export type OptsWithoutSet<T extends EntityType> = {
   sortField?: keyof TypeToEntity<T>,
@@ -22,14 +22,14 @@ type RetArr<
   T extends EntityType,
   Fields extends readonly any[]
 > = Fields extends readonly [any, ...infer R]
-  ? { [k: string]: RetArr<T, R> }
+  ? Partial<{ [k: string]: RetArr<T, R> }>
   : Memoed<TypeToEntity<T>[]>;
 
 type RetSet<
   T extends EntityType,
   Fields extends readonly any[]
 > = Fields extends readonly [any, ...infer R]
-  ? { [k: string]: RetSet<T, R> }
+  ? Partial<{ [k: string]: RetSet<T, R> }>
   : Memoed<Set<any>>;
 
 function useEntitiesByFields<T extends EntityType, Fields extends readonly string[]>(

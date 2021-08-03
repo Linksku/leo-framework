@@ -10,7 +10,7 @@ export default async function buildServerEntities() {
 
   for (const model of Object.keys(entityModels)) {
     imports.push(`import type _${model} from 'models/${model}';`);
-    interfaces.push(`type ${model} = _${model};`, `type ${model}Model = typeof Base${model};`);
+    interfaces.push(`type ${model} = _${model};`, `type ${model}Model = typeof _${model};`);
   }
 
   await mkdirp(path.resolve('./src/server/types/generated'));

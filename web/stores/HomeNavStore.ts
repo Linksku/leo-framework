@@ -1,4 +1,6 @@
 import { HOME_TABS } from 'config/homeTabs';
+import useUpdatedState from 'lib/hooks/useUpdatedState';
+import shallowEqual from 'lib/shallowEqual';
 
 type TabType = ValueOf<typeof HOME_TABS>;
 
@@ -8,43 +10,63 @@ const [
 ] = constate(
   function HomeNavStore() {
     const ref = useRef<{
-      homeTab: TabType,
-      homeParts: string[],
-      isHome: boolean,
-      wasHome: boolean,
+      hasAttemptedExit: boolean,
     }>({
-      homeTab: HOME_TABS.FEED,
-      homeParts: [],
-      isHome: false,
-      wasHome: false,
+      // Allow immediate exit.
+      hasAttemptedExit: true,
     });
 
     const {
       prevState,
       curState,
       direction,
+      addPopHandler,
     } = useHistoryStore();
     const pushPath = usePushPath();
     const replacePath = useReplacePath();
+    const showToast = useShowToast();
 
-    const pathParts = curState.path.slice(1).split('/');
-    const prevPathParts = prevState ? prevState.path.slice(1).split('/') : null;
-    ref.current.isHome = pathParts[0] === ''
-      || hasOwnProperty(HOME_TABS, pathParts[0].toUpperCase());
-    ref.current.wasHome = !!prevPathParts && (prevPathParts[0] === ''
-      || hasOwnProperty(HOME_TABS, prevPathParts[0].toUpperCase()));
+    const pathParts = useMemo(() => curState.path.slice(1).split('/'), [curState.path]);
+    const prevPathParts = useMemo(
+      () => (prevState?.path ? prevState.path.slice(1).split('/') : null),
+      [prevState?.path],
+    );
 
-    if (ref.current.isHome) {
-      if (pathParts[0] === '') {
-        ref.current.homeTab = HOME_TABS.FEED;
-        ref.current.homeParts = [];
-      } else {
-        ref.current.homeTab = pathParts[0] as TabType;
-        ref.current.homeParts = pathParts.length >= 2
-          ? pathParts.slice(1)
-          : [];
+    const isHome = useMemo(
+      () => pathParts[0] === '' || hasOwnProperty(HOME_TABS, pathParts[0].toUpperCase()),
+      [pathParts],
+    );
+    const wasHome = useMemo(
+      () => !!prevPathParts && (prevPathParts[0] === '' || hasOwnProperty(HOME_TABS, prevPathParts[0].toUpperCase())),
+      [prevPathParts],
+    );
+
+    const { homeTab, homeParts } = useUpdatedState<{
+      homeTab: TabType,
+      homeParts: Memoed<string[]>,
+    }>({
+      homeTab: HOME_TABS.FEED,
+      homeParts: EMPTY_ARR,
+    }, s => {
+      if (isHome) {
+        if (pathParts[0] === '') {
+          return {
+            homeTab: HOME_TABS.FEED,
+            homeParts: EMPTY_ARR,
+          };
+        }
+        if (pathParts[0] !== s.homeTab
+          || !shallowEqual(pathParts.slice(1), s.homeParts)) {
+          return {
+            homeTab: pathParts[0] as TabType,
+            homeParts: pathParts.length >= 2
+              ? markMemoed(pathParts.slice(1))
+              : EMPTY_ARR,
+          };
+        }
       }
-    }
+      return s;
+    });
 
     // todo: low/mid create new store for each route because curState changes while navigating
     const navigateHome = useCallback((
@@ -59,7 +81,7 @@ const [
         newPath = '/';
       }
 
-      if (!ref.current.isHome) {
+      if (!isHome) {
         pushPath(newPath);
       } else if (newPath === prevState?.path && !prevState?.query && !prevState?.hash) {
         if (direction === 'back') {
@@ -67,8 +89,7 @@ const [
         } else {
           window.history.back();
         }
-      } else if (curState.path === '/'
-        || (!ref.current.homeParts.length && newParts.length)) {
+      } else if (curState.path === '/' || (!homeParts.length && newParts.length)) {
         pushPath(newPath);
       } else {
         replacePath(newPath);
@@ -79,13 +100,32 @@ const [
       direction,
       pushPath,
       replacePath,
+      isHome,
+      homeParts,
     ]);
 
+    useEffect(() => {
+      if (ref.current.hasAttemptedExit
+        && (homeTab !== HOME_TABS.FEED || !isHome)) {
+        ref.current.hasAttemptedExit = false;
+        addPopHandler(() => {
+          if (!ref.current.hasAttemptedExit && (homeTab === HOME_TABS.FEED && isHome)) {
+            showToast({
+              msg: 'Tap again to exit',
+            });
+            ref.current.hasAttemptedExit = true;
+            return true;
+          }
+          return false;
+        });
+      }
+    }, [addPopHandler, showToast, curState, isHome, homeTab]);
+
     return useDeepMemoObj({
-      homeTab: ref.current.homeTab,
-      homeParts: ref.current.homeParts,
-      isHome: ref.current.isHome,
-      wasHome: ref.current.wasHome,
+      homeTab,
+      homeParts,
+      isHome,
+      wasHome,
       navigateHome,
     });
   },

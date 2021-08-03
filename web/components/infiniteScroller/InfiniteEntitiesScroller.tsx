@@ -1,168 +1,97 @@
-import { useThrottle } from 'lib/throttle';
+import type { PaginatedApiName, ShouldAddCreatedEntity } from 'lib/hooks/useApi/usePaginatedApi';
+import usePaginatedApi from 'lib/hooks/useApi/usePaginatedApi';
 import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
-
-import type { RenderItemType } from './InfiniteScrollerColumn';
-import InfiniteScroller from './InfiniteScroller';
+import useVisibilityObserver from 'lib/hooks/useVisibilityObserver';
 
 import styles from './InfiniteEntitiesScrollerStyles.scss';
 
-type ScrollerApiName = {
-  [Name in ApiName]: ApiNameToParams[Name] extends {
-    cursor?: number;
-    limit?: number;
-  }
-    ? Name
-    : never;
-}[ApiName];
-
-type Props<Name extends ScrollerApiName> = {
+type Props<
+  Type extends EntityType,
+  Name extends PaginatedApiName,
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  OtherProps extends ObjectOf<any> = {}
+> = {
   apiName: Name,
   apiParams: ApiNameToParams[Name],
-  itemsPerFetch?: number,
-  entityType: EntityType,
-  initialId?: number,
-  renderItem: RenderItemType,
-  reverse?: boolean,
+  entityType: Type,
+  ItemRenderer: React.MemoExoticComponent<React.ComponentType<{
+    itemId: number,
+    prevItemId?: number,
+    nextItemId?: number,
+  } & OtherProps>>,
   throttleTimeout?: number,
-  shouldAddCreatedEntity?: Memoed<(e: Entity) => boolean>,
+  shouldAddCreatedEntity?: ShouldAddCreatedEntity,
   notFoundMsg?: ReactNode,
-  columns?: number,
-  columnMargin?: number,
   className?: string,
-  columnClassName?: string,
 };
 
-export default function InfiniteEntitiesScroller<Name extends ScrollerApiName>({
+function InfiniteEntitiesScroller<
+  Type extends EntityType,
+  Name extends PaginatedApiName
+>(props: Props<Type, Name> & { otherItemProps?: undefined }): ReactElement;
+
+function InfiniteEntitiesScroller<
+  Type extends EntityType,
+  Name extends PaginatedApiName,
+  OtherProps extends ObjectOf<any>
+>(props: Props<Type, Name, OtherProps> & { otherItemProps: Memoed<OtherProps> }): ReactElement;
+
+function InfiniteEntitiesScroller<
+  Type extends EntityType,
+  Name extends PaginatedApiName,
+  OtherProps
+>({
   apiName,
   apiParams,
-  itemsPerFetch = 30,
   entityType,
-  initialId,
-  renderItem,
-  reverse = false,
+  ItemRenderer,
+  otherItemProps,
   throttleTimeout = 1000,
   shouldAddCreatedEntity,
   notFoundMsg = 'Nothing found',
-  columns = 1,
-  columnMargin = 0,
   className,
-  columnClassName,
-}: Props<Name>) {
+}: Props<Type, Name, OtherProps> & { otherItemProps?: OtherProps }) {
   useTimeComponentPerf('Scroller');
 
-  const [{
+  const {
+    fetching,
     entityIds,
-    addedEntityIds,
-    deletedEntityIds,
-    cursor,
+    fetchNext,
     hasCompleted,
-  }, setState] = useState({
-    entityIds: EMPTY_ARR as number[],
-    addedEntityIds: EMPTY_ARR as number[],
-    deletedEntityIds: EMPTY_ARR as number[],
-    cursor: undefined as number | undefined,
-    hasCompleted: false,
-  });
-  const ref = useRef({
-    nextCursor: undefined,
-  });
-  const eventEmitter = useEntitiesEE();
-
-  const { fetching } = useApi<Name>(apiName, {
-    ...apiParams,
-    cursor,
-    limit: itemsPerFetch,
-  }, {
-    onFetch: useCallback((data: any) => {
-      // todo: low/mid maybe create a superclass for scroller APIs.
-      ref.current.nextCursor = data?.cursor;
-      setState(s => {
-        const entityIdsSet = new Set([...s.entityIds, ...s.addedEntityIds]);
-        const fetchedEntityIds = (data?.entityIds ?? []) as number[];
-        const newIds = fetchedEntityIds.filter((id: number) => !entityIdsSet.has(id));
-        return ({
-          ...s,
-          entityIds: newIds.length
-            ? [...s.entityIds, ...newIds.filter((id: number) => !entityIdsSet.has(id))]
-            : s.entityIds,
-          hasCompleted: data.hasCompleted || !data.cursor,
-        });
-      });
-    }, []),
-    onError: NOOP,
-    shouldFetch: !hasCompleted,
+  } = usePaginatedApi(entityType, apiName, apiParams, {
+    throttleTimeout,
+    shouldAddCreatedEntity,
   });
 
-  const fetchNextEntities = useThrottle(
-    () => {
-      if (ref.current.nextCursor) {
-        setState(s => (
-          s.cursor === ref.current.nextCursor
-            ? s
-            : ({ ...s, cursor: ref.current.nextCursor })
-        ));
-      }
-    },
-    {
-      timeout: throttleTimeout,
-      allowSchedulingDuringDelay: true,
-    },
-    [],
-  );
+  const loadMoreRef = useVisibilityObserver({
+    onVisible: fetchNext,
+  });
 
-  const handleCreateEntity = useCallback(entity => {
-    if (entity.type === entityType && shouldAddCreatedEntity?.(entity)) {
-      setState(s => {
-        if (s.entityIds.includes(entity.id) || s.addedEntityIds.includes(entity.id)) {
-          return s;
-        }
-        return {
-          ...s,
-          addedEntityIds: [...s.addedEntityIds, entity.id],
-        };
-      });
-    }
-  }, [entityType, shouldAddCreatedEntity]);
-
-  const handleDeleteEntity = useCallback(entity => {
-    setState(s => {
-      if (s.deletedEntityIds.includes(entity.id)) {
-        return s;
-      }
-      return {
-        ...s,
-        deletedEntityIds: [...s.deletedEntityIds, entity.id],
-      };
-    });
-  }, []);
-
-  useEffect(() => {
-    eventEmitter.on(`create,${entityType}`, handleCreateEntity);
-    eventEmitter.on(`delete,${entityType}`, handleDeleteEntity);
-
-    return () => {
-      eventEmitter.off(`create,${entityType}`, handleCreateEntity);
-      eventEmitter.off(`delete,${entityType}`, handleDeleteEntity);
-    };
-  }, [eventEmitter, entityType, handleCreateEntity, handleDeleteEntity]);
-
-  if (fetching || entityIds.length || addedEntityIds.length) {
+  if (fetching || entityIds.length) {
     return (
-      <InfiniteScroller
-        key={columns}
-        itemIds={entityIds}
-        addedItemIds={addedEntityIds}
-        deletedItemIds={deletedEntityIds}
-        initialId={initialId}
-        renderItem={renderItem}
-        onReachedEnd={fetchNextEntities}
-        reverse={reverse}
-        hasCompleted={hasCompleted}
-        columns={columns}
-        columnMargin={columnMargin}
-        className={className}
-        columnClassName={columnClassName}
-      />
+      <div className={className}>
+        {entityIds.map((id, idx) => (
+          // @ts-ignore no idea
+          <ItemRenderer
+            key={id}
+            itemId={id}
+            prevItemId={entityIds[idx - 1]}
+            nextItemId={entityIds[idx + 1]}
+            {...otherItemProps}
+          />
+        ))}
+        {fetching && !hasCompleted && (
+          <div className={styles.spinner}>
+            <Spinner />
+          </div>
+        )}
+        {!fetching && !hasCompleted && (
+          <div
+            ref={loadMoreRef}
+            className={styles.loadMore}
+          />
+        )}
+      </div>
     );
   }
   if (typeof notFoundMsg === 'string') {
@@ -172,3 +101,5 @@ export default function InfiniteEntitiesScroller<Name extends ScrollerApiName>({
   }
   return <>{notFoundMsg}</>;
 }
+
+export default InfiniteEntitiesScroller;

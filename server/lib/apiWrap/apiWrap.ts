@@ -1,4 +1,4 @@
-import type { Api, RouteRet } from 'services/ApiManager';
+import type { Api } from 'services/ApiManager';
 import processApiRet from './processApiRet';
 import handleApiError from './handleApiError';
 import validateApiData from './validateApiData';
@@ -17,12 +17,18 @@ export default function apiWrap<Name extends ApiName>(
       } catch {
         throw new HandledError('API params isn\'t JSON.', 400);
       }
-      if (api.config.fileFields) {
+
+      const { files } = req;
+      if (api.config.fileFields && files && !Array.isArray(files)) {
         for (const { name, maxCount } of api.config.fileFields) {
-          if (maxCount === 1) {
-            params[name] = req.files[name]?.[0];
-          } else {
-            params[name] = req.files[name];
+          if (hasDefinedProperty(files, name)) {
+            if (maxCount === 1) {
+              // @ts-ignore
+              params[name] = files[name][0];
+            } else {
+              // @ts-ignore
+              params[name] = files[name];
+            }
           }
         }
       }
@@ -35,10 +41,11 @@ export default function apiWrap<Name extends ApiName>(
       }
 
       if (api.validateData) {
-        if (ret.data) {
-          await validateApiData('data', api.validateData, ret.data);
-        } else {
+        if (!ret.data) {
           throw new HandledError('Api didn\'t include data.', 500);
+        }
+        if (process.env.NODE_ENV !== 'production') {
+          await validateApiData('data', api.validateData, ret.data);
         }
       }
 
@@ -53,9 +60,8 @@ export default function apiWrap<Name extends ApiName>(
       const { status, errorData } = handleApiError(err, api.config.name);
       res.status(status).json({
         status,
-        data: null,
         error: errorData,
-      } as RouteRet<Name>);
+      } as ApiErrorResponse);
     }
   };
 }

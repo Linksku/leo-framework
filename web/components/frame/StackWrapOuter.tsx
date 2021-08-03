@@ -18,31 +18,29 @@ export default function StackWrapOuter({
 }: React.PropsWithChildren<Props>) {
   useTimeComponentPerf('StackOuter');
 
-  const [left, setLeft] = useAnimatedValue({
-    defaultValue: slideIn ? 100 : 0,
-  });
+  const animatedLeftPercent = useAnimatedValue(slideIn ? 100 : 0);
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
   const { backStack, forwardStack } = useStacksNavStore();
 
   const { ref, bindSwipe } = useSwipeNavigation({
     onNavigate: backStack,
     onCancelNavigate: forwardStack,
-    setPercent: setLeft,
+    setPercent: percent => animatedLeftPercent.setVal(percent),
     direction: 'right',
   });
 
   useEffect(() => {
     if (slideIn) {
-      setLeft(0);
+      animatedLeftPercent.setVal(0);
     } else if (slideOut) {
-      setLeft(100);
+      animatedLeftPercent.setVal(100);
     }
-  }, [slideIn, slideOut, setLeft]);
+  }, [slideIn, slideOut, animatedLeftPercent]);
 
   return (
     <div
       ref={mergeRefs(ref, animationRef)}
-      style={animationStyle(left, {
+      style={animationStyle(animatedLeftPercent, {
         transform: x => `translateZ(0) translateX(${x}%)`,
       })}
       className={styles.container}

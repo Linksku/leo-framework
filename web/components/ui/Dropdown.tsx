@@ -2,7 +2,7 @@ import styles from './DropdownStyles.scss';
 
 type Props = MemoProps<{
   options: { key: string, name: string }[],
-  defaultElement?: React.ReactElement,
+  defaultElement?: ReactElement,
   open: boolean,
   className?: string,
   defaultValue?: string,

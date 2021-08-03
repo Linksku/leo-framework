@@ -1,5 +1,6 @@
 import { defineApi } from 'services/ApiManager';
 
+// todo: high/veryhard increase moderation privileges based on club reputation
 defineApi(
   {
     method: 'post',

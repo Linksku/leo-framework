@@ -8,14 +8,37 @@ import 'routes/apiRoutes';
 import 'config/apis';
 import { apis } from 'services/ApiManager';
 
+// todo: low/mid handle image field types
 export default async function buildApiTypes() {
   const paramsInterfaces = [] as string[];
   const dataInterfaces = [] as string[];
 
   for (const api of apis) {
     if (api.config.paramsSchema) {
+      const properties = { ...api.config.paramsSchema.properties };
+      if (api.config.fileFields) {
+        for (const { name, maxCount } of api.config.fileFields) {
+          if (hasDefinedProperty(properties, name)) {
+            if (maxCount > 1) {
+              properties[name] = {
+                type: 'array',
+                items: {
+                  // @ts-ignore custom prop for json-schema-to-typescript
+                  tsType: 'Express.Multer.File',
+                },
+              };
+            } else {
+              properties[name] = {
+                // @ts-ignore custom prop for json-schema-to-typescript
+                tsType: 'Express.Multer.File',
+              };
+            }
+          }
+        }
+      }
+
       const fields = await compile(
-        api.config.paramsSchema as JSONSchema4,
+        { ...api.config.paramsSchema, properties } as JSONSchema4,
         'Foo',
         {
           bannerComment: '',

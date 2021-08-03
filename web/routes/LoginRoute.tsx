@@ -55,8 +55,8 @@ function LoginRoute() {
             register={register}
             registerOpts={{
               required: 'Password is required.',
-              minLength: 8,
-              maxLength: 64,
+              minLength: { value: 8, message: 'Password is incorrect.' },
+              maxLength: { value: 64, message: 'Password is incorrect.' },
             }}
             disabled={fetching}
             required

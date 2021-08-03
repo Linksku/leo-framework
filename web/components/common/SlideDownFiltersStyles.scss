@@ -10,22 +10,21 @@
   font-size: 0.9em;
   color: $lightTextColor;
   transition: color 0.2s;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
 
   &:first-child {
-    padding-left: var(--containerPadLeftRight);
+    padding-left: $containerPadLeftRight;
   }
 
   &:last-child {
-    padding-right: var(--containerPadLeftRight);
+    padding-right: $containerPadLeftRight;
   }
 
   svg {
-    height: 16px;
-    width: 16px;
+    height: 1.6rem;
+    width: 1.6rem;
     fill: $fadedTextColor;
     transition: fill 0.2s;
   }
@@ -55,10 +54,9 @@
 }
 
 .option {
-  padding: 10px var(--containerPadLeftRight);
+  padding: 10px $containerPadLeftRight;
   color: $lightTextColor;
   font-size: 0.9em;
-  cursor: pointer;
 }
 
 .optionActive {

@@ -10,7 +10,7 @@ type Props = MemoProps<{
   defaultValue?: string,
   fetchResults?: (s: string) => void,
   getResults: (s: string) => { key: string, name: string }[],
-  onChange?: (key: string) => void,
+  onChange?: (key: string, val?: string) => void,
   className?: string | null,
   defaultElement?: React.ReactElement,
   inputProps: Parameters<typeof Input>[0],
@@ -128,6 +128,7 @@ export default class Typeahead extends React.PureComponent<Props, State> {
     } = this.props;
     const { input, isFocused } = this.state;
     const results = this._memoResults(() => getResults(input.trim()), [getResults, input]);
+
     const isOpen = isFocused
       && !!(results.length || defaultElement)
       && defaultValue !== input;
@@ -145,10 +146,12 @@ export default class Typeahead extends React.PureComponent<Props, State> {
             isFocused: false,
           });
         }
-        onChange?.(key);
+        this._throttledFetchResults?.(input);
+        onChange?.(key, name);
       },
       [clearOnSelect, onChange],
     );
+
     return (
       <div
         ref={this._handleLoad}

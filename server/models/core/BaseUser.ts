@@ -34,7 +34,7 @@ export default class BaseUser extends Entity {
     this.email = this.email.toLowerCase();
   }
 
-  async $beforeUpdate(_opts, ctx: QueryContext) {
+  async $beforeUpdate(_opts: any, ctx: QueryContext) {
     await super.$beforeUpdate(_opts, ctx);
 
     if (this.password) {

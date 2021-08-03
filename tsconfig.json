@@ -12,6 +12,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "baseUrl": "./",
+    // todo: mid/mid noImplicitAny: true and move all JS files to a new folder with new tsconfig
     "noImplicitAny": false,
     "strictNullChecks": true,
     "useUnknownInCatchVariables": false,

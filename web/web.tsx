@@ -26,12 +26,17 @@ document.addEventListener('gesturechange', e => e.preventDefault());
 preventClicksAfterMove();
 setVhCssVar();
 
-render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('react'),
-);
+const tz = (new Date()).getTimezoneOffset() / 60;
+if (tz >= 2 && tz <= 11) {
+  render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+    document.getElementById('react'),
+  );
+} else {
+  // todo: high/veryhard gdpr
+  alert('Not available outside US/Canada.');
+}
 
-// todo: high/high error logging
-// todo: high/high log actions
+// todo: high/veryhard log actions
