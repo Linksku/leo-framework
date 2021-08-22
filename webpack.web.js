@@ -18,7 +18,7 @@ module.exports = mergeReplaceArrays(baseConfig, {
   },
   output: {
     publicPath: `${ASSETS_URL}/`,
-    // todo: high/mid separate dirs for prod and dev
+    // todo: low/mid separate dirs for prod and dev
     path: path.resolve('./build/web'),
     filename: 'js/[name].js',
     chunkFilename: `js/chunks/[name].js`,

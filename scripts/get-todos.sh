@@ -1,11 +1,13 @@
 #!/bin/bash
 
 if [ "$1" = "high" ]; then
-  search='todo: high/(easy|mid|high)'
+  search='todo: high/(easy|mid|high) '
 elif [ "$1" = "mid" ]; then
-  search='todo: mid/(easy|mid)'
+  search='todo: mid/(easy|mid) '
+elif [ "$1" = "easy" ]; then
+  search='todo: \w+/easy '
 else
-  search='todo: '
+  search='todo: \w+/\w+ '
 fi
 
 git grep -il todo: \*.{ts,tsx,js,jsx,css,scss,html,ejs,json,txt} \

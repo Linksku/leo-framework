@@ -1,61 +1,46 @@
 import styles from './TitleBarStyles.scss';
 
+type BtnProps = Memoed<Omit<Parameters<typeof Button>[0], 'onClick'>>;
+
 function renderBtn(
   onClick?: Memoed<React.MouseEventHandler>,
-  btnProps?: Memoed<Parameters<typeof Button>[0]>,
+  btnProps?: BtnProps,
   Svg?: React.SVGFactory,
   svgDim?: number,
 ) {
   if (btnProps) {
-    if (!onClick || btnProps.onClick || btnProps.href) {
-      if (process.env.NODE_ENV !== 'production') {
-        throw new Error('Titlebar: use onClick for button.');
-      }
-      return null;
-    }
-  } else if (Svg) {
-    if (!onClick) {
-      if (process.env.NODE_ENV !== 'production') {
-        throw new Error('Titlebar: onClick is required.');
-      }
-      return null;
-    }
-  } else {
-    return null;
+    return (
+      <div className={styles.btnWrap}>
+        <Button
+          onClick={onClick}
+          {...btnProps}
+        />
+      </div>
+    );
   }
-
-  return (
-    <div
-      className={styles.btnWrap}
-      onClick={onClick}
-      role="button"
-      tabIndex={-1}
-    >
-      {(() => {
-        if (btnProps) {
-          return (
-            <Button {...btnProps} />
-          );
-        }
-        if (Svg) {
-          return (
-            <Svg style={{ height: `${svgDim}rem`, width: `${svgDim}rem` }} />
-          );
-        }
-        return null;
-      })()}
-    </div>
-  );
+  if (Svg) {
+    return (
+      <div
+        className={styles.svgWrap}
+        onClick={onClick}
+        role="button"
+        tabIndex={-1}
+      >
+        <Svg style={{ height: `${svgDim}rem`, width: `${svgDim}rem` }} />
+      </div>
+    );
+  }
+  return null;
 }
 
 type Props = {
   title?: string,
   onLeftBtnClick?: Memoed<React.MouseEventHandler>,
-  leftBtnProps?: Memoed<Parameters<typeof Button>[0]>,
+  leftBtnProps?: BtnProps,
   LeftSvg?: React.SVGFactory,
   leftSvgDim?: number,
   onRightBtnClick?: Memoed<React.MouseEventHandler>,
-  rightBtnProps?: Memoed<Parameters<typeof Button>[0]>,
+  rightBtnProps?: BtnProps,
   RightSvg?: React.SVGFactory,
   rightSvgDim?: number,
   className?: string,
@@ -87,13 +72,11 @@ function TitleBar({
       {...bindSwipe?.()}
       {...props}
     >
+      {renderBtn(onLeftBtnClick, leftBtnProps, LeftSvg, leftSvgDim)}
       <h1 className={styles.title}>
         {title ?? children}
       </h1>
-      <div className={styles.buttons}>
-        {renderBtn(onLeftBtnClick, leftBtnProps, LeftSvg, leftSvgDim)}
-        {renderBtn(onRightBtnClick, rightBtnProps, RightSvg, rightSvgDim)}
-      </div>
+      {renderBtn(onRightBtnClick, rightBtnProps, RightSvg, rightSvgDim)}
     </div>
   );
 }

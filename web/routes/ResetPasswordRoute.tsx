@@ -19,15 +19,14 @@ function ResetPasswordRoute() {
     {
       type: 'load',
       method: 'post',
-      onFetch: useCallback(() => {
+      onFetch() {
         showAlert({
           msg: 'Sent password reset email',
           onClose() {
             window.history.back();
           },
         });
-      }, [showAlert]),
-      onError: NOOP,
+      },
     },
   );
 

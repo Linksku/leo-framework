@@ -1,6 +1,6 @@
-import { HomeRouteProvider } from 'stores/routes/HomeRouteStore';
-import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
+import HomeRouteProvider from 'config/HomeRouteProvider';
 import ErrorBoundary from 'components/ErrorBoundary';
+import LoadingRoute from 'routes/LoadingRoute';
 
 import HomeHeader from './HomeHeader';
 import HomeBody from './HomeBody';
@@ -11,14 +11,14 @@ import styles from './HomeRouteWrapStyles.scss';
 type Props = React.PropsWithChildren<unknown>;
 
 function HomeRouteWrap({ children }: Props) {
-  useTimeComponentPerf('HomeRouteWrap');
-
   return (
     <div className={styles.container}>
       <HomeHeader />
       <HomeBody>
         <ErrorBoundary>
-          {children}
+          <React.Suspense fallback={<LoadingRoute />}>
+            {children}
+          </React.Suspense>
         </ErrorBoundary>
       </HomeBody>
       <HomeFooter />

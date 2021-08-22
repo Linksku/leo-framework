@@ -8,7 +8,7 @@ export default class UserMeta extends Entity implements IUserMeta {
     properties: {
       id: SchemaConstants.id,
       userId: SchemaConstants.id,
-      metaKey: SchemaConstants.name,
+      metaKey: SchemaConstants.type,
       metaValue: { type: 'string' },
     },
     additionalProperties: false,

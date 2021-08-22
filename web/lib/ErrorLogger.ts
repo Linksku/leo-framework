@@ -2,7 +2,7 @@ import type SentryType from '@sentry/browser';
 import type { Severity } from '@sentry/types';
 
 import detectOs from 'lib/detectOs';
-import getIsMobile from 'lib/getIsMobile';
+import isOsMobile from 'lib/isOsMobile';
 
 type SupportedSeverity = 'debug' | 'warning' | 'error' | 'fatal';
 
@@ -81,11 +81,11 @@ export const loadErrorLogger = (userId?: number) => {
         tracesSampleRate: 1, // process.env.NODE_ENV === 'production' ? 0.01 : 1,
       });
       Sentry.configureScope(scope => {
-        const os = detectOs();
+        const os = detectOs(window.navigator.userAgent);
         scope.setUser({ id: latestUserId?.toString() });
         scope.setTag('userId', latestUserId);
         scope.setTag('jsVersion', process.env.JS_VERSION);
-        scope.setTag('isMobile', getIsMobile());
+        scope.setTag('isMobile', isOsMobile(window.navigator.userAgent));
         scope.setTag('language', window.navigator.language);
         scope.setTag('os', os);
         scope.setTag('userAgent', window.navigator.userAgent);

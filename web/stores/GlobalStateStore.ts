@@ -1,4 +1,4 @@
-import useUpdate from 'react-use/lib/useUpdate';
+import useUpdate from 'lib/hooks/useUpdate';
 
 import GlobalStateEventEmitter from 'lib/singletons/GlobalStateEventEmitter';
 
@@ -18,10 +18,10 @@ function useGlobalState<T>(
   initialState: T | (() => T),
 ): [Memoed<T>, SetState<T>] {
   if (process.env.NODE_ENV !== 'production'
-      && !key.startsWith('use')
-      && !/^[A-Z]/.test(key)
-      && !key.includes(':')
-      && !key.includes('.')
+    && (
+      (!key.startsWith('use') && !/^[A-Z]/.test(key))
+      || (!key.includes(':') && !key.includes('.'))
+    )
   ) {
     throw new Error('useGlobalState: key must contain hook or component name');
   }
@@ -36,8 +36,13 @@ function useGlobalState<T>(
       newVal = (newVal as (s: T) => T)(allVals[key]);
     }
 
+    const prevVal = allVals[key];
     allVals[key] = newVal;
-    GlobalStateEventEmitter.emit(key);
+    if (prevVal !== newVal) {
+      batchedUpdates(() => {
+        GlobalStateEventEmitter.emit(key);
+      });
+    }
   }, [allVals, key]);
 
   const update = useUpdate();
@@ -54,8 +59,8 @@ function useGlobalState<T>(
   }, [key, update]);
 
   return [
-      allVals[key] as Memoed<T>,
-      setState,
+    allVals[key] as Memoed<T>,
+    setState,
   ];
 }
 

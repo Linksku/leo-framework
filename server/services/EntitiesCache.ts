@@ -26,6 +26,9 @@ function getCacheKeyFromKV<T extends EntityModel>(
   key: InstanceKey<T>,
   val: string | number,
 ) : string {
+  if (process.env.NODE_ENV !== 'production' && !Model.type) {
+    throw new Error(`getCacheKeyFromKV: ${Model.constructor.name} doesn't have type.`);
+  }
   return `${Model.type}:${key}=${val}`;
 }
 

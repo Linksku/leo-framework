@@ -1,18 +1,17 @@
 import fetcher from 'lib/fetcher';
 import ApiError from 'lib/ApiError';
-import { API_URL } from 'settings';
-import type { OnFetchType, OnErrorType } from './useApiTypes';
+import { HTTP_TIMEOUT, API_URL } from 'settings';
 import isErrorResponse from './isErrorResponse';
 
 interface BatchedRequest<Name extends ApiName> {
   name: Name,
-  params: ApiNameToParams[Name],
-  onFetch?: OnFetchType<Name>,
-  onError?: OnErrorType,
-  succPromise: (results: Memoed<ApiNameToData[Name]>) => void,
+  params: ApiParams<Name>,
+  onFetch?: OnApiFetch<Name>,
+  onError?: OnApiError,
+  succPromise: (results: ApiData<Name>) => void,
   failPromise: (err: Error) => void,
   authToken: string | null,
-  handleApiEntities: Memoed<(response: ApiSuccessResponse<Name>) => void>,
+  handleApiEntities: Memoed<(response: MemoDeep<ApiSuccessResponse<Name>>) => void>,
 }
 
 let timer: number | null = null;
@@ -32,13 +31,18 @@ async function fetchBatchedRequest() {
   batched = [];
   try {
     const { name, params, authToken, handleApiEntities } = curBatched[0];
+    const timeoutErr = new Error(`Fetch(${name}) timed out`);
+    timeoutErr.status = 503;
     const { data: fullResponse, status } = curBatched.length === 1
       ? await fetcher.get(
         `${API_URL}/api/${name}`,
         {
           params: JSON.stringify(params),
         },
-        { authToken },
+        {
+          authToken,
+          timeout: HTTP_TIMEOUT,
+        },
       )
       : await fetcher.get(
         `${API_URL}/api/batched`,
@@ -50,16 +54,19 @@ async function fetchBatchedRequest() {
             })),
           }),
         },
-        { authToken },
+        {
+          authToken,
+          timeout: HTTP_TIMEOUT,
+        },
       );
 
     if (isErrorResponse(fullResponse)) {
       throw new ApiError('batched', fullResponse?.status ?? status, fullResponse?.error);
     }
 
-    const results: ApiResponse<any>[] = curBatched.length === 1
-      ? [fullResponse]
-      : (fullResponse as ApiSuccessResponse<'batched'>).data.results;
+    const results: MemoDeep<ApiResponse<any>>[] = curBatched.length === 1
+      ? markMemoed([fullResponse])
+      : (fullResponse as MemoDeep<ApiSuccessResponse<'batched'>>).data.results;
 
     if (results.length !== curBatched.length) {
       throw new Error('Batched API response has wrong length.');
@@ -103,16 +110,17 @@ export default async function queueBatchedRequest<Name extends ApiName>({
   handleApiEntities,
 }: {
   name: Name,
-  params: ApiNameToParams[Name],
-  onFetch?: OnFetchType<Name>,
-  onError?: OnErrorType,
+  params: ApiParams<Name>,
+  onFetch?: OnApiFetch<Name>,
+  onError?: OnApiError,
   authToken: string | null,
-  handleApiEntities: Memoed<(response: ApiSuccessResponse<Name>) => void>,
-}): Promise<Memoed<ApiNameToData[Name]>> {
+  handleApiEntities: Memoed<(response: MemoDeep<ApiSuccessResponse<Name>>) => void>,
+}): Promise<ApiData<Name>> {
   if (!timer) {
     setTimeout(fetchBatchedRequest, 0);
   }
-  return new Promise<Memoed<ApiNameToData[Name]>>((succ, fail) => {
+  // todo: mid/mid add cache for batched requests
+  return new Promise<ApiData<Name>>((succ, fail) => {
     batched.push({
       name,
       params,

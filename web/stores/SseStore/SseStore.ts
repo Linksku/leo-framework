@@ -76,7 +76,9 @@ const [
         }
 
         const { name, params } = unserializeEvent(data.type);
-        SseEventEmitter.emit(name, params, data);
+        batchedUpdates(() => {
+          SseEventEmitter.emit(name, params, data);
+        });
       });
 
       source.addEventListener('open', () => {
@@ -137,10 +139,9 @@ const [
       type: 'load',
       method: 'post',
       noReturnState: true,
-      onFetch: useCallback(data => {
+      onFetch(data) {
         startSse(data.otp);
-      }, [startSse]),
-      onError: NOOP,
+      },
       showToastOnError: false,
     });
 

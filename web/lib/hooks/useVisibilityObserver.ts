@@ -17,7 +17,7 @@ export default function useVisibilityObserver<T extends HTMLElement | undefined>
   });
   const isMounted = useMountedState();
   const elemRef = useRef<T>();
-  const observerRef = useRef(useMemo(() => new IntersectionObserver(entries => {
+  const observerRef = useRef(useConst(() => new IntersectionObserver(entries => {
     if (!isMounted()) {
       return;
     }
@@ -29,7 +29,7 @@ export default function useVisibilityObserver<T extends HTMLElement | undefined>
         cbRef.current.onHidden?.();
       }
     }
-  }), [cbRef, isMounted]));
+  })));
 
   return useCallback((elem: T) => {
     if (elem) {

@@ -6,7 +6,7 @@ $screenLg: 1200px;
 
 // Basics.
 $primaryColor: #2196f3;
-$fadedPrimaryColor: scale-color($primaryColor, $saturation: -80%);
+$fadedPrimaryColor: scale-color($primaryColor, $saturation: -10%, $lightness: 50%);
 $linkColor: $primaryColor;
 
 $textColor: #333;
@@ -17,6 +17,7 @@ $fontFamily: roboto, helvetica, sans-serif;
 $headingFontFamily: roboto, helvetica, sans-serif;
 
 $separatorColor: #eaeaea;
+$homeBackgroundColor: #f5f5f5;
 
 $zIndexDropdown: 100;
 $zIndexSticky: 200;
@@ -33,11 +34,11 @@ $inputPadding: 1rem;
 $inputBorderColor: #ccc;
 $inputBorder: 1px solid $inputBorderColor;
 $inputBorderRadius: 4px;
-$inputColor: #666;
-$inputPlaceholderColor: #aaa;
+$inputColor: $lightTextColor;
+$inputPlaceholderColor: $fadedTextColor;
 
 // Layout.
-$bodyMinWidth: 300px;
+$bodyMinWidth: 280px;
 $containerMaxWidth: $screenLg;
 $containerPadLeftRight: 1rem;
 $sidebarMinWidth: 250px;

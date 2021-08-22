@@ -1,6 +1,6 @@
 import styles from './DropdownStyles.scss';
 
-type Props = MemoProps<{
+type Props = MemoObjShallow<{
   options: { key: string, name: string }[],
   defaultElement?: ReactElement,
   open: boolean,

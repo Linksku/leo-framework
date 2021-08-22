@@ -1,57 +1,47 @@
-import BellSvg from '@fortawesome/fontawesome-free/svgs/regular/bell.svg';
 import UserSvg from '@fortawesome/fontawesome-free/svgs/regular/user.svg';
 
 import PullToRefresh from 'components/frame/PullToRefresh';
-import { useHomeRouteStore } from 'stores/routes/HomeRouteStore';
-import homeHeaderLinks from 'config/homeHeaderLinks';
+import homeHeaderIcons from 'config/homeHeaderIcons';
 import HomeHeaderSelector from './HomeHeaderSelector';
+import HomeHeaderNotifsIcon from './HomeHeaderNotifsIcon';
 
 import styles from './HomeHeaderStyles.scss';
 
 function HomeHeader() {
   const currentUser = useCurrentUser();
-  const { setSidebarShown } = useHomeRouteStore();
   const { loggedInStatus } = useAuthStore();
 
-  const { data } = useApi(
-    'notifsCount',
-    EMPTY_OBJ,
+  const icons = [
+    ...homeHeaderIcons,
     {
-      shouldFetch: loggedInStatus !== 'out',
+      path: '/notifications',
+      Component: HomeHeaderNotifsIcon,
+      label: 'Notifications',
+      authOnly: true,
     },
-  );
-  const count = data?.count ?? 0;
+    {
+      path: currentUser ? `/user/${currentUser.id}` : '/register',
+      Component: UserSvg,
+      label: 'User',
+    },
+  ];
 
   return (
     <PullToRefresh className={styles.container}>
       <div className={styles.containerInner}>
-        <HomeHeaderSelector onClick={() => setSidebarShown(s => !s)} />
-        {homeHeaderLinks.map(({ path, Svg, label }) => (
-          <a
-            key={path}
-            href={path}
-            className={styles.rightIcon}
-            aria-label={label}
-          >
-            <Svg />
-          </a>
-        ))}
-        <a href="/notifications" className={styles.rightIcon}>
-          <BellSvg />
-          {count
-            ? (
-              <span className={styles.notifsCount}>
-                <span>{count}</span>
-              </span>
-            )
-            : null}
-        </a>
-        <a
-          href={currentUser ? `/user/${currentUser.id}` : '/login'}
-          className={styles.rightIcon}
-        >
-          <UserSvg />
-        </a>
+        <HomeHeaderSelector />
+        {icons
+          .filter(({ authOnly }) => loggedInStatus !== 'out' || !authOnly)
+          .map(({ path, Component, label }) => (
+            <a
+              key={path}
+              href={path}
+              className={styles.rightIcon}
+              aria-label={label}
+            >
+              <Component />
+            </a>
+          ))}
       </div>
     </PullToRefresh>
   );

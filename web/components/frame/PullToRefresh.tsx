@@ -6,6 +6,8 @@ import mergeRefs from 'lib/mergeRefs';
 
 import styles from './PullToRefreshStyles.scss';
 
+const MAX_SPIN_TIMES = 100;
+
 export type Props = {
   className?: string,
 } & React.HTMLAttributes<HTMLDivElement>;
@@ -19,8 +21,12 @@ export default function PullToRefresh({
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
 
   const { ref, bindSwipe } = useSwipeNavigation({
-    // @ts-ignore reload(true) is still supported
-    onNavigate: () => window.location.reload(true),
+    onNavigate: () => {
+      // Spin every 3 seconds.
+      animatedTop.setVal(360 * MAX_SPIN_TIMES, 3000 * MAX_SPIN_TIMES);
+      // @ts-ignore reload(true) is still supported
+      window.location.reload(true);
+    },
     setPercent: p => animatedTop.setVal(p),
     direction: 'down',
   });
@@ -36,7 +42,7 @@ export default function PullToRefresh({
       <div
         ref={mergeRefs(ref, animationRef)}
         style={animationStyle(animatedTop, {
-          top: x => `${x}px`,
+          top: x => `${Math.min(100, x)}px`,
           transform: x => `translateX(-50%) translateY(-100%) rotate(${x * 1.8}deg)`,
         })}
         className={styles.refreshSpinner}

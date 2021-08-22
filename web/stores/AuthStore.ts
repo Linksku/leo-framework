@@ -1,5 +1,6 @@
-import useLocalStorage from 'lib/hooks/useLocalStorage';
+import useAuthTokenLS from 'lib/hooks/localStorage/useAuthTokenLS';
 import { setErrorLoggerUserId } from 'lib/ErrorLogger';
+import useUpdatedState from 'lib/hooks/useUpdatedState';
 
 const [
   AuthProvider,
@@ -7,69 +8,62 @@ const [
   useAuthToken,
 ] = constate(
   function AuthStore() {
-    const [curAuthToken, setAuthToken, removeAuthToken] = useLocalStorage<string>(
-      'authToken',
-      '',
-      { raw: true },
-    );
-    const [state, setState] = useState({
-      currentUserId: null as number | null,
-      loggedInStatus: (window.localStorage.getItem('authToken') ? 'fetching' : 'out') as 'fetching' | 'in' | 'out',
-      isReloadingAfterAuth: false,
-      authToken: curAuthToken ?? null,
-    });
-    const replacePath = useReplacePath();
+    const [authToken, setAuthToken, removeAuthToken] = useAuthTokenLS();
+    const [isReloadingAfterAuth, setIsReloadingAfterAuth] = useState(false);
 
-    const setAuth = useCallback(({ authToken, redirectPath }: {
+    const setAuth = useCallback(({ authToken: newAuthToken, redirectPath }: {
       authToken: string | null,
+      // todo: mid/mid redirect to previous path
       redirectPath: string,
     }) => {
-      if (authToken) {
-        setAuthToken(authToken);
+      if (newAuthToken) {
+        setAuthToken(newAuthToken);
       } else {
         removeAuthToken();
       }
 
       batchedUpdates(() => {
-        setState(s => ({
-          ...s,
-          isReloadingAfterAuth: true,
-        }));
-        replacePath(redirectPath);
-        window.location.reload();
+        setIsReloadingAfterAuth(true);
+        window.location.href = redirectPath;
       });
-    }, [setAuthToken, removeAuthToken, setState, replacePath]);
+    }, [setAuthToken, removeAuthToken]);
 
-    const setCurrentUserId = useCallback((userId: Nullish<number>) => {
-      setErrorLoggerUserId(userId);
-      setState(s => (s.currentUserId === userId
-        ? s
-        : ({ ...s, currentUserId: userId ?? null })));
-    }, [setState]);
-
-    useApi('currentUser', {}, {
-      shouldFetch: !!window.localStorage.getItem('authToken') && !state.isReloadingAfterAuth,
-      onFetch: useCallback(data => {
-        batchedUpdates(() => {
-          setState(s => ({ ...s, loggedInStatus: 'in' }));
-          setCurrentUserId(data.currentUserId);
-        });
-      }, [setCurrentUserId]),
-      onError: useCallback(err => {
-        setState(s => ({ ...s, loggedInStatus: 'out' }));
+    const {
+      data: currentUserData,
+      fetching,
+      fetchingFirstTime,
+    } = useApi('currentUser', {}, {
+      shouldFetch: !!window.localStorage.getItem('authToken') && !isReloadingAfterAuth,
+      onFetch(data) {
+        setErrorLoggerUserId(data.currentUserId);
+      },
+      onError(err) {
         if (err.status === 401 || err.status === 404) {
           window.localStorage.removeItem('authToken');
         }
-      }, []),
+      },
     });
 
+    const loggedInStatus = useUpdatedState<'unknown' | 'in' | 'out'>(
+      authToken ? 'unknown' : 'out',
+      prevStatus => {
+        if (fetching) {
+          return prevStatus;
+        }
+        return currentUserData?.currentUserId
+          ? 'in'
+          : 'out';
+      },
+    );
+
     return useDeepMemoObj({
-      currentUserId: state.currentUserId,
-      loggedInStatus: state.loggedInStatus,
-      isReloadingAfterAuth: state.isReloadingAfterAuth,
-      authToken: state.authToken,
+      currentUserId: currentUserData?.currentUserId ?? null,
+      currentUserClubIds: currentUserData?.clubIds ?? [],
+      loggedInStatus,
+      fetchingUserFirstTime: fetchingFirstTime,
+      isReloadingAfterAuth,
+      authToken,
       setAuth,
-      setCurrentUserId,
     });
   },
   function AuthStore(val) {

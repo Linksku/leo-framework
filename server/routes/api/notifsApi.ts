@@ -1,5 +1,3 @@
-import { raw } from 'objection';
-
 import { defineApi } from 'services/ApiManager';
 import { LAST_SEEN_NOTIFS_TIME } from 'consts/coreUserMetaKeys';
 import paginateQuery from 'lib/paginateQuery';
@@ -25,6 +23,7 @@ defineApi(
     },
   },
   async function getNotifsCount({ currentUserId }) {
+    // todo: low/mid don't use resultSize because it's creates an unnecessary subquery
     const count = await User.query()
       .joinRelated('notifs')
       .leftJoinRelated(`usersMeta(filterMetaKey)`)
@@ -58,7 +57,7 @@ defineApi(
       type: 'object',
       properties: {
         limit: SchemaConstants.limit,
-        cursor: SchemaConstants.id,
+        cursor: SchemaConstants.cursor,
       },
       additionalProperties: false,
     },
@@ -66,11 +65,20 @@ defineApi(
   },
   async function getNotifs({ currentUserId, limit, cursor }) {
     const query = Notif.query()
+      .select('notifs.*')
       .where('notifs.userId', currentUserId);
 
     let { entities: notifs, data } = await paginateQuery(
       query,
-      { limit, cursor, orderColumn: 'time' },
+      [
+        {
+          column: raw('unix_timestamp(notifs.time)'),
+          columnWithoutTransforms: 'notifs.time',
+          order: 'desc',
+        },
+        { column: 'notifs.id', order: 'desc' },
+      ],
+      { limit, cursor },
     );
     await decorateNotifs(notifs);
     notifs = notifs.filter(n => n.extras.content && n.extras.path);

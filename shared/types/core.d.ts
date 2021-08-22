@@ -1,6 +1,7 @@
 declare namespace NodeJS {
   export interface ProcessEnv {
     NODE_ENV: 'production' | 'development';
+    JS_VERSION: string,
   }
 }
 
@@ -28,12 +29,12 @@ type Mutable<T> = {
 
 type StrictlyEmptyObj = Record<string, never>;
 
-type Primitive = string | number | boolean | null | undefined;
+type Primitive = string | number | bigint | boolean | symbol | null | undefined;
 
 // Only use for function params.
-interface Pojo {
-  [key: string]: Primitive | Primitive[] | Pojo | Pojo[];
-}
+type Pojo = Partial<{
+  [key: string]: Primitive | Pojo | ReadonlyArray<Primitive | Pojo>;
+}>;
 
 type AnyFunction = (...args: any[]) => any;
 

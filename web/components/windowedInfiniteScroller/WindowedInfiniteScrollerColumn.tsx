@@ -56,10 +56,8 @@ function WindowedInfiniteScrollerListItem({
   onUnmount,
   scrollParentRelative,
 }: ListItemProps) {
-  const [state, setState] = useState({
-    visible: defaultVisible,
-    block: defaultBlock,
-  });
+  const [visible, setVisible] = useState(defaultVisible);
+  const [block, setBlock] = useState(defaultBlock);
 
   const ref = useRef({
     height: null as number | null,
@@ -78,7 +76,7 @@ function WindowedInfiniteScrollerListItem({
     ref.current.innerRef = innerRef;
     if (innerRef) {
       const prevHeight = ref.current.height;
-      ref.current.height = innerRef.clientHeight;
+      ref.current.height = Math.ceil(innerRef.getBoundingClientRect().height);
       if (ref.current.outerRef) {
         // Somehow this fixes a scroll anchoring issue.
         ref.current.outerRef.style.height = `${ref.current.height}px`;
@@ -96,7 +94,7 @@ function WindowedInfiniteScrollerListItem({
   useEffect(() => {
     const { innerRef, outerRef, height: prevHeight } = ref.current;
     if (innerRef && outerRef && prevHeight) {
-      ref.current.height = innerRef.clientHeight;
+      ref.current.height = Math.ceil(innerRef.getBoundingClientRect().height);
       scrollParentRelative(ref.current.height - prevHeight);
       outerRef.style.height = `${ref.current.height}px`;
     }
@@ -107,22 +105,8 @@ function WindowedInfiniteScrollerListItem({
       onMount({
         id,
         idx,
-        setVisible: (visible: boolean) => setState(s => (
-          s.visible === visible
-            ? s
-            : {
-              ...s,
-              visible,
-            }
-        )),
-        setBlock: (block: boolean) => setState(s => (
-          s.block === block
-            ? s
-            : {
-              ...s,
-              block,
-            }
-        )),
+        setVisible,
+        setBlock,
         elem: ref.current.outerRef,
         height: ref.current.height,
       });
@@ -138,12 +122,12 @@ function WindowedInfiniteScrollerListItem({
       ref={handleOuterLoad}
       className={styles.listItem}
       style={{
-        display: state.visible || state.block ? 'block' : 'none',
+        display: visible || block ? 'block' : 'none',
         height: ref.current.height ? `${ref.current.height}px` : '1px',
-        overflowAnchor: state.visible ? 'auto' : 'none',
+        overflowAnchor: visible ? 'auto' : 'none',
       }}
     >
-      {state.visible
+      {visible
         ? (
           <div ref={handleInnerLoad}>
             {/* @ts-ignore no idea */}
@@ -195,7 +179,7 @@ export default function WindowedInfiniteScrollerColumn({
     hasCompleted,
   });
   const isMounted = useMountedState();
-  const ref = useRef(useMemo(() => ({
+  const ref = useRef(useConst(() => ({
     elemToId: new Map() as Map<HTMLDivElement, number>,
     curVisibleIds: new Set<number>(initialVisibleIds),
     // todo: low/hard maybe split this into separate IntersectionObservers in each item
@@ -252,8 +236,7 @@ export default function WindowedInfiniteScrollerColumn({
         });
       }
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), []));
+  })));
 
   const handleItemMount = useCallback((item: Item) => {
     latestRef.current.idToItem.set(item.id, item);
@@ -288,7 +271,7 @@ export default function WindowedInfiniteScrollerColumn({
           if (item && ref.current.curVisibleIds.has(id)) {
             const innerElem = item.elem.firstElementChild;
             if (innerElem) {
-              item.height = innerElem.clientHeight;
+              item.height = Math.ceil(innerElem.getBoundingClientRect().height);
               item.elem.style.height = `${item.height}px`;
             }
           }

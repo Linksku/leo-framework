@@ -6,15 +6,18 @@ import styles from './TextareaStyles.scss';
 
 type Props = {
   className?: string,
+  textareaClassName?: string,
   label?: ReactNode,
   name?: string,
   register?: UseFormRegister<any>,
   registerOpts?: RegisterOptions<any>,
+  disabled?: boolean,
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
 function Textarea({
   children,
   className,
+  textareaClassName,
   label,
   name,
   register,
@@ -39,7 +42,7 @@ function Textarea({
       <textarea
         {...registerProps}
         ref={mergeRefs(ref, registerProps?.ref)}
-        className={styles.textarea}
+        className={cn(styles.textarea, textareaClassName)}
         {...props}
       >
         {children}

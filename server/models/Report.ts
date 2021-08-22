@@ -8,7 +8,7 @@ export default class Report extends Entity implements IReport {
     properties: {
       id: SchemaConstants.id,
       reporterId: SchemaConstants.id,
-      entityType: SchemaConstants.name,
+      entityType: SchemaConstants.type,
       entityId: SchemaConstants.id,
       time: SchemaConstants.datetimeDefaultNow,
     },

@@ -1,14 +1,7 @@
-import Bull from 'bull';
-
 import cronjobs from 'config/cronjobs';
+import createBullQueue from 'lib/createBullQueue';
 
-const queue = new Bull<{ key: keyof typeof cronjobs }>('CronManager');
-
-if (process.env.NODE_ENV !== 'production') {
-  queue.on('failed', (_, err) => {
-    console.error(err);
-  });
-}
+const queue = createBullQueue<{ key: keyof typeof cronjobs }>('CronManager');
 
 void queue.process(async job => {
   const cronjob = cronjobs[job.data.key];
@@ -34,6 +27,8 @@ export default {
           cron: cronjob.cron,
         },
         timeout: 10 * 60 * 1000,
+        removeOnComplete: true,
+        removeOnFail: true,
       });
     }
   },

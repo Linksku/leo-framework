@@ -7,7 +7,7 @@ const [
   function StacksNavStore() {
     let stackBot: HistoryState | null = null;
     let stackTop: HistoryState | null = null;
-    let stackActive = 'bot';
+    let stackActive: 'top' | 'bot' = 'bot';
 
     const {
       prevState,

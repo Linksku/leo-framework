@@ -8,6 +8,7 @@ type Props = {
   onStart?: (() => void) | null,
   onNavigate?: (() => void) | null,
   onCancelNavigate?: (() => void) | null,
+  onFinish?: (() => void) | null,
   setPercent: (percent: number) => void,
   enabled?: boolean,
   elementRef?: React.MutableRefObject<any>,
@@ -19,6 +20,7 @@ export default function useSwipeNavigation({
   onStart,
   onNavigate,
   onCancelNavigate,
+  onFinish,
   setPercent,
   enabled = true,
   elementRef,
@@ -99,6 +101,8 @@ export default function useSwipeNavigation({
           ref.current.hasNavigated = false;
         }
       }
+
+      onFinish?.();
     } else {
       setPercent(swipePercent);
     }

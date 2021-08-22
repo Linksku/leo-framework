@@ -10,10 +10,9 @@ import LoadingRoute from 'routes/LoadingRoute';
 import useEffectIfReady from 'lib/hooks/useEffectIfReady';
 import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
 import { loadErrorLogger } from 'lib/ErrorLogger';
+import ErrorBoundary from 'components/ErrorBoundary';
 
 export default function Router() {
-  useTimeComponentPerf('Router');
-
   const currentUser = useCurrentUser();
   const {
     stackBot,
@@ -39,32 +38,36 @@ export default function Router() {
   const isBotAuth = !stackBotAuth || currentUser;
   const isTopAuth = !stackTopAuth || currentUser;
 
+  useTimeComponentPerf(`Router:${stackActive === 'top' ? stackTop?.path : stackBot?.path}`);
+
   useEffectIfReady(() => {
     if (!isBotAuth || !isTopAuth) {
-      replacePath('/login');
+      replacePath('/register');
     }
     loadErrorLogger(currentUser?.id);
 
     setTimeout(() => {
+      // todo: mid/mid android appears to show splashscreen as background when expanding keyboard
       void SplashScreen.hide();
     }, 0);
-  }, [isBotAuth, isTopAuth, replacePath], loggedInStatus !== 'fetching');
+  }, [isBotAuth, isTopAuth, replacePath], loggedInStatus !== 'unknown');
 
   if (!currentUser
-    && (loggedInStatus === 'fetching' || isReloadingAfterAuth)
+    && (loggedInStatus === 'unknown' || isReloadingAfterAuth)
     && (stackBotAuth || stackTopAuth)) {
     return (
       <LoadingRoute />
     );
   }
 
-  const showSlide = !isReplaced || curState.path === '/login';
+  const showSlide = !isReplaced || curState.path === '/register';
   // todo: mid/blocked when offscreen api is available, unmount home when not visible
+  // todo: high/hard preserve home position after navigating multiple levels deep
   return (
     <>
       {stackBot && stackBotType === 'home' ? (
-        <React.Suspense fallback={<LoadingRoute />}>
-          <HomeRouteWrap>
+        <HomeRouteWrap>
+          <ErrorBoundary>
             <React.Suspense fallback={<LoadingRoute />}>
               <StackBotComponent
                 key={`${stackBot.path}?${stackBot.queryStr ?? ''}`}
@@ -75,22 +78,25 @@ export default function Router() {
                 hash={stackBot.hash}
               />
             </React.Suspense>
-          </HomeRouteWrap>
-        </React.Suspense>
+          </ErrorBoundary>
+        </HomeRouteWrap>
       ) : null}
       {stackBot && stackBotType !== 'home' && StackBotComponent && isBotAuth ? (
         <StackWrapOuter
           key={`${stackBot.id}|${stackBot.path}?${stackBot.queryStr ?? ''}#${stackBot.hash ?? ''}`}
+          path={stackBot.path}
         >
-          <React.Suspense fallback={<LoadingRoute />}>
-            <StackBotComponent
-              matches={stackBotMatches}
-              path={stackBot.path}
-              query={stackBot.query}
-              queryStr={stackBot.queryStr}
-              hash={stackBot.hash}
-            />
-          </React.Suspense>
+          <ErrorBoundary>
+            <React.Suspense fallback={<LoadingRoute />}>
+              <StackBotComponent
+                matches={stackBotMatches}
+                path={stackBot.path}
+                query={stackBot.query}
+                queryStr={stackBot.queryStr}
+                hash={stackBot.hash}
+              />
+            </React.Suspense>
+          </ErrorBoundary>
         </StackWrapOuter>
       ) : null}
       {stackTop && stackTopType !== 'home' && StackTopComponent && isTopAuth ? (
@@ -98,16 +104,19 @@ export default function Router() {
           key={`${stackTop.id}|${stackTop.path}?${stackTop.queryStr ?? ''}#${stackTop.hash ?? ''}`}
           slideIn={showSlide && stackActive === 'top'}
           slideOut={showSlide && stackActive === 'bot'}
+          path={stackTop.path}
         >
-          <React.Suspense fallback={<LoadingRoute />}>
-            <StackTopComponent
-              matches={stackTopMatches}
-              path={stackTop.path}
-              query={stackTop.query}
-              queryStr={stackTop.queryStr}
-              hash={stackTop.hash}
-            />
-          </React.Suspense>
+          <ErrorBoundary>
+            <React.Suspense fallback={<LoadingRoute />}>
+              <StackTopComponent
+                matches={stackTopMatches}
+                path={stackTop.path}
+                query={stackTop.query}
+                queryStr={stackTop.queryStr}
+                hash={stackTop.hash}
+              />
+            </React.Suspense>
+          </ErrorBoundary>
         </StackWrapOuter>
       ) : null}
       <SlideUpWrap />

@@ -1,0 +1,16 @@
+.notifsCount {
+  position: absolute;
+  top: ($headerHeight - 2.4rem) / 2 - 0.8rem;
+  right: $containerPadLeftRight - 0.8rem;
+  font-size: 1rem;
+  font-weight: 700;
+  background-color: #f02849;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 1.5rem;
+  width: 1.5rem;
+  line-height: 1;
+}

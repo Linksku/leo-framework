@@ -14,10 +14,9 @@ export default function PostSlideUpReportListItem({
     { entityType, entityId },
     {
       type: 'create',
-      onFetch: useCallback(() => {
+      onFetch() {
         showToast({ msg: 'Reported successfully.' });
-      }, [showToast]),
-      onError: NOOP,
+      },
     },
   );
   return (

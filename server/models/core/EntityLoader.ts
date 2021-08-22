@@ -11,6 +11,10 @@ const dataLoaders: ObjectOf<DataLoader<any, Entity | null>> = Object.create(null
 function getDataLoader<T extends EntityModel>(
   Model: T,
 ): DataLoader<any, InstanceType<T> | null> {
+  if (process.env.NODE_ENV !== 'production' && !Model.type) {
+    throw new Error(`getDataLoader: ${Model.constructor.name} doesn't have type.`);
+  }
+
   if (!dataLoaders[Model.type]) {
     dataLoaders[Model.type] = new DataLoader(
       async (kvPairs: readonly [

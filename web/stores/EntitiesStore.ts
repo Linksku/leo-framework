@@ -1,16 +1,24 @@
-import useUpdate from 'react-use/lib/useUpdate';
+import useUpdate from 'lib/hooks/useUpdate';
+import equal from 'fast-deep-equal';
 
 import EntitiesEventEmitter from 'lib/singletons/EntitiesEventEmitter';
 
 type ActionType = 'load' | 'create' | 'update' | 'delete';
 
-function hasNewExtrasKeys(oldEntity: Entity, newEntity: Entity): boolean {
-  if (!oldEntity.extras || !newEntity.extras) {
+export type EntityEventHandler<T extends EntityType> = (ent: TypeToEntity<T>) => void;
+
+function hasChangedExtrasKeys(oldEntity: Entity, newEntity: Entity): boolean {
+  const oldExtras = oldEntity.extras;
+  const newExtras = newEntity.extras;
+  if (!newExtras) {
     return false;
   }
+  if (!newExtras) {
+    return true;
+  }
 
-  for (const k of Object.keys(newEntity.extras)) {
-    if (!hasOwnProperty(oldEntity.extras, k)) {
+  for (const [k, newVal] of objectEntries(newExtras)) {
+    if (!hasDefinedProperty(oldExtras, k) || !equal(oldExtras[k], newVal)) {
       return true;
     }
   }
@@ -67,7 +75,7 @@ const [
 
         if (!newEntities[entity.type][entity.id]
           || overwrite
-          || hasNewExtrasKeys(newEntities[entity.type][entity.id], entity)) {
+          || hasChangedExtrasKeys(newEntities[entity.type][entity.id], entity)) {
           if (newEntities[entity.type] === entitiesRef.current[entity.type]) {
             newEntities[entity.type] = Object.assign(
               Object.create(null),
@@ -100,28 +108,35 @@ const [
     const _useLoadEntities = useCallback((entities: Entity | Entity[]) => {
       const changed = addOrUpdateEntities(entities);
 
-      for (const entity of changed) {
-        // todo: mid/mid see if batchupdates is needed
-        EntitiesEventEmitter.emit(`load,${entity.type}`, entity.id);
-        EntitiesEventEmitter.emit(`load,${entity.type},${entity.id}`, entity.id);
-      }
+      batchedUpdates(() => {
+        for (const entity of changed) {
+          EntitiesEventEmitter.emit(`load,${entity.type}`, entity);
+          EntitiesEventEmitter.emit(`load,${entity.type},${entity.id}`, entity);
+        }
+      });
     }, [addOrUpdateEntities]);
 
     // todo: mid/hard not all returned entities are newly created
     const _useCreateEntities = useCallback((entities: Entity | Entity[]) => {
       const changed = addOrUpdateEntities(entities, true);
-      for (const entity of changed) {
-        EntitiesEventEmitter.emit(`create,${entity.type}`, entity.id);
-        EntitiesEventEmitter.emit(`create,${entity.type},${entity.id}`, entity.id);
-      }
+
+      batchedUpdates(() => {
+        for (const entity of changed) {
+          EntitiesEventEmitter.emit(`create,${entity.type}`, entity);
+          EntitiesEventEmitter.emit(`create,${entity.type},${entity.id}`, entity);
+        }
+      });
     }, [addOrUpdateEntities]);
 
     const _useUpdateEntities = useCallback((entities: Entity | Entity[]) => {
       const changed = addOrUpdateEntities(entities, true);
-      for (const entity of changed) {
-        EntitiesEventEmitter.emit(`update,${entity.type}`, entity.id);
-        EntitiesEventEmitter.emit(`update,${entity.type},${entity.id}`, entity.id);
-      }
+
+      batchedUpdates(() => {
+        for (const entity of changed) {
+          EntitiesEventEmitter.emit(`update,${entity.type}`, entity);
+          EntitiesEventEmitter.emit(`update,${entity.type},${entity.id}`, entity);
+        }
+      });
     }, [addOrUpdateEntities]);
 
     const _useDeleteEntities = useCallback(<T extends EntityType>(
@@ -158,19 +173,21 @@ const [
         window.entities = entitiesRef.current;
       }
 
-      for (const entity of deleteEntities) {
-        EntitiesEventEmitter.emit(`delete,${type}`, entity.id);
-        EntitiesEventEmitter.emit(`delete,${type},${entity.id}`, entity.id);
-      }
+      batchedUpdates(() => {
+        for (const entity of deleteEntities) {
+          EntitiesEventEmitter.emit(`delete,${type}`, entity);
+          EntitiesEventEmitter.emit(`delete,${type},${entity.id}`, entity);
+        }
+      });
     }, []);
 
     const addEntityListener = useCallback(<T extends EntityType>(
       action: ActionType,
       type: T,
-      _id: EntityId | ((id: number) => void),
-      _cb?: ((id: number) => void),
+      _id: EntityId | EntityEventHandler<T>,
+      _cb?: EntityEventHandler<T>,
     ) => {
-      const cb = _id instanceof Function ? _id : _cb as ((id: number) => void);
+      const cb = _id instanceof Function ? _id : _cb as EntityEventHandler<T>;
       const id = _id instanceof Function ? null : _id;
 
       const key = id ? `${action},${type},${id}` : `${action},${type}`;
@@ -184,10 +201,10 @@ const [
     const removeEntityListener = useCallback(<T extends EntityType>(
       action: ActionType,
       type: T,
-      _id: EntityId | ((ent: number) => void),
-      _cb?: ((ent: number) => void),
+      _id: EntityId | EntityEventHandler<T>,
+      _cb?: EntityEventHandler<T>,
     ) => {
-      const cb = _id instanceof Function ? _id : _cb as ((ent: number) => void);
+      const cb = _id instanceof Function ? _id : _cb as EntityEventHandler<T>;
       const id = _id instanceof Function ? null : _id;
 
       const key = id ? `${action},${type},${id}` : `${action},${type}`;

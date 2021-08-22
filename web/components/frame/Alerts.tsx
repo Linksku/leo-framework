@@ -1,5 +1,5 @@
 import usePrevious from 'react-use/lib/usePrevious';
-import useUpdate from 'react-use/lib/useUpdate';
+import useUpdate from 'lib/hooks/useUpdate';
 
 import styles from './AlertsStyles.scss';
 

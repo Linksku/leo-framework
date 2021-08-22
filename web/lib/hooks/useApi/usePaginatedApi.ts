@@ -1,15 +1,16 @@
 import { useThrottle } from 'lib/throttle';
 
 export type PaginatedApiName = {
-  [Name in ApiName]: ApiNameToParams[Name] extends {
-    cursor?: number;
+  [Name in ApiName]: ApiParams<Name> extends {
+    cursor?: string;
     limit?: number;
   }
     ? Name
     : never;
 }[ApiName];
 
-export type ShouldAddCreatedEntity = Memoed<(id: number) => boolean>;
+export type ShouldAddCreatedEntity<Type extends EntityType>
+  = Memoed<(ent: TypeToEntity<Type>) => boolean>;
 
 export default function usePaginatedApi<
   Type extends EntityType,
@@ -17,13 +18,13 @@ export default function usePaginatedApi<
 >(
   entityType: Type,
   apiName: Name,
-  apiParams: ApiNameToParams[Name],
+  apiParams: ApiParams<Name>,
   {
     throttleTimeout,
     shouldAddCreatedEntity,
   }: {
     throttleTimeout?: number,
-    shouldAddCreatedEntity?: ShouldAddCreatedEntity,
+    shouldAddCreatedEntity?: ShouldAddCreatedEntity<Type>,
   } = {},
 ) {
   const [{
@@ -36,12 +37,13 @@ export default function usePaginatedApi<
     fetchedEntityIds: EMPTY_ARR as number[],
     addedEntityIds: EMPTY_ARR as number[],
     deletedEntityIds: new Set() as Set<number>,
-    cursor: undefined as number | undefined,
+    cursor: undefined as string | undefined,
     hasCompleted: false,
   });
   const ref = useRef({
-    nextCursor: undefined,
+    nextCursor: undefined as string | undefined,
   });
+
   const { addEntityListener } = useEntitiesStore();
 
   const { fetching, fetchingFirstTime } = useApi<Name>(
@@ -51,8 +53,13 @@ export default function usePaginatedApi<
       cursor,
     },
     {
-      onFetch: useCallback((data: any) => {
-      // todo: low/mid maybe create a superclass for scroller APIs.
+      onFetch(_data: any) {
+        // todo: low/mid maybe create a superclass for scroller APIs.
+        const data = _data as {
+          entityIds: number[],
+          cursor?: string,
+          hasCompleted: boolean,
+        };
         ref.current.nextCursor = data?.cursor;
         setState(s => {
           const entityIdsSet = new Set([...s.fetchedEntityIds, ...s.addedEntityIds]);
@@ -66,16 +73,18 @@ export default function usePaginatedApi<
           return ({
             ...s,
             fetchedEntityIds: newIds.length
+              // todo: high/hard after refetching, if new entities were loaded, they have the wrong position
+              // e.g. new replies on top instead of bottom
               ? [...s.fetchedEntityIds, ...newIds]
               : s.fetchedEntityIds,
             hasCompleted: data.hasCompleted || !data.cursor,
           });
         });
-      }, [apiName]),
-      onError: useCallback(() => {
-      // todo: mid/mid retry fetching x times
-        setState(s => ({ ...s, hasCompleted: true }));
-      }, []),
+      },
+      onError() {
+        // todo: mid/mid retry fetching x times
+        setState(s => (s.hasCompleted ? s : { ...s, hasCompleted: true }));
+      },
       shouldFetch: !hasCompleted,
     },
   );
@@ -97,13 +106,13 @@ export default function usePaginatedApi<
     [],
   );
 
-  const handleCreateEntity = useCallback((id: number) => {
-    if (!shouldAddCreatedEntity || shouldAddCreatedEntity(id)) {
+  const handleCreateEntity = useCallback((ent: TypeToEntity<Type>) => {
+    if (!shouldAddCreatedEntity || shouldAddCreatedEntity(ent)) {
       setState(s => {
-        if (!s.fetchedEntityIds.includes(id) && !s.addedEntityIds.includes(id)) {
+        if (!s.fetchedEntityIds.includes(ent.id) && !s.addedEntityIds.includes(ent.id)) {
           return {
             ...s,
-            addedEntityIds: [...s.addedEntityIds, id],
+            addedEntityIds: [...s.addedEntityIds, ent.id],
           };
         }
         return s;
@@ -111,11 +120,11 @@ export default function usePaginatedApi<
     }
   }, [shouldAddCreatedEntity]);
 
-  const handleDeleteEntity = useCallback((id: number) => {
+  const handleDeleteEntity = useCallback((ent: TypeToEntity<Type>) => {
     setState(s => {
-      if (!s.deletedEntityIds.has(id)) {
+      if (!s.deletedEntityIds.has(ent.id)) {
         const newSet = new Set(s.deletedEntityIds);
-        newSet.add(id);
+        newSet.add(ent.id);
         return {
           ...s,
           deletedEntityIds: newSet,

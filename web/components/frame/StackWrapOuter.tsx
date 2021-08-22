@@ -9,31 +9,33 @@ import styles from './StackWrapOuterStyles.scss';
 export type Props = {
   slideIn?: boolean,
   slideOut?: boolean,
+  path: string,
 };
 
 export default function StackWrapOuter({
   slideIn = false,
   slideOut = false,
+  path,
   children,
 }: React.PropsWithChildren<Props>) {
-  useTimeComponentPerf('StackOuter');
+  useTimeComponentPerf(`StackOuter:${path}`);
 
-  const animatedLeftPercent = useAnimatedValue(slideIn ? 100 : 0);
+  const animatedLeftPercent = useAnimatedValue(slideIn ? 100 : 0, 'StackWrapOuter');
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
   const { backStack, forwardStack } = useStacksNavStore();
 
   const { ref, bindSwipe } = useSwipeNavigation({
     onNavigate: backStack,
     onCancelNavigate: forwardStack,
-    setPercent: percent => animatedLeftPercent.setVal(percent),
+    setPercent: percent => animatedLeftPercent.setVal(percent, 300),
     direction: 'right',
   });
 
   useEffect(() => {
     if (slideIn) {
-      animatedLeftPercent.setVal(0);
+      animatedLeftPercent.setVal(0, 300);
     } else if (slideOut) {
-      animatedLeftPercent.setVal(100);
+      animatedLeftPercent.setVal(100, 300);
     }
   }, [slideIn, slideOut, animatedLeftPercent]);
 
@@ -47,7 +49,9 @@ export default function StackWrapOuter({
       {...bindSwipe()}
     >
       <ErrorBoundary>
-        {children}
+        <React.Suspense fallback={<Spinner />}>
+          {children}
+        </React.Suspense>
       </ErrorBoundary>
     </div>
   );

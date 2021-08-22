@@ -1,4 +1,5 @@
 import type { Api } from 'services/ApiManager';
+import ReqErrorLogger from 'lib/errorLogger/ReqErrorLogger';
 import processApiRet from './processApiRet';
 import handleApiError from './handleApiError';
 import validateApiData from './validateApiData';
@@ -57,7 +58,10 @@ export default function apiWrap<Name extends ApiName>(
 
       res.json(processApiRet<Name>(ret));
     } catch (err) {
+      ReqErrorLogger.error(req, err, `apiWrap: ${api.config.name}`);
+
       const { status, errorData } = handleApiError(err, api.config.name);
+
       res.status(status).json({
         status,
         error: errorData,

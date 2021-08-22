@@ -34,6 +34,10 @@
     border-color: mix($primaryColor, $inputBorderColor, $weight: 33%);
   }
 
+  &[disabled] {
+    color: $fadedTextColor;
+  }
+
   @include placeholder {
     font-weight: 300;
     color: $inputPlaceholderColor;

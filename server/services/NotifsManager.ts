@@ -1,7 +1,6 @@
-import Bull from 'bull';
-
 import knex from 'services/knex';
 import generateRandUnsignedInt from 'lib/generateRandUnsignedInt';
+import createBullQueue from 'lib/createBullQueue';
 
 type GenNotifs<Params> = (params: Params, currentUserId: number) => Promise<{
   userId: number,
@@ -21,18 +20,12 @@ interface NotifType<T extends string, Params> {
   queue: (params: Params, currentUserId: number) => void,
 }
 
-const queue = new Bull<{
+const queue = createBullQueue<{
   type: string,
   params: any,
   time: number,
   currentUserId: number,
 }>('NotifsManager');
-
-if (process.env.NODE_ENV !== 'production') {
-  queue.on('failed', (_, err) => {
-    console.error(err);
-  });
-}
 
 const notifTypes = Object.create(null) as ObjectOf<NotifType<string, any>>;
 
@@ -88,7 +81,7 @@ void queue.process(async job => {
       })))
       .onConflict(['notifType', 'userId', 'groupingId'])
       .merge({
-        time: knex.raw('NOW()'),
+        time: raw('NOW()'),
         hasRead: false,
       });
   }

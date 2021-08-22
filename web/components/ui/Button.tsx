@@ -17,11 +17,13 @@ type Props = {
   onClick?: React.MouseEventHandler,
   disabled?: boolean,
   active?: boolean,
+  small?: boolean,
 } & React.HTMLAttributes<HTMLSpanElement>
   & React.InputHTMLAttributes<HTMLInputElement>
   & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 // todo: low/mid add Button size
+// todo: low/easy add loading state: disabled with spinner icon
 export default function Button({
   Component = 'span',
   color,
@@ -35,10 +37,12 @@ export default function Button({
   outline = false,
   borderless = false,
   fullWidth = false,
+  // todo: mid/mid consolidate links: Button, a, navigateToHome
   href,
   onClick,
   disabled = false,
   active = false,
+  small = false,
   ...props
 }: Props) {
   const inner = LeftSvg || label || RightSvg
@@ -84,6 +88,7 @@ export default function Button({
           [styles.fullWidth]: fullWidth,
           [styles.active]: active,
           [styles.disabled]: disabled,
+          [styles.small]: small,
         })}
         style={{
           color,
@@ -107,6 +112,7 @@ export default function Button({
         [styles.fullWidth]: fullWidth,
         [styles.active]: active,
         [styles.disabled]: disabled,
+        [styles.small]: small,
       })}
       style={{
         color,

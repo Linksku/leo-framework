@@ -7,7 +7,7 @@ import styles from './SlideUpWrapStyles.scss';
 
 export default function SlideUpWrap() {
   const { hideSlideUp, slideUpShown, slideUpElement } = useSlideUpStore();
-  const animatedShownPercent = useAnimatedValue(slideUpShown ? 100 : 0);
+  const animatedShownPercent = useAnimatedValue(slideUpShown ? 100 : 0, 'SlideUpWrap');
   const [dialogRef, dialogStyle] = useAnimation<HTMLDivElement>();
   const [containerRef, containerStyle] = useAnimation<HTMLDivElement>();
   const { ref, bindSwipe } = useSwipeNavigation({
@@ -39,13 +39,18 @@ export default function SlideUpWrap() {
         ref={mergeRefs(ref, containerRef)}
         style={containerStyle(animatedShownPercent, {
           transform: x => `translateY(${100 - x}%)`,
-        })}
+          display: x => (x < 1 ? 'none' : 'block'),
+        }, [1])}
         className={styles.container}
         {...bindSwipe()}
       >
         <div className={styles.dragSymbol} />
         <div className={styles.containerInner}>
-          <ErrorBoundary>
+          <ErrorBoundary
+            renderFallback={() => (
+              <p>Failed to load.</p>
+            )}
+          >
             <React.Suspense fallback={<Spinner />}>
               {slideUpElement}
             </React.Suspense>

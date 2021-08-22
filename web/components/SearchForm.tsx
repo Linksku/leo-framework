@@ -42,6 +42,8 @@ export default function SearchForm({ onSubmit, throttleTimeout = 1000 }: Props) 
             />
           )}
           register={register}
+          autoCapitalize="none"
+          autoCorrect="off"
         />
       </form>
     </>

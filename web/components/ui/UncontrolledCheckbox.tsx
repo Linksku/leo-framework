@@ -12,16 +12,14 @@ export default function UncontrolledCheckbox({
 }: Props) {
   const [checked, setChecked] = useState(defaultChecked);
 
-  const handleInput = useCallback(e => {
-    setChecked(e.target.checked);
-    onInput(e);
-  }, [onInput]);
-
   return (
     <Checkbox
       {...props}
       checked={checked}
-      onInput={handleInput}
+      onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
+        setChecked(e.target.checked);
+        onInput(e);
+      }}
     />
   );
 }

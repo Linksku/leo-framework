@@ -1,40 +1,38 @@
-$btnDim: 1.8rem;
-
 .container {
   @extend %maxWidthContainer;
 
   height: $headerHeight;
+  box-sizing: content-box;
   background-color: #fff;
   border-bottom: 1px solid $separatorColor;
   position: relative;
+  display: flex;
+  align-items: stretch;
   // stylelint-disable-next-line plugin/no-unsupported-browser-features
   touch-action: none;
+}
+
+.btnWrap {
+  padding: 0 $containerPadLeftRight;
+  box-sizing: content-box;
+  display: flex;
+  align-items: center;
+}
+
+.svgWrap {
+  padding: 0 $containerPadLeftRight;
+  box-sizing: content-box;
+  display: flex;
+  align-items: center;
 }
 
 .title {
   @extend %oneLine;
 
+  flex-grow: 1;
   font-weight: 500;
-  line-height: $headerHeight;
-  max-width: calc(100% - (#{$containerPadLeftRight} * 2 + #{$btnDim}) * 2);
-  margin: 0 auto;
-}
-
-.buttons {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-
-.btnWrap {
-  padding: 0 $containerPadLeftRight;
   height: $headerHeight;
-  box-sizing: content-box;
   display: flex;
   align-items: center;
+  max-width: calc(100% - (#{$containerPadLeftRight} * 2 + 1.8rem) * 2);
 }

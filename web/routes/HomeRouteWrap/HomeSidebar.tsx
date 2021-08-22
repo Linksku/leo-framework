@@ -1,35 +1,30 @@
-import type { AnimatedValue, AnimationStyle } from 'lib/hooks/useAnimation';
+import type { AnimationStyle } from 'lib/hooks/useAnimation';
 
 import useSwipeNavigation from 'lib/hooks/useSwipeNavigation';
-import { useHomeRouteStore } from 'stores/routes/HomeRouteStore';
 import { HomeSidebarInner } from 'config/homeComponents';
+import ErrorBoundary from 'components/ErrorBoundary';
 
 import styles from './HomeSidebarStyles.scss';
 
 type Props = {
-  animatedSidebarPercent: AnimatedValue,
   sidebarRef: React.MutableRefObject<HTMLDivElement | null>,
-  sidebarStyle: AnimationStyle,
+  sidebarStyle: Memoed<AnimationStyle>,
   dialogRef: React.MutableRefObject<HTMLDivElement | null>,
-  dialogStyle: AnimationStyle,
+  dialogStyle: Memoed<AnimationStyle>,
 };
 
+// todo: high/mid link to submit bug report
 function HomeSidebar({
-  animatedSidebarPercent,
   sidebarRef,
   sidebarStyle,
   dialogRef,
   dialogStyle,
 }: Props) {
-  const { sidebarShown, setSidebarShown } = useHomeRouteStore();
-  const ref = useRef({
-    hasSidebarShown: sidebarShown,
-  });
-  ref.current.hasSidebarShown ||= sidebarShown;
+  const { sidebarShownPercent, sidebarLoaded, hideSidebar } = useHomeNavStore();
 
   const { bindSwipe } = useSwipeNavigation({
-    onNavigate: () => setSidebarShown(false),
-    setPercent: (p: number) => animatedSidebarPercent.setVal(100 - p),
+    onNavigate: () => hideSidebar(),
+    setPercent: (p: number) => sidebarShownPercent.setVal(100 - p),
     direction: 'left',
     elementRef: sidebarRef,
   });
@@ -38,29 +33,35 @@ function HomeSidebar({
     <>
       <div
         ref={dialogRef}
-        style={dialogStyle(animatedSidebarPercent, {
+        style={dialogStyle(sidebarShownPercent, {
           filter: x => `opacity(${x}%)`,
           display: x => (x < 1 ? 'none' : 'block'),
           pointerEvents: x => (x < 50 ? 'none' : 'auto'),
         }, [1, 50])}
         className={styles.overlay}
-        onClick={() => setSidebarShown(false)}
+        onClick={() => hideSidebar()}
         role="dialog"
         {...bindSwipe()}
       />
       <div
         ref={sidebarRef}
-        style={sidebarStyle(animatedSidebarPercent, {
+        style={sidebarStyle(sidebarShownPercent, {
           transform: x => `translateX(${x - 100}%)`,
         })}
         className={styles.sidebar}
         {...bindSwipe()}
       >
-        <React.Suspense fallback={<Spinner />}>
-          {sidebarShown || ref.current.hasSidebarShown
-            ? <HomeSidebarInner />
-            : null}
-        </React.Suspense>
+        <ErrorBoundary
+          renderFallback={() => (
+            <p>Failed to load.</p>
+          )}
+        >
+          <React.Suspense fallback={<Spinner />}>
+            {sidebarLoaded
+              ? <HomeSidebarInner />
+              : null}
+          </React.Suspense>
+        </ErrorBoundary>
       </div>
     </>
   );

@@ -1,4 +1,8 @@
 import Router from 'Router';
+import ErrorBoundary from 'components/ErrorBoundary';
+import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
+import LoadingRoute from 'routes/LoadingRoute';
+
 import { AlertsProvider } from 'stores/AlertsStore';
 import { AuthProvider } from 'stores/AuthStore';
 import { EntitiesProvider } from 'stores/EntitiesStore';
@@ -10,9 +14,6 @@ import { SseProvider } from 'stores/SseStore';
 import { SlideUpProvider } from 'stores/SlideUpStore';
 import { StacksNavProvider } from 'stores/StacksNavStore';
 import { ToastsProvider } from 'stores/ToastsStore';
-import ErrorBoundary from 'components/ErrorBoundary';
-import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
-
 import providers from 'config/storeProviders';
 
 export default function App() {
@@ -47,7 +48,9 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {router}
+      <React.Suspense fallback={<LoadingRoute />}>
+        {router}
+      </React.Suspense>
     </ErrorBoundary>
   );
 }

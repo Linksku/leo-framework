@@ -20,7 +20,7 @@ defineApi(
             required: ['name', 'params'],
             properties: {
               name: SchemaConstants.content,
-              params: { type: 'object' },
+              params: SchemaConstants.pojo,
             },
             additionalProperties: false,
           },
@@ -44,7 +44,7 @@ defineApi(
                   data: {
                     anyOf: [
                       { type: 'null' },
-                      { type: 'object' },
+                      SchemaConstants.pojo,
                     ],
                   },
                 },
@@ -55,7 +55,7 @@ defineApi(
                 required: ['status', 'error'],
                 properties: {
                   status: SchemaConstants.nonNegInt,
-                  error: { type: 'object' },
+                  error: SchemaConstants.pojo,
                 },
                 additionalProperties: false,
               },

@@ -1,18 +1,17 @@
 import BarsSvg from '@fortawesome/fontawesome-free/svgs/solid/bars.svg';
+import ChevronDownSvg from '@fortawesome/fontawesome-free/svgs/solid/chevron-down.svg';
 
 import { HomeHeaderTitle } from 'config/homeComponents';
 
 import styles from './HomeHeaderSelectorStyles.scss';
 
-type Props = {
-  onClick: React.MouseEventHandler,
-};
+export default function HomeHeaderSelector() {
+  const { showSidebar } = useHomeNavStore();
 
-export default function HomeHeaderSelector({ onClick }: Props) {
   return (
     <div
       className={styles.btn}
-      onClick={onClick}
+      onClick={showSidebar}
       role="button"
       tabIndex={-1}
     >
@@ -20,6 +19,9 @@ export default function HomeHeaderSelector({ onClick }: Props) {
       <h1 className={styles.title}>
         <HomeHeaderTitle />
       </h1>
+      <ChevronDownSvg
+        className={styles.chevronSvg}
+      />
     </div>
   );
 }

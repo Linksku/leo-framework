@@ -4,7 +4,7 @@ export type Toast = {
   closeAfter: number | null,
 };
 
-const DEFAULT_CLOSE_AFTER = 2000;
+const DEFAULT_CLOSE_AFTER = 3000;
 
 let _nextToastId = 0;
 
@@ -31,7 +31,9 @@ const [
 
       setTimeout(() => {
         requestAnimationFrame(() => {
-          setToasts(arr => arr.filter(a => a.id !== toastId));
+          setToasts(arr => (arr.some(a => a.id === toastId)
+            ? arr.filter(a => a.id !== toastId)
+            : arr));
         });
       }, closeAfter ?? DEFAULT_CLOSE_AFTER);
     }, [setToasts]);

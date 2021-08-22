@@ -1,14 +1,12 @@
-import type { EntityApiTypes } from './useApiTypes';
-
 export default function useHandleApiEntities<Name extends ApiName>(
-  type: EntityApiTypes,
+  type: EntityApiAction,
 ) {
   const loadEntities = useLoadEntities();
   const createEntities = useCreateEntities();
   const updateEntities = useUpdateEntities();
   const deleteEntities = useDeleteEntities();
 
-  return useCallback(({ entities, deletedIds, meta }: ApiSuccessResponse<Name>) => {
+  return useCallback(({ entities, deletedIds, meta }: MemoDeep<ApiSuccessResponse<Name>>) => {
     if (entities) {
       if (meta?.dateProps) {
         for (const ent of entities) {

@@ -6,6 +6,7 @@ const globals = {
   dayjs: 'dayjs',
   express: 'express',
   fetch: 'node-fetch',
+  Model: ['objection', 'Model'],
   // Built-ins.
   hasOwnProperty: ['./shared/lib/builtIns/hasOwnProperty', 'default'],
   objectEntries: ['./shared/lib/builtIns/objectEntries', 'default'],
@@ -16,15 +17,16 @@ const globals = {
   EMPTY_ARR: ['./server/lib/emptyArr', 'default'],
   EMPTY_OBJ: ['./server/lib/emptyObj', 'default'],
   Entity: ['./server/models/core/Entity', 'default'],
+  ErrorLogger: ['./server/lib/errorLogger/ErrorLogger', 'default'],
   filterNulls: ['./shared/lib/filterNulls', 'default'],
   HandledError: ['./server/lib/HandledError', 'default'],
   hasDefinedProperty: ['./shared/lib/hasDefinedProperty', 'default'],
   inArray: ['./shared/lib/inArray', 'default'],
-  Model: ['objection', 'Model'],
   NOOP: ['./server/lib/noop', 'default'],
   objValOrSetDefault: ['./shared/lib/objValOrSetDefault', 'default'],
   pause: ['./shared/lib/pause', 'default'],
   promiseObj: ['./server/lib/promiseObj', 'default'],
+  raw: ['./server/services/knex', 'raw'],
   SchemaConstants: ['./server/consts/schema', 'default'],
 };
 

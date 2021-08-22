@@ -1,6 +1,7 @@
 import EventEmitter from 'wolfy87-eventemitter';
 
 import styleDeclarationToCss from 'lib/styleDeclarationToCss';
+import getFrameDuration from 'lib/getFrameDuration';
 
 const DEFAULT_DURATION = 200;
 
@@ -10,23 +11,25 @@ export type ValToStyle = Partial<{
 
 export type Style = Partial<React.CSSProperties>;
 
-export type AnimationStyle = Memoed<(
+export type AnimationStyle = (
   animatedVal: AnimatedValue,
   valToStyle: ValToStyle,
   keyframeVals?: number[],
-) => Style>;
+) => Style;
 
 // todo: low/mid change eventemitter to something lightweight
 export class AnimatedValue extends EventEmitter {
-  private lastSetValTime = performance.now();
-  private lastDuration = 0;
-  private startVal: number;
-  private finalVal: number;
+  lastSetValTime = performance.now();
+  lastDuration = 0;
+  startVal: number;
+  finalVal: number;
+  debugName: string;
 
-  constructor(defaultVal: number) {
+  constructor(defaultVal: number, debugName?: string) {
     super();
     this.startVal = defaultVal;
     this.finalVal = defaultVal;
+    this.debugName = debugName ?? '';
   }
 
   getCurVal() {
@@ -58,9 +61,11 @@ export class AnimatedValue extends EventEmitter {
     }
   }
 
-  getNextKeyframe(keyframeVals: number[]) {
-    const curVal = this.getCurVal();
+  getNextKeyframe(keyframeVals: number[], lastKeyframeVal: number) {
     const increasing = this.finalVal >= this.startVal;
+    const curVal = increasing
+      ? Math.min(lastKeyframeVal, this.getCurVal())
+      : Math.max(lastKeyframeVal, this.getCurVal());
     let nextKeyframeVal = this.finalVal;
     for (const val of keyframeVals) {
       if ((increasing && val > curVal && val < nextKeyframeVal)
@@ -71,17 +76,21 @@ export class AnimatedValue extends EventEmitter {
 
     const timeToNextKeyframe = this.lastDuration <= 0 || this.finalVal === this.startVal
       ? 0
-      : Math.abs(
+      : Math.max(
+        0,
         (Math.abs((nextKeyframeVal - curVal) / (this.finalVal - this.startVal))
-          * this.lastDuration)
-        // Half a frame for RAF.
-        - (1000 / 60 / 2),
+          * this.lastDuration),
       );
     return {
       val: nextKeyframeVal,
-      time: timeToNextKeyframe,
+      duration: timeToNextKeyframe,
       isFinal: nextKeyframeVal === this.finalVal,
     };
+  }
+
+  isAnimating() {
+    const elapsed = performance.now() - this.lastSetValTime;
+    return elapsed >= this.lastDuration;
   }
 }
 
@@ -91,7 +100,7 @@ function getStyle(valToStyle: ValToStyle, val: number, duration: number) {
 
   if (keys.length) {
     style.transitionProperty = keys.map(k => styleDeclarationToCss(k)).join(',');
-    style.transitionDuration = `${duration}ms`;
+    style.transitionDuration = `${Math.round(duration)}ms`;
     style.transitionTimingFunction = 'ease-out';
   }
 
@@ -103,9 +112,8 @@ function getStyle(valToStyle: ValToStyle, val: number, duration: number) {
   return style;
 }
 
-export function useAnimatedValue(defaultVal: number) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useRef(useMemo(() => new AnimatedValue(defaultVal), [])).current;
+export function useAnimatedValue(defaultVal: number, debugName?: string) {
+  return useConst(() => new AnimatedValue(defaultVal, debugName));
 }
 
 export function useAnimation<T extends HTMLElement>() {
@@ -115,17 +123,20 @@ export function useAnimation<T extends HTMLElement>() {
     animatedVal: null as AnimatedValue | null,
     valToStyle: null as ValToStyle | null,
     keyframeVals: [] as number[],
+    lastKeyframeVal: 0,
     hadFirstTransition: false,
     nextKeyframeTimer: null as number | null,
+    nextKeyframeRaf: null as number | null,
   });
 
-  const renderNextKeyframe = useCallback(() => {
-    if (ref.current.nextKeyframeTimer) {
+  const queueNextKeyframe = useCallback(() => {
+    if (ref.current.nextKeyframeTimer !== null) {
       clearTimeout(ref.current.nextKeyframeTimer);
       ref.current.nextKeyframeTimer = null;
     }
 
-    requestAnimationFrame(() => {
+    function renderNextKeyframe() {
+      ref.current.nextKeyframeRaf = null;
       if (!animationRef.current || !ref.current.valToStyle || !ref.current.animatedVal) {
         return;
       }
@@ -137,12 +148,16 @@ export function useAnimation<T extends HTMLElement>() {
         ref.current.hadFirstTransition = true;
       }
 
-      const nextKeyframe = ref.current.animatedVal.getNextKeyframe(ref.current.keyframeVals);
+      const nextKeyframe = ref.current.animatedVal.getNextKeyframe(
+        ref.current.keyframeVals,
+        ref.current.lastKeyframeVal,
+      );
+      ref.current.lastKeyframeVal = nextKeyframe.val;
 
       const style = getStyle(
         ref.current.valToStyle,
         nextKeyframe.val,
-        nextKeyframe.time,
+        nextKeyframe.duration,
       );
       for (const [k, v] of objectEntries(style)) {
         animationRef.current.style.setProperty(
@@ -152,36 +167,80 @@ export function useAnimation<T extends HTMLElement>() {
       }
 
       if (!nextKeyframe.isFinal) {
-        ref.current.nextKeyframeTimer = window.setTimeout(renderNextKeyframe, nextKeyframe.time);
+        if (nextKeyframe.duration < getFrameDuration() * 1.5) {
+          queueNextKeyframe();
+        } else {
+          ref.current.nextKeyframeTimer = window.setTimeout(
+            queueNextKeyframe,
+            nextKeyframe.duration - (getFrameDuration() / 2),
+          );
+        }
       }
-    });
+    }
+
+    if (ref.current.nextKeyframeRaf === null) {
+      ref.current.nextKeyframeRaf = requestAnimationFrame(renderNextKeyframe);
+    }
   }, []);
 
-  const animationStyle: AnimationStyle = useCallback((
+  let nextKeyframe = ref.current.animatedVal?.getNextKeyframe(
+    ref.current.keyframeVals,
+    ref.current.lastKeyframeVal,
+  ) ?? {
+    val: 0,
+    duration: 0,
+    isFinal: true,
+  };
+  const animationStyle: AnimationStyle = (
     animatedVal,
     valToStyle,
     keyframeVals = [],
   ) => {
     if (!ref.current.hasInit) {
       ref.current.hasInit = true;
-      animatedVal.on('valChanged', renderNextKeyframe);
+      animatedVal.on('valChanged', queueNextKeyframe);
 
       ref.current.animatedVal = animatedVal;
       ref.current.valToStyle = valToStyle;
       ref.current.keyframeVals = keyframeVals;
+      ref.current.lastKeyframeVal = animatedVal.startVal;
+
+      nextKeyframe = ref.current.animatedVal.getNextKeyframe(
+        ref.current.keyframeVals,
+        ref.current.lastKeyframeVal,
+      );
     }
+
     return getStyle(
       valToStyle,
-      animatedVal.getCurVal(),
-      0,
+      nextKeyframe.val,
+      nextKeyframe.duration,
     ) as Partial<React.CSSProperties>;
-  }, [renderNextKeyframe]);
+  };
+
+  useEffect(() => {
+    ref.current.lastKeyframeVal = nextKeyframe.val;
+
+    if (!nextKeyframe.isFinal
+      && ref.current.nextKeyframeTimer === null
+      && ref.current.nextKeyframeRaf === null
+      && ref.current.animatedVal?.isAnimating()) {
+      if (nextKeyframe.duration < getFrameDuration() * 1.5) {
+        queueNextKeyframe();
+      } else {
+        ref.current.nextKeyframeTimer = window.setTimeout(
+          queueNextKeyframe,
+          nextKeyframe.duration - (getFrameDuration() / 2),
+        );
+      }
+    }
+  });
 
   useEffect(
     () => () => {
-      ref.current.animatedVal?.off('valChanged', renderNextKeyframe);
+      ref.current.animatedVal?.off('valChanged', queueNextKeyframe);
     },
-    [renderNextKeyframe],
+    [queueNextKeyframe],
   );
 
   return [

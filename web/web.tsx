@@ -11,7 +11,7 @@ import preventClicksAfterMove from 'lib/preventClicksAfterMove';
 import setVhCssVar from 'lib/setVhCssVar';
 
 if (process.env.NODE_ENV !== 'production') {
-  console.timeEnd('imports');
+  console.timeEnd('Imports');
 
   window.fetcher = fetcher;
 }
@@ -40,3 +40,4 @@ if (tz >= 2 && tz <= 11) {
 }
 
 // todo: high/veryhard log actions
+// todo: high/mid reload page if jsversion changes in the middle of a session

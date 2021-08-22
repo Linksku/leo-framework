@@ -12,12 +12,13 @@ type Props<
   Name extends PaginatedApiName
 > = {
   apiName: Name,
-  apiParams: ApiNameToParams[Name],
+  apiParams: ApiParams<Name>,
   entityType: Type,
   initialId?: number,
   reverse?: boolean,
   throttleTimeout?: number,
-  shouldAddCreatedEntity?: ShouldAddCreatedEntity,
+  shouldAddCreatedEntity?: ShouldAddCreatedEntity<Type>,
+  loadingComponent?: ReactNode,
   notFoundMsg?: ReactNode,
   columns?: number,
   columnMargin?: number,
@@ -51,13 +52,14 @@ function WindowedInfiniteEntitiesScroller<
   reverse = false,
   throttleTimeout = 1000,
   shouldAddCreatedEntity,
+  loadingComponent,
   notFoundMsg = 'Nothing found',
   columns = 1,
   columnMargin = 0,
   className,
   columnClassName,
 }: Props<Type, Name> & ItemRendererProps) {
-  useTimeComponentPerf('WindowedScroller');
+  useTimeComponentPerf(`WindowedScroller:${apiName}`);
 
   const {
     fetchingFirstTime,
@@ -72,6 +74,9 @@ function WindowedInfiniteEntitiesScroller<
     shouldAddCreatedEntity,
   });
 
+  if (fetchingFirstTime && !entityIds.length && loadingComponent) {
+    return loadingComponent;
+  }
   if (fetchingFirstTime || entityIds.length) {
     return (
       <WindowedInfiniteScroller

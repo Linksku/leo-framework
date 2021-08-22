@@ -1,4 +1,6 @@
 import removeUndefinedValues from 'lib/removeUndefinedValues';
+import promiseTimeout from 'lib/promiseTimeout';
+import { MAX_HTTP_TIMEOUT } from 'settings';
 
 type FetcherOpts = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
@@ -6,6 +8,7 @@ type FetcherOpts = {
   contentType?: string,
   cache?: RequestCache,
   redirect?: RequestRedirect,
+  timeout?: number,
 };
 
 async function _fetcher(
@@ -62,7 +65,7 @@ async function _fetcher(
     };
   }
 
-  let data: any;
+  let data: any = null;
   const text = await res.text();
   try {
     data = JSON.parse(text);
@@ -74,6 +77,26 @@ async function _fetcher(
     data,
     status: res.status,
   };
+}
+
+function _fetcherWrap(
+  url: string,
+  method: string,
+  body = null as BodyInit | null,
+  opts: FetcherOpts = {},
+) {
+  const timeoutErr = new Error(`Fetch(${url}) timed out`);
+  timeoutErr.status = 503;
+  return promiseTimeout(
+    _fetcher(
+      url,
+      method,
+      body,
+      opts,
+    ),
+    opts.timeout ?? MAX_HTTP_TIMEOUT,
+    timeoutErr,
+  );
 }
 
 function _createFullUrl(url: string, params: ObjectOf<string | number | boolean>) {
@@ -96,7 +119,7 @@ const fetcher = {
     opts: FetcherOpts = {},
   ) {
     const fullUrl = _createFullUrl(url, params);
-    return _fetcher(fullUrl, opts.method || 'GET', null, opts);
+    return _fetcherWrap(fullUrl, opts.method || 'GET', null, opts);
   },
 
   async getWithoutCache(
@@ -106,7 +129,7 @@ const fetcher = {
   ) {
     const fullUrl = _createFullUrl(url, params);
 
-    return _fetcher(fullUrl, opts.method || 'GET', null, {
+    return _fetcherWrap(fullUrl, opts.method || 'GET', null, {
       cache: 'no-cache',
       ...opts,
     });
@@ -114,7 +137,7 @@ const fetcher = {
 
   async post(url: string, _body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
     const body = Object.keys(_body).length ? JSON.stringify(_body) : '';
-    return _fetcher(url, opts.method || 'POST', body, opts);
+    return _fetcherWrap(url, opts.method || 'POST', body, opts);
   },
 
   async postForm(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
@@ -130,7 +153,7 @@ const fetcher = {
       }
     }
 
-    return _fetcher(url, opts.method || 'POST', formData, opts);
+    return _fetcherWrap(url, opts.method || 'POST', formData, opts);
   },
 
   async patch(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {

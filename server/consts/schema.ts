@@ -2,6 +2,8 @@ import type { JSONSchema } from 'objection';
 
 const id = { type: 'integer', minimum: 1 };
 const idArr = { type: 'array', items: id };
+const url = { type: 'string', format: 'url', maxLength: 255 };
+const cursor = { type: 'string', minLength: 1 };
 
 const SchemaConstants = {
   content: { type: 'string', minLength: 1 },
@@ -15,19 +17,22 @@ const SchemaConstants = {
     type: ['string', 'null'],
     format: 'mysql-date-time',
   },
-  email: { type: 'string', format: 'email' },
+  email: { type: 'string', format: 'email', maxLength: 255 },
   id,
   idArr,
   lat: { type: 'number', minimum: -90, maximum: 90 },
   limit: { type: 'integer', minimum: 1, maximum: 30 },
+  cursor,
   lng: { type: 'number', minimum: -180, maximum: 180 },
-  name: { type: 'string', minLength: 1 },
+  name: { type: 'string', minLength: 1, maxLength: 50 },
+  nameDefaultEmpty: { type: 'string', minLength: 1, maxLength: 50, default: '' },
+  type: { type: 'string', minLength: 1, maxLength: 30 },
   nonNegInt: { type: 'integer', minimum: 0 },
   password: { type: 'string', minLength: 8, maxLength: 64 },
-  url: { type: 'string', format: 'url' },
+  url,
   urlOrEmpty: {
     anyOf: [
-      { type: 'string', format: 'url' },
+      url,
       { enum: [''], default: '' },
     ],
   },
@@ -36,10 +41,15 @@ const SchemaConstants = {
     required: ['entityIds', 'hasCompleted'],
     properties: {
       entityIds: idArr,
-      cursor: id,
+      cursor,
       hasCompleted: { type: 'boolean' },
     },
     additionalProperties: false as const,
+  },
+  pojo: {
+    type: 'object',
+    properties: {},
+    tsType: 'Pojo',
   },
 } as const;
 

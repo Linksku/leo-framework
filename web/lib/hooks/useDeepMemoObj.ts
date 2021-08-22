@@ -2,12 +2,18 @@ import equal from 'fast-deep-equal';
 
 import useUpdatedState from 'lib/hooks/useUpdatedState';
 
-export default function useDeepMemoObj<T extends ObjectOf<any>>(
+type DeepMemoableObj = Partial<{
+  [k: string]: MemoedTypes | Pojo | ReadonlyArray<MemoedTypes | Pojo>
+}>;
+
+export default function useDeepMemoObj<
+  T extends DeepMemoableObj
+>(
   obj: T,
 ) {
-  // todo: low/mid in dev mode, check deep memo obj size
+  // todo: low/mid in dev mode, check deep memo obj size and how often this updates
   return useUpdatedState(
-    obj as Memoed<T>,
-    s => (equal(obj, s) ? s : obj as Memoed<T>),
-  );
+    obj,
+    s => (equal(obj, s) ? s : obj),
+  ) as MemoDeep<T>;
 }

@@ -12,7 +12,7 @@ function LoginRoute() {
     },
   });
   const { errors } = useFormState({ control });
-  const { setAuth } = useAuthStore();
+  const { currentUserId, setAuth } = useAuthStore();
 
   const { fetching, fetchApi: loginUser, error: apiError } = useDeferredApi(
     'loginUser',
@@ -20,10 +20,9 @@ function LoginRoute() {
     {
       type: 'load',
       method: 'post',
-      onFetch: useCallback(data => {
+      onFetch(data) {
         setAuth({ authToken: data.authToken, redirectPath: '/' });
-      }, [setAuth]),
-      onError: NOOP,
+      },
     },
   );
 
@@ -31,6 +30,16 @@ function LoginRoute() {
   return (
     <StackWrapInner title="Login">
       <div className={styles.container}>
+        {currentUserId
+          ? (
+            <p className={styles.loggedInMsg}>
+              Already logged in.
+              {' '}
+              <a href="/">Go back to home</a>
+              .
+            </p>
+          )
+          : null}
         <HookFormErrors errors={errors} additionalError={apiError} />
         <form
           onSubmit={handleSubmit(async data => loginUser(data))}

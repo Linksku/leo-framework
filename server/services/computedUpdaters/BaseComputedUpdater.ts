@@ -1,5 +1,4 @@
 import type { Knex } from 'knex';
-import knex from 'services/knex';
 import { getPropWithComputed } from 'models/core/EntityComputed';
 import { serializeDbProp } from 'models/core/EntityDates';
 
@@ -57,7 +56,7 @@ export default abstract class BaseComputedUpdater<T extends EntityModel> {
           query2 += 'ELSE ?? END)';
           vals.push(getPropWithComputed(Model, col));
 
-          updates[col] = knex.raw(query2, vals);
+          updates[col] = raw(query2, vals);
         }
       }
 

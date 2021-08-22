@@ -11,7 +11,7 @@ export default class Notif extends Entity implements INotif {
       userId: SchemaConstants.id,
       groupingId: SchemaConstants.id,
       time: SchemaConstants.datetimeDefaultNow,
-      params: { type: 'object', properties: {}, default: {} },
+      params: SchemaConstants.pojo.default({}),
       hasRead: { type: 'boolean', default: false },
     },
     additionalProperties: false,

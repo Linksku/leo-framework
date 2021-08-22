@@ -1,7 +1,7 @@
 import type { BackButtonListenerEvent } from '@capacitor/app';
 import qs from 'query-string';
 import { App as Capacitor } from '@capacitor/app';
-import useUpdate from 'react-use/lib/useUpdate';
+import useUpdate from 'lib/hooks/useUpdate';
 
 // Reduce rerenders.
 const QS_CACHE: ObjectOf<Memoed<ObjectOf<any>>> = Object.create(null);
@@ -44,7 +44,7 @@ const [
   useReplacePath,
 ] = constate(
   function HistoryStore() {
-    const ref = useRef(useMemo(() => {
+    const ref = useRef(useConst(() => {
       const initialStateId = window.history.state?.id
         ? Number.parseInt(window.history.state.id, 10) || 0
         : 0;
@@ -57,15 +57,42 @@ const [
         hadExistingHistoryState: !!window.history?.state,
         popHandlers: [] as (() => boolean)[],
       };
-    }, []));
+    }));
     const update = useUpdate();
 
     const _pushPath = useCallback((
-      path: string,
-      query: ObjectOf<any> | null = null,
-      hash: string | null = null,
+      _path: string,
+      _query: ObjectOf<any> | null = null,
+      _hash: string | null = null,
     ) => {
-      const queryStr = query ? qs.stringify(query) : null;
+      const firstQuestion = _path.indexOf('?');
+      const firstHash = _path.indexOf('#');
+      const path = _path.replace(/[#?].*$/, '');
+
+      if (process.env.NODE_ENV !== 'production' && (
+        (_query && firstQuestion >= 0)
+        || (_hash && firstHash >= 0)
+      )) {
+        throw new Error(`pushPath(${_path}): don't include query/hash in path`);
+      }
+
+      let query: ObjectOf<any> | null = null;
+      let queryStr: string | null = null;
+      if (_query) {
+        query = _query;
+        queryStr = qs.stringify(query);
+      } else if (firstQuestion >= 0) {
+        if (firstHash < 0) {
+          queryStr = _path.slice(firstQuestion + 1);
+          query = qs.parse(queryStr);
+        } else if (firstQuestion < firstHash) {
+          queryStr = _path.slice(firstQuestion + 1, firstHash);
+          query = qs.parse(queryStr);
+        }
+      }
+      const hash = _hash
+        ?? (firstHash >= 0 ? _path.slice(firstHash + 1) : '');
+
       if (path === ref.current.curState.path
         && queryStr === ref.current.curState.queryStr
         && hash === ref.current.curState.hash) {
@@ -160,23 +187,7 @@ const [
       if (href?.startsWith('/')) {
         event.preventDefault();
 
-        const firstQuestion = href.indexOf('?');
-        const firstHash = href.indexOf('#');
-        const path = href.replace(/[#?].*$/, '');
-        const hash = firstHash >= 0 ? href.slice(firstHash + 1) : '';
-        let params: ObjectOf<any> | null = null;
-        if (firstQuestion >= 0) {
-          if (firstHash < 0) {
-            params = qs.parse(href.slice(firstQuestion + 1));
-          } else if (firstQuestion < firstHash) {
-            params = qs.parse(href.slice(firstQuestion + 1, firstHash));
-          }
-        }
-        _pushPath(
-          path,
-          params,
-          hash,
-        );
+        _pushPath(href);
       }
     }, [_pushPath]);
 
@@ -219,6 +230,7 @@ const [
     }, [ref.current.curState.hash]);
 
     // Add home to history.
+    // todo: low/mid don't animate slidein after pushing path
     useEffect(() => {
       const { path, query, hash } = ref.current.curState;
       if (!ref.current.hadExistingHistoryState && path !== '/') {

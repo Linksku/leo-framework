@@ -19,6 +19,9 @@ module.exports = mergeReplaceArrays(baseConfig, {
     path: path.resolve('./build/server'),
     filename: '[name].js',
   },
+  node: {
+    __dirname: true,
+  },
   module: {
     rules: baseConfig.module.rules.map(rule => {
       if (rule.test.toString() === '/\\.(j|t)sx?$/') {

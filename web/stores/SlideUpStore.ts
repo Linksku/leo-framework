@@ -7,21 +7,21 @@ const [
   function SlideUpStore() {
     const [state, setState] = useState({
       shown: false,
-      element: null as ReactElement | null,
+      element: null as Memoed<ReactElement> | null,
     });
     const shownRef = useRef(state.shown);
     const { addPopHandler } = useHistoryStore();
 
     const hideSlideUp = useCallback((instant?: boolean) => {
       if (instant) {
-        setState(s => ({ ...s, shown: false, element: null }));
+        setState(s => (s.shown || s.element ? { ...s, shown: false, element: null } : s));
       } else {
-        setState(s => ({ ...s, shown: false }));
+        setState(s => (s.shown ? { ...s, shown: false } : s));
       }
     }, [setState]);
 
     const showSlideUp = useCallback((element: ReactElement) => {
-      setState({ shown: true, element });
+      setState({ shown: true, element: markMemoed(element) });
 
       addPopHandler(() => {
         if (shownRef.current) {

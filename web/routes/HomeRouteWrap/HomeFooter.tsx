@@ -1,4 +1,4 @@
-import { TAB_ICONS } from 'config/homeTabs';
+import { ICON_COMPONENTS, SMALL_ICONS } from 'config/homeTabIcons';
 
 import styles from './HomeFooterStyles.scss';
 
@@ -12,7 +12,7 @@ function HomeFooter() {
   return (
     <div className={styles.container}>
       <div className={styles.containerInner}>
-        {objectEntries(TAB_ICONS).map(([tab, Svg]) => (
+        {objectEntries(ICON_COMPONENTS).map(([tab, Component]) => (
           <div
             key={tab}
             onClick={() => {
@@ -22,17 +22,18 @@ function HomeFooter() {
                 && lastClicked
                 && performance.now() - lastClicked < DBL_CLICK_DELAY) {
                 navigateHome(tab);
+              } else {
+                navigateHome(tab, ...homeParts);
               }
-              navigateHome(tab, ...homeParts);
             }}
-            onDoubleClick={homeTab === tab ? () => navigateHome(tab) : undefined}
             className={cn(styles.tabIcon, {
+              [styles.smallTabIcon]: SMALL_ICONS.has(tab),
               [styles.tabActive]: homeTab === tab,
             })}
             role="button"
             tabIndex={-1}
           >
-            <Svg />
+            <Component />
           </div>
         ))}
       </div>

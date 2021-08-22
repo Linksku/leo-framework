@@ -30,4 +30,7 @@ const knex = Knex({
 
 Model.knex(knex);
 
+// eslint-disable-next-line prefer-destructuring
+export const raw = knex.raw.bind(knex);
+
 export default knex;

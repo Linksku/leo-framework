@@ -6,7 +6,7 @@ import Dropdown from './Dropdown';
 
 import styles from './TypeaheadStyles.scss';
 
-type Props = MemoProps<{
+type Props = MemoObjShallow<{
   defaultValue?: string,
   fetchResults?: (s: string) => void,
   getResults: (s: string) => { key: string, name: string }[],
@@ -24,6 +24,7 @@ type State = {
   isFocused: boolean,
 };
 
+// todo: low/mid rewrite typeahead using hooks
 export default class Typeahead extends React.PureComponent<Props, State> {
   static getDerivedStateFromProps(
     nextProps: Props,
@@ -64,6 +65,13 @@ export default class Typeahead extends React.PureComponent<Props, State> {
       input: props.defaultValue ?? '',
       isFocused: false,
     };
+  }
+
+  componentDidMount() {
+    const { defaultValue } = this.props;
+    if (defaultValue) {
+      this._throttledFetchResults?.(defaultValue);
+    }
   }
 
   componentDidUpdate(prevProps: Props) {

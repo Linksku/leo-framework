@@ -2,7 +2,7 @@ import ChevronLeftSvg from '@fortawesome/fontawesome-free/svgs/solid/chevron-lef
 
 import PullToRefresh from 'components/frame/PullToRefresh';
 import TitleBar from 'components/frame/TitleBar';
-
+import LoadingRoute from 'routes/LoadingRoute';
 import ErrorBoundary from 'components/ErrorBoundary';
 
 import styles from './StackWrapInnerStyles.scss';
@@ -49,7 +49,9 @@ export default function StackWrapInner({
 
       <div className={cn(styles.body, bodyClassName)}>
         <ErrorBoundary>
-          {children}
+          <React.Suspense fallback={<LoadingRoute />}>
+            {children}
+          </React.Suspense>
         </ErrorBoundary>
       </div>
     </div>

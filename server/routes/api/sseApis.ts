@@ -7,6 +7,7 @@ defineApi(
   {
     method: 'post',
     name: 'sseOtp',
+    // todo: low/easy add empty obj schema constantw
     paramsSchema: {
       type: 'object',
       properties: {},
@@ -67,7 +68,7 @@ defineApi(
             required: ['name', 'params'],
             properties: {
               name: SchemaConstants.name,
-              params: { type: 'object', properties: {} },
+              params: SchemaConstants.pojo,
             },
             additionalProperties: false,
           },
@@ -105,7 +106,7 @@ defineApi(
             required: ['name', 'params'],
             properties: {
               name: SchemaConstants.name,
-              params: { type: 'object', properties: {} },
+              params: SchemaConstants.pojo,
             },
             additionalProperties: false,
           },

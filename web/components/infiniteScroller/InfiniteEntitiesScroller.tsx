@@ -12,7 +12,7 @@ type Props<
   OtherProps extends ObjectOf<any> = {}
 > = {
   apiName: Name,
-  apiParams: ApiNameToParams[Name],
+  apiParams: ApiParams<Name>,
   entityType: Type,
   ItemRenderer: React.MemoExoticComponent<React.ComponentType<{
     itemId: number,
@@ -20,7 +20,7 @@ type Props<
     nextItemId?: number,
   } & OtherProps>>,
   throttleTimeout?: number,
-  shouldAddCreatedEntity?: ShouldAddCreatedEntity,
+  shouldAddCreatedEntity?: ShouldAddCreatedEntity<Type>,
   notFoundMsg?: ReactNode,
   className?: string,
 };
@@ -51,7 +51,7 @@ function InfiniteEntitiesScroller<
   notFoundMsg = 'Nothing found',
   className,
 }: Props<Type, Name, OtherProps> & { otherItemProps?: OtherProps }) {
-  useTimeComponentPerf('Scroller');
+  useTimeComponentPerf(`Scroller:${apiName}`);
 
   const {
     fetching,

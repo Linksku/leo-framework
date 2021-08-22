@@ -1,43 +1,41 @@
+import useMountedState from 'react-use/lib/useMountedState';
+
 import fetcher from 'lib/fetcher';
-import promiseTimeout from 'lib/promiseTimeout';
 import removeUndefinedValues from 'lib/removeUndefinedValues';
 import { HTTP_TIMEOUT, API_URL } from 'settings';
 import ApiError from 'lib/ApiError';
-import type { OnFetchType, OnErrorType } from './useApiTypes';
+import useDynamicCallback from 'lib/hooks/useDynamicCallback';
 import useHandleApiEntities from './useHandleApiEntities';
 import isErrorResponse from './isErrorResponse';
 
-type Opts = {
+type Opts<Name extends ApiName> = {
   type?: 'load' | 'create' | 'update' | 'delete',
   method?: 'get' | 'getWithoutCache' | 'post' | 'postForm' | 'patch' | 'put' | 'delete',
   concurrentMode?: 'allowConcurrent' | 'ignoreNext' | 'ignorePrev',
   cancelOnUnmount?: boolean,
   noReturnState?: boolean,
   showToastOnError?: boolean,
-};
-
-type OptsCallbacks<Name extends ApiName> = {
-  onFetch: OnFetchType<Name>,
-  onError: OnErrorType,
+  onFetch?: OnApiFetch<Name>,
+  onError?: OnApiError,
 };
 
 type State<Name extends ApiName> = {
-  data: Memoed<ApiNameToData[Name]> | null,
+  data: ApiData<Name> | null,
   fetching: boolean,
   error: Memoed<Error> | null,
 };
 
 type FetchApi<
   Name extends ApiName,
-  Params extends Partial<ApiNameToParams[Name]>
+  Params extends Partial<ApiParams<Name>>
 > = Memoed<(
-  params?: Omit<ApiNameToParams[Name], RequiredKeys<Params>>,
+  params?: Omit<ApiParams<Name>, RequiredKeys<Params>>,
   files?: ObjectOf<File | File[]>,
-) => Promise<Memoed<ApiNameToData[Name]> | null>>;
+) => Promise<ApiData<Name> | null>>;
 
 type Return<
   Name extends ApiName,
-  Params extends Partial<ApiNameToParams[Name]>
+  Params extends Partial<ApiParams<Name>>
 > = {
   fetchApi: FetchApi<Name, Params>,
   resetApi: Memoed<(cancelFetching?: boolean) => void>,
@@ -45,50 +43,28 @@ type Return<
 
 function useDeferredApi<
   Name extends ApiName,
-  Params extends Partial<ApiNameToParams[Name]>
+  Params extends Partial<ApiParams<Name>>
 >(
   name: Name,
   params: Params,
-  opts: Opts & OptsCallbacks<Name> & {
-    noReturnState: true,
-  },
+  opts: Opts<Name> & { noReturnState: true },
 ): Return<Name, Params>;
 
 function useDeferredApi<
   Name extends ApiName,
-  Params extends Partial<ApiNameToParams[Name]>
->(
-  name: Name,
-  params: Params,
-  opts: Opts & { noReturnState: true },
-): Return<Name, Params>;
-
-function useDeferredApi<
-  Name extends ApiName,
-  Params extends Partial<ApiNameToParams[Name]>
+  Params extends Partial<ApiParams<Name>>
 >(
   name: Name,
   params?: Params,
-  opts?: Opts & OptsCallbacks<Name> & {
-    noReturnState?: false,
-  },
+  opts?: Opts<Name> & { noReturnState?: false },
 ): Return<Name, Params> & State<Name>;
 
 function useDeferredApi<
   Name extends ApiName,
-  Params extends Partial<ApiNameToParams[Name]>
+  Params extends Partial<ApiParams<Name>>
 >(
   name: Name,
-  params?: Params,
-  opts?: Opts & { noReturnState?: false },
-): Return<Name, Params> & State<Name>;
-
-function useDeferredApi<
-  Name extends ApiName,
-  Params extends Partial<ApiNameToParams[Name]>
->(
-  name: Name,
-  // todo: mid/mid make sure combinedParams matches ApiNameToParams
+  // todo: low/mid make sure combinedParams matches ApiNameToParams
   // doesn't need useMemo because of useDeepMemoObj.
   params: Params,
   {
@@ -100,13 +76,13 @@ function useDeferredApi<
     // Don't call setState.
     noReturnState = false,
     showToastOnError = true,
-  }: Opts & Partial<OptsCallbacks<Name>> = {},
+  }: Opts<Name> = {},
 ) {
   useDebugValue(name);
 
   const method = _method ?? (type === 'load' ? 'get' : 'post');
 
-  const paramsMemo = useDeepMemoObj(params as unknown as Pojo);
+  const paramsMemo = useDeepMemoObj(params as Pojo) as Memoed<ApiParams<Name>>;
   const [state, setState] = useState<State<Name>>({
     data: null,
     fetching: false,
@@ -120,6 +96,19 @@ function useDeferredApi<
   const authToken = useAuthToken();
   const handleApiEntities = useHandleApiEntities<Name>(type);
   const showToast = useShowToast();
+  const isMounted = useMountedState();
+
+  const onFetchWrap: OnApiFetch<Name> = useDynamicCallback((...args) => {
+    if (isMounted()) {
+      onFetch?.(...args);
+    }
+  });
+
+  const onErrorWrap: OnApiError = useDynamicCallback((err: Error) => {
+    if (isMounted()) {
+      onError?.(err);
+    }
+  });
 
   const fetchApi: FetchApi<Name, Params> = useCallback(
     async (params2, files) => {
@@ -144,73 +133,73 @@ function useDeferredApi<
         setState(s => (s.fetching ? s : ({ ...s, fetching: true })));
       }
       // ObjectOf<
-      //   Nullable<ApiNameToParams[Name]>["currentUserId"] | undefined
+      //   Nullable<ApiParams<Name>>["currentUserId"] | undefined
       // >
-      const combinedParams = { ...paramsMemo, ...params2 } as unknown as ApiNameToParams[Name];
+      const combinedParams = { ...paramsMemo, ...params2 } as unknown as ApiParams<Name>;
 
-      const timeoutErr = new Error(`Fetch(${name}) timed out`);
-      timeoutErr.status = 503;
-      return promiseTimeout(
-        fetcher[method](
-          `${API_URL}/api/${name}`,
-          {
-            params: JSON.stringify(removeUndefinedValues(combinedParams)),
-            ...files,
-          },
-          { authToken },
-        )
-          .then(({ data: response, status }) => {
-            ref.current.isFetching = false;
-            if (numFetches <= ref.current.numCancelled) {
-              // If cache gets updated for cancelled requests, entities also need to be updated.
-              return null;
+      return fetcher[method](
+        `${API_URL}/api/${name}`,
+        {
+          params: JSON.stringify(removeUndefinedValues(combinedParams)),
+          ...files,
+        },
+        {
+          authToken,
+          timeout: HTTP_TIMEOUT,
+        },
+      )
+        .then(({ data: response, status }) => {
+          ref.current.isFetching = false;
+          if (numFetches <= ref.current.numCancelled) {
+            // If cache gets updated for cancelled requests, entities also need to be updated.
+            return null;
+          }
+
+          if (isErrorResponse(response)) {
+            throw new ApiError(name, response?.status ?? status, response?.error);
+          }
+
+          const successResponse = response as MemoDeep<ApiSuccessResponse<Name>>;
+          const { data } = successResponse;
+          batchedUpdates(() => {
+            handleApiEntities(successResponse);
+            if (!noReturnState) {
+              setState({
+                fetching: false,
+                data,
+                error: null,
+              });
+            }
+            onFetchWrap?.(
+              successResponse.data,
+                (params2 ?? {}) as Partial<ApiParams<Name>>,
+            );
+          });
+
+          return data;
+        })
+        .catch(err => {
+          ref.current.isFetching = false;
+          batchedUpdates(() => {
+            if (!noReturnState) {
+              setState({
+                fetching: false,
+                data: null,
+                error: markMemoed(err),
+              });
             }
 
-            if (isErrorResponse(response)) {
-              throw new ApiError(name, response?.status ?? status, response?.error);
+            if (showToastOnError && err.message) {
+              showToast({
+                msg: err.message,
+              });
             }
 
-            const successResponse = response as ApiSuccessResponse<Name>;
-            const data = markMemoed(successResponse.data);
-            batchedUpdates(() => {
-              handleApiEntities(successResponse);
-              if (!noReturnState) {
-                setState({
-                  fetching: false,
-                  data,
-                  error: null,
-                });
-              }
-              onFetch?.(successResponse.data, (params2 ?? {}) as Partial<ApiNameToParams[Name]>);
-            });
-
-            return data;
-          })
-          .catch(err => {
-            ref.current.isFetching = false;
-            batchedUpdates(() => {
-              if (!noReturnState) {
-                setState({
-                  fetching: false,
-                  data: null,
-                  error: markMemoed(err),
-                });
-              }
-
-              if (showToastOnError && err.message) {
-                showToast({
-                  msg: err.message,
-                });
-              }
-
-              onError?.(err);
-              ErrorLogger.warning(err, `useDeferredApi: ${name} failed`);
-            });
-            throw err;
-          }),
-        HTTP_TIMEOUT,
-        timeoutErr,
-      );
+            onErrorWrap?.(err);
+            ErrorLogger.warning(err, `useDeferredApi: ${name} failed`);
+          });
+          throw err;
+        });
     },
     [
       name,
@@ -218,8 +207,8 @@ function useDeferredApi<
       authToken,
       method,
       handleApiEntities,
-      onFetch,
-      onError,
+      onFetchWrap,
+      onErrorWrap,
       noReturnState,
       showToastOnError,
       showToast,

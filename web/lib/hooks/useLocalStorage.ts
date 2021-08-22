@@ -10,17 +10,29 @@ function setItem(key: string, val: any, raw?: boolean) {
 export default function useLocalStorage<T>(
   key: string,
   initialVal: Memoed<T>,
+  validator: Memoed<(val: unknown) => boolean>,
   opts?: { raw: boolean },
 ) {
-  if (process.env.NODE_ENV !== 'production' && opts?.raw && typeof initialVal !== 'string') {
-    throw new Error('useLocalStorage raw initialVal must be string.');
+  if (process.env.NODE_ENV !== 'production') {
+    if (opts?.raw && typeof initialVal !== 'string') {
+      throw new Error('useLocalStorage: raw initialVal must be string.');
+    }
+    if (!validator(initialVal)) {
+      throw new Error('useLocalStorage: initialVal failed validator.');
+    }
   }
 
   const [state, setState] = useGlobalState<T>(`useLocalStorage:${key}`, () => {
     try {
       const val = window.localStorage.getItem(key);
-      if (val) {
-        return opts?.raw ? val : JSON.parse(val);
+      const parsed: T | null = opts?.raw || !val ? val : JSON.parse(val);
+
+      if (process.env.NODE_ENV !== 'production' && parsed && !validator(parsed)) {
+        throw new Error('useLocalStorage: getItem failed validator.');
+      }
+
+      if (parsed && validator(parsed)) {
+        return parsed;
       }
     } catch {}
 
@@ -31,10 +43,14 @@ export default function useLocalStorage<T>(
   const setValue: Memoed<SetState<T>> = useCallback(val => {
     setState(s => {
       const newState = val instanceof Function ? val(s) : val;
+      if (process.env.NODE_ENV !== 'production' && !validator(newState)) {
+        throw new Error(`useLocalStorage.setValue: "${newState}" failed validator.`);
+      }
+
       setItem(key, newState, opts?.raw);
       return newState;
     });
-  }, [key, opts?.raw, setState]);
+  }, [key, opts?.raw, setState, validator]);
 
   const resetValue = useCallback(() => {
     setItem(key, initialVal, opts?.raw);

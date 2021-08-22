@@ -17,14 +17,16 @@ import 'services/knex';
 const app = express();
 
 if (process.env.NODE_ENV === 'production') {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN_SERVER,
-    integrations: [
-      new Sentry.Integrations.Http({ tracing: true }),
-      new Tracing.Integrations.Express({ app }),
-    ],
-    tracesSampleRate: 1, // process.env.NODE_ENV === 'production' ? 0.01 : 1,
-  });
+  Sentry.getCurrentHub().bindClient(
+    new Sentry.NodeClient({
+      dsn: process.env.SENTRY_DSN_SERVER,
+      integrations: [
+        new Sentry.Integrations.Http({ tracing: true }),
+        new Tracing.Integrations.Express({ app }),
+      ],
+      tracesSampleRate: 1, // process.env.NODE_ENV === 'production' ? 0.01 : 1,
+    }),
+  );
   app.use(Sentry.Handlers.requestHandler());
   app.use(Sentry.Handlers.tracingHandler());
   app.use(Sentry.Handlers.errorHandler());

@@ -15,17 +15,16 @@ function RegisterRoute() {
     },
   });
   const { errors } = useFormState({ control });
-  const { setAuth } = useAuthStore();
+  const { currentUserId, setAuth } = useAuthStore();
 
   const { fetching: submitting, fetchApi: registerUser, error: apiError } = useDeferredApi(
     'registerUser',
     {},
     {
       type: 'create',
-      onFetch: useCallback(data => {
+      onFetch(data) {
         setAuth({ authToken: data.authToken, redirectPath: '/onboard' });
-      }, [setAuth]),
-      onError: NOOP,
+      },
     },
   );
 
@@ -34,6 +33,16 @@ function RegisterRoute() {
       title="Register"
       bodyClassName={styles.container}
     >
+      {currentUserId
+        ? (
+          <p className={styles.loggedInMsg}>
+            Already logged in.
+            {' '}
+            <a href="/">Go back to home</a>
+            .
+          </p>
+        )
+        : null}
       <HookFormErrors errors={errors} additionalError={apiError} />
       <form
         onSubmit={handleSubmit(data => {
@@ -110,7 +119,7 @@ function RegisterRoute() {
           required
         />
         <p className={styles.hint}>
-          * Only used to calculate age.
+          * Only age will be shown.
         </p>
 
         <Button

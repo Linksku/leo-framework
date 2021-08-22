@@ -20,7 +20,7 @@ function useEntitiesByField<T extends EntityType>(
 ) {
   return useEntitiesByFields(
     type,
-    useMemo(() => [field], [field]),
+    useConst([field]),
     // @ts-ignore unions don't work properly
     opts,
   ) as unknown;

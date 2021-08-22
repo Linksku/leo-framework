@@ -5,6 +5,7 @@ import serializeEvent from 'lib/serializeEvent';
 import generateUuid from 'lib/generateUuid';
 import SseBroadcastManager from 'services/SseBroadcastManager';
 import handleApiError from 'lib/apiWrap/handleApiError';
+import ReqErrorLogger from 'lib/errorLogger/ReqErrorLogger';
 
 const router = express.Router();
 
@@ -79,6 +80,8 @@ router.get('/', async (req, res) => {
       },
     }));
   } catch (err) {
+    ReqErrorLogger.error(req, err, 'sseRoute');
+
     const { status, errorData } = handleApiError(err, 'sseRoute');
     res.status(status).json(errorData);
   }

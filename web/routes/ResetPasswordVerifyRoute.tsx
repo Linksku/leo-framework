@@ -26,10 +26,9 @@ function ResetPasswordVerifyRoute({ query }: RouteProps) {
     {
       type: 'load',
       method: 'post',
-      onFetch: useCallback(data => {
+      onFetch(data) {
         setAuth({ authToken: data.authToken, redirectPath: '/' });
-      }, [setAuth]),
-      onError: NOOP,
+      },
     },
   );
 

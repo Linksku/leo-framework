@@ -84,4 +84,10 @@
     border: 0 !important;
     background-color: transparent !important;
   }
+
+  &.small {
+    padding: 0.3rem 0.7rem;
+    line-height: 2.2rem;
+    font-size: 1.4rem;
+  }
 }

@@ -2,25 +2,20 @@ import cluster from 'cluster';
 import os from 'os';
 import { promises as fs } from 'fs';
 import spdy from 'spdy';
-import dotenv from 'dotenv';
 import express from 'express';
 
+import 'lib/initDotenv';
+import 'lib/errorLogger/initErrorLogger';
 import { DOMAIN_NAME, PORT } from 'settings';
+import initCheckTimeZone from 'lib/initCheckTimeZone';
 import getServerId from 'lib/getServerId';
 
 if (!process.env.SERVER || !process.env.NODE_ENV) {
   throw new Error('Env vars not set.');
 }
 
-dotenv.config({
-  path: process.env.SERVER === 'production'
-    ? '../../src/.env'
-    : 'src/.env',
-});
+initCheckTimeZone();
 
-require('lib/initCheckTimeZone');
-
-// todo: mid/mid investigate why restarting server is slow
 if (cluster.isMaster) {
   const numCpus = process.env.NODE_ENV === 'production'
     ? os.cpus().length

@@ -19,6 +19,7 @@
     "resolveJsonModule": true,
     "types": ["node"],
     "jsx": "react",
+    // todo: mid/mid tsconfig noUncheckedIndexedAccess
   },
   "include": [
     ".",
