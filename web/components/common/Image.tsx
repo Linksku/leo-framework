@@ -4,8 +4,8 @@ import styles from './ImageStyles.scss';
 
 type Props = {
   url?: string | null,
-  height?: number,
-  width?: number,
+  height?: number | string,
+  width?: number | string,
   heightPercent?: number,
   widthPercent?: number,
   defaultSvg?: React.SVGFactory,
@@ -31,8 +31,8 @@ export default function Image({
     paddingBottom: undefined,
   };
   if (height && width) {
-    dims.height = `${height}px`;
-    dims.width = `${width}px`;
+    dims.height = typeof height === 'number' ? `${height}px` : height;
+    dims.width = typeof width === 'number' ? `${width}px` : width;
     dims.paddingBottom = '0';
   } else if (heightPercent && widthPercent) {
     dims.width = `${widthPercent}%`;

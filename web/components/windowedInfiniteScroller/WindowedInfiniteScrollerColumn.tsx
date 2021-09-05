@@ -278,10 +278,10 @@ export default function WindowedInfiniteScrollerColumn({
         }
       });
     },
-    {
+    useConst({
       timeout: 100,
       allowSchedulingDuringDelay: true,
-    },
+    }),
   );
 
   useEffect(() => {

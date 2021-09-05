@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
       currentUserId = await new Promise(succ => {
         jwt.verify(
           otp,
-          defined(process.env.SSE_JWT_KEY),
+          TS.defined(process.env.SSE_JWT_KEY),
           {},
           (err, obj: any) => {
             if (err) {

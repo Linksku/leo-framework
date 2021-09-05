@@ -1,5 +1,3 @@
-import type { JSONSchema } from 'objection';
-
 import mergeConcatArrays from 'lib/mergeConcatArrays';
 
 export default class EntityBase extends Model {

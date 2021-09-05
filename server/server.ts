@@ -35,8 +35,8 @@ if (cluster.isMaster) {
       let cert = '';
       try {
         ({ key, cert } = await promiseObj({
-          key: fs.readFile(defined(process.env.SSL_KEY), 'utf8'),
-          cert: fs.readFile(defined(process.env.SSL_CERT), 'utf8'),
+          key: fs.readFile(TS.defined(process.env.SSL_KEY), 'utf8'),
+          cert: fs.readFile(TS.defined(process.env.SSL_CERT), 'utf8'),
         }));
       } catch {
         console.log('privkey.pem or cert.pem not found.');

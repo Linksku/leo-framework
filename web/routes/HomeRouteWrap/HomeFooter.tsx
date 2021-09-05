@@ -1,4 +1,4 @@
-import { ICON_COMPONENTS, SMALL_ICONS } from 'config/homeTabIcons';
+import { ICON_COMPONENTS, SMALL_ICONS, useShowHomeFooter } from 'config/homeFooterConfig';
 
 import styles from './HomeFooterStyles.scss';
 
@@ -8,11 +8,14 @@ function HomeFooter() {
   const { navigateHome, homeTab, homeParts } = useHomeNavStore();
   const lastClickedRef = useRef<ObjectOf<number>>({});
 
+  if (!useShowHomeFooter()) {
+    return null;
+  }
   // todo: mid/hard add explore page
   return (
     <div className={styles.container}>
       <div className={styles.containerInner}>
-        {objectEntries(ICON_COMPONENTS).map(([tab, Component]) => (
+        {TS.objectEntries(ICON_COMPONENTS).map(([tab, Component]) => (
           <div
             key={tab}
             onClick={() => {

@@ -8,7 +8,7 @@
   height: $headerHeight;
   box-sizing: content-box;
   background-color: #fff;
-  border-bottom: 1px solid darken($separatorColor, 5%);
+  border-bottom: 1px solid $separatorColor;
 }
 
 .containerInner {
@@ -29,6 +29,6 @@
   svg {
     height: 2.4rem;
     width: 2.4rem;
-    fill: $fadedTextColor;
+    fill: $lightTextColor;
   }
 }

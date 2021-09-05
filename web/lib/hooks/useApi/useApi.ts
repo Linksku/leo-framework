@@ -1,20 +1,24 @@
-import type { Revalidator, SWRConfiguration } from 'swr';
+import type { Revalidator, SWRConfiguration, SWRResponse } from 'swr';
 import useSWR from 'swr';
 import useMountedState from 'react-use/lib/useMountedState';
 
+import type { EntityEvents } from 'lib/hooks/entities/useHandleEntityEvents';
 import useDeepMemoObj from 'lib/hooks/useDeepMemoObj';
 import { HTTP_TIMEOUT } from 'settings';
 import useDynamicCallback from 'lib/hooks/useDynamicCallback';
 import useAuthTokenLS from 'lib/hooks/localStorage/useAuthTokenLS';
+import useHandleEntityEvents from 'lib/hooks/entities/useHandleEntityEvents';
 import queueBatchedRequest from './queueBatchedRequest';
 import useHandleApiEntities from './useHandleApiEntities';
 
 type Opts<Name extends ApiName> = {
   shouldFetch?: boolean,
+  revalidateKey?: string,
   key?: string,
   onFetch?: OnApiFetch<Name>,
   onError?: OnApiError,
   swrConfig?: SWRConfiguration<ApiData<Name> | null>,
+  revalidateOnEvents?: EntityEvents,
 };
 
 type Return<Name extends ApiName> = {
@@ -22,6 +26,8 @@ type Return<Name extends ApiName> = {
   fetching: boolean,
   fetchingFirstTime: boolean,
   error: Memoed<Error> | null,
+  revalidate: Revalidator,
+  mutate: SWRResponse<ApiData<Name> | null, any>['mutate'],
 };
 
 // todo: mid/mid show more error UIs when APIs fail
@@ -33,14 +39,14 @@ function useApi<Name extends ApiName>(
     shouldFetch = true,
     onFetch,
     onError,
-    // When key changes, refetch.
-    key,
     swrConfig,
+    revalidateOnEvents,
   }: Opts<Name> = {},
 ): Return<Name> {
   useDebugValue(name);
 
   const paramsMemo = useDeepMemoObj(params as Pojo) as Memoed<ApiParams<Name>>;
+  const paramsStr = useMemo(() => JSON.stringify(paramsMemo), [paramsMemo]);
   const [authToken] = useAuthTokenLS();
   const handleApiEntities = useHandleApiEntities<Name>('load');
   const ref = useRef({
@@ -65,8 +71,8 @@ function useApi<Name extends ApiName>(
     }
   });
 
-  const { data, isValidating, error } = useSWR<ApiData<Name> | null>(
-    shouldFetch || ref.current.hasFetched ? [name, paramsMemo, key] : null,
+  const { data, isValidating, error, revalidate, mutate } = useSWR<ApiData<Name> | null>(
+    shouldFetch || ref.current.hasFetched ? [name, paramsStr] : null,
     async () => {
       ref.current.hasFetched = true;
       try {
@@ -95,7 +101,7 @@ function useApi<Name extends ApiName>(
         err: Error,
         _,
         config: SWRConfiguration,
-        revalidate: Revalidator,
+        retry: Revalidator,
         { retryCount },
       ) => {
         if (!config.isDocumentVisible?.()) {
@@ -107,7 +113,7 @@ function useApi<Name extends ApiName>(
         }
 
         setTimeout(
-          async () => revalidate({ retryCount: retryCount + 1 }),
+          async () => retry({ retryCount: retryCount + 1 }),
           5000 * (2 ** Math.min(10, retryCount)),
         );
       },
@@ -115,11 +121,15 @@ function useApi<Name extends ApiName>(
     },
   );
 
+  useHandleEntityEvents(revalidateOnEvents ?? EMPTY_ARR, markMemoed(revalidate));
+
   return {
     data: data ?? null,
     fetching: isValidating,
     fetchingFirstTime: isValidating && ref.current.fetchingFirstTime,
     error,
+    revalidate,
+    mutate,
   };
 }
 

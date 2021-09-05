@@ -7,7 +7,7 @@ defineApi(
   {
     method: 'post',
     name: 'sseOtp',
-    // todo: low/easy add empty obj schema constantw
+    // todo: low/easy add empty obj schema constant
     paramsSchema: {
       type: 'object',
       properties: {},
@@ -31,7 +31,7 @@ defineApi(
     const otp = await new Promise<Nullish<string>>(succ => {
       jwt.sign(
         { id: currentUserId },
-        defined(process.env.SSE_JWT_KEY),
+        TS.defined(process.env.SSE_JWT_KEY),
         {
           expiresIn: 60 * 1000,
         },

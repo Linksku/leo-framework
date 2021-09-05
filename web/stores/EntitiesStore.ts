@@ -3,7 +3,7 @@ import equal from 'fast-deep-equal';
 
 import EntitiesEventEmitter from 'lib/singletons/EntitiesEventEmitter';
 
-type ActionType = 'load' | 'create' | 'update' | 'delete';
+export type ActionType = 'load' | 'create' | 'update' | 'delete';
 
 export type EntityEventHandler<T extends EntityType> = (ent: TypeToEntity<T>) => void;
 
@@ -17,8 +17,8 @@ function hasChangedExtrasKeys(oldEntity: Entity, newEntity: Entity): boolean {
     return true;
   }
 
-  for (const [k, newVal] of objectEntries(newExtras)) {
-    if (!hasDefinedProperty(oldExtras, k) || !equal(oldExtras[k], newVal)) {
+  for (const [k, newVal] of TS.objectEntries(newExtras)) {
+    if (!TS.hasDefinedProperty(oldExtras, k) || !equal(oldExtras[k], newVal)) {
       return true;
     }
   }
@@ -150,7 +150,7 @@ const [
       const entitiesOfType = entitiesRef.current[type] as unknown as ObjectOf<
         Memoed<TypeToEntity<T>>
       >;
-      const deleteEntities = objectValues(entitiesOfType)
+      const deleteEntities = TS.objectValues(entitiesOfType)
         .filter(e => shouldDelete(e));
       if (!deleteEntities.length) {
         return;
@@ -180,6 +180,23 @@ const [
         }
       });
     }, []);
+
+    const updateEntity = useCallback(<T extends EntityType>(
+      type: T,
+      id: EntityId,
+      props: Partial<TypeToEntity<T>>,
+    ) => {
+      const entity = entitiesRef.current[type]?.[id];
+      if (!entity) {
+        if (process.env.NODE_ENV !== 'production') {
+          throw new Error(`EntitiesStore.updateEntity(${type}, ${id}): entity not found.`);
+        }
+        return;
+      }
+
+      const newEntity = { ...entity, ...props } as Memoed<TypeToEntity<T>>;
+      _useUpdateEntities([newEntity]);
+    }, [_useUpdateEntities]);
 
     const addEntityListener = useCallback(<T extends EntityType>(
       action: ActionType,
@@ -213,6 +230,7 @@ const [
 
     return useDeepMemoObj({
       entitiesRef,
+      updateEntity,
       addEntityListener,
       removeEntityListener,
       _useLoadEntities,

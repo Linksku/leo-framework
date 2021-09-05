@@ -12,10 +12,14 @@
   top: $headerHeight;
   left: 0;
   right: 0;
-  bottom: $headerHeight;
+  bottom: 0;
   z-index: $zIndexFixed;
   overflow-y: scroll;
   flex-grow: 1;
   // stylelint-disable-next-line plugin/no-unsupported-browser-features
   touch-action: pan-y;
+}
+
+.withFooter {
+  bottom: $headerHeight;
 }

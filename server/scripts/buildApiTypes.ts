@@ -18,7 +18,7 @@ export default async function buildApiTypes() {
       const properties = { ...api.config.paramsSchema.properties };
       if (api.config.fileFields) {
         for (const { name, maxCount } of api.config.fileFields) {
-          if (hasDefinedProperty(properties, name)) {
+          if (TS.hasDefinedProperty(properties, name)) {
             if (maxCount > 1) {
               properties[name] = {
                 type: 'array',

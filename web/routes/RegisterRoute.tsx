@@ -122,6 +122,20 @@ function RegisterRoute() {
           * Only age will be shown.
         </p>
 
+        <p>
+          By signing up, you agree to the
+          {' '}
+          <a href="/tos/terms">Terms of Service</a>
+          {' '}
+          and
+          {' '}
+          <a href="/tos/privacy">Privacy Policy</a>
+          , including
+          {' '}
+          <a href="/tos/cookie">Cookie Policy</a>
+          .
+        </p>
+
         <Button
           Component="input"
           type="submit"

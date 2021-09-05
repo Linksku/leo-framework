@@ -58,7 +58,7 @@ const [
 
     return useDeepMemoObj({
       currentUserId: currentUserData?.currentUserId ?? null,
-      currentUserClubIds: currentUserData?.clubIds ?? [],
+      currentUserClubIds: currentUserData?.clubIds ?? [] as number[],
       loggedInStatus,
       fetchingUserFirstTime: fetchingFirstTime,
       isReloadingAfterAuth,

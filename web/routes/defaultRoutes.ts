@@ -18,6 +18,20 @@ const defaultRoutes: RouteConfig[] = [
     Component: React.lazy(async () => import(/* webpackChunkName: 'ResetPasswordVerifyRoute' */ 'routes/ResetPasswordVerifyRoute')),
   },
 
+  // TOS.
+  {
+    pattern: '/tos/privacy',
+    Component: React.lazy(async () => import(/* webpackChunkName: 'PrivacyPolicyRoute' */ 'routes/tos/PrivacyPolicyRoute')),
+  },
+  {
+    pattern: '/tos/terms',
+    Component: React.lazy(async () => import(/* webpackChunkName: 'TermsOfServiceRoute' */ 'routes/tos/TermsOfServiceRoute')),
+  },
+  {
+    pattern: '/tos/cookie',
+    Component: React.lazy(async () => import(/* webpackChunkName: 'CookiePolicyRoute' */ 'routes/tos/CookiePolicyRoute')),
+  },
+
   // 404.
   {
     pattern: /.*/,

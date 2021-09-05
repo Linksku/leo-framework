@@ -20,10 +20,10 @@ export default function SearchForm({ onSubmit, throttleTimeout = 1000 }: Props) 
     ({ query }) => {
       onSubmit(query);
     },
-    {
+    useDeepMemoObj({
       timeout: throttleTimeout,
       allowSchedulingDuringDelay: true,
-    },
+    }),
     [onSubmit],
   );
 

@@ -2,9 +2,9 @@ import { useThrottle } from 'lib/throttle';
 
 // Use @capacitor/geolocation
 export default function useGeolocation({
-  autoStart,
+  autoStart = false,
   ...opts
-}: PositionOptions & { autoStart: boolean } = { autoStart: false }) {
+}: PositionOptions & { autoStart: boolean }) {
   const [state, setState] = useState({
     lat: null as number | null,
     lng: null as number | null,
@@ -25,7 +25,7 @@ export default function useGeolocation({
         });
       }
     },
-    { timeout: 10_000 },
+    useConst({ timeout: 10_000 }),
   );
 
   const handleError = (error: GeolocationPositionError) => {

@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 
-import defined from 'lib/defined';
+import defined from 'lib/tsHelpers/defined';
 
 const cache: ObjectOf<number> = Object.create(null);
 

@@ -98,13 +98,13 @@ function useDeferredApi<
   const showToast = useShowToast();
   const isMounted = useMountedState();
 
-  const onFetchWrap: OnApiFetch<Name> = useDynamicCallback((...args) => {
+  const onFetchWrap: Memoed<OnApiFetch<Name>> = useDynamicCallback((...args) => {
     if (isMounted()) {
       onFetch?.(...args);
     }
   });
 
-  const onErrorWrap: OnApiError = useDynamicCallback((err: Error) => {
+  const onErrorWrap: Memoed<OnApiError> = useDynamicCallback((err: Error) => {
     if (isMounted()) {
       onError?.(err);
     }

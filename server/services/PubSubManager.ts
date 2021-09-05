@@ -33,14 +33,14 @@ const PubSubManager = {
       eventTypesToCb[eventType] = new Set();
       redisSub.subscribe(`${REDIS_EVENT_NAME}${eventType}`);
     }
-    defined(eventTypesToCb[eventType]).add(cb);
+    TS.defined(eventTypesToCb[eventType]).add(cb);
   },
 
   unsubscribe(
     eventType: string,
     cb: Cb,
   ) {
-    if (hasDefinedProperty(eventTypesToCb, eventType)) {
+    if (TS.hasDefinedProperty(eventTypesToCb, eventType)) {
       eventTypesToCb[eventType].delete(cb);
       if (!eventTypesToCb[eventType].size) {
         delete eventTypesToCb[eventType];
@@ -67,7 +67,7 @@ const PubSubManager = {
       return;
     }
 
-    if (message.serverId !== serverId && hasDefinedProperty(eventTypesToCb, eventType)) {
+    if (message.serverId !== serverId && TS.hasDefinedProperty(eventTypesToCb, eventType)) {
       for (const cb of eventTypesToCb[eventType]) {
         cb(message.data);
       }

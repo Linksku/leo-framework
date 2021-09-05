@@ -60,6 +60,18 @@ export default class EntityComputed extends EntityBase {
       ComputedUpdatersManager = require('services/computedUpdaters/ComputedUpdatersManager').default;
     }
 
-    defined(ComputedUpdatersManager).triggerUpdates((this.constructor as typeof Entity).type);
+    TS.defined(ComputedUpdatersManager).triggerUpdates((this.constructor as typeof Entity).type);
+  }
+
+  async $afterDelete(ctx: QueryContext) {
+    await super.$afterDelete(ctx);
+
+    if (!ComputedUpdatersManager) {
+      // eslint-disable-next-line global-require
+      ComputedUpdatersManager = require('services/computedUpdaters/ComputedUpdatersManager').default;
+    }
+
+    // todo: mid/hard afterDelete computed updaters don't usually trigger because getIds can't return anything
+    TS.defined(ComputedUpdatersManager).triggerUpdates((this.constructor as typeof Entity).type);
   }
 }

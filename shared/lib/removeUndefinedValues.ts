@@ -1,4 +1,4 @@
-import objectEntries from './builtIns/objectEntries';
+import objectEntries from './tsHelpers/objectEntries';
 
 export default function removeUndefinedValues<T extends ObjectOf<any>>(
   obj: T,

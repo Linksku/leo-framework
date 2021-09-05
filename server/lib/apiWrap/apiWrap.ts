@@ -1,5 +1,6 @@
 import type { Api } from 'services/ApiManager';
 import ReqErrorLogger from 'lib/errorLogger/ReqErrorLogger';
+import { unserializeDateProps } from 'lib/dateSchemaHelpers';
 import processApiRet from './processApiRet';
 import handleApiError from './handleApiError';
 import validateApiData from './validateApiData';
@@ -12,7 +13,7 @@ export default function apiWrap<Name extends ApiName>(
       const paramsStr: string = req.method === 'GET'
         ? req.query.params
         : req.body.params;
-      let params: ApiNameToParams[Name] & { currentUserId: number | undefined };
+      let params: ApiNameToParams[Name];
       try {
         params = JSON.parse(paramsStr);
       } catch {
@@ -22,7 +23,7 @@ export default function apiWrap<Name extends ApiName>(
       const { files } = req;
       if (api.config.fileFields && files && !Array.isArray(files)) {
         for (const { name, maxCount } of api.config.fileFields) {
-          if (hasDefinedProperty(files, name)) {
+          if (TS.hasDefinedProperty(files, name)) {
             if (maxCount === 1) {
               // @ts-ignore
               params[name] = files[name][0];
@@ -33,10 +34,17 @@ export default function apiWrap<Name extends ApiName>(
           }
         }
       }
-      await validateApiData('params', api.validateParams, params);
-      params.currentUserId = req.currentUserId;
 
-      let ret = api.handler(params, res);
+      await validateApiData('params', api.validateParams, params);
+      if (api.config.paramsSchema) {
+        params = unserializeDateProps(api.config.paramsSchema, params);
+      }
+
+      const paramsWithUser = {
+        ...params,
+        currentUserId: req.currentUserId,
+      };
+      let ret = api.handler(paramsWithUser, res);
       if (ret instanceof Promise) {
         ret = await ret;
       }
@@ -50,10 +58,10 @@ export default function apiWrap<Name extends ApiName>(
         }
       }
 
-      if (process.env.NODE_ENV !== 'production' && Object.keys(ret).filter(
-        k => k !== 'entities' && k !== 'data' && k !== 'deletedIds',
-      ).length) {
-        throw new HandledError('Api contains extra keys.', 500);
+      if (process.env.NODE_ENV !== 'production' && Object.keys(ret).some(
+        k => !TS.inArray(k, ['data', 'entities', 'createdEntities', 'updatedEntities', 'deletedIds']),
+      )) {
+        throw new HandledError(`Api contains extra keys: ${Object.keys(ret).join(', ')}`, 500);
       }
 
       res.json(processApiRet<Name>(ret));

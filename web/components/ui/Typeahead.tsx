@@ -9,8 +9,8 @@ import styles from './TypeaheadStyles.scss';
 type Props = MemoObjShallow<{
   defaultValue?: string,
   fetchResults?: (s: string) => void,
-  getResults: (s: string) => { key: string, name: string }[],
-  onChange?: (key: string, val?: string) => void,
+  getResults: (s: string) => { key: string | null, name: string }[],
+  onChange?: (key: string | null, val?: string) => void,
   className?: string | null,
   defaultElement?: React.ReactElement,
   inputProps: Parameters<typeof Input>[0],
@@ -141,7 +141,7 @@ export default class Typeahead extends React.PureComponent<Props, State> {
       && !!(results.length || defaultElement)
       && defaultValue !== input;
     const onOptionMouseDown = this._memoMouseDown(
-      () => (event: React.MouseEvent, key: string, name: string) => {
+      () => (event: React.MouseEvent, key: string | null, name: string) => {
         event.preventDefault();
         if (clearOnSelect) {
           this.setState({

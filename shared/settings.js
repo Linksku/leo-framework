@@ -26,4 +26,6 @@ module.exports = {
   API_URL: PROD_SERVER ? `${PROTOCOL}api.${DOMAIN_NAME}` : '',
   HTTP_TIMEOUT: PROD_BUILD ? 5000 : 15_000,
   MAX_HTTP_TIMEOUT: 30_000,
+  NOREPLY_EMAIL: `noreply@${process.env.DOMAIN_NAME}`,
+  SUPPORT_EMAIL: `support@${process.env.DOMAIN_NAME}`,
 };

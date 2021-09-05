@@ -1,4 +1,5 @@
 import type { PaginatedApiName, ShouldAddCreatedEntity } from 'lib/hooks/useApi/usePaginatedApi';
+import type { EntityEvents } from 'lib/hooks/entities/useHandleEntityEvents';
 import usePaginatedApi from 'lib/hooks/useApi/usePaginatedApi';
 import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
 
@@ -13,6 +14,7 @@ type Props<
 > = {
   apiName: Name,
   apiParams: ApiParams<Name>,
+  apiRevalidateOnEvents?: EntityEvents,
   entityType: Type,
   initialId?: number,
   reverse?: boolean,
@@ -45,6 +47,7 @@ function WindowedInfiniteEntitiesScroller<
 >({
   apiName,
   apiParams,
+  apiRevalidateOnEvents,
   entityType,
   initialId,
   otherItemProps,
@@ -72,6 +75,7 @@ function WindowedInfiniteEntitiesScroller<
   } = usePaginatedApi(entityType, apiName, apiParams, {
     throttleTimeout,
     shouldAddCreatedEntity,
+    apiRevalidateOnEvents,
   });
 
   if (fetchingFirstTime && !entityIds.length && loadingComponent) {

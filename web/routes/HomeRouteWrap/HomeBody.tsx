@@ -1,6 +1,8 @@
 import { useAnimation } from 'lib/hooks/useAnimation';
 import useSwipeNavigation from 'lib/hooks/useSwipeNavigation';
 
+import { useShowHomeFooter } from 'config/homeFooterConfig';
+
 import HomeSidebar from './HomeSidebar';
 
 import styles from './HomeBodyStyles.scss';
@@ -36,7 +38,9 @@ export default function HomeBody({ children }: React.PropsWithChildren<Props>) {
         />
       </div>
       <div
-        className={styles.body}
+        className={cn(styles.body, {
+          [styles.withFooter]: useShowHomeFooter(),
+        })}
         {...bindSwipe()}
       >
         {children}

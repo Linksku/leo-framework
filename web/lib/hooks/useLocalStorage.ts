@@ -23,18 +23,20 @@ export default function useLocalStorage<T>(
   }
 
   const [state, setState] = useGlobalState<T>(`useLocalStorage:${key}`, () => {
+    let val: string | null = null;
+    let parsed: T | null = null;
     try {
-      const val = window.localStorage.getItem(key);
-      const parsed: T | null = opts?.raw || !val ? val : JSON.parse(val);
-
-      if (process.env.NODE_ENV !== 'production' && parsed && !validator(parsed)) {
-        throw new Error('useLocalStorage: getItem failed validator.');
-      }
-
-      if (parsed && validator(parsed)) {
-        return parsed;
-      }
+      val = window.localStorage.getItem(key);
+      parsed = opts?.raw || !val ? val : JSON.parse(val);
     } catch {}
+
+    if (process.env.NODE_ENV !== 'production' && parsed && !validator(parsed)) {
+      throw new Error(`useLocalStorage: ${key} failed validator: ${val}`);
+    }
+
+    if (parsed && validator(parsed)) {
+      return parsed;
+    }
 
     setItem(key, initialVal, opts?.raw);
     return initialVal;

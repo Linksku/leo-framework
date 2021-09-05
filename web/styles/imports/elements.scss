@@ -117,6 +117,7 @@ p a {
 
 table {
   border-collapse: collapse;
+  margin-bottom: 1em;
 }
 
 th {
@@ -126,25 +127,32 @@ th {
 td,
 th {
   padding: 0.5rem 0.8rem;
-  border: 1px solid $separatorColor;
 
-  &:first-child {
-    border-left: 0;
+  &:not(:first-child) {
+    border-left: 1px solid $separatorColor;
   }
 
-  &:last-child {
-    border-right: 0;
+  &:not(:last-child) {
+    border-right: 1px solid $separatorColor;
   }
 }
 
-tr:first-child td,
-tr:first-child th {
-  border-top: 0;
+thead {
+  border-bottom: 1px solid $separatorColor;
 }
 
-tr:last-child td,
-tr:last-child th {
-  border-bottom: 0;
+tbody {
+  tr:not(:first-child) {
+    border-top: 1px solid $separatorColor;
+  }
+
+  tr:not(:last-child) {
+    border-bottom: 1px solid $separatorColor;
+  }
+}
+
+tfoot {
+  border-top: 1px solid $separatorColor;
 }
 
 ul,

@@ -1,6 +1,6 @@
 import BellSvg from '@fortawesome/fontawesome-free/svgs/regular/bell.svg';
 
-import styles from './HomeHeaderNotifsIconStyles.scss';
+import HomeHeaderIconUnreadCount from './HomeHeaderIconUnreadCount';
 
 export default function HomeHeaderNotifsIcon() {
   const { loggedInStatus } = useAuthStore();
@@ -16,13 +16,7 @@ export default function HomeHeaderNotifsIcon() {
   return (
     <>
       <BellSvg />
-      {count
-        ? (
-          <span className={styles.notifsCount}>
-            <span>{count}</span>
-          </span>
-        )
-        : null}
+      <HomeHeaderIconUnreadCount count={count} />
     </>
   );
 }

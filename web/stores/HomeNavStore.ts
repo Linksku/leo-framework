@@ -36,11 +36,11 @@ const [
     );
 
     const isHome = useMemo(
-      () => pathParts[0] === '' || hasOwnProperty(HOME_TABS, pathParts[0].toUpperCase()),
+      () => pathParts[0] === '' || TS.hasProperty(HOME_TABS, pathParts[0].toUpperCase()),
       [pathParts],
     );
     const wasHome = useMemo(
-      () => !!prevPathParts && (prevPathParts[0] === '' || hasOwnProperty(HOME_TABS, prevPathParts[0].toUpperCase())),
+      () => !!prevPathParts && (prevPathParts[0] === '' || TS.hasProperty(HOME_TABS, prevPathParts[0].toUpperCase())),
       [prevPathParts],
     );
 

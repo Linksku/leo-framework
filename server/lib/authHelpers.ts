@@ -12,7 +12,7 @@ export async function fetchUserIdByJwt(cookieJwt?: string, headerJwt?: string) {
     cookieVerified: new Promise<number | null>(succ => {
       jwt.verify(
         cookieJwt,
-        defined(process.env.COOKIE_JWT_KEY),
+        TS.defined(process.env.COOKIE_JWT_KEY),
         {},
         (err, obj: any) => {
           if (err) {
@@ -26,7 +26,7 @@ export async function fetchUserIdByJwt(cookieJwt?: string, headerJwt?: string) {
     headerVerified: new Promise<number | null>(succ => {
       jwt.verify(
         headerJwt,
-        defined(process.env.HEADER_JWT_KEY),
+        TS.defined(process.env.HEADER_JWT_KEY),
         {},
         (err, obj: any) => {
           if (err) {
@@ -62,7 +62,7 @@ export async function getCookieJwt(userId: number) {
       {
         id: userId,
       },
-      defined(process.env.COOKIE_JWT_KEY),
+      TS.defined(process.env.COOKIE_JWT_KEY),
       {
         expiresIn: DEFAULT_AUTH_EXPIRATION,
       },
@@ -85,7 +85,7 @@ export async function getHeaderJwt(userId: number) {
       {
         id: userId,
       },
-      defined(process.env.HEADER_JWT_KEY),
+      TS.defined(process.env.HEADER_JWT_KEY),
       {
         expiresIn: DEFAULT_AUTH_EXPIRATION,
       },

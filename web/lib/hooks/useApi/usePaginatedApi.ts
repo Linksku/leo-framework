@@ -1,4 +1,6 @@
+import type { EntityEvents } from 'lib/hooks/entities/useHandleEntityEvents';
 import { useThrottle } from 'lib/throttle';
+import useHandleEntityEvents from 'lib/hooks/entities/useHandleEntityEvents';
 
 export type PaginatedApiName = {
   [Name in ApiName]: ApiParams<Name> extends {
@@ -22,9 +24,11 @@ export default function usePaginatedApi<
   {
     throttleTimeout,
     shouldAddCreatedEntity,
+    apiRevalidateOnEvents,
   }: {
     throttleTimeout?: number,
     shouldAddCreatedEntity?: ShouldAddCreatedEntity<Type>,
+    apiRevalidateOnEvents?: EntityEvents,
   } = {},
 ) {
   const [{
@@ -33,17 +37,18 @@ export default function usePaginatedApi<
     deletedEntityIds,
     cursor,
     hasCompleted,
+    revalidateCount,
   }, setState] = useState({
     fetchedEntityIds: EMPTY_ARR as number[],
     addedEntityIds: EMPTY_ARR as number[],
     deletedEntityIds: new Set() as Set<number>,
     cursor: undefined as string | undefined,
     hasCompleted: false,
+    revalidateCount: 0,
   });
   const ref = useRef({
     nextCursor: undefined as string | undefined,
   });
-
   const { addEntityListener } = useEntitiesStore();
 
   const { fetching, fetchingFirstTime } = useApi<Name>(
@@ -53,6 +58,7 @@ export default function usePaginatedApi<
       cursor,
     },
     {
+      revalidateKey: `${revalidateCount}`,
       onFetch(_data: any) {
         // todo: low/mid maybe create a superclass for scroller APIs.
         const data = _data as {
@@ -99,10 +105,10 @@ export default function usePaginatedApi<
         ));
       }
     },
-    {
+    useDeepMemoObj({
       timeout: throttleTimeout ?? 100,
       allowSchedulingDuringDelay: true,
-    },
+    }),
     [],
   );
 
@@ -143,6 +149,16 @@ export default function usePaginatedApi<
       offDelete();
     };
   }, [addEntityListener, entityType, handleCreateEntity, handleDeleteEntity]);
+
+  useHandleEntityEvents(apiRevalidateOnEvents ?? EMPTY_ARR, useCallback(() => {
+    setState(s => ({
+      ...s,
+      fetchedEntityIds: EMPTY_ARR,
+      cursor: undefined,
+      hasCompleted: false,
+      revalidateCount: s.revalidateCount + 1,
+    }));
+  }, []));
 
   return {
     fetching,

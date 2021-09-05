@@ -32,8 +32,8 @@ const SseBroadcastManager = {
       return;
     }
 
-    const eventTypes = objValOrSetDefault(sessionIdToEventTypes, sessionId, new Set());
-    const sessionIds = objValOrSetDefault(eventTypesToSessionIds, eventType, new Set());
+    const eventTypes = TS.objValOrSetDefault(sessionIdToEventTypes, sessionId, new Set());
+    const sessionIds = TS.objValOrSetDefault(eventTypesToSessionIds, eventType, new Set());
     if (!sessionIds.size) {
       PubSubManager.subscribe(
         eventType,
@@ -78,7 +78,7 @@ const SseBroadcastManager = {
   },
 
   unsubscribeAll(sessionId: string) {
-    if (!hasDefinedProperty(sessionIdToEventTypes, sessionId)) {
+    if (!TS.hasDefinedProperty(sessionIdToEventTypes, sessionId)) {
       return;
     }
 
@@ -124,7 +124,7 @@ const SseBroadcastManager = {
   },
 
   handleData(eventType: string, data: string) {
-    if (!hasDefinedProperty(eventTypesToSessionIds, eventType)) {
+    if (!TS.hasDefinedProperty(eventTypesToSessionIds, eventType)) {
       return;
     }
 

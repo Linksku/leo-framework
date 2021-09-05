@@ -96,13 +96,12 @@ const _useThrottle = createThrottle(() => useRef({
 
 export function useThrottle<T = Window>(
   fn: (...args: any[]) => void,
-  opts: Opts,
+  opts: Memoed<Opts>,
   deps = [] as MemoDependencyList,
 ) {
   useEffect(() => () => {
     opts.disabled = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [opts]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useCallback(_useThrottle<T>(fn, opts), deps);

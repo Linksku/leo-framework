@@ -5,7 +5,7 @@
   bottom: 0;
   z-index: $zIndexFixed;
   background-color: #fff;
-  border-top: 1px solid darken($separatorColor, 5%);
+  border-top: 1px solid $separatorColor;
   height: $headerHeight;
   box-sizing: content-box;
 }
@@ -28,16 +28,16 @@
   flex-grow: 1;
 
   svg {
-    height: 2.6rem;
-    width: 2.6rem;
-    fill: $fadedTextColor;
+    height: 2.4rem;
+    width: 2.4rem;
+    fill: $lightTextColor;
     transition: all 0.2s;
   }
 }
 
 .smallTabIcon svg {
-  height: 2.4rem;
-  width: 2.4rem;
+  height: 2.2rem;
+  width: 2.2rem;
 }
 
 .tabActive {

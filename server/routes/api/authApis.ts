@@ -85,7 +85,7 @@ defineApi(
         email,
         password,
         name,
-        birthday: new Date(birthday),
+        birthday,
       });
     } catch (err) {
       if (err.name === 'UniqueViolationError'

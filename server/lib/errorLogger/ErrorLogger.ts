@@ -1,24 +1,24 @@
 import type { Severity } from '@sentry/types';
-import Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node';
 
 import getServerId from 'lib/getServerId';
 
 type SupportedSeverity = 'debug' | 'warning' | 'error' | 'fatal';
 
 const _log = (level: SupportedSeverity, err: Error, ctx: string) => {
-  if (process.env.NODE_ENV !== 'production' || process.env.SERVER !== 'production') {
-    return;
+  try {
+    Sentry.withScope(scope => {
+      scope.setLevel(level as Severity);
+      scope.setExtra('ctx', ctx);
+
+      scope.setTag('jsVersion', process.env.JS_VERSION);
+      scope.setTag('serverId', getServerId());
+
+      Sentry.captureException(err);
+    });
+  } catch (err2) {
+    console.error(err2);
   }
-
-  Sentry.withScope(scope => {
-    scope.setLevel(level as Severity);
-    scope.setExtra('ctx', ctx);
-
-    scope.setTag('jsVersion', process.env.JS_VERSION);
-    scope.setTag('serverId', getServerId());
-
-    Sentry.captureException(err);
-  });
 };
 
 export default {

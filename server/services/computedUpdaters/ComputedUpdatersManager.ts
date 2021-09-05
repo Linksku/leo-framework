@@ -3,9 +3,9 @@ import createBullQueue from 'lib/createBullQueue';
 import type BaseComputedUpdater from './BaseComputedUpdater';
 
 const TRIGGERED_UPDATES: ObjectOf<string[]> = {};
-for (const [k, updater] of objectEntries(computedUpdaters)) {
+for (const [k, updater] of TS.objectEntries(computedUpdaters)) {
   for (const dep of (updater.constructor as typeof BaseComputedUpdater).dependencies) {
-    objValOrSetDefault(TRIGGERED_UPDATES, dep, [])
+    TS.objValOrSetDefault(TRIGGERED_UPDATES, dep, [])
       .push(k);
   }
 }
@@ -24,9 +24,10 @@ void queue.process(async job => {
 });
 
 // todo: mid/mid trigger updates for newly create entities, e.g. new userClub with existing posts
+// todo: high/hard replace computed updaters with triggers, materialized views, etc
 const ComputedUpdatersManager = {
   triggerUpdates(type: EntityType) {
-    if (!hasDefinedProperty(TRIGGERED_UPDATES, type)) {
+    if (!TS.hasDefinedProperty(TRIGGERED_UPDATES, type)) {
       return;
     }
 

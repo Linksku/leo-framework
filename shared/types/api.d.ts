@@ -13,7 +13,8 @@ type ApiSuccessResponse<Name extends ApiName> = {
   status: 200,
   data: ApiNameToData[Name],
   entities: SerializedEntity[],
-  // todo: low/mid move deleteIds to meta
+  createdEntities?: SerializedEntity[],
+  updatedEntities?: SerializedEntity[],
   deletedIds?: {
     [T in EntityType]?: number[];
   },

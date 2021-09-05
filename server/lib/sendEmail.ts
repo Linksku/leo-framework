@@ -1,7 +1,7 @@
 import AWS from 'aws-sdk/global';
 import SES from 'aws-sdk/clients/ses';
 
-import { NOREPLY_EMAIL } from 'serverSettings';
+import { NOREPLY_EMAIL } from 'settings';
 
 AWS.config.update({ region: process.env.AWS_REGION });
 

@@ -1,6 +1,6 @@
 type EntityApiAction = 'load' | 'create' | 'update' | 'delete';
 
-type ApiParams<Name extends ApiName> = ApiParamsToData<Name>;
+type ApiParams<Name extends ApiName> = ApiNameToParams[Name];
 
 type ApiData<Name extends ApiName> = MemoDeep<ApiNameToData[Name]>;
 

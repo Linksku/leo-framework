@@ -56,7 +56,7 @@ function useEntitiesByFields<
     `useEntitiesByFields:${type},${fields.join(', ')}`,
     () => {
       const obj = Object.create(null) as ObjArr<T> | ObjSet<T>;
-      for (const e of objectValues(entities)) {
+      for (const e of TS.objectValues(entities)) {
         let obj2 = obj;
         for (const field of fields.slice(0, -1)) {
           const val = e[field] as unknown as string;

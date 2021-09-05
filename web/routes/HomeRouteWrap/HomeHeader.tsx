@@ -20,9 +20,10 @@ function HomeHeader() {
       authOnly: true,
     },
     {
-      path: currentUser ? `/user/${currentUser.id}` : '/register',
+      path: currentUser ? `/user/${currentUser.id}` : '/login',
       Component: UserSvg,
       label: 'User',
+      authOnly: false,
     },
   ];
 

@@ -95,7 +95,7 @@ export class AnimatedValue extends EventEmitter {
 }
 
 function getStyle(valToStyle: ValToStyle, val: number, duration: number) {
-  const keys = objectKeys(valToStyle);
+  const keys = TS.objectKeys(valToStyle);
   const style = {} as Style;
 
   if (keys.length) {
@@ -104,7 +104,7 @@ function getStyle(valToStyle: ValToStyle, val: number, duration: number) {
     style.transitionTimingFunction = 'ease-out';
   }
 
-  for (const [k, v] of objectEntries(valToStyle, true)) {
+  for (const [k, v] of TS.objectEntries(valToStyle, true)) {
     // @ts-ignore union type that is too complex to represent
     style[k] = v?.(val);
   }
@@ -159,7 +159,7 @@ export function useAnimation<T extends HTMLElement>() {
         nextKeyframe.val,
         nextKeyframe.duration,
       );
-      for (const [k, v] of objectEntries(style)) {
+      for (const [k, v] of TS.objectEntries(style)) {
         animationRef.current.style.setProperty(
           styleDeclarationToCss(k),
           v.toString(),

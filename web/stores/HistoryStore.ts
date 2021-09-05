@@ -239,8 +239,7 @@ const [
           _pushPath(path, query, hash);
         });
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [_replacePath, _pushPath]);
 
     return useDeepMemoObj({
       prevState: ref.current.prevState,

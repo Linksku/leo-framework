@@ -1,4 +1,4 @@
-.notifsCount {
+.count {
   position: absolute;
   top: ($headerHeight - 2.4rem) / 2 - 0.8rem;
   right: $containerPadLeftRight - 0.8rem;
@@ -10,7 +10,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 1.5rem;
-  width: 1.5rem;
+  height: 1.6rem;
+  width: 1.6rem;
   line-height: 1;
+  letter-spacing: 0.3px;
 }

@@ -1,0 +1,6 @@
+.tagline {
+  @extend %oneLine;
+
+  color: $lightTextColor;
+  font-size: 0.9em;
+}

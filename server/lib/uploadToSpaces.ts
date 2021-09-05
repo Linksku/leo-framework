@@ -18,7 +18,7 @@ export default async function uploadToSpaces({
     const uploaded = await promiseTimeout(
       Spaces
         .upload({
-          Bucket: defined(process.env.DO_SPACES_BUCKET),
+          Bucket: TS.defined(process.env.DO_SPACES_BUCKET),
           Key: outPath,
           Body: file,
           ACL: 'public-read',

@@ -8,10 +8,12 @@ type Props = {
     content: ReactNode,
     onClick: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void | Promise<void>,
   }[],
+  context: string,
 };
 
 export default function SlideUpList({
   items = [],
+  context,
 }: Props) {
   const hideSlideUp = useHideSlideUp();
   const itemsShown = items.filter(item => !item.hidden);
@@ -19,11 +21,10 @@ export default function SlideUpList({
   useEffect(() => {
     if (!itemsShown.length) {
       ErrorLogger.warning(
-        new Error(`SlideUpList: no items shown, keys: ${items.map(item => item.key).join(',')}`),
+        new Error(`SlideUpList(${context}: no items shown`),
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [itemsShown.length, context]);
 
   return (
     <div className={styles.list}>

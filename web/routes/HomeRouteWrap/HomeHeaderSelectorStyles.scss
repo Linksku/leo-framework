@@ -8,9 +8,9 @@
 }
 
 .menu {
-  height: 2rem;
-  width: 2rem;
-  fill: $fadedTextColor;
+  height: 1.8rem;
+  width: 1.8rem;
+  fill: $lightTextColor;
   margin-right: $containerPadLeftRight;
   flex-shrink: 0;
 }
@@ -18,12 +18,4 @@
 .title {
   flex-grow: 1;
   font-size: 1.8rem;
-}
-
-.chevronSvg {
-  fill: $fadedTextColor;
-  height: 1.2rem;
-  width: 1.2rem;
-  margin-top: 0.3rem;
-  margin-left: 0.5rem;
 }

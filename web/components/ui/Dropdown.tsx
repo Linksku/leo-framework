@@ -1,12 +1,12 @@
 import styles from './DropdownStyles.scss';
 
 type Props = MemoObjShallow<{
-  options: { key: string, name: string }[],
+  options: { key: string | null, name: string }[],
   defaultElement?: ReactElement,
   open: boolean,
   className?: string,
   defaultValue?: string,
-  onOptionMouseDown?: (event: React.MouseEvent, key: string, name: string) => void,
+  onOptionMouseDown?: (event: React.MouseEvent, key: string | null, name: string) => void,
 }> & React.HTMLAttributes<HTMLDivElement>;
 
 export default function Dropdown({

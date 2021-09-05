@@ -15,7 +15,6 @@ const ENV_KEYS = [
   'BASE_PATH',
   'TZ',
   'MYSQL_DB',
-  'NOREPLY_EMAIL',
   'MOBILE_APP_ID',
   'APP_NAME',
   'APP_NAME_LOWER',
@@ -24,6 +23,10 @@ const ENV_KEYS = [
   'SENTRY_DSN_WEB',
   'SENTRY_DSN_SERVER',
 ];
+const ENV_OBJ = {};
+for (const k of ENV_KEYS) {
+  ENV_OBJ[k] = process.env[k] || '';
+}
 
 // todo: mid/hard memory usage.
 module.exports = {
@@ -125,10 +128,7 @@ module.exports = {
         10,
       ),
       SCRIPT_PATH: process.env.SCRIPT_PATH || '',
-      ...ENV_KEYS.reduce((obj, k) => {
-        obj[k] = process.env[k] || '';
-        return obj;
-      }, {}),
+      ...ENV_OBJ,
     }),
   ],
   cache: {

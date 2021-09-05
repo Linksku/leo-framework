@@ -85,7 +85,11 @@ function _fetcherWrap(
   body = null as BodyInit | null,
   opts: FetcherOpts = {},
 ) {
-  const timeoutErr = new Error(`Fetch(${url}) timed out`);
+  const timeoutErr = new Error(
+    process.env.NODE_ENV !== 'production'
+      ? `Fetch(${url}) timed out`
+      : 'Request timed out',
+  );
   timeoutErr.status = 503;
   return promiseTimeout(
     _fetcher(

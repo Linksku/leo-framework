@@ -1,5 +1,5 @@
 import type { ValidateFunction } from 'ajv';
-import type { JSONSchema } from 'objection';
+import type { JSONSchemaDefinition } from 'objection';
 
 import ajv from 'lib/ajv';
 
@@ -7,7 +7,9 @@ export type RouteRet<Name extends ApiName> = Pick<
   ApiSuccessResponse<Name>,
   'data' | 'deletedIds'
 > & {
-  entities?: Nullish<ArrayElement<ApiSuccessResponse<Name>['entities']>>[];
+  entities?: Nullish<Entity>[];
+  createdEntities?: Nullish<Entity>[];
+  updatedEntities?: Nullish<Entity>[];
 };
 
 export type ApiConfig<Name extends ApiName> = {
@@ -17,13 +19,13 @@ export type ApiConfig<Name extends ApiName> = {
   paramsSchema: {
     type: 'object',
     required?: string[],
-    properties: ObjectOf<JSONSchema>,
+    properties: Record<string, JSONSchemaDefinition>,
     additionalProperties: false,
   },
   dataSchema?: {
     type: 'object',
     required?: string[],
-    properties: ObjectOf<JSONSchema>,
+    properties: Record<string, JSONSchemaDefinition>,
     additionalProperties: false,
   },
   fileFields?: { name: (keyof ApiNameToParams[Name]) & string, maxCount: number }[],

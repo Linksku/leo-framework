@@ -1,10 +1,8 @@
-import omit from 'lodash/omit';
-
-import type { Api } from 'services/ApiManager';
+import type { Api, RouteRet } from 'services/ApiManager';
 import { defineApi, nameToApi } from 'services/ApiManager';
 import validateApiData from 'lib/apiWrap/validateApiData';
 import handleApiError from 'lib/apiWrap/handleApiError';
-import filterNulls from 'lib/filterNulls';
+import { unserializeDateProps } from 'lib/dateSchemaHelpers';
 
 defineApi(
   {
@@ -38,9 +36,8 @@ defineApi(
             oneOf: [
               {
                 type: 'object',
-                required: ['status', 'data'],
+                required: ['data'],
                 properties: {
-                  status: SchemaConstants.nonNegInt,
                   data: {
                     anyOf: [
                       { type: 'null' },
@@ -68,7 +65,7 @@ defineApi(
   },
   async function batched({ apis, currentUserId }, res) {
     const typedApis = apis as { name: ApiName, params: ApiNameToParams[ApiName] }[];
-    const results = await Promise.all<ApiResponse<any>>(typedApis.map(
+    const results = await Promise.all<RouteRet<any> | ApiErrorResponse>(typedApis.map(
       async <Name extends ApiName>({ name, params }: {
         name: Name,
         params: ApiNameToParams[Name],
@@ -76,6 +73,10 @@ defineApi(
         try {
           const api = nameToApi[name] as Api<Name>;
           await validateApiData('params', api.validateParams, params);
+          if (api.config.paramsSchema) {
+            params = unserializeDateProps(api.config.paramsSchema, params);
+          }
+
           const newParams: ApiNameToParams[Name] & { currentUserId: number | undefined } = {
             ...params,
             currentUserId,
@@ -100,11 +101,7 @@ defineApi(
             throw new HandledError(`Api contains extra keys: ${name}`, 500);
           }
 
-          return {
-            status: 200,
-            ...ret,
-            entities: filterNulls(ret.entities ?? []),
-          };
+          return ret;
         } catch (err) {
           const { status, errorData } = handleApiError(err, name);
           return {
@@ -118,9 +115,12 @@ defineApi(
     // todo: high/hard stream batched results as they become available
     return {
       data: {
-        results: results.map(r => (hasDefinedProperty(r, 'entities') ? omit(r, 'entities') : r)),
+        results: results.map(r => ({ data: (TS.hasDefinedProperty(r, 'data') ? r.data : r) })),
       },
-      entities: results.flatMap(r => (hasDefinedProperty(r, 'entities') ? r.entities : [])),
+      entities: results.flatMap(r => (TS.hasDefinedProperty(r, 'entities') ? r.entities : [])),
+      createdEntities: results.flatMap(r => (TS.hasDefinedProperty(r, 'createdEntities') ? r.createdEntities : [])),
+      updatedEntities: results.flatMap(r => (TS.hasDefinedProperty(r, 'updatedEntities') ? r.updatedEntities : [])),
+      deletedIds: results.flatMap(r => (TS.hasDefinedProperty(r, 'deletedIds') ? r.deletedIds : [])),
     };
   },
 );

@@ -1,5 +1,5 @@
 import type { Severity } from '@sentry/types';
-import Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node';
 
 import detectOs from 'lib/detectOs';
 import isOsMobile from 'lib/isOsMobile';
@@ -7,10 +7,6 @@ import isOsMobile from 'lib/isOsMobile';
 type SupportedSeverity = 'debug' | 'warning' | 'error' | 'fatal';
 
 const _log = (level: SupportedSeverity, req: ExpressRequest, err: Error, ctx: string) => {
-  if (process.env.NODE_ENV !== 'production' || process.env.SERVER !== 'production') {
-    return;
-  }
-
   const paramsStr: string = req.method === 'GET'
     ? req.query.params
     : req.body.params;
@@ -33,7 +29,7 @@ const _log = (level: SupportedSeverity, req: ExpressRequest, err: Error, ctx: st
     scope.setTag('userAgent', userAgent);
     scope.setTag('path', req.path);
 
-    for (const [k, v] of objectEntries(params)) {
+    for (const [k, v] of TS.objectEntries(params)) {
       scope.setTag(`param:${k}`, v);
     }
 

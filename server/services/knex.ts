@@ -5,6 +5,8 @@ if (!process.env.MYSQL_USER) {
   throw new Error('MYSQL_USER env var not set.');
 }
 
+const DEBUG = false;
+
 // todo: high/hard add at least 1 mysql local read replica
 const knex = Knex({
   client: 'mysql',
@@ -25,7 +27,36 @@ const knex = Knex({
     }) as TypeCast,
   },
   pool: { min: 0, max: 10 },
-  // debug: true,
+  debug: process.env.NODE_ENV !== 'production',
+  log: {
+    debug(msg) {
+      if (msg.sql.startsWith('explain ')) {
+        return;
+      }
+
+      if (DEBUG) {
+        console.log(
+          'Query:',
+          knex.raw(msg.sql, msg.bindings).toString(),
+        );
+      }
+
+      void knex.raw(`explain ${msg.sql}`, msg.bindings)
+        .then(results => {
+          const slowQueries = results[0].filter(
+            row => !msg.sql.includes('computedPostsScores')
+                && row.Extra?.toLowerCase().includes('filesort')
+                && row.Extra?.toLowerCase().includes('temporary'),
+          );
+          if (slowQueries.length) {
+            console.log(
+              'Filesort:',
+              knex.raw(msg.sql, msg.bindings).toString(),
+            );
+          }
+        });
+    },
+  },
 });
 
 Model.knex(knex);

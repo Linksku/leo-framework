@@ -1,55 +1,11 @@
 import type { JSONSchema, ModelOptions } from 'objection';
-import type { Dayjs } from 'dayjs';
 import { AjvValidator } from 'objection';
 
-import { toMysqlDateTime, toMysqlDate } from 'lib/mysqlDate';
+import { unserializeDateProps, serializeDateProps } from 'lib/dateSchemaHelpers';
 
 import EntityComputed from './EntityComputed';
 
 const MYSQL_DATE_TIME_REGEX = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/;
-
-export function isPropDate(schema: JSONSchema, prop: string): boolean {
-  const desc = schema.properties?.[prop];
-  return typeof desc === 'object'
-    && (
-      (Array.isArray(desc.type) && desc.type.includes('string'))
-      || desc.type === 'string'
-    )
-    && !!desc.format
-    && ['date', 'date-time', 'mysql-date-time'].includes(desc.format);
-}
-
-export function unserializeDbProp(schema: JSONSchema, prop: string, val: any) {
-  if (isPropDate(schema, prop)) {
-    return dayjs(val);
-  }
-  return val;
-}
-
-export function serializeJsonProp(schema: JSONSchema, prop: string, val: any) {
-  if (isPropDate(schema, prop)) {
-    return dayjs(val).toISOString();
-  }
-  return val;
-}
-
-export function serializeDbProp(schema: JSONSchema, prop: string, val: any) {
-  if (isPropDate(schema, prop)) {
-    const desc = schema.properties?.[prop];
-    if (typeof desc === 'object' && (val instanceof Date || val instanceof dayjs)) {
-      if (desc.format === 'date') {
-        return toMysqlDate(val as Date | Dayjs);
-      }
-      if (desc.format === 'date-time') {
-        return (val as Date | Dayjs).toISOString();
-      }
-      if (desc.format === 'mysql-date-time') {
-        return toMysqlDateTime(val as Date | Dayjs);
-      }
-    }
-  }
-  return val;
-}
 
 export default class EntityDates extends EntityComputed {
   static createValidator() {
@@ -65,21 +21,14 @@ export default class EntityDates extends EntityComputed {
     obj = super.$parseDatabaseJson(obj);
 
     const schema = (this.constructor as typeof Entity).dbJsonSchema;
-    for (const k of Object.keys(schema.properties)) {
-      obj[k] = unserializeDbProp(schema, k, obj[k]);
-    }
-
-    return obj;
+    return unserializeDateProps(schema, obj);
   }
 
   // node -> json
   $formatJson(obj: ObjectOf<any>): ObjectOf<any> {
     obj = super.$formatJson(obj);
     const schema = (this.constructor as typeof Entity).allJsonSchema;
-    for (const k of Object.keys(schema)) {
-      obj[k] = serializeJsonProp(schema, k, obj[k]);
-    }
-    return obj;
+    return serializeDateProps(schema, obj, false);
   }
 
   $beforeValidate(schema: JSONSchema, obj: ObjectOf<any>, opts: ModelOptions) {
@@ -88,9 +37,7 @@ export default class EntityDates extends EntityComputed {
       return schema;
     }
 
-    for (const k of Object.keys(schema.properties)) {
-      obj[k] = serializeDbProp(schema, k, obj[k]);
-    }
+    serializeDateProps(schema, obj, true);
 
     return schema;
   }

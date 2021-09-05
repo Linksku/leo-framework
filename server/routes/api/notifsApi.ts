@@ -3,6 +3,7 @@ import { LAST_SEEN_NOTIFS_TIME } from 'consts/coreUserMetaKeys';
 import paginateQuery from 'lib/paginateQuery';
 import { decorateNotifs } from 'services/NotifsManager';
 import { toMysqlDateTime } from 'lib/mysqlDate';
+import countQuery from 'lib/countQuery';
 
 defineApi(
   {
@@ -23,23 +24,24 @@ defineApi(
     },
   },
   async function getNotifsCount({ currentUserId }) {
-    // todo: low/mid don't use resultSize because it's creates an unnecessary subquery
-    const count = await User.query()
-      .joinRelated('notifs')
-      .leftJoinRelated(`usersMeta(filterMetaKey)`)
-      .modifiers({
-        filterMetaKey: async query => query.where({ metaKey: LAST_SEEN_NOTIFS_TIME }),
-      })
-      .where({
-        'users.id': currentUserId,
-        'notifs.hasRead': false,
-      })
-      .where(
-        'notifs.time',
-        '>',
-        raw('IF(metaValue is null, FROM_UNIXTIME(0), STR_TO_DATE(metaValue, "%Y-%m-%d %h:%i:%s"))'),
-      )
-      .resultSize();
+    const lastSeenRow = await UserMeta.query()
+      .select('metaValue')
+      .findOne({
+        metaKey: LAST_SEEN_NOTIFS_TIME,
+        userId: currentUserId,
+      });
+    const lastSeenTime = lastSeenRow?.metaValue
+      ? toMysqlDateTime(new Date(lastSeenRow.metaValue))
+      : 0;
+    const count = await countQuery(
+      Notif.query()
+        .where({
+          'notifs.userId': currentUserId,
+          'notifs.hasRead': false,
+        })
+        .where('notifs.time', '>', lastSeenTime),
+    );
+
     return {
       entities: [],
       data: {
@@ -141,9 +143,6 @@ defineApi(
       hasRead: true,
     });
     return {
-      entities: [
-        await Notif.findOne('id', notifId),
-      ],
       data: null,
     };
   },

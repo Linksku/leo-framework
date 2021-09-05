@@ -3,26 +3,31 @@ import pickBy from 'lodash/pickBy';
 import type { RouteRet } from 'services/ApiManager';
 import removeUndefinedValues from 'lib/removeUndefinedValues';
 import entityTypeToModel from 'lib/entityTypeToModel';
-import { isPropDate } from 'models/core/EntityDates';
+import { isPropDate } from 'lib/dateSchemaHelpers';
+import omitSingle from 'lib/omitSingle';
 
-function _filterDuplicates(entities: SerializedEntity[]) {
-  const uniqs = new Set<string>();
+function _filterDuplicates(existingUniqs: Set<string>, entities: SerializedEntity[]) {
   return entities.filter(e => {
     const key = `${e.type}|${e.id}`;
-    if (uniqs.has(key)) {
+    if (existingUniqs.has(key)) {
       return false;
     }
-    uniqs.add(key);
+    existingUniqs.add(key);
     return true;
   });
 }
 
 // entity or entities => entities
 function _normalizeEntities(
-  rawEntities: Entity[],
-): SerializedEntity[] {
-  const entities: SerializedEntity[] = rawEntities.map(e => e.toJSON());
+  entities: Entity[],
+  createdEntities: Entity[],
+  updatedEntities: Entity[],
+) {
+  const serializedEntities: SerializedEntity[] = entities.map(e => e.toJSON());
+  const serializedCreatedEntities: SerializedEntity[] = createdEntities.map(e => e.toJSON());
+  const serializedUpdatedEntities: SerializedEntity[] = updatedEntities.map(e => e.toJSON());
   const included = [] as SerializedEntity[];
+
   function extractIncluded(data: any): data is SerializedEntity {
     if (Array.isArray(data)) {
       const origLength = data.length;
@@ -46,21 +51,33 @@ function _normalizeEntities(
     }
     return false;
   }
-  entities.map(data => extractIncluded(data));
+  serializedEntities.map(data => extractIncluded(data));
+  serializedCreatedEntities.map(data => extractIncluded(data));
+  serializedUpdatedEntities.map(data => extractIncluded(data));
 
-  let uniqEntities = _filterDuplicates([...entities, ...included]);
+  const uniqs = new Set<string>();
+  let uniqCreatedEntities = _filterDuplicates(uniqs, serializedCreatedEntities);
+  let uniqUpdatedEntities = _filterDuplicates(uniqs, serializedUpdatedEntities);
+  let uniqEntities = _filterDuplicates(uniqs, serializedEntities);
+  let uniqIncluded = _filterDuplicates(uniqs, included);
   if (process.env.NODE_ENV !== 'production') {
     // Move type to front.
-    // @ts-ignore ignore type being overwritten
-    uniqEntities = uniqEntities.map(e => ({ type: e.type, ...e }));
+    uniqIncluded = uniqIncluded.map(e => ({ type: e.type, ...omitSingle('type', e) }) as SerializedEntity);
+    uniqEntities = uniqEntities.map(e => ({ type: e.type, ...omitSingle('type', e) }) as SerializedEntity);
+    uniqCreatedEntities = uniqCreatedEntities.map(e => ({ type: e.type, ...omitSingle('type', e) }) as SerializedEntity);
+    uniqUpdatedEntities = uniqUpdatedEntities.map(e => ({ type: e.type, ...omitSingle('type', e) }) as SerializedEntity);
   }
-  return uniqEntities;
+  return {
+    normalizedEntities: [...uniqEntities, ...uniqIncluded],
+    normalizedCreatedEntities: uniqCreatedEntities,
+    normalizedUpdatedEntities: uniqUpdatedEntities,
+  };
 }
 
 function _getDateProps(entities: SerializedEntity[]): ObjectOf<string[]> {
   const dateProps: ObjectOf<string[]> = {};
   for (const e of entities) {
-    if (dateProps[e.type] || !hasDefinedProperty(entityTypeToModel, e.type)) {
+    if (dateProps[e.type] || !TS.hasDefinedProperty(entityTypeToModel, e.type)) {
       continue;
     }
     dateProps[e.type] = [];
@@ -68,17 +85,19 @@ function _getDateProps(entities: SerializedEntity[]): ObjectOf<string[]> {
     const { allJsonSchema } = entityTypeToModel[e.type];
     for (const k of Object.keys(allJsonSchema.properties)) {
       if (isPropDate(allJsonSchema, k)) {
-        defined(dateProps[e.type]).push(k);
+        TS.defined(dateProps[e.type]).push(k);
       }
     }
   }
 
-  return pickBy(dateProps, arr => defined(arr).length);
+  return pickBy(dateProps, arr => TS.defined(arr).length);
 }
 
 export default function processApiRet<Path extends ApiName>({
-  entities,
   data,
+  entities,
+  createdEntities,
+  updatedEntities,
   deletedIds,
   ...others
 }: RouteRet<Path>) {
@@ -86,24 +105,35 @@ export default function processApiRet<Path extends ApiName>({
     throw new HandledError('Invalid properties in route response.', 500, others);
   }
 
-  if (!entities) {
-    entities = [];
-  } else if (!Array.isArray(entities)) {
-    entities = [entities];
+  const entitiesFiltered = TS.filterNulls(entities ?? []);
+  const createdEntitiesFiltered = TS.filterNulls(createdEntities ?? []);
+  const updatedEntitiesFiltered = TS.filterNulls(updatedEntities ?? []);
+  if (!entitiesFiltered.every(d => d instanceof Entity)) {
+    throw new HandledError('Api returned non-entities.', 500);
   }
 
-  const entitiesFiltered = entities.filter(Boolean) as Entity[];
-  if (!entitiesFiltered.every(d => d instanceof Entity)) {
-    throw new HandledError('Api didn\'t return entities.', 500);
-  }
-  const normalizedEntities = _normalizeEntities(entitiesFiltered);
-  const dateProps = _getDateProps(normalizedEntities);
+  const {
+    normalizedEntities,
+    normalizedCreatedEntities,
+    normalizedUpdatedEntities,
+  } = _normalizeEntities(
+    entitiesFiltered,
+    createdEntitiesFiltered,
+    updatedEntitiesFiltered,
+  );
+  const dateProps = _getDateProps([
+    ...normalizedEntities,
+    ...normalizedCreatedEntities,
+    ...normalizedUpdatedEntities,
+  ]);
 
   const ret: ApiSuccessResponse<Path> = {
     status: 200,
-    entities: normalizedEntities,
     data: removeUndefinedValues(data ?? {}) as ApiNameToData[Path],
-    deletedIds,
+    entities: normalizedEntities,
+    ...(normalizedCreatedEntities.length ? { createdEntities: normalizedCreatedEntities } : null),
+    ...(normalizedUpdatedEntities.length ? { updatedEntities: normalizedUpdatedEntities } : null),
+    ...(deletedIds && Object.keys(deletedIds).length ? { deletedIds } : null),
   };
   if (Object.keys(dateProps).length) {
     ret.meta = {

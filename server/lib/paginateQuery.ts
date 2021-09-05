@@ -15,7 +15,16 @@ export type ORDERBY_COLUMNS = (
   }
 )[];
 
-const MAX_PER_PAGE = 30;
+export type PaginatedResponse<T> = {
+  entities: T[],
+  data: {
+    entityIds: number[],
+    cursor?: string,
+    hasCompleted: boolean,
+  },
+};
+
+export const MAX_PER_PAGE = 30;
 
 export default async function paginateQuery<T extends Entity>(
   query: QueryBuilder<T, T[]>,
@@ -27,17 +36,10 @@ export default async function paginateQuery<T extends Entity>(
     limit?: number,
     cursor: Nullish<string>,
   },
-): Promise<{
-  entities: T[],
-  data: {
-    entityIds: number[],
-    cursor?: string,
-    hasCompleted: boolean,
-  },
-}> {
+): Promise<PaginatedResponse<T>> {
   if (process.env.NODE_ENV !== 'production') {
     const { tableName } = (query as any)._modelClass as EntityModel;
-    if (!hasOwnProperty(query, '_operations')) {
+    if (!TS.hasProperty(query, '_operations')) {
       throw new Error(`paginateQuery(${tableName}): _operations field is expected on query.`);
     }
     const operations: { name: string }[] = (query as any)._operations;
