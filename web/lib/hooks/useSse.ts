@@ -8,17 +8,15 @@ export default function useSse(
     isReady = true,
   } = {},
 ) {
-  const { sessionId, initSse, addSubscription, removeSubscription } = useSseStore();
+  const { addSubscription, removeSubscription } = useSseStore();
   const paramsMemo = useDeepMemoObj(eventParams);
 
   // todo: low/mid multiple components using same event.
   useEffectIfReady(() => {
-    void addSubscription(eventName, paramsMemo);
+    addSubscription(eventName, paramsMemo);
 
     return () => {
-      void removeSubscription(eventName, paramsMemo);
+      removeSubscription(eventName, paramsMemo);
     };
-  }, [addSubscription, removeSubscription], isReady && !!sessionId);
-
-  useEffectIfReady(initSse, [], isReady);
+  }, [addSubscription, removeSubscription], isReady);
 }

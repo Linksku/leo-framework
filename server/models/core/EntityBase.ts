@@ -1,7 +1,7 @@
 import mergeConcatArrays from 'lib/mergeConcatArrays';
 
 export default class EntityBase extends Model {
-  // todo: mid/mid maybe replace id with random int
+  // todo: low/hard maybe make ids non-sequential
   // last_insert_id((0xe8e5* last_insert_id()) % power(2, 32))
   static idColumn = 'id';
 

@@ -13,7 +13,6 @@ type Props = {
   dialogStyle: Memoed<AnimationStyle>,
 };
 
-// todo: high/mid link to submit bug report
 function HomeSidebar({
   sidebarRef,
   sidebarStyle,

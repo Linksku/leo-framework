@@ -7,6 +7,7 @@ import objectEntries from './objectEntries';
 import objectKeys from './objectKeys';
 import objectValues from './objectValues';
 import objValOrSetDefault from './objValOrSetDefault';
+import parseIntOrNull from './parseIntOrNull';
 
 export default {
   defined,
@@ -18,4 +19,5 @@ export default {
   objectKeys,
   objectValues,
   objValOrSetDefault,
+  parseIntOrNull,
 };

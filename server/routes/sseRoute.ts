@@ -42,6 +42,10 @@ router.get('/', async (req, res) => {
           },
         );
       });
+
+      if (!currentUserId) {
+        ErrorLogger.warning(new Error('sseRoute: failed to verify OTP.'));
+      }
     }
 
     let sessionId = generateUuid();
@@ -58,12 +62,6 @@ router.get('/', async (req, res) => {
       SseConnectionsManager.removeConn(sessionId);
     });
 
-    if (events) {
-      for (const event of events) {
-        SseBroadcastManager.subscribe(sessionId, event.name, event.params);
-      }
-    }
-
     res.status(200).set({
       connection: 'keep-alive',
       'cache-control': 'no-cache',
@@ -71,11 +69,16 @@ router.get('/', async (req, res) => {
       'access-control-allow-credentials': 'true',
     });
 
+    if (events) {
+      for (const event of events) {
+        SseBroadcastManager.subscribe(sessionId, event.name, event.params);
+      }
+    }
+
     // todo: low/mid move types into shared constants
     SseConnectionsManager.sendMessage(sessionId, JSON.stringify({
-      type: serializeEvent('sseConnected'),
-      entities: [],
-      meta: {
+      eventType: serializeEvent('sseConnected'),
+      data: {
         sessionId,
       },
     }));

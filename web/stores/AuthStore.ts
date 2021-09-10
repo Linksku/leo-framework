@@ -1,66 +1,60 @@
 import useAuthTokenLS from 'lib/hooks/localStorage/useAuthTokenLS';
 import { setErrorLoggerUserId } from 'lib/ErrorLogger';
-import useUpdatedState from 'lib/hooks/useUpdatedState';
+
+type LoggedInStatus = 'unknown' | 'in' | 'out';
 
 const [
   AuthProvider,
   useAuthStore,
-  useAuthToken,
+  useCurrentUserId,
 ] = constate(
   function AuthStore() {
     const [authToken, setAuthToken, removeAuthToken] = useAuthTokenLS();
+    const [state, setState] = useState<{
+      currentUserId: number | null,
+      loggedInStatus: LoggedInStatus,
+    }>({
+      currentUserId: null,
+      loggedInStatus: authToken ? 'unknown' : 'out',
+    });
     const [isReloadingAfterAuth, setIsReloadingAfterAuth] = useState(false);
 
-    const setAuth = useCallback(({ authToken: newAuthToken, redirectPath }: {
+    const setAuth = useCallback(({
+      authToken: newAuthToken,
+      userId,
+      redirectPath,
+    }: {
       authToken: string | null,
+      userId: number | null,
       // todo: mid/mid redirect to previous path
       redirectPath: string,
     }) => {
-      if (newAuthToken) {
-        setAuthToken(newAuthToken);
-      } else {
-        removeAuthToken();
-      }
-
       batchedUpdates(() => {
+        if (newAuthToken && userId) {
+          setAuthToken(newAuthToken);
+          setState({ currentUserId: userId, loggedInStatus: 'in' });
+        } else {
+          removeAuthToken();
+          setState({ currentUserId: null, loggedInStatus: 'out' });
+        }
+
         setIsReloadingAfterAuth(true);
         window.location.href = redirectPath;
       });
     }, [setAuthToken, removeAuthToken]);
 
-    const {
-      data: currentUserData,
-      fetching,
-      fetchingFirstTime,
-    } = useApi('currentUser', {}, {
-      shouldFetch: !!window.localStorage.getItem('authToken') && !isReloadingAfterAuth,
-      onFetch(data) {
-        setErrorLoggerUserId(data.currentUserId);
-      },
-      onError(err) {
-        if (err.status === 401 || err.status === 404) {
-          window.localStorage.removeItem('authToken');
-        }
-      },
-    });
-
-    const loggedInStatus = useUpdatedState<'unknown' | 'in' | 'out'>(
-      authToken ? 'unknown' : 'out',
-      prevStatus => {
-        if (fetching) {
-          return prevStatus;
-        }
-        return currentUserData?.currentUserId
-          ? 'in'
-          : 'out';
-      },
-    );
+    const fetchedCurrentUser = useCallback((currentUserId: number | null) => {
+      setErrorLoggerUserId(currentUserId);
+      setState({
+        currentUserId,
+        loggedInStatus: 'in',
+      });
+    }, []);
 
     return useDeepMemoObj({
-      currentUserId: currentUserData?.currentUserId ?? null,
-      currentUserClubIds: currentUserData?.clubIds ?? [] as number[],
-      loggedInStatus,
-      fetchingUserFirstTime: fetchingFirstTime,
+      currentUserId: state.currentUserId,
+      loggedInStatus: state.loggedInStatus,
+      fetchedCurrentUser,
       isReloadingAfterAuth,
       authToken,
       setAuth,
@@ -69,9 +63,9 @@ const [
   function AuthStore(val) {
     return val;
   },
-  function AuthToken(val) {
-    return val.authToken;
+  function CurrentUserId(val) {
+    return val.currentUserId;
   },
 );
 
-export { AuthProvider, useAuthStore, useAuthToken };
+export { AuthProvider, useAuthStore, useCurrentUserId };

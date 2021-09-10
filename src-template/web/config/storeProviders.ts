@@ -1,5 +1,5 @@
-import { UsersProvider } from '../stores/UsersStore';
+import { CurrentUserProvider } from '../stores/CurrentUserStore';
 
 export default [
-  // UsersProvider,
+  CurrentUserProvider,
 ];

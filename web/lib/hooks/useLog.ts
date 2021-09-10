@@ -1,6 +1,6 @@
-export default function useLog(val: any) {
+export default function useLog(...vals: any[]) {
   useEffect(() => {
     // eslint-disable-next-line no-console
-    console.log(val);
+    console.log(...vals);
   });
 }

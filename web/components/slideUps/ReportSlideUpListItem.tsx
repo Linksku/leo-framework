@@ -1,10 +1,10 @@
 import ExclamationSvg from '@fortawesome/fontawesome-free/svgs/solid/exclamation-circle.svg';
 
-export default function PostSlideUpReportListItem({
+export default function ReportSlideUpListItem({
   entityType,
   entityId,
 }: {
-  entityType: string,
+  entityType: Report['entityType'],
   entityId: number,
 }) {
   const showToast = useShowToast();

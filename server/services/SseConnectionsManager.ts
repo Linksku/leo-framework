@@ -42,6 +42,7 @@ const SseConnectionsManager = {
     const conn = conns[sessionId];
     if (conn) {
       conn.res.write(`data: ${data}\n\n`);
+      conn.res.flush();
       conn.lastMsgTime = performance.now();
     }
   },
@@ -51,6 +52,7 @@ const SseConnectionsManager = {
       if (performance.now() - conn.lastMsgTime > MIN_HEARTBEAT_TIME) {
         try {
           conn.res.write(':\n\n');
+          conn.res.flush();
         } catch {}
         conn.lastMsgTime = performance.now();
       }

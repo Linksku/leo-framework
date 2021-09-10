@@ -5,7 +5,7 @@ import { NOREPLY_EMAIL } from 'settings';
 
 AWS.config.update({ region: process.env.AWS_REGION });
 
-// todo: mid/hard find another service to send emails
+// SES is the cheapest, may need a separate service for promotional emails for more features.
 const client = new SES({
   accessKeyId: process.env.AWS_ACCESS_ID,
   secretAccessKey: process.env.AWS_SECRET_KEY,

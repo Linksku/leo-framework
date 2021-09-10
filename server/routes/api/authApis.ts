@@ -4,7 +4,6 @@ import { defineApi } from 'services/ApiManager';
 import { getCookieJwt, getHeaderJwt, isPasswordValid } from 'lib/authHelpers';
 import sendEmail from 'lib/sendEmail';
 import { RESET_PASSWORD_HASH } from 'consts/coreUserMetaKeys';
-import BaseUser from 'models/core/BaseUser';
 import { APP_NAME, HOME_URL, DOMAIN_NAME } from 'settings';
 import { DEFAULT_AUTH_EXPIRATION } from 'serverSettings';
 import UsersManager from 'services/UsersManager';

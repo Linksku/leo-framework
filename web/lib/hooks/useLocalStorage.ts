@@ -30,15 +30,14 @@ export default function useLocalStorage<T>(
       parsed = opts?.raw || !val ? val : JSON.parse(val);
     } catch {}
 
-    if (process.env.NODE_ENV !== 'production' && parsed && !validator(parsed)) {
-      throw new Error(`useLocalStorage: ${key} failed validator: ${val}`);
-    }
-
     if (parsed && validator(parsed)) {
       return parsed;
     }
 
     setItem(key, initialVal, opts?.raw);
+    if (process.env.NODE_ENV !== 'production' && parsed) {
+      throw new Error(`useLocalStorage: ${key} failed validator: ${val}`);
+    }
     return initialVal;
   });
 

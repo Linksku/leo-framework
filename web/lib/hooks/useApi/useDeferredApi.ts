@@ -29,7 +29,7 @@ type FetchApi<
   Name extends ApiName,
   Params extends Partial<ApiParams<Name>>
 > = Memoed<(
-  params?: Omit<ApiParams<Name>, RequiredKeys<Params>>,
+  params?: Omit<ApiParams<Name>, RequiredKeys<Params>> & { preventDefault?: never },
   files?: ObjectOf<File | File[]>,
 ) => Promise<ApiData<Name> | null>>;
 
@@ -93,8 +93,8 @@ function useDeferredApi<
     numFetches: 0,
     numCancelled: 0,
   });
-  const authToken = useAuthToken();
-  const handleApiEntities = useHandleApiEntities<Name>(type);
+  const { authToken } = useAuthStore();
+  const handleApiEntities = useHandleApiEntities<Name>(type !== 'load');
   const showToast = useShowToast();
   const isMounted = useMountedState();
 
@@ -172,7 +172,7 @@ function useDeferredApi<
             }
             onFetchWrap?.(
               successResponse.data,
-                (params2 ?? {}) as Partial<ApiParams<Name>>,
+                (params2 ?? EMPTY_OBJ) as Partial<ApiParams<Name>>,
             );
           });
 

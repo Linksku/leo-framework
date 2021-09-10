@@ -4,6 +4,7 @@ const mergeReplaceArrays = require('./shared/lib/mergeReplaceArrays');
 const baseConfig = require('./webpack.web');
 
 module.exports = mergeReplaceArrays(baseConfig, {
+  mode: 'development',
   module: {
     rules: baseConfig.module.rules.map(rule => {
       if (rule.test.toString() === '/\\.(j|t)sx?$/') {

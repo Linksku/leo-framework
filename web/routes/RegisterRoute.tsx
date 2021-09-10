@@ -15,7 +15,7 @@ function RegisterRoute() {
     },
   });
   const { errors } = useFormState({ control });
-  const { currentUserId, setAuth } = useAuthStore();
+  const { loggedInStatus, setAuth } = useAuthStore();
 
   const { fetching: submitting, fetchApi: registerUser, error: apiError } = useDeferredApi(
     'registerUser',
@@ -23,7 +23,7 @@ function RegisterRoute() {
     {
       type: 'create',
       onFetch(data) {
-        setAuth({ authToken: data.authToken, redirectPath: '/onboard' });
+        setAuth({ authToken: data.authToken, userId: data.currentUserId, redirectPath: '/onboard' });
       },
     },
   );
@@ -33,7 +33,7 @@ function RegisterRoute() {
       title="Register"
       bodyClassName={styles.container}
     >
-      {currentUserId
+      {loggedInStatus === 'in'
         ? (
           <p className={styles.loggedInMsg}>
             Already logged in.

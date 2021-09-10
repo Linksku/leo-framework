@@ -12,7 +12,7 @@ function LoginRoute() {
     },
   });
   const { errors } = useFormState({ control });
-  const { currentUserId, setAuth } = useAuthStore();
+  const { loggedInStatus, setAuth } = useAuthStore();
 
   const { fetching, fetchApi: loginUser, error: apiError } = useDeferredApi(
     'loginUser',
@@ -21,7 +21,7 @@ function LoginRoute() {
       type: 'load',
       method: 'post',
       onFetch(data) {
-        setAuth({ authToken: data.authToken, redirectPath: '/' });
+        setAuth({ authToken: data.authToken, userId: data.currentUserId, redirectPath: '/' });
       },
     },
   );
@@ -30,7 +30,7 @@ function LoginRoute() {
   return (
     <StackWrapInner title="Login">
       <div className={styles.container}>
-        {currentUserId
+        {loggedInStatus === 'in'
           ? (
             <p className={styles.loggedInMsg}>
               Already logged in.

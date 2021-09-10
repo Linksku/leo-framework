@@ -1,9 +1,9 @@
 const routes: RouteConfig[] = [
-  /* {
+  {
     type: 'home',
     pattern: '/',
-    Component: React.lazy(async () => import(/* webpackChunkName: 'HomeRoute' * / 'routes/HomeRoute')),
-  }, */
+    Component: React.lazy(async () => import(/* webpackChunkName: 'HomeRoute' */ '../routes/HomeFeedRoute')),
+  },
 ];
 
 export default routes;

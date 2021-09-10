@@ -1,4 +1,4 @@
-import type { QueryContext } from 'objection';
+import type { QueryContext, ModelOptions } from 'objection';
 
 import type ComputedUpdatersManagerType from 'services/computedUpdaters/ComputedUpdatersManager';
 import ucFirst from 'lib/ucFirst';
@@ -54,6 +54,17 @@ export default class EntityComputed extends EntityBase {
 
   async $afterInsert(ctx: QueryContext) {
     await super.$afterInsert(ctx);
+
+    if (!ComputedUpdatersManager) {
+      // eslint-disable-next-line global-require
+      ComputedUpdatersManager = require('services/computedUpdaters/ComputedUpdatersManager').default;
+    }
+
+    TS.defined(ComputedUpdatersManager).triggerUpdates((this.constructor as typeof Entity).type);
+  }
+
+  async $afterUpdate(opts: ModelOptions, ctx: QueryContext) {
+    await super.$afterUpdate(opts, ctx);
 
     if (!ComputedUpdatersManager) {
       // eslint-disable-next-line global-require

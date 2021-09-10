@@ -32,5 +32,5 @@ export default class UserMeta extends Entity implements IUserMeta {
   userId!: number;
   metaKey!: string;
   metaValue!: string;
-  user!: User;
+  user!: BaseUser;
 }

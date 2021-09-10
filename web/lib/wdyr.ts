@@ -1,3 +1,4 @@
+// todo: mid/mid remove all side-effects from importing files
 if (process.env.NODE_ENV !== 'production') {
   // eslint-disable-next-line global-require, import/no-extraneous-dependencies
   const whyDidYouRender = require('@welldone-software/why-did-you-render');

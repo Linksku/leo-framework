@@ -45,9 +45,7 @@ const [
 ] = constate(
   function HistoryStore() {
     const ref = useRef(useConst(() => {
-      const initialStateId = window.history.state?.id
-        ? Number.parseInt(window.history.state.id, 10) || 0
-        : 0;
+      const initialStateId = TS.parseIntOrNull(window.history.state?.id) ?? 0;
       return {
         prevState: null as HistoryState | null,
         curState: getStateFromLocation(initialStateId),

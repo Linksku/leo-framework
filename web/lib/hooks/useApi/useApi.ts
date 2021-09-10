@@ -48,7 +48,7 @@ function useApi<Name extends ApiName>(
   const paramsMemo = useDeepMemoObj(params as Pojo) as Memoed<ApiParams<Name>>;
   const paramsStr = useMemo(() => JSON.stringify(paramsMemo), [paramsMemo]);
   const [authToken] = useAuthTokenLS();
-  const handleApiEntities = useHandleApiEntities<Name>('load');
+  const handleApiEntities = useHandleApiEntities<Name>();
   const ref = useRef({
     hasFetched: false,
     fetchingFirstTime: true,

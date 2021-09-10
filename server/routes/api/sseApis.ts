@@ -15,8 +15,9 @@ defineApi(
     },
     dataSchema: {
       type: 'object',
+      required: ['otp'],
       properties: {
-        otp: SchemaConstants.content,
+        otp: SchemaConstants.content.orNull(),
       },
       additionalProperties: false,
     },
@@ -24,7 +25,9 @@ defineApi(
   async function sseOtp({ currentUserId }) {
     if (!currentUserId) {
       return {
-        data: {},
+        data: {
+          otp: null,
+        },
       };
     }
 
@@ -46,7 +49,7 @@ defineApi(
     });
     return {
       data: {
-        otp: otp ?? undefined,
+        otp: otp ?? null,
       },
     };
   },

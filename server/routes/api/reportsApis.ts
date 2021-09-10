@@ -10,7 +10,10 @@ defineApi(
       type: 'object',
       required: ['entityType', 'entityId'],
       properties: {
-        entityType: SchemaConstants.name,
+        entityType: {
+          type: 'string',
+          enum: ['post'],
+        },
         entityId: SchemaConstants.id,
       },
       additionalProperties: false,

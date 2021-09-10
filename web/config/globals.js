@@ -64,9 +64,8 @@ const globals = {
   useStacksNavStore: ['./web/stores/StacksNavStore', 'useStacksNavStore'],
   useToastsStore: ['./web/stores/ToastsStore', 'useToastsStore'],
   // Constate split.
-  useAuthToken: ['./web/stores/AuthStore', 'useAuthToken'],
   useCreateEntities: ['./web/stores/EntitiesStore', 'useCreateEntities'],
-  useCurrentUser: ['./web/lib/hooks/useCurrentUser', 'default'],
+  useCurrentUserId: ['./web/stores/AuthStore', 'useCurrentUserId'],
   useEntities: ['./web/stores/EntitiesStore', 'useEntities'],
   useEntity: ['./web/stores/EntitiesStore', 'useEntity'],
   useGlobalMemo: ['./web/stores/GlobalMemoStore', 'useGlobalMemo'],

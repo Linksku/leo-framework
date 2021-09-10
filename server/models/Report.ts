@@ -8,7 +8,10 @@ export default class Report extends Entity implements IReport {
     properties: {
       id: SchemaConstants.id,
       reporterId: SchemaConstants.id,
-      entityType: SchemaConstants.type,
+      entityType: {
+        type: 'string',
+        enum: ['post'],
+      },
       entityId: SchemaConstants.id,
       time: SchemaConstants.datetimeDefaultNow,
     },
@@ -31,8 +34,8 @@ export default class Report extends Entity implements IReport {
 
   type = 'report' as const;
   reporterId!: number;
-  entityType!: string;
+  entityType!: 'post';
   entityId!: number;
   time!: Date;
-  reporter!: User;
+  reporter!: BaseUser;
 }

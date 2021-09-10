@@ -18,7 +18,7 @@
     "build:types": "scripts/build-types.sh",
     "build:templates": "scripts/build-templates.sh",
     "sync-android": "scripts/sync-android.sh",
-    "tsc": "concurrently \"tsc --p web/tsconfig.json\" \"tsc --p server/tsconfig.json\" \"tsc --p shared/tsconfig.json\"",
+    "tsc": "concurrently \"tsc --p web/tsconfig.json\" \"tsc --p src/web/tsconfig.json\" \"tsc --p server/tsconfig.json\" \"tsc --p src/server/tsconfig.json\" \"tsc --p shared/tsconfig.json\" \"tsc --p src/shared/tsconfig.json\"",
     "mysqldump": "scripts/mysqldump.sh",
     "stats": "scripts/stats.sh",
     "ss": "scripts/run-server-script.sh",

@@ -1,6 +1,8 @@
+import type { RouteRet } from 'services/ApiManager';
 import SseConnectionsManager from 'services/SseConnectionsManager';
 import PubSubManager from 'services/PubSubManager';
 import serializeEvent from 'lib/serializeEvent';
+import processApiRet from 'lib/apiWrap/processApiRet';
 
 type SubUnsubMessage = {
   sessionId: string,
@@ -99,22 +101,15 @@ const SseBroadcastManager = {
   broadcastData(
     eventName: string,
     eventParams: Pojo,
-    // todo: mid/hard unify with api data format.
-    { data = null, entities, included = null, meta = null }: {
-      data?: any,
-      entities: Entity[] | Entity,
-      included?: Entity[] | Entity | null,
-      meta?: any,
-    },
+    data: RouteRet<any>,
   ) {
     const eventType = serializeEvent(eventName, eventParams);
-    const dataStr = JSON.stringify({
-      type: eventType,
-      ...data && { data },
-      entities,
-      ...included && { included },
-      ...meta && { meta },
-    });
+    // todo: mid/mid validate SSE data
+    const processedData: SseResponse = {
+      eventType,
+      ...processApiRet<any>(data),
+    };
+    const dataStr = JSON.stringify(processedData);
 
     SseBroadcastManager.handleData(eventType, dataStr);
     PubSubManager.publish(

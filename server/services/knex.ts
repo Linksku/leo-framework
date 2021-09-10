@@ -5,7 +5,7 @@ if (!process.env.MYSQL_USER) {
   throw new Error('MYSQL_USER env var not set.');
 }
 
-const DEBUG = false;
+const SHOW_ALL_QUERIES = false;
 
 // todo: high/hard add at least 1 mysql local read replica
 const knex = Knex({
@@ -16,10 +16,9 @@ const knex = Knex({
     password: process.env.MYSQL_PASS,
     database: process.env.MYSQL_DB,
     charset: 'utf8mb4',
-    // todo: low/mid figure out why field.length isn't 1 for mysql
     // https://github.com/Vincit/objection.js/issues/174
     typeCast: ((field, next) => {
-      if (field.type === 'TINY') {
+      if (field.type === 'TINY' && field.length === 1) {
         const value = field.string();
         return value ? value === '1' : null;
       }
@@ -30,11 +29,11 @@ const knex = Knex({
   debug: process.env.NODE_ENV !== 'production',
   log: {
     debug(msg) {
-      if (msg.sql.startsWith('explain ')) {
+      if (process.env.NODE_ENV === 'production' || msg.sql.startsWith('explain ')) {
         return;
       }
 
-      if (DEBUG) {
+      if (SHOW_ALL_QUERIES) {
         console.log(
           'Query:',
           knex.raw(msg.sql, msg.bindings).toString(),
@@ -43,14 +42,24 @@ const knex = Knex({
 
       void knex.raw(`explain ${msg.sql}`, msg.bindings)
         .then(results => {
-          const slowQueries = results[0].filter(
+          const filesorts = results[0].filter(
             row => !msg.sql.includes('computedPostsScores')
-                && row.Extra?.toLowerCase().includes('filesort')
-                && row.Extra?.toLowerCase().includes('temporary'),
+                && row.Extra?.toLowerCase().includes('filesort'),
           );
-          if (slowQueries.length) {
+          if (filesorts.length) {
             console.log(
               'Filesort:',
+              knex.raw(msg.sql, msg.bindings).toString(),
+            );
+          }
+
+          const temporaries = results[0].filter(
+            row => !msg.sql.includes('computedPostsScores')
+                && row.Extra?.toLowerCase().includes('temporary'),
+          );
+          if (temporaries.length) {
+            console.log(
+              'Using temporary:',
               knex.raw(msg.sql, msg.bindings).toString(),
             );
           }

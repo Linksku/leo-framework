@@ -35,7 +35,6 @@ type Props = {
   bodyClassName?: string,
 } & InnerProps;
 
-// todo: high/mid ui glitch when double clicking back button and the second click opens the sidebar
 export default function StackWrapInner({
   children,
   className,

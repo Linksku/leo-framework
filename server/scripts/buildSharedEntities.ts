@@ -6,7 +6,8 @@ import { Model as _Model } from 'objection';
 import mkdirp from 'mkdirp';
 import { compile } from 'json-schema-to-typescript';
 
-import entityModels from 'lib/entityModels';
+import defaultModels from 'models/defaultModels';
+import srcModels from 'config/models';
 
 // @ts-ignore
 global.Model = class Model {};
@@ -32,10 +33,13 @@ function isValidValSchema(val: JSONSchemaDefinition): boolean {
 }
 
 export default async function buildSharedEntities() {
-  const entities = [] as { type: string, name: string }[];
+  const entities = {} as ObjectOf<string>;
   const interfaces = [] as string[];
 
-  for (const [model, EntityModel] of TS.objectEntries(entityModels)) {
+  for (const [model, EntityModel] of TS.objectEntries({
+    ...defaultModels,
+    ...srcModels,
+  })) {
     const { allJsonSchema } = EntityModel;
     for (const [prop, val] of Object.entries(allJsonSchema.properties)) {
       if (prop === 'id') {
@@ -68,7 +72,7 @@ ${
 }
 };
 `);
-    entities.push({ type: EntityModel.type, name: model });
+    entities[EntityModel.type] = model;
   }
 
   await mkdirp(path.resolve('./src/shared/types/generated'));
@@ -77,11 +81,11 @@ ${
     `${interfaces.join('\n')}
 type TypeToEntity<T extends EntityType> = {
 ${
-  entities.map(e => `  ${e.type}: ${e.name},`).join('\n')
+  Object.entries(entities).map(([type, name]) => `  ${type}: ${name},`).join('\n')
 }
 }[T];
 
-type EntityType = '${entities.map(e => e.type).join(`' | '`)}';
+type EntityType = '${Object.keys(entities).join(`' | '`)}';
 `,
   );
 }

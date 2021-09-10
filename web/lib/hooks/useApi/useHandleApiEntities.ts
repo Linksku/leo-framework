@@ -21,7 +21,7 @@ function _transformDateProps(
 }
 
 export default function useHandleApiEntities<Name extends ApiName>(
-  type: EntityApiAction,
+  allowPost = false,
 ) {
   const loadEntities = useLoadEntities();
   const createEntities = useCreateEntities();
@@ -35,14 +35,13 @@ export default function useHandleApiEntities<Name extends ApiName>(
     deletedIds,
     meta,
   }: MemoDeep<ApiSuccessResponse<Name>>) => {
-    const isPostType = type !== 'load';
     if (entities) {
       _transformDateProps(entities, meta?.dateProps);
       loadEntities(entities);
     }
 
     if (createdEntities) {
-      if (process.env.NODE_ENV !== 'production' && !isPostType) {
+      if (process.env.NODE_ENV !== 'production' && !allowPost) {
         throw new Error('createdEntities exists when type isn\'t create');
       }
       _transformDateProps(createdEntities, meta?.dateProps);
@@ -50,7 +49,7 @@ export default function useHandleApiEntities<Name extends ApiName>(
     }
 
     if (updatedEntities) {
-      if (process.env.NODE_ENV !== 'production' && !isPostType) {
+      if (process.env.NODE_ENV !== 'production' && !allowPost) {
         throw new Error('updatedEntities exists when type isn\'t update');
       }
       _transformDateProps(updatedEntities, meta?.dateProps);
@@ -58,7 +57,7 @@ export default function useHandleApiEntities<Name extends ApiName>(
     }
 
     if (deletedIds) {
-      if (process.env.NODE_ENV !== 'production' && !isPostType) {
+      if (process.env.NODE_ENV !== 'production' && !allowPost) {
         throw new Error('deletedIds exists when type isn\'t delete');
       }
 
@@ -69,5 +68,5 @@ export default function useHandleApiEntities<Name extends ApiName>(
         );
       }
     }
-  }, [type, createEntities, updateEntities, loadEntities, deleteEntities]);
+  }, [allowPost, createEntities, updateEntities, loadEntities, deleteEntities]);
 }

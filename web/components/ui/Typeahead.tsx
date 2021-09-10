@@ -12,7 +12,8 @@ type Props = MemoObjShallow<{
   getResults: (s: string) => { key: string | null, name: string }[],
   onChange?: (key: string | null, val?: string) => void,
   className?: string | null,
-  defaultElement?: React.ReactElement,
+  defaultElement?: ReactElement,
+  lastElement?: ReactElement,
   inputProps: Parameters<typeof Input>[0],
   inputRef?: React.RefCallback<HTMLInputElement>,
   clearOnSelect?: boolean,
@@ -130,6 +131,7 @@ export default class Typeahead extends React.PureComponent<Props, State> {
       onChange,
       className,
       defaultElement,
+      lastElement,
       inputProps,
       inputRef,
       clearOnSelect,
@@ -178,6 +180,7 @@ export default class Typeahead extends React.PureComponent<Props, State> {
         <Dropdown
           options={results}
           defaultElement={defaultElement}
+          lastElement={lastElement}
           open={isOpen}
           onOptionMouseDown={onOptionMouseDown}
         />

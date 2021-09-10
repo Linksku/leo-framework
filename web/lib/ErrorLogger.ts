@@ -63,11 +63,11 @@ const ErrorLogger = {
   },
 } as const;
 
-export const loadErrorLogger = (userId?: number) => {
+export const loadErrorLogger = (userId: number | null) => {
   if (process.env.NODE_ENV !== 'production' || process.env.SERVER !== 'production') {
     return;
   }
-  latestUserId = userId ?? null;
+  latestUserId = userId;
 
   Promise.all([
     import('@sentry/browser'),

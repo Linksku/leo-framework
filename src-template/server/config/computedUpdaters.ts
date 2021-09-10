@@ -1,9 +1,8 @@
-import type BaseComputedUpdater from 'services/computedUpdaters/BaseComputedUpdater';
+import type BaseComputedUpdater from '../services/computedUpdaters/BaseComputedUpdater';
+import PostsComputedUpdater from '../services/computedUpdaters/PostsComputedUpdater';
 
-// import UsersComputedUpdater from 'services/computedUpdaters/UsersComputedUpdater';
-
-const updaters: ObjectOf<BaseComputedUpdater> = {
-  // UsersComputedUpdater: new UsersComputedUpdater(),
+const updaters: ObjectOf<BaseComputedUpdater<any>> = {
+  PostsComputedUpdater: new PostsComputedUpdater(),
 };
 
 export default updaters;

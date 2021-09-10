@@ -13,21 +13,20 @@ function ResetPasswordVerifyRoute({ query }: RouteProps) {
   const { errors } = useFormState({ control });
   const { setAuth } = useAuthStore();
 
-  const queryUserId = query?.userId;
-  const queryToken = query?.token;
-  const userId = typeof queryUserId === 'string' ? Number.parseInt(queryUserId, 10) : undefined;
+  const token = query?.token;
+  const userId = TS.parseIntOrNull(query?.userId) ?? 0;
 
   const { fetching, fetchApi: verifyResetPassword, error: apiError } = useDeferredApi(
     'verifyResetPassword',
     {
       userId,
-      token: typeof queryToken === 'string' ? queryToken : undefined,
+      token: typeof token === 'string' ? token : undefined,
     },
     {
       type: 'load',
       method: 'post',
       onFetch(data) {
-        setAuth({ authToken: data.authToken, redirectPath: '/' });
+        setAuth({ authToken: data.authToken, userId: data.currentUserId, redirectPath: '/' });
       },
     },
   );

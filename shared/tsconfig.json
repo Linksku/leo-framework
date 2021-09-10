@@ -4,13 +4,12 @@
     "paths": {
       "baseUrl": ["."],
       "*": [
-        "shared/*",
-        "src/shared/*"
+        "shared/*"
       ],
     }
   },
   "include": [
+    "../src/shared/types",
     ".",
-    "../src/shared"
   ]
 }

@@ -100,7 +100,7 @@ export default function processApiRet<Path extends ApiName>({
   updatedEntities,
   deletedIds,
   ...others
-}: RouteRet<Path>) {
+}: RouteRet<Path>): ApiSuccessResponse<Path> {
   if (Object.keys(others).length) {
     throw new HandledError('Invalid properties in route response.', 500, others);
   }

@@ -26,3 +26,7 @@ type ApiSuccessResponse<Name extends ApiName> = {
 };
 
 type ApiResponse<Name extends ApiName> = ApiSuccessResponse<Name> | ApiErrorResponse;
+
+type SseResponse = ApiSuccessResponse<any> & {
+  eventType: string,
+};

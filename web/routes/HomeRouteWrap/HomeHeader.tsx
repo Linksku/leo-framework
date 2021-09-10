@@ -8,7 +8,7 @@ import HomeHeaderNotifsIcon from './HomeHeaderNotifsIcon';
 import styles from './HomeHeaderStyles.scss';
 
 function HomeHeader() {
-  const currentUser = useCurrentUser();
+  const currentUserId = useCurrentUserId();
   const { loggedInStatus } = useAuthStore();
 
   const icons = [
@@ -20,7 +20,7 @@ function HomeHeader() {
       authOnly: true,
     },
     {
-      path: currentUser ? `/user/${currentUser.id}` : '/login',
+      path: currentUserId ? `/user/${currentUserId}` : '/login',
       Component: UserSvg,
       label: 'User',
       authOnly: false,

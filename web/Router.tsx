@@ -13,14 +13,13 @@ import { loadErrorLogger } from 'lib/ErrorLogger';
 import ErrorBoundary from 'components/ErrorBoundary';
 
 export default function Router() {
-  const currentUser = useCurrentUser();
   const {
     stackBot,
     stackTop,
     stackActive,
   } = useStacksNavStore();
   const { isReplaced, curState } = useHistoryStore();
-  const { isReloadingAfterAuth, loggedInStatus } = useAuthStore();
+  const { isReloadingAfterAuth, currentUserId, loggedInStatus } = useAuthStore();
   const replacePath = useReplacePath();
 
   const {
@@ -35,8 +34,8 @@ export default function Router() {
     auth: stackTopAuth,
     matches: stackTopMatches,
   } = pathToRoute(stackTop?.path) ?? {};
-  const isBotAuth = !stackBotAuth || currentUser;
-  const isTopAuth = !stackTopAuth || currentUser;
+  const isBotAuth = !stackBotAuth || currentUserId;
+  const isTopAuth = !stackTopAuth || currentUserId;
 
   useTimeComponentPerf(`Router:${stackActive === 'top' ? stackTop?.path : stackBot?.path}`);
 
@@ -44,7 +43,7 @@ export default function Router() {
     if (!isBotAuth || !isTopAuth) {
       replacePath('/register');
     }
-    loadErrorLogger(currentUser?.id);
+    loadErrorLogger(currentUserId);
 
     setTimeout(() => {
       // todo: mid/mid android appears to show splashscreen as background when expanding keyboard
@@ -52,7 +51,7 @@ export default function Router() {
     }, 0);
   }, [isBotAuth, isTopAuth, replacePath], loggedInStatus !== 'unknown');
 
-  if (!currentUser
+  if (!currentUserId
     && (loggedInStatus === 'unknown' || isReloadingAfterAuth)
     && (stackBotAuth || stackTopAuth)) {
     return (

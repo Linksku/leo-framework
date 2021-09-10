@@ -3,6 +3,7 @@ import styles from './DropdownStyles.scss';
 type Props = MemoObjShallow<{
   options: { key: string | null, name: string }[],
   defaultElement?: ReactElement,
+  lastElement?: ReactElement,
   open: boolean,
   className?: string,
   defaultValue?: string,
@@ -12,6 +13,7 @@ type Props = MemoObjShallow<{
 export default function Dropdown({
   options,
   defaultElement,
+  lastElement,
   open,
   className,
   onOptionMouseDown,
@@ -41,6 +43,14 @@ export default function Dropdown({
               {defaultElement}
             </div>
           )}
+
+        {lastElement
+          ? (
+            <div className={styles.option}>
+              {lastElement}
+            </div>
+          )
+          : null}
       </div>
     </div>
   );

@@ -1,1 +1,1 @@
-export default Object.freeze({}) as unknown as ObjectOf<any>;
+export default Object.freeze(Object.create(null)) as unknown as ObjectOf<any>;

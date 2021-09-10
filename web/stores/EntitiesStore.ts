@@ -318,7 +318,7 @@ function useEntities<T extends EntityType>(type: T): Memoed<EntitiesMap<T>> {
     };
   }, [addEntityListener, type, update]);
 
-  return (entitiesRef.current[type] || Object.create(null)) as Memoed<EntitiesMap<T>>;
+  return (entitiesRef.current[type] || EMPTY_OBJ) as Memoed<EntitiesMap<T>>;
 }
 
 export {

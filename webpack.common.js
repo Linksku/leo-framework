@@ -30,7 +30,6 @@ for (const k of ENV_KEYS) {
 
 // todo: mid/hard memory usage.
 module.exports = {
-  mode: 'development',
   module: {
     rules: [
       {
