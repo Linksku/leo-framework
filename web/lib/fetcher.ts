@@ -117,7 +117,7 @@ function _createFullUrl(url: string, params: ObjectOf<string | number | boolean>
 }
 
 const fetcher = {
-  async get(
+  get(
     url: string,
     params: ObjectOf<string | number | boolean> = {},
     opts: FetcherOpts = {},
@@ -126,7 +126,7 @@ const fetcher = {
     return _fetcherWrap(fullUrl, opts.method || 'GET', null, opts);
   },
 
-  async getWithoutCache(
+  getWithoutCache(
     url: string,
     params: ObjectOf<string | number | boolean> = {},
     opts: FetcherOpts = {},
@@ -139,12 +139,12 @@ const fetcher = {
     });
   },
 
-  async post(url: string, _body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+  post(url: string, _body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
     const body = Object.keys(_body).length ? JSON.stringify(_body) : '';
     return _fetcherWrap(url, opts.method || 'POST', body, opts);
   },
 
-  async postForm(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+  postForm(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
     opts.contentType = 'multipart/form-data';
     const formData = new FormData();
     for (const key of Object.keys(body)) {
@@ -160,15 +160,15 @@ const fetcher = {
     return _fetcherWrap(url, opts.method || 'POST', formData, opts);
   },
 
-  async patch(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+  patch(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
     return fetcher.post(url, body, { method: 'PATCH', ...opts });
   },
 
-  async put(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+  put(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
     return fetcher.post(url, body, { method: 'PUT', ...opts });
   },
 
-  async delete(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+  delete(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
     return fetcher.post(url, body, { method: 'DELETE', ...opts });
   },
 };

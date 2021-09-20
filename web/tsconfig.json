@@ -14,5 +14,8 @@
     "../src/shared/types/generated",
     "../shared/types",
     ".",
+  ],
+  "exclude": [
+    "../src/web",
   ]
 }

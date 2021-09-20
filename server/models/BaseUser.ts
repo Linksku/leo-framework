@@ -14,6 +14,7 @@ export default class BaseUser extends Entity {
       password: SchemaConstants.password,
       name: SchemaConstants.name,
       birthday: SchemaConstants.date,
+      registerTime: SchemaConstants.datetimeDefaultNow,
     },
     additionalProperties: false,
   };
@@ -21,10 +22,11 @@ export default class BaseUser extends Entity {
   protected static uniqueProperties = new Set(['id', 'email']);
 
   type = 'user' as const;
-  birthday!: string;
   email!: string;
   password!: string;
   name!: string;
+  birthday!: string;
+  registerTime!: Date;
 
   async $beforeInsert(ctx: QueryContext) {
     await super.$beforeInsert(ctx);

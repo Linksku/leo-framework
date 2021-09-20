@@ -9,6 +9,7 @@ import styles from './TypeaheadStyles.scss';
 type Props = MemoObjShallow<{
   defaultValue?: string,
   fetchResults?: (s: string) => void,
+  // todo: low/mid rewrite Typeahead to accept results directly
   getResults: (s: string) => { key: string | null, name: string }[],
   onChange?: (key: string | null, val?: string) => void,
   className?: string | null,

@@ -2,7 +2,7 @@ import type { RouteRet } from 'services/ApiManager';
 import SseConnectionsManager from 'services/SseConnectionsManager';
 import PubSubManager from 'services/PubSubManager';
 import serializeEvent from 'lib/serializeEvent';
-import processApiRet from 'lib/apiWrap/processApiRet';
+import processApiRet from 'lib/apiHelpers/processApiRet';
 
 type SubUnsubMessage = {
   sessionId: string,

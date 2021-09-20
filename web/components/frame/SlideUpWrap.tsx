@@ -10,7 +10,7 @@ export default function SlideUpWrap() {
   const animatedShownPercent = useAnimatedValue(slideUpShown ? 100 : 0, 'SlideUpWrap');
   const [dialogRef, dialogStyle] = useAnimation<HTMLDivElement>();
   const [containerRef, containerStyle] = useAnimation<HTMLDivElement>();
-  const { ref, bindSwipe } = useSwipeNavigation({
+  const { ref, bindSwipe } = useSwipeNavigation<HTMLDivElement>({
     onNavigate: hideSlideUp,
     setPercent: p => animatedShownPercent.setVal(100 - p),
     direction: 'down',

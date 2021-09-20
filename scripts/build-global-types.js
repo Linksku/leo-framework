@@ -41,5 +41,5 @@ declare global {
 
 (async () => {
   await mkdirp(path.dirname(path.resolve(outName)));
-  await fs.writeFileSync(path.resolve(outName), out);
+  await fs.promises.writeFile(path.resolve(outName), out);
 })();

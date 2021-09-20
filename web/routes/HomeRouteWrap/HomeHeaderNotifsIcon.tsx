@@ -3,12 +3,12 @@ import BellSvg from '@fortawesome/fontawesome-free/svgs/regular/bell.svg';
 import HomeHeaderIconUnreadCount from './HomeHeaderIconUnreadCount';
 
 export default function HomeHeaderNotifsIcon() {
-  const { loggedInStatus } = useAuthStore();
+  const authState = useAuthState();
   const { data } = useApi(
     'notifsCount',
     EMPTY_OBJ,
     {
-      shouldFetch: loggedInStatus !== 'out',
+      shouldFetch: authState !== 'out',
     },
   );
   const count = data?.count ?? 0;

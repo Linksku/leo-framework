@@ -1,7 +1,7 @@
 import type { Api, RouteRet } from 'services/ApiManager';
 import { defineApi, nameToApi } from 'services/ApiManager';
-import validateApiData from 'lib/apiWrap/validateApiData';
-import handleApiError from 'lib/apiWrap/handleApiError';
+import validateApiData from 'lib/apiHelpers/validateApiData';
+import handleApiError from 'lib/apiHelpers/handleApiError';
 import { unserializeDateProps } from 'lib/dateSchemaHelpers';
 
 defineApi(
@@ -17,7 +17,7 @@ defineApi(
             type: 'object',
             required: ['name', 'params'],
             properties: {
-              name: SchemaConstants.content,
+              name: SchemaConstants.name,
               params: SchemaConstants.pojo,
             },
             additionalProperties: false,

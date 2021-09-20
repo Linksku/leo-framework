@@ -1,21 +1,27 @@
 import useAuthTokenLS from 'lib/hooks/localStorage/useAuthTokenLS';
 import { setErrorLoggerUserId } from 'lib/ErrorLogger';
 
-type LoggedInStatus = 'unknown' | 'in' | 'out';
+/*
+in -> current user is set
+out -> current user is null
+unknown -> fetching user for first time
+*/
+type AuthStateType = 'unknown' | 'in' | 'out';
 
 const [
   AuthProvider,
   useAuthStore,
   useCurrentUserId,
+  useAuthState,
 ] = constate(
   function AuthStore() {
     const [authToken, setAuthToken, removeAuthToken] = useAuthTokenLS();
     const [state, setState] = useState<{
       currentUserId: number | null,
-      loggedInStatus: LoggedInStatus,
+      authState: AuthStateType,
     }>({
       currentUserId: null,
-      loggedInStatus: authToken ? 'unknown' : 'out',
+      authState: authToken ? 'unknown' : 'out',
     });
     const [isReloadingAfterAuth, setIsReloadingAfterAuth] = useState(false);
 
@@ -32,10 +38,10 @@ const [
       batchedUpdates(() => {
         if (newAuthToken && userId) {
           setAuthToken(newAuthToken);
-          setState({ currentUserId: userId, loggedInStatus: 'in' });
+          setState({ currentUserId: userId, authState: 'in' });
         } else {
           removeAuthToken();
-          setState({ currentUserId: null, loggedInStatus: 'out' });
+          setState({ currentUserId: null, authState: 'out' });
         }
 
         setIsReloadingAfterAuth(true);
@@ -47,13 +53,13 @@ const [
       setErrorLoggerUserId(currentUserId);
       setState({
         currentUserId,
-        loggedInStatus: 'in',
+        authState: currentUserId ? 'in' : 'out',
       });
     }, []);
 
     return useDeepMemoObj({
       currentUserId: state.currentUserId,
-      loggedInStatus: state.loggedInStatus,
+      authState: state.authState,
       fetchedCurrentUser,
       isReloadingAfterAuth,
       authToken,
@@ -66,6 +72,9 @@ const [
   function CurrentUserId(val) {
     return val.currentUserId;
   },
+  function AuthState(val) {
+    return val.authState;
+  },
 );
 
-export { AuthProvider, useAuthStore, useCurrentUserId };
+export { AuthProvider, useAuthStore, useCurrentUserId, useAuthState };

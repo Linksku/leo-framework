@@ -19,9 +19,9 @@ function HomeSidebar({
   dialogRef,
   dialogStyle,
 }: Props) {
-  const { sidebarShownPercent, sidebarLoaded, hideSidebar } = useHomeNavStore();
+  const { sidebarShownPercent, sidebarLoaded, hideSidebar } = useUIFrameStore();
 
-  const { bindSwipe } = useSwipeNavigation({
+  const { bindSwipe } = useSwipeNavigation<HTMLDivElement>({
     onNavigate: () => hideSidebar(),
     setPercent: (p: number) => sidebarShownPercent.setVal(100 - p),
     direction: 'left',

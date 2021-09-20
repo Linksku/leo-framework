@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 import { defineApi } from 'services/ApiManager';
-import { getCookieJwt, getHeaderJwt, isPasswordValid } from 'lib/authHelpers';
+import { getCookieJwt, getHeaderJwt, isPasswordValid } from 'lib/apiHelpers/jwtAuth';
 import sendEmail from 'lib/sendEmail';
 import { RESET_PASSWORD_HASH } from 'consts/coreUserMetaKeys';
 import { APP_NAME, HOME_URL, DOMAIN_NAME } from 'settings';

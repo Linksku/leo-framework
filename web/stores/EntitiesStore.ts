@@ -221,7 +221,7 @@ const [
       _id: EntityId | EntityEventHandler<T>,
       _cb?: EntityEventHandler<T>,
     ) => {
-      const cb = _id instanceof Function ? _id : _cb as EntityEventHandler<T>;
+      const cb = _id instanceof Function ? _id : TS.defined(_cb);
       const id = _id instanceof Function ? null : _id;
 
       const key = id ? `${action},${type},${id}` : `${action},${type}`;

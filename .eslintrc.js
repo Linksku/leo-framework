@@ -58,7 +58,7 @@ module.exports = {
     'no-multi-assign': 0,
     'object-curly-newline': [2, { consistent: true }],
     'react/prop-types': 0,
-    'import/prefer-default-export': 1,
+    'import/prefer-default-export': 0,
     'no-plusplus': 0,
     'default-case': 1,
     'react/no-unused-state': 2,
@@ -293,17 +293,22 @@ module.exports = {
       minimumDescriptionLength: 3,
     }],
     '@typescript-eslint/explicit-module-boundary-types': 0,
+    // Too slow.
     '@typescript-eslint/no-floating-promises': [1, {
       ignoreVoid: true,
       ignoreIIFE: true,
     }],
+    // Too slow.
+    '@typescript-eslint/await-thenable': 1,
+    // Too slow.
+    '@typescript-eslint/unbound-method': 1,
     '@typescript-eslint/promise-function-async': 1,
     '@typescript-eslint/no-misused-promises': [1, {
       checksVoidReturn: false,
     }],
     '@typescript-eslint/return-await': 2,
     '@typescript-eslint/no-explicit-any': 0,
-    // use shared/lib/defined
+    // Use shared/lib/defined
     '@typescript-eslint/no-non-null-assertion': 2,
     '@typescript-eslint/no-empty-function': 0,
     'import/extensions': [2, 'ignorePackages', {
@@ -312,8 +317,9 @@ module.exports = {
       ts: 'never',
       tsx: 'never',
     }],
-    'import/no-extraneous-dependencies': [1, {
-      devDependencies: true,
+    // Disabling because adding `file:../` to `src/package.json` breaks yarn
+    'import/no-extraneous-dependencies': [0, {
+      devDependencies: false,
       packageDir: ['.', './src'],
     }],
     'react/require-default-props': [2, { ignoreFunctionalComponents: true }],
@@ -337,8 +343,11 @@ module.exports = {
     'max-statements-per-line': [2, { max: 1 }],
     'no-void': [2, { allowAsStatement: true }],
     'max-classes-per-file': 0,
-    'no-use-before-define': 1,
+    'no-use-before-define': 0,
+    '@typescript-eslint/no-use-before-define': 2,
     'unicorn/prefer-array-flat-map': 1,
+    'require-await': 'off',
+    '@typescript-eslint/require-await': 2,
   },
   overrides: [
     {

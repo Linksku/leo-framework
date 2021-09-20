@@ -10,6 +10,7 @@ import useAuthTokenLS from 'lib/hooks/localStorage/useAuthTokenLS';
 import useHandleEntityEvents from 'lib/hooks/entities/useHandleEntityEvents';
 import queueBatchedRequest from './queueBatchedRequest';
 import useHandleApiEntities from './useHandleApiEntities';
+import useHandleErrorResponse from './useHandleErrorResponse';
 
 type Opts<Name extends ApiName> = {
   shouldFetch?: boolean,
@@ -26,7 +27,6 @@ type Return<Name extends ApiName> = {
   fetching: boolean,
   fetchingFirstTime: boolean,
   error: Memoed<Error> | null,
-  revalidate: Revalidator,
   mutate: SWRResponse<ApiData<Name> | null, any>['mutate'],
 };
 
@@ -48,7 +48,8 @@ function useApi<Name extends ApiName>(
   const paramsMemo = useDeepMemoObj(params as Pojo) as Memoed<ApiParams<Name>>;
   const paramsStr = useMemo(() => JSON.stringify(paramsMemo), [paramsMemo]);
   const [authToken] = useAuthTokenLS();
-  const handleApiEntities = useHandleApiEntities<Name>();
+  const handleApiEntities = useHandleApiEntities();
+  const handleErrorResponse = useHandleErrorResponse();
   const ref = useRef({
     hasFetched: false,
     fetchingFirstTime: true,
@@ -71,64 +72,65 @@ function useApi<Name extends ApiName>(
     }
   });
 
-  const { data, isValidating, error, revalidate, mutate } = useSWR<ApiData<Name> | null>(
-    shouldFetch || ref.current.hasFetched ? [name, paramsStr] : null,
-    async () => {
-      ref.current.hasFetched = true;
-      try {
-        return await queueBatchedRequest<Name>({
-          name,
-          params: paramsMemo,
-          onFetch: onFetchWrap,
-          onError: onErrorWrap,
-          authToken,
-          handleApiEntities,
-        });
-      } catch (err) {
-        if (process.env.NODE_ENV === 'production') {
-          ErrorLogger.warning(err, `useApi: ${name} failed`);
-        } else {
-          console.error(err);
-        }
-        throw err;
-      }
-    },
-    {
-      // todo: low/mid fix refetching if refocusing right after load
-      focusThrottleInterval: 60 * 1000,
-      loadingTimeout: HTTP_TIMEOUT,
-      onErrorRetry: (
-        err: Error,
-        _,
-        config: SWRConfiguration,
-        retry: Revalidator,
-        { retryCount },
-      ) => {
-        if (!config.isDocumentVisible?.()) {
-          return;
-        }
+  const { data, isValidating, error, mutate: _mutate } = (
+    // For filtering useSWR from why-did-you-render.
+    function useSWRHack() {
+      return useSWR<ApiData<Name> | null>(
+        shouldFetch || ref.current.hasFetched ? [name, paramsStr] : null,
+        async () => {
+          ref.current.hasFetched = true;
+          return queueBatchedRequest<Name>({
+            name,
+            params: paramsMemo,
+            onFetch: onFetchWrap,
+            onError: onErrorWrap,
+            authToken,
+            handleApiEntities,
+            handleErrorResponse,
+          });
+        },
+        {
+          // todo: low/mid fix refetching if refocusing right after load
+          focusThrottleInterval: 60 * 1000,
+          loadingTimeout: HTTP_TIMEOUT,
+          onErrorRetry: (
+            err: Error,
+            _,
+            config: SWRConfiguration,
+            retry: Revalidator,
+            { retryCount },
+          ) => {
+            if (!config.isVisible?.()) {
+              return;
+            }
 
-        if (err.status && err.status !== 503) {
-          return;
-        }
+            if (err.status && err.status !== 503) {
+              return;
+            }
 
-        setTimeout(
-          async () => retry({ retryCount: retryCount + 1 }),
-          5000 * (2 ** Math.min(10, retryCount)),
-        );
-      },
-      ...swrConfig,
-    },
+            setTimeout(
+              async () => retry({ retryCount: retryCount + 1 }),
+              5000 * (2 ** Math.min(10, retryCount)),
+            );
+          },
+          ...swrConfig,
+        },
+      );
+    }()
   );
+  const mutate = markMemoed(_mutate);
 
-  useHandleEntityEvents(revalidateOnEvents ?? EMPTY_ARR, markMemoed(revalidate));
+  // todo: mid/mid check if this revalidates immediately, don't revalidate if screen is hidden
+  useHandleEntityEvents(
+    revalidateOnEvents ?? EMPTY_ARR,
+    useCallback(() => mutate, [mutate]),
+  );
 
   return {
     data: data ?? null,
     fetching: isValidating,
     fetchingFirstTime: isValidating && ref.current.fetchingFirstTime,
     error,
-    revalidate,
     mutate,
   };
 }

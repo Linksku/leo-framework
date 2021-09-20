@@ -103,7 +103,7 @@ defineApi(
       additionalProperties: false,
     },
   },
-  async function seenNotifs({ currentUserId }) {
+  function seenNotifs({ currentUserId }) {
     void UserMeta.query()
       .insert({
         userId: currentUserId,

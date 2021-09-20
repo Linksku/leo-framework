@@ -3,30 +3,28 @@ import { useDrag } from 'react-use-gesture';
 
 import shouldSwipeNavigate from 'lib/shouldSwipeNavigate';
 
-type Props = {
+type Props<T extends HTMLElement> = {
   direction: 'up' | 'left' | 'down' | 'right',
   onStart?: (() => void) | null,
   onNavigate?: (() => void) | null,
-  onCancelNavigate?: (() => void) | null,
   onFinish?: (() => void) | null,
   setPercent: (percent: number) => void,
   enabled?: boolean,
-  elementRef?: React.MutableRefObject<any>,
+  elementRef?: React.MutableRefObject<T | null>,
   maxSwipeStartDist?: number,
 } & UseDragConfig;
 
-export default function useSwipeNavigation({
+export default function useSwipeNavigation<T extends HTMLElement>({
   direction,
   onStart,
   onNavigate,
-  onCancelNavigate,
   onFinish,
   setPercent,
   enabled = true,
   elementRef,
   maxSwipeStartDist,
   ...options
-}: Props) {
+}: Props<T>) {
   const directionMultiplier = direction === 'right' || direction === 'down' ? 1 : -1;
   const axis = direction === 'left' || direction === 'right' ? 'x' : 'y';
   const elemDimProp = axis === 'x' ? 'offsetWidth' : 'offsetHeight';
@@ -37,9 +35,8 @@ export default function useSwipeNavigation({
     lastMoveTime: 0,
     dim: null as number | null,
     windowDim: null as number | null,
-    hasNavigated: false,
   });
-  const elementRef2 = useRef<any>();
+  const elementRef2 = useRef<T | null>(null);
 
   const bind = useDrag(({
     xy,
@@ -50,7 +47,8 @@ export default function useSwipeNavigation({
     cancel,
     canceled,
   }) => {
-    if (!enabled || canceled) {
+    const elem = elementRef?.current ?? elementRef2?.current;
+    if (!enabled || canceled || !elem) {
       return;
     }
 
@@ -75,8 +73,7 @@ export default function useSwipeNavigation({
     }
 
     if (first || !ref.current.dim || !ref.current.windowDim) {
-      ref.current.dim = (elementRef?.current?.[elemDimProp]
-        || elementRef2?.current?.[elemDimProp]) as number;
+      ref.current.dim = elem[elemDimProp];
       ref.current.windowDim = window[windowDimProp];
     }
 
@@ -93,14 +90,32 @@ export default function useSwipeNavigation({
       })) {
         setPercent(100);
         onNavigate?.();
-        ref.current.hasNavigated = true;
       } else {
         setPercent(0);
-        if (ref.current.hasNavigated) {
-          onCancelNavigate?.();
-          ref.current.hasNavigated = false;
-        }
       }
+
+      // Fix Chrome click not firing: https://bugs.chromium.org/p/chromium/issues/detail?id=1141207
+      setTimeout(() => {
+        let timer: number | null = null;
+        window.addEventListener('touchend', event => {
+          if (timer) {
+            clearTimeout(timer);
+          }
+
+          timer = window.setTimeout(() => {
+            event.target?.dispatchEvent(new Event('click', {
+              bubbles: true,
+              cancelable: true,
+            }));
+          }, 0);
+        }, { once: true });
+
+        window.addEventListener('click', () => {
+          if (timer) {
+            clearTimeout(timer);
+          }
+        }, { once: true });
+      }, 0);
 
       onFinish?.();
     } else {

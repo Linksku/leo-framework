@@ -65,7 +65,7 @@ function Input({
             if (typeof ref === 'function') {
               ref(elem);
             } else if (ref) {
-              (ref.current as HTMLInputElement | null) = elem;
+              ref.current = elem;
             }
 
             if (registerProps) {

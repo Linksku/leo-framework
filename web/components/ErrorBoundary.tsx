@@ -1,7 +1,5 @@
 import ErrorPage from 'components/ErrorPage';
 
-import styles from './ErrorBoundaryStyles.scss';
-
 type Props = {
   renderFallback?: (err: Error) => ReactElement,
 };
@@ -32,24 +30,6 @@ export default class ErrorBoundary extends React.Component<Props, State> {
       return (
         <ErrorPage
           title="Error"
-          content={(
-            <>
-              {'Please try '}
-              <span
-                onClick={e => {
-                  e.preventDefault();
-                  // @ts-ignore reload(true) is still supported
-                  window.location.reload(true);
-                }}
-                role="button"
-                tabIndex={-1}
-                className={styles.refresh}
-              >
-                refreshing
-              </span>
-              {' the page or restarting the app.'}
-            </>
-          )}
         />
       );
     }

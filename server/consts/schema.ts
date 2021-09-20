@@ -4,7 +4,7 @@ const url = { type: 'string', format: 'url', maxLength: 255 };
 const cursor = { type: 'string', minLength: 1 };
 
 const SchemaConstants = {
-  content: { type: 'string', minLength: 1 },
+  content: { type: 'string', minLength: 1, maxLength: 2048 },
   stringDefaultEmpty: { type: 'string', default: '' },
   jsonObj: { type: 'string', minLength: 2, default: '{}' },
   jsonArr: { type: 'string', minLength: 2, default: '[]' },

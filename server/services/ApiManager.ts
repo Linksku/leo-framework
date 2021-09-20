@@ -46,7 +46,6 @@ export type Api<Name extends ApiName> = {
 export const apis = [] as Api<any>[];
 export const nameToApi = {} as ObjectOf<Api<any>>;
 
-// todo: high/hard rate limit apis
 export function defineApi<Name extends ApiName>(
   config: ApiConfig<Name>,
   handler: (

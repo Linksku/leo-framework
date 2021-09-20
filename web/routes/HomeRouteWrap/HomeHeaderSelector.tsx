@@ -5,7 +5,7 @@ import { HomeHeaderTitle } from 'config/homeComponents';
 import styles from './HomeHeaderSelectorStyles.scss';
 
 export default function HomeHeaderSelector() {
-  const { showSidebar } = useHomeNavStore();
+  const { showSidebar } = useUIFrameStore();
 
   return (
     <div

@@ -1,5 +1,3 @@
-const { hasOwnProperty } = Object.prototype;
-
 // Compares equality of objects 1 level deep.
 export default function shallowEqual(objA: any, objB: any) {
   if (objA === objB) {
@@ -28,7 +26,7 @@ export default function shallowEqual(objA: any, objB: any) {
     }
 
     for (const k of keysA) {
-      if (!hasOwnProperty.call(objB, k) || objA[k] !== objB[k]) {
+      if (!Object.prototype.hasOwnProperty.call(objB, k) || objA[k] !== objB[k]) {
         return false;
       }
     }

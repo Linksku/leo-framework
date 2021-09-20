@@ -6,29 +6,26 @@ import ErrorBoundary from 'components/ErrorBoundary';
 
 import styles from './StackWrapOuterStyles.scss';
 
-export type Props = {
-  slideIn?: boolean,
-  slideOut?: boolean,
-  path: string,
-};
-
 export default function StackWrapOuter({
-  slideIn = false,
-  slideOut = false,
-  path,
   children,
-}: React.PropsWithChildren<Props>) {
+}: React.PropsWithChildren<unknown>) {
+  const { path, isActiveRoute, isVisibleRoute, isStackTop } = useRouteStore();
   useTimeComponentPerf(`StackOuter:${path}`);
 
+  const { backStack, stackActive, stackTop, stackBot } = useStacksNavStore();
+  const { isReplaced } = useHistoryStore();
+
+  const showSlide = isStackTop && (!isReplaced || path === '/register');
+  const slideIn = showSlide && stackActive === stackTop;
+  const slideOut = showSlide && stackActive === stackBot;
   const animatedLeftPercent = useAnimatedValue(slideIn ? 100 : 0, 'StackWrapOuter');
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
-  const { backStack, forwardStack } = useStacksNavStore();
 
-  const { ref, bindSwipe } = useSwipeNavigation({
+  const { ref, bindSwipe } = useSwipeNavigation<HTMLDivElement>({
     onNavigate: backStack,
-    onCancelNavigate: forwardStack,
     setPercent: percent => animatedLeftPercent.setVal(percent, 300),
     direction: 'right',
+    enabled: isActiveRoute,
   });
 
   useEffect(() => {
@@ -46,6 +43,7 @@ export default function StackWrapOuter({
         transform: x => `translateZ(0) translateX(${x}%)`,
       })}
       className={styles.container}
+      hidden={!isVisibleRoute}
       {...bindSwipe()}
     >
       <ErrorBoundary>

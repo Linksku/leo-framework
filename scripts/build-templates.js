@@ -2,6 +2,7 @@ const fs = require('fs');
 const ejs = require('ejs');
 const path = require('path');
 const mkdirp = require('mkdirp');
+const childProcess = require('child_process');
 
 const {
   APP_NAME,
@@ -31,12 +32,15 @@ const recursiveReaddir = require('../server/lib/recursiveReaddir');
         basePath: BASE_PATH,
         assetsUrl: process.env.SERVER === 'production'
           ? `https://assets.${DOMAIN_NAME}`
-          : HOME_URL,
+          : '',
         homeUrl: HOME_URL,
         description: process.env.DESCRIPTION,
         content: '<div id="react"></div>',
         id: 'main',
         production: process.env.NODE_ENV === 'production',
+        fileVersion: process.env.SERVER === 'production'
+          ? `.${childProcess.execSync('git rev-list --count master').toString().trim()}`
+          : '',
       }),
       err => {
         if (err) {

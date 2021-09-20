@@ -37,6 +37,7 @@ export default async function buildApiTypes() {
         }
       }
 
+      // eslint-disable-next-line no-await-in-loop
       const fields = await compile(
         { ...api.config.paramsSchema, properties } as JSONSchema4,
         'Foo',
@@ -52,6 +53,7 @@ ${fields.split('\n').slice(1, -2).join('\n').replace(/"/g, '\'')}
     }
 
     if (api.config.dataSchema) {
+      // eslint-disable-next-line no-await-in-loop
       const fields = await compile(
         api.config.dataSchema as JSONSchema4,
         'Foo',

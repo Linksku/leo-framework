@@ -4,10 +4,12 @@ import SseConnectionsManager from 'services/SseConnectionsManager';
 import serializeEvent from 'lib/serializeEvent';
 import generateUuid from 'lib/generateUuid';
 import SseBroadcastManager from 'services/SseBroadcastManager';
-import handleApiError from 'lib/apiWrap/handleApiError';
+import handleApiError from 'lib/apiHelpers/handleApiError';
 import ReqErrorLogger from 'lib/errorLogger/ReqErrorLogger';
+import rateLimitMiddleware from 'lib/apiHelpers/rateLimitMiddleware';
 
 const router = express.Router();
+router.use(rateLimitMiddleware(60));
 
 router.get('/', async (req, res) => {
   try {

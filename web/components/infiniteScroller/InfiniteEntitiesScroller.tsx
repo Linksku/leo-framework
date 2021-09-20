@@ -55,6 +55,7 @@ function InfiniteEntitiesScroller<
 
   const {
     fetching,
+    fetchingFirstTime,
     entityIds,
     fetchNext,
     hasCompleted,
@@ -67,7 +68,7 @@ function InfiniteEntitiesScroller<
     onVisible: fetchNext,
   });
 
-  if (fetching || entityIds.length) {
+  if (fetchingFirstTime || entityIds.length) {
     return (
       <div className={className}>
         {entityIds.map((id, idx) => (

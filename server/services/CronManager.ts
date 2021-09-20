@@ -18,7 +18,7 @@ void queue.process(async job => {
 export default {
   async start() {
     const existingJobs = await queue.getRepeatableJobs();
-    await Promise.all(existingJobs.map(async job => queue.removeRepeatableByKey(job.key)));
+    await Promise.all(existingJobs.map(job => queue.removeRepeatableByKey(job.key)));
 
     for (const [key, cronjob] of TS.objectEntries(cronjobs)) {
       void queue.add({ key }, {

@@ -4,12 +4,16 @@ import type ComputedUpdatersManagerType from 'services/computedUpdaters/Computed
 import { getPropWithComputed } from 'models/core/EntityComputed';
 import { serializeDateProp } from 'lib/dateSchemaHelpers';
 import { toMysqlDateTime } from 'lib/mysqlDate';
+import redis from 'services/redis';
 
 let ComputedUpdatersManager: typeof ComputedUpdatersManagerType | undefined;
 
+export const BATCHING_DELAY = 10 * 1000;
+const START_TIME_BUFFER = 1000;
 const BATCH_SIZE = 1000;
 
 export default abstract class BaseComputedUpdater<T extends EntityModel> {
+  static entityType: EntityType;
   static dependencies = [] as string[];
 
   protected abstract getIds(startTimeStr: string): Promise<EntityId[]>;
@@ -27,8 +31,15 @@ export default abstract class BaseComputedUpdater<T extends EntityModel> {
     return this.updateIds([id]);
   }
 
-  async updateMulti(startTime: number) {
-    const startTimeStr = toMysqlDateTime(new Date(startTime));
+  async updateMulti() {
+    const redisKey = `ComputedUpdater(${(this.constructor as typeof BaseComputedUpdater).entityType}).lastRunTime`;
+    const lastRunTime = TS.parseIntOrNull(await redis.get(redisKey));
+    const startTime = lastRunTime && Date.now() - lastRunTime < BATCHING_DELAY
+      ? lastRunTime
+      : Date.now() - BATCHING_DELAY;
+    redis.setex(redisKey, BATCHING_DELAY / 1000, Date.now());
+
+    const startTimeStr = toMysqlDateTime(new Date(startTime - START_TIME_BUFFER));
     const ids = await this.getIds(startTimeStr);
 
     if (process.env.NODE_ENV !== 'production') {
@@ -41,6 +52,7 @@ export default abstract class BaseComputedUpdater<T extends EntityModel> {
     for (let i = 0; i < ids.length; i += BATCH_SIZE) {
       const batchIds = ids.slice(i, i + BATCH_SIZE);
       const batchIdsSet = new Set(batchIds);
+      // eslint-disable-next-line no-await-in-loop
       const { Model, results } = await this.updateIds(batchIds);
       modelType = Model.type;
 
@@ -80,6 +92,7 @@ export default abstract class BaseComputedUpdater<T extends EntityModel> {
         }
       }
 
+      // eslint-disable-next-line no-await-in-loop
       await Model.query()
         .patch(updates)
         .whereIn('id', ids);

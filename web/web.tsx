@@ -40,4 +40,3 @@ if (tz >= 2 && tz <= 11) {
 }
 
 // todo: high/veryhard log actions
-// todo: high/mid reload page if jsversion changes in the middle of a session

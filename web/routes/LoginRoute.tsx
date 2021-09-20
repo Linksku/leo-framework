@@ -12,7 +12,7 @@ function LoginRoute() {
     },
   });
   const { errors } = useFormState({ control });
-  const { loggedInStatus, setAuth } = useAuthStore();
+  const { authState, setAuth } = useAuthStore();
 
   const { fetching, fetchApi: loginUser, error: apiError } = useDeferredApi(
     'loginUser',
@@ -30,13 +30,14 @@ function LoginRoute() {
   return (
     <StackWrapInner title="Login">
       <div className={styles.container}>
-        {loggedInStatus === 'in'
+        {authState === 'in'
           ? (
             <p className={styles.loggedInMsg}>
               Already logged in.
               {' '}
               <a href="/">Go back to home</a>
-              .
+              {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
+              {'.'}
             </p>
           )
           : null}

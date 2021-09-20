@@ -136,6 +136,9 @@ new mode 100755
 diff --git a/node_modules/knex/lib/dialects/oracledb/schema/oracledb-columncompiler.js b/node_modules/knex/lib/dialects/oracledb/schema/oracledb-columncompiler.js
 old mode 100644
 new mode 100755
+diff --git a/node_modules/knex/lib/dialects/oracledb/schema/oracledb-tablecompiler.js b/node_modules/knex/lib/dialects/oracledb/schema/oracledb-tablecompiler.js
+old mode 100644
+new mode 100755
 diff --git a/node_modules/knex/lib/dialects/oracledb/transaction.js b/node_modules/knex/lib/dialects/oracledb/transaction.js
 old mode 100644
 new mode 100755
@@ -206,6 +209,9 @@ diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/internal/sqlite-ddl-o
 old mode 100644
 new mode 100755
 diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/internal/tokenizer.js b/node_modules/knex/lib/dialects/sqlite3/schema/internal/tokenizer.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/internal/utils.js b/node_modules/knex/lib/dialects/sqlite3/schema/internal/utils.js
 old mode 100644
 new mode 100755
 diff --git a/node_modules/knex/lib/dialects/sqlite3/schema/sqlite-columncompiler.js b/node_modules/knex/lib/dialects/sqlite3/schema/sqlite-columncompiler.js
@@ -316,6 +322,9 @@ new mode 100755
 diff --git a/node_modules/knex/lib/migrations/migrate/stub/ls.stub b/node_modules/knex/lib/migrations/migrate/stub/ls.stub
 old mode 100644
 new mode 100755
+diff --git a/node_modules/knex/lib/migrations/migrate/stub/mjs.stub b/node_modules/knex/lib/migrations/migrate/stub/mjs.stub
+old mode 100644
+new mode 100755
 diff --git a/node_modules/knex/lib/migrations/migrate/stub/ts.stub b/node_modules/knex/lib/migrations/migrate/stub/ts.stub
 old mode 100644
 new mode 100755
@@ -341,6 +350,9 @@ diff --git a/node_modules/knex/lib/migrations/seed/stub/js.stub b/node_modules/k
 old mode 100644
 new mode 100755
 diff --git a/node_modules/knex/lib/migrations/seed/stub/ls.stub b/node_modules/knex/lib/migrations/seed/stub/ls.stub
+old mode 100644
+new mode 100755
+diff --git a/node_modules/knex/lib/migrations/seed/stub/mjs.stub b/node_modules/knex/lib/migrations/seed/stub/mjs.stub
 old mode 100644
 new mode 100755
 diff --git a/node_modules/knex/lib/migrations/seed/stub/ts.stub b/node_modules/knex/lib/migrations/seed/stub/ts.stub

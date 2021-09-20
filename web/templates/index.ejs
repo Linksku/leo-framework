@@ -4,7 +4,7 @@
   <title><%- title %></title>
 
   <style>html{background-color:#fafafa}body{display:none}</style>
-  <link rel="stylesheet" href="<%= assetsUrl %>/css/main.css" media="none" onload="if(media!='all')media='all'">
+  <link rel="stylesheet" href="<%= assetsUrl %>/css/main<%= fileVersion %>.css" media="none" onload="if(media!='all')media='all'">
   <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,maximum-scale=5,user-scalable=0">
 <% if (production) { %>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,6 +24,6 @@
 <body>
   <%- content %>
 
-  <script defer src="<%= assetsUrl %>/js/main.js" charset="utf-8"></script>
+  <script defer src="<%= assetsUrl %>/js/main<%= fileVersion %>.js" charset="utf-8"></script>
 </body>
 </html>

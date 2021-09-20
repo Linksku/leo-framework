@@ -1,9 +1,9 @@
+import { SplashScreen } from '@capacitor/splash-screen';
+
 import Alerts from 'components/frame/Alerts';
 import Toasts from 'components/frame/Toasts';
 import SlideUpWrap from 'components/frame/SlideUpWrap';
 import StackWrapOuter from 'components/frame/StackWrapOuter';
-import { SplashScreen } from '@capacitor/splash-screen';
-
 import pathToRoute from 'lib/pathToRoute';
 import HomeRouteWrap from 'routes/HomeRouteWrap';
 import LoadingRoute from 'routes/LoadingRoute';
@@ -11,33 +11,39 @@ import useEffectIfReady from 'lib/hooks/useEffectIfReady';
 import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
 import { loadErrorLogger } from 'lib/ErrorLogger';
 import ErrorBoundary from 'components/ErrorBoundary';
+import { RouteProvider } from 'stores/RouteStore';
 
 export default function Router() {
+  const { lastHomeHistoryState } = useHomeNavStore();
   const {
     stackBot,
     stackTop,
     stackActive,
   } = useStacksNavStore();
-  const { isReplaced, curState } = useHistoryStore();
-  const { isReloadingAfterAuth, currentUserId, loggedInStatus } = useAuthStore();
+  const { isReloadingAfterAuth, currentUserId, authState } = useAuthStore();
   const replacePath = useReplacePath();
 
+  // Home state might be same as bot.
+  // todo: low/mid clean up home/bot stack logic
   const {
-    type: stackBotType,
-    Component: StackBotComponent,
-    auth: stackBotAuth,
-    matches: stackBotMatches,
-  } = pathToRoute(stackBot?.path) ?? {};
+    routeConfig: homeRouteConfig,
+    matches: homeMatches,
+  } = pathToRoute(lastHomeHistoryState?.path);
   const {
-    type: stackTopType,
-    Component: StackTopComponent,
-    auth: stackTopAuth,
-    matches: stackTopMatches,
-  } = pathToRoute(stackTop?.path) ?? {};
-  const isBotAuth = !stackBotAuth || currentUserId;
-  const isTopAuth = !stackTopAuth || currentUserId;
+    routeConfig: botRouteConfig,
+    matches: botMatches,
+  } = pathToRoute(stackBot?.path);
+  const {
+    routeConfig: topRouteConfig,
+    matches: topMatches,
+  } = pathToRoute(stackTop?.path);
+  const HomeComponent = homeRouteConfig?.Component;
+  const BotComponent = botRouteConfig?.Component;
+  const TopComponent = topRouteConfig?.Component;
+  const isBotAuth = !botRouteConfig?.auth || currentUserId;
+  const isTopAuth = !topRouteConfig?.auth || currentUserId;
 
-  useTimeComponentPerf(`Router:${stackActive === 'top' ? stackTop?.path : stackBot?.path}`);
+  useTimeComponentPerf(`Router:${stackActive?.path}`);
 
   useEffectIfReady(() => {
     if (!isBotAuth || !isTopAuth) {
@@ -49,74 +55,66 @@ export default function Router() {
       // todo: mid/mid android appears to show splashscreen as background when expanding keyboard
       void SplashScreen.hide();
     }, 0);
-  }, [isBotAuth, isTopAuth, replacePath], loggedInStatus !== 'unknown');
+  }, [isBotAuth, isTopAuth, replacePath], authState !== 'unknown');
 
-  if (!currentUserId
-    && (loggedInStatus === 'unknown' || isReloadingAfterAuth)
-    && (stackBotAuth || stackTopAuth)) {
+  if ((authState !== 'in' || isReloadingAfterAuth)
+    && (botRouteConfig?.auth || topRouteConfig?.auth)) {
     return (
       <LoadingRoute />
     );
   }
 
-  const showSlide = !isReplaced || curState.path === '/register';
   // todo: mid/blocked when offscreen api is available, unmount home when not visible
-  // todo: high/hard preserve home position after navigating multiple levels deep
   return (
     <>
-      {stackBot && stackBotType === 'home' ? (
-        <HomeRouteWrap>
-          <ErrorBoundary>
-            <React.Suspense fallback={<LoadingRoute />}>
-              <StackBotComponent
-                key={`${stackBot.path}?${stackBot.queryStr ?? ''}`}
-                matches={stackBotMatches}
-                path={stackBot.path}
-                query={stackBot.query}
-                queryStr={stackBot.queryStr}
-                hash={stackBot.hash}
-              />
-            </React.Suspense>
-          </ErrorBoundary>
-        </HomeRouteWrap>
+      {lastHomeHistoryState && HomeComponent ? (
+        <RouteProvider
+          historyState={lastHomeHistoryState}
+          routeConfig={homeRouteConfig}
+          matches={homeMatches}
+        >
+          <HomeRouteWrap>
+            <ErrorBoundary>
+              <React.Suspense fallback={<LoadingRoute />}>
+                <HomeComponent
+                  key={`${lastHomeHistoryState.path}?${lastHomeHistoryState.queryStr ?? ''}`}
+                />
+              </React.Suspense>
+            </ErrorBoundary>
+          </HomeRouteWrap>
+        </RouteProvider>
       ) : null}
-      {stackBot && stackBotType !== 'home' && StackBotComponent && isBotAuth ? (
-        <StackWrapOuter
+      {stackBot && botRouteConfig?.type !== 'home' && BotComponent && isBotAuth ? (
+        <RouteProvider
           key={`${stackBot.id}|${stackBot.path}?${stackBot.queryStr ?? ''}#${stackBot.hash ?? ''}`}
-          path={stackBot.path}
+          historyState={stackBot}
+          routeConfig={botRouteConfig}
+          matches={botMatches}
         >
-          <ErrorBoundary>
-            <React.Suspense fallback={<LoadingRoute />}>
-              <StackBotComponent
-                matches={stackBotMatches}
-                path={stackBot.path}
-                query={stackBot.query}
-                queryStr={stackBot.queryStr}
-                hash={stackBot.hash}
-              />
-            </React.Suspense>
-          </ErrorBoundary>
-        </StackWrapOuter>
+          <StackWrapOuter>
+            <ErrorBoundary>
+              <React.Suspense fallback={<LoadingRoute />}>
+                <BotComponent />
+              </React.Suspense>
+            </ErrorBoundary>
+          </StackWrapOuter>
+        </RouteProvider>
       ) : null}
-      {stackTop && stackTopType !== 'home' && StackTopComponent && isTopAuth ? (
-        <StackWrapOuter
+      {stackTop && topRouteConfig?.type !== 'home' && TopComponent && isTopAuth ? (
+        <RouteProvider
           key={`${stackTop.id}|${stackTop.path}?${stackTop.queryStr ?? ''}#${stackTop.hash ?? ''}`}
-          slideIn={showSlide && stackActive === 'top'}
-          slideOut={showSlide && stackActive === 'bot'}
-          path={stackTop.path}
+          historyState={stackTop}
+          routeConfig={topRouteConfig}
+          matches={topMatches}
         >
-          <ErrorBoundary>
-            <React.Suspense fallback={<LoadingRoute />}>
-              <StackTopComponent
-                matches={stackTopMatches}
-                path={stackTop.path}
-                query={stackTop.query}
-                queryStr={stackTop.queryStr}
-                hash={stackTop.hash}
-              />
-            </React.Suspense>
-          </ErrorBoundary>
-        </StackWrapOuter>
+          <StackWrapOuter>
+            <ErrorBoundary>
+              <React.Suspense fallback={<LoadingRoute />}>
+                <TopComponent />
+              </React.Suspense>
+            </ErrorBoundary>
+          </StackWrapOuter>
+        </RouteProvider>
       ) : null}
       <SlideUpWrap />
       <Alerts />

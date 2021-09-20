@@ -113,7 +113,7 @@ export default async function paginateQuery<T extends Entity>(
 
   const entities = await query;
   const lastRowCursorVals = entities.length
-    ? orderByColumns.map((_, idx) => entities[entities.length - 1][`__cursorKey${idx}`])
+    ? orderByColumns.map((_, idx) => entities[entities.length - 1][`__cursorKey${idx}`] as number)
     : null;
   if (process.env.NODE_ENV !== 'production'
     && lastRowCursorVals

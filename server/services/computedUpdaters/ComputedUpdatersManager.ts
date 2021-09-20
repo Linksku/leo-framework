@@ -1,6 +1,7 @@
 import computedUpdaters from 'config/computedUpdaters';
 import createBullQueue from 'lib/createBullQueue';
 import type BaseComputedUpdater from './BaseComputedUpdater';
+import { BATCHING_DELAY } from './BaseComputedUpdater';
 
 const TRIGGERED_UPDATES: ObjectOf<string[]> = {};
 for (const [k, updater] of TS.objectEntries(computedUpdaters)) {
@@ -10,21 +11,17 @@ for (const [k, updater] of TS.objectEntries(computedUpdaters)) {
   }
 }
 
-const START_TIME_BUFFER = 1000;
-const BATCHING_DELAY = 10 * 1000;
-
 const queue = createBullQueue<{
   updater: string,
-  startTime: number,
 }>('ComputedUpdatersManager');
 
-void queue.process(async job => {
-  const { updater, startTime } = job.data;
-  return computedUpdaters[updater]?.updateMulti(startTime);
+void queue.process(job => {
+  const { updater } = job.data;
+  return computedUpdaters[updater]?.updateMulti();
 });
 
-// todo: mid/mid trigger updates for newly create entities, e.g. new userClub with existing posts
-// todo: high/hard replace computed updaters with triggers, materialized views, etc
+// todo: mid/mid trigger updates for newly created entities, e.g. new userClub with existing posts
+// todo: high/hard replace computed updaters with redis caches
 const ComputedUpdatersManager = {
   triggerUpdates(type: EntityType) {
     if (!TS.hasDefinedProperty(TRIGGERED_UPDATES, type)) {
@@ -34,7 +31,6 @@ const ComputedUpdatersManager = {
     for (const updater of TRIGGERED_UPDATES[type]) {
       void queue.add({
         updater,
-        startTime: Date.now() - START_TIME_BUFFER,
       }, {
         jobId: updater,
         delay: BATCHING_DELAY,

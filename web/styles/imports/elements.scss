@@ -1,12 +1,11 @@
 * {
-  box-sizing: inherit;
+  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
 html {
   // stylelint-disable-next-line declaration-property-unit-allowed-list
   font-size: 9px;
-  box-sizing: border-box;
   min-height: 100vh;
   position: relative;
   background-color: #fff;

@@ -15,7 +15,7 @@ function RegisterRoute() {
     },
   });
   const { errors } = useFormState({ control });
-  const { loggedInStatus, setAuth } = useAuthStore();
+  const { authState, setAuth } = useAuthStore();
 
   const { fetching: submitting, fetchApi: registerUser, error: apiError } = useDeferredApi(
     'registerUser',
@@ -33,13 +33,14 @@ function RegisterRoute() {
       title="Register"
       bodyClassName={styles.container}
     >
-      {loggedInStatus === 'in'
+      {authState === 'in'
         ? (
           <p className={styles.loggedInMsg}>
             Already logged in.
             {' '}
             <a href="/">Go back to home</a>
-            .
+            {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
+            {'.'}
           </p>
         )
         : null}
@@ -94,7 +95,7 @@ function RegisterRoute() {
           required
         />
         <p className={styles.hint}>
-          * Real name not required, but please use a realistic name.
+          * Real name is optional, but please use a realistic name.
         </p>
 
         <Input
@@ -119,7 +120,7 @@ function RegisterRoute() {
           required
         />
         <p className={styles.hint}>
-          * Only age will be shown.
+          * Only age is shown.
         </p>
 
         <p>
@@ -133,7 +134,8 @@ function RegisterRoute() {
           , including
           {' '}
           <a href="/tos/cookie">Cookie Policy</a>
-          .
+          {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
+          {'.'}
         </p>
 
         <Button

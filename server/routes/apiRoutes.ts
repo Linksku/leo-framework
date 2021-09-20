@@ -1,9 +1,14 @@
 import type { NextFunction } from 'express';
 import multer from 'multer';
+import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
 
 import { apis } from 'services/ApiManager';
-import apiWrap from 'lib/apiWrap/apiWrap';
-import { fetchUserIdByJwt } from 'lib/authHelpers';
+import apiWrap from 'lib/apiHelpers/apiWrap';
+import { fetchUserIdByJwt } from 'lib/apiHelpers/jwtAuth';
+import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
+import rateLimitMiddleware from 'lib/apiHelpers/rateLimitMiddleware';
 
 import './api/authApis';
 import './api/batchedApi';
@@ -25,7 +30,7 @@ async function addUserMiddleware(
   next();
 }
 
-async function requireAuthMiddleware(
+function requireAuthMiddleware(
   req: ExpressRequest,
   res: ExpressResponse,
   next: NextFunction,
@@ -55,7 +60,25 @@ function apiNotFound(
 }
 
 const router = express.Router();
+
+router.use(cookieParser());
 router.use('/', addUserMiddleware);
+router.use(rateLimitMiddleware(60));
+
+router.use(bodyParser.json());
+router.use(bodyParser.urlencoded({ extended: true }));
+router.use(cors({
+  origin: [
+    HOME_URL,
+    new RegExp(`${PROTOCOL}([^/]+\\.)?${DOMAIN_NAME}$`, 'i'),
+  ],
+  optionsSuccessStatus: 200,
+  credentials: true,
+  allowedHeaders: [
+    'authorization',
+    'content-type',
+  ],
+}));
 
 // Unauth.
 for (const api of apis) {

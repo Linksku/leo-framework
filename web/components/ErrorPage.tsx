@@ -11,16 +11,32 @@ export default function ErrorPage({
   content,
   className,
 }: Props) {
+  const reloadPage = useReloadPage();
+
   return (
     <div className={cn(styles.container, className)}>
       <h2 className={styles.title}>{title}</h2>
-      {content
-        ? (
-          <p>
-            {content}
-          </p>
-        )
-        : null}
+      <p>
+        {content !== undefined
+          ? content
+          : (
+            <>
+              {'Please try '}
+              <span
+                onClick={e => {
+                  e.preventDefault();
+                  reloadPage(0);
+                }}
+                role="button"
+                tabIndex={-1}
+                className={styles.link}
+              >
+                reloading
+              </span>
+              {' the page or restarting the app.'}
+            </>
+          )}
+      </p>
     </div>
   );
 }

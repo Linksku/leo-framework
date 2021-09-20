@@ -10,7 +10,65 @@ const baseConfig = require('./webpack.common');
 const transformWebpackCopied = require('./shared/lib/transformWebpackCopied');
 const { ASSETS_URL } = require('./shared/settings');
 
+const WEB_ROOT = path.resolve('./web');
+const WEB_SRC_ROOT = path.resolve('./src/web');
+
 module.exports = mergeReplaceArrays(baseConfig, {
+  module: {
+    rules: [
+      {
+        test: /\.scss$/,
+        include: [WEB_ROOT, WEB_SRC_ROOT],
+        use: [
+          {
+            loader: 'css-loader',
+            options: {
+              importLoaders: 3,
+              modules: {
+                localIdentName: '[name]__[local]',
+              },
+            },
+          },
+          'postcss-loader',
+          {
+            loader: 'sass-loader',
+            options: {
+              sourceMap: false,
+            },
+          },
+          {
+            loader: 'sass-resources-loader',
+            options: {
+              resources: [
+                path.resolve('./web/styles/imports/sassVariables.scss'),
+                path.resolve('./web/styles/imports/mixins.scss'),
+                path.resolve('./web/styles/imports/helpers.scss'),
+              ],
+            },
+          },
+        ],
+      },
+      {
+        test: /\.svg$/,
+        use: [
+          {
+            loader: 'react-svg-loader',
+            options: {
+              svgo: {
+                plugins: [
+                  {
+                    removeDimensions: true,
+                    removeViewBox: false,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+      ...baseConfig.module.rules,
+    ],
+  },
   entry: {
     main: process.env.ANALYZER
       ? path.resolve('./web/bundleAnalyzerHack.js')

@@ -20,7 +20,7 @@ function _transformDateProps(
   }
 }
 
-export default function useHandleApiEntities<Name extends ApiName>(
+export default function useHandleApiEntities(
   allowPost = false,
 ) {
   const loadEntities = useLoadEntities();
@@ -34,7 +34,7 @@ export default function useHandleApiEntities<Name extends ApiName>(
     updatedEntities,
     deletedIds,
     meta,
-  }: MemoDeep<ApiSuccessResponse<Name>>) => {
+  }: MemoDeep<ApiSuccessResponse<any>>) => {
     if (entities) {
       _transformDateProps(entities, meta?.dateProps);
       loadEntities(entities);

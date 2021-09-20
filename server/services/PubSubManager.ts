@@ -54,7 +54,7 @@ const PubSubManager = {
     redisSub.unsubscribe(`${REDIS_EVENT_NAME}${eventType}`);
   },
 
-  handleMessage(channel: string, messageStr: string) {
+  handleMessage(this: void, channel: string, messageStr: string) {
     if (!channel.startsWith(REDIS_EVENT_NAME)) {
       return;
     }

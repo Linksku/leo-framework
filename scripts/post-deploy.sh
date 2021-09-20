@@ -2,6 +2,8 @@
 
 set -o allexport; source src/env; set +o allexport
 
+pm2 stop $APP_NAME_LOWER
+
 git fetch origin
 git reset --hard origin/master
 
@@ -17,5 +19,5 @@ rm -rf build
 unzip build.zip
 rm build.zip
 
-pm2 restart $APP_NAME_LOWER
+pm2 start $APP_NAME_LOWER
 chmod -R +x scripts

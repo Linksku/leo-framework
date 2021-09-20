@@ -1,6 +1,6 @@
 import SseEventEmitter from 'lib/singletons/SseEventEmitter';
 import serializeEvent, { unserializeEvent } from 'lib/serializeEvent';
-import { HOME_URL } from 'settings';
+import { API_URL } from 'settings';
 import useHandleApiEntities from 'lib/hooks/useApi/useHandleApiEntities';
 
 const ReadyState = {
@@ -26,7 +26,7 @@ const [
       sessionId: null as string | null,
     });
     const { authToken } = useAuthStore();
-    const handleApiEntities = useHandleApiEntities<any>(true);
+    const handleApiEntities = useHandleApiEntities(true);
 
     const { fetchApi: sseSubscribe } = useDeferredApi(
       'sseSubscribe',
@@ -85,7 +85,7 @@ const [
       closeSse();
 
       const source = new EventSource(
-        `${HOME_URL}/sse?params=${encodeURIComponent(JSON.stringify({
+        `${API_URL}/sse?params=${encodeURIComponent(JSON.stringify({
           otp,
           events: [...ref.current.subscriptions].map(sub => unserializeEvent(sub)),
         }))}`,

@@ -10,11 +10,11 @@ import styles from './HomeBodyStyles.scss';
 export type Props = Record<never, never>;
 
 export default function HomeBody({ children }: React.PropsWithChildren<Props>) {
-  const { sidebarShownPercent, loadSidebar } = useHomeNavStore();
+  const { sidebarShownPercent, loadSidebar } = useUIFrameStore();
   const [dialogRef, dialogStyle] = useAnimation<HTMLDivElement>();
   const [sidebarRef, sidebarStyle] = useAnimation<HTMLDivElement>();
 
-  const { bindSwipe } = useSwipeNavigation({
+  const { bindSwipe } = useSwipeNavigation<HTMLDivElement>({
     onStart() {
       loadSidebar();
     },

@@ -2,7 +2,7 @@ import type { ValidateFunction } from 'ajv';
 
 import ucFirst from 'lib/ucFirst';
 
-export default async function validateApiData(
+export default function validateApiData(
   type: 'params' | 'data',
   validateFn: ValidateFunction,
   data: any,
@@ -10,9 +10,9 @@ export default async function validateApiData(
   if (!validateFn(data)) {
     const error = validateFn.errors?.[0];
     const dataPath = error?.instancePath?.replace(/^[^A-Za-z]/, '');
-    if (error && dataPath && type === 'params') {
+    if (error?.message && dataPath && type === 'params') {
       throw new HandledError(
-        `${ucFirst(dataPath)} params ${error.message}`,
+        `${ucFirst(dataPath)} ${error.message.toLowerCase()}`,
         400,
       );
     }

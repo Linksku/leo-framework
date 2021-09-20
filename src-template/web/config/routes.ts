@@ -1,4 +1,4 @@
-const routes: RouteConfig[] = [
+const routes = [
   {
     type: 'home',
     pattern: '/',
@@ -6,4 +6,4 @@ const routes: RouteConfig[] = [
   },
 ];
 
-export default routes;
+export default routes as Memoed<(typeof routes)[number]>[];

@@ -20,7 +20,5 @@
   min-width: $sidebarMinWidth;
   max-width: $sidebarMaxWidth;
   background-color: #fff;
-  overflow-y: auto;
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features
-  touch-action: pan-y;
+  overflow: hidden;
 }

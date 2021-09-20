@@ -1,8 +1,10 @@
+const MAX_URLS = 10;
+
 export default function getUrlsIndices(str: string): [number, number][] {
   // Regex.exec is stateful.
   const urlRegex = /\bhttps?:\/\/(?![_-])(?:[\w\u00A1-\uFFFF-]{0,63}[^_-]\.)+[a-z\u00A1-\uFFFF]{2,}(?:[#/?]\S*[^\s!.?])?/gi;
   const indices = [] as [number, number][];
-  while (true) {
+  while (urlRegex.lastIndex < str.length && indices.length < MAX_URLS) {
     const match = urlRegex.exec(str);
     if (!match) {
       break;

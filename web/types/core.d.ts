@@ -20,23 +20,15 @@ interface Error {
 
 type HistoryState = Memoed<{
   path: string,
-  query: Memoed<ObjectOf<unknown>> | null,
+  query: Memoed<ObjectOf<string | string[] | null>>,
   queryStr: string | null,
   hash: string | null,
   id: number,
 }>;
 
-type RouteProps = {
-  matches: string[],
-  path: string,
-  query: Memoed<ObjectOf<unknown>> | null,
-  queryStr: string | null,
-  hash: string | null,
-};
-
-type RouteConfig = {
+type RouteConfig = Memoed<MemoObjShallow<{
   type?: 'home' | 'stack',
   pattern: string | RegExp,
-  Component: React.ComponentType<RouteProps> | React.LazyExoticComponent<RouteProps>,
+  Component: React.ComponentType<unknown> | React.LazyExoticComponent<unknown>,
   auth?: boolean,
-};
+}>>;

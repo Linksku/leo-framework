@@ -3,7 +3,8 @@ import HookFormErrors from 'components/HookFormErrors';
 
 import styles from './ResetPasswordVerifyRouteStyles.scss';
 
-function ResetPasswordVerifyRoute({ query }: RouteProps) {
+function ResetPasswordVerifyRoute() {
+  const { query: { token, userId } } = useRouteStore();
   const { register, handleSubmit, control } = useForm({
     reValidateMode: 'onBlur',
     defaultValues: {
@@ -13,13 +14,10 @@ function ResetPasswordVerifyRoute({ query }: RouteProps) {
   const { errors } = useFormState({ control });
   const { setAuth } = useAuthStore();
 
-  const token = query?.token;
-  const userId = TS.parseIntOrNull(query?.userId) ?? 0;
-
   const { fetching, fetchApi: verifyResetPassword, error: apiError } = useDeferredApi(
     'verifyResetPassword',
     {
-      userId,
+      userId: TS.parseIntOrNull(userId) ?? 0,
       token: typeof token === 'string' ? token : undefined,
     },
     {

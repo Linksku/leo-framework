@@ -22,27 +22,27 @@ type RetArr<
   T extends EntityType,
   Fields extends readonly any[]
 > = Fields extends readonly [any, ...infer R]
-  ? Partial<{ [k: string]: RetArr<T, R> }>
+  ? Memoed<Partial<{ [k: string]: RetArr<T, R> }>>
   : Memoed<TypeToEntity<T>[]>;
 
 type RetSet<
   T extends EntityType,
   Fields extends readonly any[]
 > = Fields extends readonly [any, ...infer R]
-  ? Partial<{ [k: string]: RetSet<T, R> }>
+  ? Memoed<Partial<{ [k: string]: RetSet<T, R> }>>
   : Memoed<Set<any>>;
 
 function useEntitiesByFields<T extends EntityType, Fields extends readonly string[]>(
   type: T,
   fields: Memoed<Fields>,
   opts?: OptsWithoutSet<T>,
-): Memoed<RetArr<T, Fields>>;
+): RetArr<T, Fields>;
 
 function useEntitiesByFields<T extends EntityType, Fields extends readonly string[]>(
   type: T,
   fields: Memoed<Fields>,
   opts?: OptsWithSet<T>,
-): Memoed<RetSet<T, Fields>>;
+): RetSet<T, Fields>;
 
 function useEntitiesByFields<
   T extends EntityType,
@@ -59,7 +59,13 @@ function useEntitiesByFields<
       for (const e of TS.objectValues(entities)) {
         let obj2 = obj;
         for (const field of fields.slice(0, -1)) {
-          const val = e[field] as unknown as string;
+          // Maybe change to use a symbol for null.
+          const val = (e[field] === null ? 'null' : e[field]) as unknown as string | number;
+          if (process.env.NODE_ENV !== 'production'
+            && typeof val !== 'string'
+            && typeof val !== 'number') {
+            throw new Error(`useEntitiesByField: ${type}[${field}] = ${val} isn't string or number`);
+          }
           if (!obj2[val]) {
             obj2[val] = Object.create(null);
           }
@@ -67,7 +73,7 @@ function useEntitiesByFields<
         }
 
         const lastField = fields[fields.length - 1];
-        const lastVal = e[lastField] as unknown as string;
+        const lastVal = e[lastField] as unknown as string | number;
         if (fieldForSet) {
           const tempSet = (obj2[lastVal] ?? new Set()) as Memoed<Set<Memoed<any>>>;
           obj2[lastVal] = tempSet;

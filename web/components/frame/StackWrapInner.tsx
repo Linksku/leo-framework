@@ -1,6 +1,6 @@
 import ChevronLeftSvg from '@fortawesome/fontawesome-free/svgs/solid/chevron-left.svg';
 
-import PullToRefresh from 'components/frame/PullToRefresh';
+import PullToReload from 'components/frame/PullToReload';
 import TitleBar from 'components/frame/TitleBar';
 import LoadingRoute from 'routes/LoadingRoute';
 import ErrorBoundary from 'components/ErrorBoundary';
@@ -15,7 +15,7 @@ const StackWrapInnerHeader = React.memo(
   function StackWrapInnerHeader({ title, ...props }: InnerProps) {
     const { backStack } = useStacksNavStore();
     return (
-      <PullToRefresh>
+      <PullToReload>
         <TitleBar
           title={title}
           onLeftBtnClick={useCallback(e => {
@@ -25,7 +25,7 @@ const StackWrapInnerHeader = React.memo(
           LeftSvg={ChevronLeftSvg}
           {...props}
         />
-      </PullToRefresh>
+      </PullToReload>
     );
   },
 );

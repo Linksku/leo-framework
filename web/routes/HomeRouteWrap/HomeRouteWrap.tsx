@@ -11,8 +11,13 @@ import styles from './HomeRouteWrapStyles.scss';
 type Props = React.PropsWithChildren<unknown>;
 
 function HomeRouteWrap({ children }: Props) {
+  const { isVisibleRoute } = useRouteStore();
+
   return (
-    <div className={styles.container}>
+    <div
+      className={styles.container}
+      hidden={!isVisibleRoute}
+    >
       <HomeHeader />
       <HomeBody>
         <ErrorBoundary>

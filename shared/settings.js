@@ -12,6 +12,8 @@ const DOMAIN_NAME = PROD_SERVER ? process.env.DOMAIN_NAME : 'localhost';
 
 const PROTOCOL = `http${PROD_SERVER ? 's' : ''}://`;
 
+const DEBUG = false;
+
 module.exports = {
   APP_NAME: process.env.APP_NAME,
   SITE_TITLE: process.env.APP_NAME,
@@ -28,4 +30,5 @@ module.exports = {
   MAX_HTTP_TIMEOUT: 30_000,
   NOREPLY_EMAIL: `noreply@${process.env.DOMAIN_NAME}`,
   SUPPORT_EMAIL: `support@${process.env.DOMAIN_NAME}`,
+  DEBUG: DEBUG && process.env.NODE_ENV !== 'production',
 };

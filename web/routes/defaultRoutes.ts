@@ -1,5 +1,5 @@
 // todo: low/hard build separate JS files for each route.
-const defaultRoutes: RouteConfig[] = [
+const defaultRoutes = [
   // Unauth.
   {
     pattern: '/login',
@@ -39,4 +39,6 @@ const defaultRoutes: RouteConfig[] = [
   },
 ];
 
-export default defaultRoutes;
+export default defaultRoutes as Memoed<MemoObjShallow<
+  (typeof defaultRoutes)[number]
+>>[] as RouteConfig[];

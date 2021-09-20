@@ -14,7 +14,34 @@ const [
   useShowToast,
 ] = constate(
   function ToastsStore() {
-    const [toasts, setToasts] = useState([] as Toast[]);
+    const [{
+      toast,
+      isHiding,
+    }, setState] = useState({
+      toast: null as Toast | null,
+      isHiding: false,
+    });
+    const ref = useRef({
+      hideToastTimer: null as number | null,
+      removeToastTimer: null as number | null,
+    });
+
+    const hideToast = useCallback(() => {
+      setState(s => ({
+        ...s,
+        isHiding: true,
+      }));
+
+      if (ref.current.removeToastTimer !== null) {
+        clearTimeout(ref.current.removeToastTimer);
+      }
+      ref.current.removeToastTimer = window.setTimeout(() => {
+        setState({
+          toast: null,
+          isHiding: false,
+        });
+      }, 200);
+    }, []);
 
     const showToast = useCallback(({
       msg = '',
@@ -23,29 +50,29 @@ const [
       const toastId = _nextToastId;
       _nextToastId++;
 
-      setToasts(arr => [...arr, {
-        id: toastId,
-        msg,
-        closeAfter,
-      }]);
+      setState({
+        toast: {
+          id: toastId,
+          msg,
+          closeAfter,
+        },
+        isHiding: false,
+      });
 
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          setToasts(arr => (arr.some(a => a.id === toastId)
-            ? arr.filter(a => a.id !== toastId)
-            : arr));
-        });
-      }, closeAfter ?? DEFAULT_CLOSE_AFTER);
-    }, [setToasts]);
-
-    const hideFirstToast = useCallback(() => {
-      setToasts(arr => arr.slice(1));
-    }, [setToasts]);
+      if (ref.current.hideToastTimer !== null) {
+        clearTimeout(ref.current.hideToastTimer);
+      }
+      ref.current.hideToastTimer = window.setTimeout(
+        hideToast,
+        closeAfter ?? DEFAULT_CLOSE_AFTER,
+      );
+    }, [hideToast]);
 
     return useDeepMemoObj({
-      toasts,
+      toast,
       showToast,
-      hideFirstToast,
+      hideToast,
+      isHidingToast: isHiding,
     });
   },
   function ToastsStore(val) {

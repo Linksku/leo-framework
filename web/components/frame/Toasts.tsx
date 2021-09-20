@@ -1,46 +1,20 @@
-import usePrevious from 'react-use/lib/usePrevious';
-import useUpdate from 'lib/hooks/useUpdate';
-
 import styles from './ToastsStyles.scss';
 
 function Toasts() {
-  const ref = useRef({
-    isHiding: false,
-    hideTimer: -1,
-  });
-  const { toasts, hideFirstToast } = useToastsStore();
-  const prevToasts = usePrevious(toasts);
-  const update = useUpdate();
+  const { toast, hideToast, isHidingToast } = useToastsStore();
 
-  const {
-    msg,
-  } = toasts[0] ?? prevToasts?.[0] ?? {};
-
-  const startHiding = !!prevToasts?.length && !toasts.length && !ref.current.isHiding;
-  useEffect(() => {
-    if (startHiding) {
-      ref.current.isHiding = true;
-      ref.current.hideTimer = window.setTimeout(() => {
-        requestAnimationFrame(() => {
-          ref.current.isHiding = false;
-          update();
-        });
-      }, 200);
-    } else if (toasts.length) {
-      clearTimeout(ref.current.hideTimer);
-      ref.current.isHiding = false;
-    }
-  }, [startHiding, update, toasts]);
-
-  if (!toasts.length && !ref.current.isHiding && !startHiding) {
+  if (!toast) {
     return null;
   }
+  const {
+    msg,
+  } = toast;
 
   return (
     <div
-      onClick={hideFirstToast}
+      onClick={hideToast}
       className={cn(styles.toast, {
-        [styles.visible]: toasts.length,
+        [styles.visible]: !isHidingToast,
       })}
       role="dialog"
     >

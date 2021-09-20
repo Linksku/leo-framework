@@ -47,7 +47,7 @@ const SseConnectionsManager = {
     }
   },
 
-  sendHeartbeat() {
+  sendHeartbeat(this: void) {
     for (const conn of TS.objectValues(conns)) {
       if (performance.now() - conn.lastMsgTime > MIN_HEARTBEAT_TIME) {
         try {

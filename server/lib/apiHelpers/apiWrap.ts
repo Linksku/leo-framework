@@ -10,9 +10,16 @@ export default function apiWrap<Name extends ApiName>(
 ): (req: ExpressRequest, res: ExpressResponse) => Promise<void> {
   return async (req, res) => {
     try {
-      const paramsStr: string = req.method === 'GET'
-        ? req.query.params
-        : req.body.params;
+      const paramsObj = req.method === 'GET'
+        ? req.query
+        : req.body;
+
+      const ver = TS.parseIntOrNull(paramsObj.ver);
+      if (ver && ver < Number.parseInt(process.env.JS_VERSION, 10)) {
+        throw new HandledError('Client is outdated.', 469);
+      }
+
+      const paramsStr: string = paramsObj.params;
       let params: ApiNameToParams[Name];
       try {
         params = JSON.parse(paramsStr);
@@ -35,7 +42,7 @@ export default function apiWrap<Name extends ApiName>(
         }
       }
 
-      await validateApiData('params', api.validateParams, params);
+      validateApiData('params', api.validateParams, params);
       if (api.config.paramsSchema) {
         params = unserializeDateProps(api.config.paramsSchema, params);
       }
@@ -54,7 +61,7 @@ export default function apiWrap<Name extends ApiName>(
           throw new HandledError('Api didn\'t include data.', 500);
         }
         if (process.env.NODE_ENV !== 'production') {
-          await validateApiData('data', api.validateData, ret.data);
+          validateApiData('data', api.validateData, ret.data);
         }
       }
 

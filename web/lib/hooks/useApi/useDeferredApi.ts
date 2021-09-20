@@ -1,12 +1,11 @@
-import useMountedState from 'react-use/lib/useMountedState';
-
 import fetcher from 'lib/fetcher';
 import removeUndefinedValues from 'lib/removeUndefinedValues';
 import { HTTP_TIMEOUT, API_URL } from 'settings';
 import ApiError from 'lib/ApiError';
-import useDynamicCallback from 'lib/hooks/useDynamicCallback';
+import useEffectIfReady from 'lib/hooks/useEffectIfReady';
 import useHandleApiEntities from './useHandleApiEntities';
 import isErrorResponse from './isErrorResponse';
+import useHandleErrorResponse from './useHandleErrorResponse';
 
 type Opts<Name extends ApiName> = {
   type?: 'load' | 'create' | 'update' | 'delete',
@@ -23,6 +22,7 @@ type State<Name extends ApiName> = {
   data: ApiData<Name> | null,
   fetching: boolean,
   error: Memoed<Error> | null,
+  fetchApiParams: Memoed<Partial<ApiParams<Name>>> | null,
 };
 
 type FetchApi<
@@ -87,31 +87,23 @@ function useDeferredApi<
     data: null,
     fetching: false,
     error: null,
+    fetchApiParams: null,
   });
   const ref = useRef({
     isFetching: false,
     numFetches: 0,
     numCancelled: 0,
+    onFetch,
+    onError,
   });
+  ref.current.onFetch = onFetch;
+  ref.current.onError = onError;
   const { authToken } = useAuthStore();
-  const handleApiEntities = useHandleApiEntities<Name>(type !== 'load');
-  const showToast = useShowToast();
-  const isMounted = useMountedState();
-
-  const onFetchWrap: Memoed<OnApiFetch<Name>> = useDynamicCallback((...args) => {
-    if (isMounted()) {
-      onFetch?.(...args);
-    }
-  });
-
-  const onErrorWrap: Memoed<OnApiError> = useDynamicCallback((err: Error) => {
-    if (isMounted()) {
-      onError?.(err);
-    }
-  });
+  const handleApiEntities = useHandleApiEntities(type !== 'load');
+  const handleErrorResponse = useHandleErrorResponse();
 
   const fetchApi: FetchApi<Name, Params> = useCallback(
-    async (params2, files) => {
+    (params2, files) => {
       if (process.env.NODE_ENV !== 'production' && files
         && !Object.values(files).every(f => {
           if (Array.isArray(f)) {
@@ -123,7 +115,7 @@ function useDeferredApi<
       }
 
       if (ref.current.isFetching) {
-        return null;
+        return Promise.resolve(null);
       }
 
       ref.current.numFetches++;
@@ -140,8 +132,9 @@ function useDeferredApi<
       return fetcher[method](
         `${API_URL}/api/${name}`,
         {
-          params: JSON.stringify(removeUndefinedValues(combinedParams)),
           ...files,
+          params: JSON.stringify(removeUndefinedValues(combinedParams)),
+          ver: process.env.JS_VERSION,
         },
         {
           authToken,
@@ -168,12 +161,9 @@ function useDeferredApi<
                 fetching: false,
                 data,
                 error: null,
+                fetchApiParams: (params2 ?? EMPTY_OBJ) as Memoed<Partial<ApiParams<Name>>>,
               });
             }
-            onFetchWrap?.(
-              successResponse.data,
-                (params2 ?? EMPTY_OBJ) as Partial<ApiParams<Name>>,
-            );
           });
 
           return data;
@@ -186,17 +176,17 @@ function useDeferredApi<
                 fetching: false,
                 data: null,
                 error: markMemoed(err),
+                fetchApiParams: (params2 ?? EMPTY_OBJ) as Memoed<Partial<ApiParams<Name>>>,
               });
             }
 
-            if (showToastOnError && err.message) {
-              showToast({
-                msg: err.message,
-              });
-            }
-
-            onErrorWrap?.(err);
-            ErrorLogger.warning(err, `useDeferredApi: ${name} failed`);
+            handleErrorResponse({
+              caller: 'useDeferredApi',
+              name,
+              showToastOnError,
+              status: err.status,
+              err,
+            });
           });
           throw err;
         });
@@ -207,13 +197,22 @@ function useDeferredApi<
       authToken,
       method,
       handleApiEntities,
-      onFetchWrap,
-      onErrorWrap,
+      handleErrorResponse,
       noReturnState,
       showToastOnError,
-      showToast,
     ],
   );
+
+  useEffectIfReady(() => {
+    ref.current.onFetch?.(
+      TS.notNull(state.data),
+      TS.notNull(state.fetchApiParams),
+    );
+  }, [state.data, state.fetchApiParams], !!(state.data && state.fetchApiParams));
+
+  useEffectIfReady(() => {
+    ref.current.onError?.(TS.notNull(state.error));
+  }, [state.error], !!state.error);
 
   const resetApi = useCallback(
     (cancelFetching = true) => {
@@ -221,12 +220,13 @@ function useDeferredApi<
         ref.current.numCancelled = ref.current.numFetches;
         ref.current.isFetching = false;
       }
-      setState(s => (!s.fetching && !s.data && !s.error
+      setState(s => (!s.fetching && !s.data && !s.error && !s.fetchApiParams
         ? s
         : {
           fetching: false,
           data: null,
           error: null,
+          fetchApiParams: null,
         }));
     },
     [],

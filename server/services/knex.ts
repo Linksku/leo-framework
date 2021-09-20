@@ -1,11 +1,11 @@
 import type { TypeCast } from 'mysql';
 import Knex from 'knex';
 
+import { DEBUG } from 'settings';
+
 if (!process.env.MYSQL_USER) {
   throw new Error('MYSQL_USER env var not set.');
 }
-
-const SHOW_ALL_QUERIES = false;
 
 // todo: high/hard add at least 1 mysql local read replica
 const knex = Knex({
@@ -33,7 +33,7 @@ const knex = Knex({
         return;
       }
 
-      if (SHOW_ALL_QUERIES) {
+      if (DEBUG) {
         console.log(
           'Query:',
           knex.raw(msg.sql, msg.bindings).toString(),
@@ -42,9 +42,12 @@ const knex = Knex({
 
       void knex.raw(`explain ${msg.sql}`, msg.bindings)
         .then(results => {
+          if (msg.sql.includes('computedPostsScores')) {
+            return;
+          }
+
           const filesorts = results[0].filter(
-            row => !msg.sql.includes('computedPostsScores')
-                && row.Extra?.toLowerCase().includes('filesort'),
+            row => row.Extra?.toLowerCase().includes('filesort'),
           );
           if (filesorts.length) {
             console.log(
@@ -54,10 +57,9 @@ const knex = Knex({
           }
 
           const temporaries = results[0].filter(
-            row => !msg.sql.includes('computedPostsScores')
-                && row.Extra?.toLowerCase().includes('temporary'),
+            row => row.Extra?.toLowerCase().includes('temporary'),
           );
-          if (temporaries.length) {
+          if (!msg.sql.startsWith('select distinct ') && temporaries.length) {
             console.log(
               'Using temporary:',
               knex.raw(msg.sql, msg.bindings).toString(),

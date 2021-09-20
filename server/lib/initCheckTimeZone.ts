@@ -10,6 +10,7 @@ export default function initCheckTimeZone() {
     .then(rows => {
       if (rows?.[0]?.['@@global.time_zone'] !== '+00:00') {
         console.error('MySQL isn\'t UTC.');
+        // eslint-disable-next-line unicorn/no-process-exit
         process.exit(1);
       }
     });

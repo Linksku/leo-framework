@@ -55,56 +55,6 @@ module.exports = {
         ],
       },
       {
-        test: /\.scss$/,
-        include: [WEB_ROOT, WEB_SRC_ROOT],
-        use: [
-          {
-            loader: 'css-loader',
-            options: {
-              importLoaders: 3,
-              modules: {
-                localIdentName: '[name]__[local]',
-              },
-            },
-          },
-          'postcss-loader',
-          {
-            loader: 'sass-loader',
-            options: {
-              sourceMap: false,
-            },
-          },
-          {
-            loader: 'sass-resources-loader',
-            options: {
-              resources: [
-                path.resolve('./web/styles/imports/sassVariables.scss'),
-                path.resolve('./web/styles/imports/mixins.scss'),
-                path.resolve('./web/styles/imports/helpers.scss'),
-              ],
-            },
-          },
-        ],
-      },
-      {
-        test: /\.svg$/,
-        use: [
-          {
-            loader: 'react-svg-loader',
-            options: {
-              svgo: {
-                plugins: [
-                  {
-                    removeDimensions: true,
-                    removeViewBox: false,
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      },
-      {
         test: /\.txt$/i,
         type: 'asset/source',
       },
@@ -123,7 +73,7 @@ module.exports = {
   plugins: [
     new webpack.EnvironmentPlugin({
       JS_VERSION: Number.parseInt(
-        (childProcess.execSync('git rev-list --count master').toString()).trim(),
+        childProcess.execSync('git rev-list --count master').toString().trim(),
         10,
       ),
       SCRIPT_PATH: process.env.SCRIPT_PATH || '',

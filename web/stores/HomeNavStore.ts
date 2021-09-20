@@ -1,7 +1,6 @@
 import HOME_TABS from 'config/homeTabs';
 import useUpdatedState from 'lib/hooks/useUpdatedState';
 import shallowEqual from 'lib/shallowEqual';
-import { useAnimatedValue } from 'lib/hooks/useAnimation';
 
 type TabType = ValueOf<typeof HOME_TABS>;
 
@@ -16,8 +15,6 @@ const [
       // Allow immediate exit.
       hasAttemptedExit: true,
     });
-    const [sidebarLoaded, setSidebarLoaded] = useState(false);
-    const sidebarShownPercent = useAnimatedValue(0);
 
     const {
       prevState,
@@ -70,6 +67,20 @@ const [
       }
       return s;
     });
+    const lastHomeHistoryState = useUpdatedState(
+      isHome
+        ? curState
+        : (wasHome ? prevState : null),
+      s => {
+        if (isHome) {
+          return curState;
+        }
+        if (wasHome) {
+          return prevState;
+        }
+        return s;
+      },
+    );
 
     // todo: low/mid create new store for each route because curState changes while navigating
     const navigateHome = useCallback((
@@ -129,15 +140,8 @@ const [
       homeParts,
       isHome,
       wasHome,
+      lastHomeHistoryState,
       navigateHome,
-      sidebarShownPercent,
-      sidebarLoaded,
-      showSidebar: useCallback(() => {
-        sidebarShownPercent.setVal(100);
-        setSidebarLoaded(true);
-      }, [sidebarShownPercent]),
-      hideSidebar: useCallback(() => sidebarShownPercent.setVal(0), [sidebarShownPercent]),
-      loadSidebar: useCallback(() => setSidebarLoaded(true), []),
     });
   },
 );

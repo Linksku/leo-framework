@@ -7,7 +7,7 @@ const [
   function StacksNavStore() {
     let stackBot: HistoryState | null = null;
     let stackTop: HistoryState | null = null;
-    let stackActive: 'top' | 'bot' = 'bot';
+    let stackActive: HistoryState | null = null;
 
     const {
       prevState,
@@ -26,11 +26,11 @@ const [
       // Home -> stack.
       stackBot = prevState;
       stackTop = curState;
-      stackActive = 'top';
+      stackActive = stackTop;
     } else if (direction === 'forward') {
       stackBot = prevState;
       stackTop = curState;
-      stackActive = 'top';
+      stackActive = stackTop;
     } else if (direction === 'back') {
       stackBot = curState;
       stackTop = prevState;
@@ -54,7 +54,7 @@ const [
     return useDeepMemoObj({
       stackBot,
       stackTop,
-      stackActive,
+      stackActive: stackActive ?? stackBot,
       backStack,
       forwardStack,
     });

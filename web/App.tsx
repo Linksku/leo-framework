@@ -14,6 +14,7 @@ import { SseProvider } from 'stores/SseStore';
 import { SlideUpProvider } from 'stores/SlideUpStore';
 import { StacksNavProvider } from 'stores/StacksNavStore';
 import { ToastsProvider } from 'stores/ToastsStore';
+import { UIFrameProvider } from 'stores/UIFrameStore';
 import providers from 'config/storeProviders';
 
 export default function App() {
@@ -26,10 +27,11 @@ export default function App() {
     GlobalStateProvider,
     HistoryProvider,
 
-    // UI
+    // Core UI
     AlertsProvider,
     SlideUpProvider,
     ToastsProvider,
+    UIFrameProvider,
 
     // Data
     EntitiesProvider,

@@ -4,10 +4,10 @@ import { App as Capacitor } from '@capacitor/app';
 import useUpdate from 'lib/hooks/useUpdate';
 
 // Reduce rerenders.
-const QS_CACHE: ObjectOf<Memoed<ObjectOf<any>>> = Object.create(null);
+const QS_CACHE: ObjectOf<Memoed<ObjectOf<string | string[] | null>>> = Object.create(null);
 function getStateFromLocation(stateId: number): HistoryState {
   const { pathname, search, hash } = window.location;
-  let pathDecoded;
+  let pathDecoded: string;
   try {
     pathDecoded = decodeURIComponent(pathname);
   } catch {
@@ -19,7 +19,7 @@ function getStateFromLocation(stateId: number): HistoryState {
   }
   return markMemoed({
     path: pathDecoded,
-    query: QS_CACHE[search] ?? null,
+    query: QS_CACHE[search] ?? EMPTY_OBJ,
     queryStr: search || null,
     hash: hash ? hash.slice(1) : null,
     id: stateId,
@@ -35,6 +35,20 @@ function getFullPath(path: string, queryStr: string | null, hash: string | null)
     fullPath += `#${hash}`;
   }
   return fullPath;
+}
+
+function queryStrVals(query: ObjectOf<string | string[] | number | number[] | null>) {
+  const newQuery: ObjectOf<string | string[] | null> = {};
+  for (const [k, v] of TS.objectEntries(query)) {
+    if (Array.isArray(v)) {
+      newQuery[k] = v.map((v2: number | string) => (typeof v2 === 'number' ? `${v2}` : v2));
+    } else if (typeof v === 'number') {
+      newQuery[k] = `${v}`;
+    } else {
+      newQuery[k] = v;
+    }
+  }
+  return newQuery;
 }
 
 const [
@@ -60,7 +74,7 @@ const [
 
     const _pushPath = useCallback((
       _path: string,
-      _query: ObjectOf<any> | null = null,
+      _query: ObjectOf<string | string[] | number | number[] | null> | null = null,
       _hash: string | null = null,
     ) => {
       const firstQuestion = _path.indexOf('?');
@@ -74,10 +88,10 @@ const [
         throw new Error(`pushPath(${_path}): don't include query/hash in path`);
       }
 
-      let query: ObjectOf<any> | null = null;
+      let query: ObjectOf<string | string[] | null> | null = null;
       let queryStr: string | null = null;
       if (_query) {
-        query = _query;
+        query = queryStrVals(_query);
         queryStr = qs.stringify(query);
       } else if (firstQuestion >= 0) {
         if (firstHash < 0) {
@@ -102,7 +116,7 @@ const [
         prevState: ref.current.curState,
         curState: markMemoed({
           path,
-          query: markMemoed(query),
+          query: query ? markMemoed(query) : EMPTY_OBJ,
           queryStr,
           hash,
           id: ref.current.curState.id + 1,
@@ -124,7 +138,7 @@ const [
 
     const _replacePath = useCallback((
       path: string,
-      query: ObjectOf<any> | null = null,
+      query: ObjectOf<string | string[] | number | number[] | null> | null = null,
       hash: string | null = null,
     ) => {
       const queryStr = query ? qs.stringify(query) : null;
@@ -138,7 +152,7 @@ const [
         ...ref.current,
         curState: markMemoed({
           path,
-          query: markMemoed(query),
+          query: query ? markMemoed(queryStrVals(query)) : EMPTY_OBJ,
           queryStr,
           hash,
           id: ref.current.curState.id,

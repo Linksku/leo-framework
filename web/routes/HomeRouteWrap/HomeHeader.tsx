@@ -1,6 +1,6 @@
 import UserSvg from '@fortawesome/fontawesome-free/svgs/regular/user.svg';
 
-import PullToRefresh from 'components/frame/PullToRefresh';
+import PullToReload from 'components/frame/PullToReload';
 import homeHeaderIcons from 'config/homeHeaderIcons';
 import HomeHeaderSelector from './HomeHeaderSelector';
 import HomeHeaderNotifsIcon from './HomeHeaderNotifsIcon';
@@ -9,7 +9,7 @@ import styles from './HomeHeaderStyles.scss';
 
 function HomeHeader() {
   const currentUserId = useCurrentUserId();
-  const { loggedInStatus } = useAuthStore();
+  const authState = useAuthState();
 
   const icons = [
     ...homeHeaderIcons,
@@ -28,11 +28,11 @@ function HomeHeader() {
   ];
 
   return (
-    <PullToRefresh className={styles.container}>
+    <PullToReload className={styles.container}>
       <div className={styles.containerInner}>
         <HomeHeaderSelector />
         {icons
-          .filter(({ authOnly }) => loggedInStatus !== 'out' || !authOnly)
+          .filter(({ authOnly }) => authState === 'in' || !authOnly)
           .map(({ path, Component, label }) => (
             <a
               key={path}
@@ -44,7 +44,7 @@ function HomeHeader() {
             </a>
           ))}
       </div>
-    </PullToRefresh>
+    </PullToReload>
   );
 }
 

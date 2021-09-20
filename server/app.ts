@@ -1,15 +1,12 @@
-import bodyParser from 'body-parser';
-import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
-import cors from 'cors';
 import compression from 'compression';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
 
 import apiRoutes from 'routes/apiRoutes';
 import sseRoute from 'routes/sseRoute';
-import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
+import { DOMAIN_NAME } from 'settings';
 import CronManager from 'services/CronManager';
 
 import 'services/knex';
@@ -32,21 +29,6 @@ if (process.env.NODE_ENV === 'production') {
   app.use(Sentry.Handlers.errorHandler());
 }
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(cors({
-  origin: [
-    HOME_URL,
-    new RegExp(`${PROTOCOL}([^/]+\\.)?${DOMAIN_NAME}$`, 'i'),
-  ],
-  optionsSuccessStatus: 200,
-  credentials: true,
-  allowedHeaders: [
-    'authorization',
-    'content-type',
-  ],
-}));
 app.use(compression());
 app.set('etag', 'weak');
 app.disable('x-powered-by');
@@ -77,12 +59,12 @@ if (process.env.SERVER !== 'production') {
   app.use(express.static(
     path.resolve('../web'),
     {
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
       dotfiles: 'allow',
       redirect: false,
       index: false,
       setHeaders(res, file) {
-        if (/\.(html|js|css|json|txt)/i.test(file)) {
+        if (/\.html$/i.test(file)) {
           res.setHeader('Cache-Control', 'public,max-age=60');
         }
       },
@@ -90,7 +72,7 @@ if (process.env.SERVER !== 'production') {
   ));
 
   const indexFile = fs.readFileSync(path.resolve('../web/index.html')).toString();
-  app.get('*', async (req, res) => {
+  app.get('*', (req, res) => {
     if (req.subdomains.length) {
       res.status(404);
       return;
