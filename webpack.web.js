@@ -1,19 +1,19 @@
-const path = require('path');
-const mapValues = require('lodash/mapValues');
-const webpack = require('webpack');
-const CopyPlugin = require('copy-webpack-plugin');
+import path from 'path';
+import mapValues from 'lodash/mapValues';
+import webpack from 'webpack';
+import CopyPlugin from 'copy-webpack-plugin';
 
-const mergeReplaceArrays = require('./shared/lib/mergeReplaceArrays');
-const globals = require('./web/config/globals');
-const globalsSrc = require('./src/web/config/globals');
-const baseConfig = require('./webpack.common');
-const transformWebpackCopied = require('./shared/lib/transformWebpackCopied');
-const { ASSETS_URL } = require('./shared/settings');
+import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
+import globals from './web/config/globals.cjs';
+import globalsSrc from './src/web/config/globals.cjs';
+import baseConfig from './webpack.common';
+import transformWebpackCopied from './scripts/lib/transformWebpackCopied';
+import { ASSETS_URL } from './shared/settings';
 
 const WEB_ROOT = path.resolve('./web');
 const WEB_SRC_ROOT = path.resolve('./src/web');
 
-module.exports = mergeReplaceArrays(baseConfig, {
+export default mergeReplaceArrays(baseConfig, {
   module: {
     rules: [
       {
@@ -71,7 +71,7 @@ module.exports = mergeReplaceArrays(baseConfig, {
   },
   entry: {
     main: process.env.ANALYZER
-      ? path.resolve('./web/bundleAnalyzerHack.js')
+      ? path.resolve('./web/bundleAnalyzerHack.ts')
       : path.resolve('./web/web.tsx'),
   },
   output: {

@@ -1,4 +1,4 @@
-import mergeConcatArrays from 'lib/mergeConcatArrays';
+import deepMergeObjs from 'lib/deepMergeObjs';
 
 export default class EntityBase extends Model {
   // todo: low/hard maybe make ids non-sequential
@@ -30,7 +30,7 @@ export default class EntityBase extends Model {
   };
 
   static get allJsonSchema() {
-    return mergeConcatArrays(this.dbJsonSchema, this.otherJsonSchema);
+    return deepMergeObjs(this.dbJsonSchema, this.otherJsonSchema);
   }
 
   static pickJsonSchemaProperties = true;
@@ -51,5 +51,15 @@ export default class EntityBase extends Model {
   type!: EntityType;
   // todo: low/mid maybe allow string ids
   id!: number;
+  // todo: low/easy maybe extras null by default
   extras: ObjectOf<any> = {};
+
+  $formatApiJson(obj: SerializedEntity): SerializedEntity {
+    return obj;
+  }
+
+  $formatApiJsonWrapper() {
+    const obj = this.toJSON() as unknown as SerializedEntity;
+    return this.$formatApiJson(obj);
+  }
 }

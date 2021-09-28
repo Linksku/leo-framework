@@ -72,7 +72,6 @@ async function fetchBatchedRequest() {
     const results: MemoDeep<ApiResponse<any>>[] = curBatched.length === 1
       ? markMemoed([fullResponse])
       : (fullResponse as MemoDeep<ApiSuccessResponse<'batched'>>).data.results;
-
     if (results.length !== curBatched.length) {
       throw new Error('Batched API response has wrong length.');
     }

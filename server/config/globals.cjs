@@ -3,9 +3,9 @@ const path = require('path');
 
 const globals = {
   // Node modules.
-  dayjs: 'dayjs',
-  express: 'express',
-  fetch: 'node-fetch',
+  dayjs: ['dayjs', 'default'],
+  express: ['express', 'default'],
+  fetch: ['node-fetch', 'default'],
   Model: ['objection', 'Model'],
   // Lib.
   EMPTY_ARR: ['./server/lib/emptyArr', 'default'],

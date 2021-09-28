@@ -1,4 +1,4 @@
-module.exports = function mergeReplaceArrays(obj1, obj2) {
+export default function mergeReplaceArrays(obj1, obj2) {
   if (obj1 === obj2) {
     return obj1;
   }
@@ -24,4 +24,4 @@ module.exports = function mergeReplaceArrays(obj1, obj2) {
     return newObj;
   }
   return obj2;
-};
+}

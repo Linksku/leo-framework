@@ -9,6 +9,7 @@ type Props = {
   contentType: string,
 };
 
+// todo: mid/mid verify Spaces paths are unique, periodically remove unused files
 export default async function uploadToSpaces({
   file,
   outPath,

@@ -26,6 +26,7 @@ export type PaginatedResponse<T> = {
 
 export const MAX_PER_PAGE = 30;
 
+// todo: mid/easy check columns with shouldIndexDesc
 export default async function paginateQuery<T extends Entity>(
   query: QueryBuilder<T, T[]>,
   orderByColumns: ORDERBY_COLUMNS,
@@ -113,7 +114,12 @@ export default async function paginateQuery<T extends Entity>(
 
   const entities = await query;
   const lastRowCursorVals = entities.length
-    ? orderByColumns.map((_, idx) => entities[entities.length - 1][`__cursorKey${idx}`] as number)
+    ? orderByColumns.map((_, idx) => {
+      const lastRow = TS.last(entities);
+      return lastRow
+        ? TS.getProperty(lastRow, `__cursorKey${idx}`) ?? null
+        : null;
+    })
     : null;
   if (process.env.NODE_ENV !== 'production'
     && lastRowCursorVals

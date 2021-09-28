@@ -2,6 +2,10 @@ module.exports = {
   name: '%APP_NAME_LOWER%',
   cwd: 'build/server',
   script: 'main.js',
+  node_args: '--es-module-specifier-resolution=node',
+  env: {
+    NODE_ENV: 'production',
+  },
   min_uptime: '10s',
   max_restarts: 5,
   max_memory_restart: '500M',

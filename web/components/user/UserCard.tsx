@@ -12,7 +12,7 @@ export default function UserCard({ userId, className }: Props) {
   const user = useRequiredEntity('user', userId);
 
   return (
-    <a
+    <Link
       href={`/user/${userId}`}
       className={cn(styles.container, className)}
     >
@@ -33,6 +33,6 @@ export default function UserCard({ userId, className }: Props) {
           </div>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }

@@ -22,6 +22,7 @@ void queue.process(job => {
 
 // todo: mid/mid trigger updates for newly created entities, e.g. new userClub with existing posts
 // todo: high/hard replace computed updaters with redis caches
+// todo: high/mid run computed updaters periodically for all ids in case some ids were missed
 const ComputedUpdatersManager = {
   triggerUpdates(type: EntityType) {
     if (!TS.hasDefinedProperty(TRIGGERED_UPDATES, type)) {

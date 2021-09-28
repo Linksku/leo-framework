@@ -40,6 +40,7 @@ const [
           setAuthToken(newAuthToken);
           setState({ currentUserId: userId, authState: 'in' });
         } else {
+          // todo: high/mid logging out rerenders before redirect, leads to errors
           removeAuthToken();
           setState({ currentUserId: null, authState: 'out' });
         }

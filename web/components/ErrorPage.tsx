@@ -11,7 +11,12 @@ export default function ErrorPage({
   content,
   className,
 }: Props) {
-  const reloadPage = useReloadPage();
+  const reloadPage = useReloadPage()
+    // It's possible for providers to have errors.
+    ?? (() => {
+      // @ts-ignore reload(true) is still supported
+      window.location.reload(true);
+    });
 
   return (
     <div className={cn(styles.container, className)}>

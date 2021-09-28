@@ -1,4 +1,5 @@
-import { ValidationError, UniqueViolationError } from 'objection';
+import { ValidationError } from 'objection';
+import { UniqueViolationError } from 'db-errors';
 
 export default function handleApiError(
   err: Error,
@@ -7,7 +8,7 @@ export default function handleApiError(
   status: number,
   errorData: ApiErrorData,
 } {
-  console.error(name, err);
+  console.error(`Api error in ${name}:`, err);
 
   const stack = process.env.NODE_ENV === 'production' ? undefined : err.stack?.split('\n');
   if (err instanceof ValidationError) {

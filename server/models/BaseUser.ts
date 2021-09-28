@@ -1,5 +1,4 @@
 import type { QueryContext } from 'objection';
-import bcrypt from 'bcrypt';
 
 export default class BaseUser extends Entity {
   static type = 'user' as const;
@@ -11,6 +10,7 @@ export default class BaseUser extends Entity {
     properties: {
       id: SchemaConstants.id,
       email: SchemaConstants.email,
+      // todo: low/easy change password to string
       password: SchemaConstants.password,
       name: SchemaConstants.name,
       birthday: SchemaConstants.date,
@@ -31,29 +31,20 @@ export default class BaseUser extends Entity {
   async $beforeInsert(ctx: QueryContext) {
     await super.$beforeInsert(ctx);
 
-    const salt = await bcrypt.genSalt();
-    this.password = await bcrypt.hash(`${this.password}${process.env.PASSWORD_PEPPER}`, salt);
-
     this.email = this.email.toLowerCase();
   }
 
   async $beforeUpdate(_opts: any, ctx: QueryContext) {
     await super.$beforeUpdate(_opts, ctx);
 
-    if (this.password) {
-      const salt = await bcrypt.genSalt();
-      this.password = await bcrypt.hash(`${this.password}${process.env.PASSWORD_PEPPER}`, salt);
-    }
-
     if (this.email) {
       this.email = this.email.toLowerCase();
     }
   }
 
-  $formatJson(json: ObjectOf<any>): ObjectOf<any> {
-    json = super.$formatJson(json);
+  $formatApiJson(obj: SerializedEntity): SerializedEntity {
     // todo: high/mid conditionally hide email
-    delete json.password;
-    return json;
+    delete obj.password;
+    return obj;
   }
 }

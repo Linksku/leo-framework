@@ -17,16 +17,6 @@ module.exports = {
     {
       test: ['./web', './src/web'],
       presets: [
-        ['@babel/preset-env', {
-          useBuiltIns: 'usage',
-          corejs: '3',
-          /*
-          exclude: [
-            'babel-plugin-transform-async-to-generator',
-            'babel-plugin-transform-regenerator',
-          ],
-          */
-        }],
         ['@babel/preset-react', {
           pragma: 'ReactCreateElement',
           pragmaFrag: 'ReactFragment',
@@ -37,29 +27,31 @@ module.exports = {
       plugins: [
         ['module-resolver', {
           root: ['./web', './shared', './src/web', './src/shared'],
-          extensions: ['.js', '.ts', '.tsx'],
+          extensions: ['.js', '.ts', '.tsx', '.cjs'],
           alias: {
             config: ['./src/web/config', './src/shared/config'],
           },
         }],
         // this cause bugs
         // '@babel/plugin-transform-react-constant-elements',
-        /*
-        ['module:fast-async', {
-          'compiler': { 'promises': true, 'generators': false, 'useRuntimeModule': true },
-        }],
-        ['@babel/plugin-transform-modules-commonjs', {
-          'strictMode': false,
-        }],
-        */
       ],
     },
     {
       test: ['./server', './src/server'],
+      presets: [
+        ['@babel/preset-env', {
+          useBuiltIns: 'usage',
+          corejs: '3',
+          modules: false,
+          targets: {
+            node: 'current',
+          },
+        }],
+      ],
       plugins: [
         ['module-resolver', {
           root: ['./server', './shared', './src/server', './src/shared'],
-          extensions: ['.js', '.ts'],
+          extensions: ['.js', '.ts', '.cjs'],
           alias: {
             config: ['./src/server/config', './src/shared/config'],
           },
@@ -71,7 +63,7 @@ module.exports = {
       plugins: [
         ['module-resolver', {
           root: ['./shared', './src/shared'],
-          extensions: ['.js', '.ts'],
+          extensions: ['.js', '.ts', '.cjs'],
           alias: {
             config: './src/shared/config',
           },

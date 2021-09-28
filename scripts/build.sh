@@ -11,6 +11,10 @@ export NODE_ENV=production
 mkdir -p build
 yarn clean
 
-node --max_old_space_size=4096 node_modules/webpack/bin/webpack.js --config webpack.web.production.js
-node scripts/build-templates.js
-node --max_old_space_size=4096 node_modules/webpack/bin/webpack.js --config webpack.server.production.js
+node --max_old_space_size=4096 --es-module-specifier-resolution=node \
+  node_modules/webpack/bin/webpack.js \
+  --config webpack.web.production.js
+yarn ss buildTemplates
+node --max_old_space_size=4096 --es-module-specifier-resolution=node \
+  node_modules/webpack/bin/webpack.js \
+  --config webpack.server.production.js

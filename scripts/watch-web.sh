@@ -1,3 +1,3 @@
 #!/bin/bash
 
-npx webpack -w --config webpack.web.${NODE_ENV}.js
+node --es-module-specifier-resolution=node node_modules/webpack/bin/webpack.js -w --config webpack.web.${NODE_ENV}.js

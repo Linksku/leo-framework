@@ -19,9 +19,12 @@ export function isPropDate(schema: JSONSchema, prop: PropertyKey): boolean {
 
 // Must mutate input obj.
 export function serializeDateProp(schema: JSONSchema, prop: PropertyKey, val: any, forDb: boolean) {
-  if (val != null && typeof prop === 'string' && isPropDate(schema, prop)) {
+  if (val != null
+    && (val instanceof Date || val instanceof dayjs)
+    && typeof prop === 'string'
+    && isPropDate(schema, prop)) {
     const desc = schema.properties?.[prop];
-    if (typeof desc === 'object' && (val instanceof Date || val instanceof dayjs)) {
+    if (typeof desc === 'object') {
       if (desc.format === 'date') {
         return toMysqlDate(val as Date | Dayjs);
       }

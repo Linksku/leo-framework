@@ -55,11 +55,12 @@ function ResetPasswordVerifyRoute() {
           <Button
             Component="input"
             type="submit"
+            value="Save"
             disabled={fetching}
           />
         </form>
 
-        <p><a href="/login">Log In</a></p>
+        <p><Link href="/login">Log In</Link></p>
       </div>
     </StackWrapInner>
   );

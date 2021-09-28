@@ -1,7 +1,7 @@
 import type { TypeCast } from 'mysql';
 import Knex from 'knex';
 
-import { DEBUG } from 'settings';
+import { DEBUG, HTTP_TIMEOUT } from 'settings';
 
 if (!process.env.MYSQL_USER) {
   throw new Error('MYSQL_USER env var not set.');
@@ -26,43 +26,50 @@ const knex = Knex({
     }) as TypeCast,
   },
   pool: { min: 0, max: 10 },
+  acquireConnectionTimeout: HTTP_TIMEOUT / 2,
   debug: process.env.NODE_ENV !== 'production',
   log: {
-    debug(msg) {
-      if (process.env.NODE_ENV === 'production' || msg.sql.startsWith('explain ')) {
+    debug({
+      sql,
+      bindings,
+    }: {
+      sql?: string,
+      bindings: any,
+    }) {
+      if (process.env.NODE_ENV === 'production' || !sql || sql.startsWith('explain ')) {
         return;
       }
 
       if (DEBUG) {
         console.log(
           'Query:',
-          knex.raw(msg.sql, msg.bindings).toString(),
+          knex.raw(sql, bindings).toString(),
         );
       }
 
-      void knex.raw(`explain ${msg.sql}`, msg.bindings)
+      void knex.raw(`explain ${sql}`, bindings)
         .then(results => {
-          if (msg.sql.includes('computedPostsScores')) {
+          if (sql.includes('computedPostsScores')) {
             return;
           }
 
           const filesorts = results[0].filter(
-            row => row.Extra?.toLowerCase().includes('filesort'),
+            (row: any) => row.Extra?.toLowerCase().includes('filesort'),
           );
           if (filesorts.length) {
             console.log(
               'Filesort:',
-              knex.raw(msg.sql, msg.bindings).toString(),
+              knex.raw(sql, bindings).toString(),
             );
           }
 
           const temporaries = results[0].filter(
-            row => row.Extra?.toLowerCase().includes('temporary'),
+            (row: any) => row.Extra?.toLowerCase().includes('temporary'),
           );
-          if (!msg.sql.startsWith('select distinct ') && temporaries.length) {
+          if (!sql.startsWith('select distinct ') && temporaries.length) {
             console.log(
               'Using temporary:',
-              knex.raw(msg.sql, msg.bindings).toString(),
+              knex.raw(sql, bindings).toString(),
             );
           }
         });

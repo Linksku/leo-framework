@@ -1,5 +1,5 @@
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
 
 // Lazy version of Excel base 26
 function intToChars(n) {
@@ -9,7 +9,7 @@ function intToChars(n) {
     n /= 26;
   }
   str += String.fromCharCode(n - 1 + 97);
-  return str.split('').reverse().join('');
+  return [...str].reverse().join('');
 }
 
 let nextInt = 1;
@@ -24,7 +24,7 @@ process.on('exit', () => {
   fs.writeFileSync(path.resolve('./build/cssClasses'), JSON.stringify(cssClasses));
 });
 
-module.exports = function shortenCssClass(loaderContext, localIdentName, localName) {
+export default function shortenCssClass(loaderContext, localIdentName, localName) {
   const baseName = path.parse(loaderContext.resourcePath).name;
   let className = localIdentName.replace(/\[name]/gi, baseName);
   className = className.replace(/\[local]/gi, localName);
@@ -33,4 +33,4 @@ module.exports = function shortenCssClass(loaderContext, localIdentName, localNa
     nextInt++;
   }
   return cssClasses[className];
-};
+}

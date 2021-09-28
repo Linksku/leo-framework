@@ -79,7 +79,7 @@ export default function ShareSlideUp({ path }: Props) {
         Copy URL
       </div>
       {BTNS.map(([name, template, Svg, fill]) => (
-        <a
+        <Link
           key={name}
           href={template.replace('%url%', encodeURIComponent(url))}
           className={styles.listItem}
@@ -92,7 +92,7 @@ export default function ShareSlideUp({ path }: Props) {
             }}
           />
           {name}
-        </a>
+        </Link>
       ))}
       <div
         onClick={async () => {

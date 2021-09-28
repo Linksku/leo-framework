@@ -115,7 +115,11 @@ defineApi(
     // todo: high/hard stream batched results as they become available
     return {
       data: {
-        results: results.map(r => ({ data: (TS.hasDefinedProperty(r, 'data') ? r.data : r) })),
+        results: results.map(r => (
+          TS.hasDefinedProperty(r, 'data')
+            ? { data: r.data }
+            : r
+        )),
       },
       entities: results.flatMap(r => (TS.hasDefinedProperty(r, 'entities') ? r.entities : [])),
       createdEntities: results.flatMap(r => (TS.hasDefinedProperty(r, 'createdEntities') ? r.createdEntities : [])),

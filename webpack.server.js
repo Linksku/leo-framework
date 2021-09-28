@@ -1,16 +1,14 @@
-const path = require('path');
-const nodeExternals = require('webpack-node-externals');
-const mapValues = require('lodash/mapValues');
-const webpack = require('webpack');
-const CopyPlugin = require('copy-webpack-plugin');
+import path from 'path';
+import nodeExternals from 'webpack-node-externals';
+import mapValues from 'lodash/mapValues';
+import webpack from 'webpack';
 
-const mergeReplaceArrays = require('./shared/lib/mergeReplaceArrays');
-const globals = require('./server/config/globals');
-const globalsSrc = require('./src/server/config/globals');
-const baseConfig = require('./webpack.common');
-const transformWebpackCopied = require('./shared/lib/transformWebpackCopied');
+import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
+import globals from './server/config/globals.cjs';
+import globalsSrc from './src/server/config/globals.cjs';
+import baseConfig from './webpack.common';
 
-module.exports = mergeReplaceArrays(baseConfig, {
+export default mergeReplaceArrays(baseConfig, {
   target: 'node',
   entry: {
     main: path.resolve('./server/server.ts'),
@@ -18,6 +16,10 @@ module.exports = mergeReplaceArrays(baseConfig, {
   output: {
     path: path.resolve('./build/server'),
     filename: '[name].js',
+    chunkFormat: 'module',
+    environment: {
+      module: true,
+    },
   },
   node: {
     __dirname: true,
@@ -51,20 +53,20 @@ module.exports = mergeReplaceArrays(baseConfig, {
       }
       return Array.isArray(v) ? [p, v[1]] : p;
     })),
-    new CopyPlugin({
-      patterns: [
-        {
-          from: path.resolve('./server/public'),
-          to: path.resolve('./build/server'),
-          transform: transformWebpackCopied,
-        },
-        {
-          from: path.resolve('./src/server/public'),
-          to: path.resolve('./build/server'),
-          transform: transformWebpackCopied,
-        },
-      ],
+    new webpack.EnvironmentPlugin({
+      SCRIPT_PATH: process.env.SCRIPT_PATH || '',
+      IS_SERVER_SCRIPT: !!process.env.SCRIPT_PATH,
     }),
   ],
-  externals: [nodeExternals()],
+  externalsPresets: { node: true },
+  externals: [
+    nodeExternals({
+      importType: 'module',
+    }),
+  ],
+  experiments: {
+    outputModule: true,
+    topLevelAwait: true,
+  },
+  externalsType: 'module',
 });

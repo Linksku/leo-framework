@@ -1,4 +1,4 @@
-import type { JSONSchema, ModelOptions } from 'objection';
+import type { ModelOptions } from 'objection';
 import { AjvValidator } from 'objection';
 
 import { unserializeDateProps, serializeDateProps } from 'lib/dateSchemaHelpers';
@@ -16,16 +16,24 @@ export default class EntityDates extends EntityComputed {
     });
   }
 
-  // db -> node
-  $parseDatabaseJson(obj: ObjectOf<any>): ObjectOf<any> {
-    obj = super.$parseDatabaseJson(obj);
+  // db/redis/api -> node
+  $parseJson(obj: ObjectOf<any>): ObjectOf<any> {
+    obj = super.$parseJson(obj);
 
-    const schema = (this.constructor as typeof Entity).dbJsonSchema;
+    const schema = (this.constructor as typeof Entity).allJsonSchema;
     return unserializeDateProps(schema, obj);
   }
 
-  // node -> json
-  $formatJson(obj: ObjectOf<any>): ObjectOf<any> {
+  // node -> db
+  $formatDatabaseJson(obj: Pojo): Pojo {
+    obj = super.$formatDatabaseJson(obj);
+    const schema = (this.constructor as typeof Entity).allJsonSchema;
+    // todo: low/mid obj should already be serialized by $beforeValidate
+    return serializeDateProps(schema, obj, true);
+  }
+
+  // node -> redis/api
+  $formatJson(obj: Pojo): Pojo {
     obj = super.$formatJson(obj);
     const schema = (this.constructor as typeof Entity).allJsonSchema;
     return serializeDateProps(schema, obj, false);

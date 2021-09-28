@@ -1,9 +1,9 @@
 const mapValues = require('lodash/mapValues');
 
-const webGlobals = require('./web/config/globals');
-const webSrcGlobals = require('./src/web/config/globals');
-const serverGlobals = require('./server/config/globals');
-const serverSrcGlobals = require('./src/server/config/globals');
+const webGlobals = require('./web/config/globals.cjs');
+const webSrcGlobals = require('./src/web/config/globals.cjs');
+const serverGlobals = require('./server/config/globals.cjs');
+const serverSrcGlobals = require('./src/server/config/globals.cjs');
 
 // todo: low/mid speed up linting
 module.exports = {
@@ -15,6 +15,9 @@ module.exports = {
       jsx: true,
     },
     project: 'tsconfig.json',
+    extraFileExtensions: [
+      '.cjs',
+    ],
   },
   extends: [
     'airbnb',
@@ -40,10 +43,10 @@ module.exports = {
   settings: {
     'import/resolver': {
       node: {
-        extensions: ['.js', '.ts', '.tsx'],
+        extensions: ['.js', '.ts', '.tsx', '.cjs'],
       },
       alias: {
-        extensions: ['.js', '.ts', '.tsx'],
+        extensions: ['.js', '.ts', '.tsx', '.cjs'],
       },
     },
   },
@@ -340,13 +343,14 @@ module.exports = {
     'unicorn/prefer-module': 0,
     'unicorn/prefer-switch': 0,
     'unicorn/prefer-node-protocol': 0,
+    'unicorn/no-useless-undefined': 0,
     'max-statements-per-line': [2, { max: 1 }],
     'no-void': [2, { allowAsStatement: true }],
     'max-classes-per-file': 0,
     'no-use-before-define': 0,
     '@typescript-eslint/no-use-before-define': 2,
     'unicorn/prefer-array-flat-map': 1,
-    'require-await': 'off',
+    'require-await': 0,
     '@typescript-eslint/require-await': 2,
   },
   overrides: [
@@ -358,6 +362,8 @@ module.exports = {
         'src/web/**/*.ts',
         'web/**/*.tsx',
         'src/web/**/*.tsx',
+        'web/**/*.cjs',
+        'src/web/**/*.cjs',
       ],
       env: {
         browser: true,
@@ -402,6 +408,7 @@ module.exports = {
         'web/**/*.js',
         'web/**/*.ts',
         'web/**/*.tsx',
+        'web/**/*.cjs',
       ],
       settings: {
         'import/resolver': {
@@ -425,6 +432,8 @@ module.exports = {
         'src/server/**/*.js',
         'server/**/*.ts',
         'src/server/**/*.ts',
+        'server/**/*.cjs',
+        'src/server/**/*.cjs',
       ],
       rules: {
         'no-console': 0,
@@ -458,6 +467,7 @@ module.exports = {
       files: [
         'server/**/*.js',
         'server/**/*.ts',
+        'server/**/*.cjs',
       ],
       settings: {
         'import/resolver': {
@@ -481,6 +491,8 @@ module.exports = {
         'src/shared/**/*.js',
         'shared/**/*.ts',
         'src/shared/**/*.ts',
+        'shared/**/*.cjs',
+        'src/shared/**/*.cjs',
       ],
       settings: {
         'import/resolver': {
@@ -502,6 +514,7 @@ module.exports = {
       files: [
         'shared/**/*.js',
         'shared/**/*.ts',
+        'shared/**/*.cjs',
       ],
       settings: {
         'import/resolver': {

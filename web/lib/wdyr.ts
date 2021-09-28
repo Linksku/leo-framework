@@ -17,13 +17,13 @@ if (process.env.NODE_ENV !== 'production') {
         // Log if object content didn't change.
         const hasDifferentValues = (
           reason.propsDifferences
-          && reason.propsDifferences.some(diff => diff.diffType === 'different')
+          && reason.propsDifferences.some((diff: any) => diff.diffType === 'different')
         ) || (
           reason.stateDifferences
-          && reason.stateDifferences.some(diff => diff.diffType === 'different')
+          && reason.stateDifferences.some((diff: any) => diff.diffType === 'different')
         ) || (
           reason.hookDifferences
-          && reason.hookDifferences.some(diff => diff.diffType === 'different')
+          && reason.hookDifferences.some((diff: any) => diff.diffType === 'different')
         );
 
         if (!hasDifferentValues) {

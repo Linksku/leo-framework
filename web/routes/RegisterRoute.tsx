@@ -38,7 +38,7 @@ function RegisterRoute() {
           <p className={styles.loggedInMsg}>
             Already logged in.
             {' '}
-            <a href="/">Go back to home</a>
+            <Link href="/">Go back to home</Link>
             {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
             {'.'}
           </p>
@@ -126,14 +126,14 @@ function RegisterRoute() {
         <p>
           By signing up, you agree to the
           {' '}
-          <a href="/tos/terms">Terms of Service</a>
+          <Link href="/tos/terms">Terms of Service</Link>
           {' '}
           and
           {' '}
-          <a href="/tos/privacy">Privacy Policy</a>
+          <Link href="/tos/privacy">Privacy Policy</Link>
           , including
           {' '}
-          <a href="/tos/cookie">Cookie Policy</a>
+          <Link href="/tos/cookie">Cookie Policy</Link>
           {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
           {'.'}
         </p>
@@ -147,7 +147,7 @@ function RegisterRoute() {
         />
       </form>
 
-      <p><a href="/login">Login</a></p>
+      <p><Link href="/login">Login</Link></p>
     </StackWrapInner>
   );
 }

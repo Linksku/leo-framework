@@ -1,6 +1,6 @@
-import type _dayjs from 'dayjs';
-import type _express from 'express';
-import type _fetch from 'node-fetch';
+import type { default as _dayjs } from 'dayjs';
+import type { default as _express } from 'express';
+import type { default as _fetch } from 'node-fetch';
 import type { Model as _Model } from 'objection';
 import type { default as _EMPTY_ARR } from '../../../server/lib/emptyArr';
 import type { default as _EMPTY_OBJ } from '../../../server/lib/emptyObj';

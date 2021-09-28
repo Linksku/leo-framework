@@ -16,9 +16,9 @@ function getOutput(models: ObjectOf<EntityModel>) {
 
   return `${imports.join('\n')}
 
-  declare global {
-    ${interfaces.join('\n  ')}
-  }
+declare global {
+  ${interfaces.join('\n  ')}
+}
   `;
 }
 

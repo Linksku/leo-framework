@@ -1,7 +1,11 @@
-const mergeReplaceArrays = require('./shared/lib/mergeReplaceArrays');
-const baseConfig = require('./webpack.server');
+import CopyPlugin from 'copy-webpack-plugin';
+import path from 'path';
 
-module.exports = mergeReplaceArrays(baseConfig, {
+import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
+import baseConfig from './webpack.server';
+import transformWebpackCopied from './scripts/lib/transformWebpackCopied';
+
+export default mergeReplaceArrays(baseConfig, {
   mode: 'development',
   module: {
     rules: baseConfig.module.rules.map(rule => {
@@ -18,5 +22,22 @@ module.exports = mergeReplaceArrays(baseConfig, {
       return rule;
     }),
   },
+  plugins: [
+    ...baseConfig.plugins,
+    new CopyPlugin({
+      patterns: [
+        {
+          from: path.resolve('./server/public'),
+          to: path.resolve('./build/server'),
+          transform: transformWebpackCopied,
+        },
+        {
+          from: path.resolve('./src/server/public'),
+          to: path.resolve('./build/server'),
+          transform: transformWebpackCopied,
+        },
+      ],
+    }),
+  ],
   devtool: 'cheap-module-source-map',
 });

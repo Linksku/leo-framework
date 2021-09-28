@@ -1,8 +1,8 @@
 import entityModels from 'lib/entityModels';
 
-const typeToModel: ObjectOf<EntityModel> = {};
-for (const Model of Object.values(entityModels)) {
-  typeToModel[Model.type] = Model;
+const entityTypeToModel = {} as Record<EntityType, EntityModel>;
+for (const Model of (Object.values(entityModels) as EntityModel[])) {
+  entityTypeToModel[Model.type] = Model;
 }
 
-export default typeToModel;
+export default entityTypeToModel;

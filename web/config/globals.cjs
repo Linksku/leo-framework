@@ -1,5 +1,5 @@
 // todo: low/mid enable adding globals without restarting server
-const globals = {
+module.exports = {
   // Node modules.
   batchedUpdates: ['react-dom', 'unstable_batchedUpdates'],
   constate: ['constate', 'default'],
@@ -26,6 +26,7 @@ const globals = {
   Dropdown: ['./web/components/ui/Dropdown', 'default'],
   FileInput: ['./web/components/ui/FileInput', 'default'],
   Input: ['./web/components/ui/Input', 'default'],
+  Link: ['./web/components/ui/Link', 'default'],
   Radio: ['./web/components/ui/Radio', 'default'],
   Select: ['./web/components/ui/Select', 'default'],
   Spinner: ['./web/components/ui/Spinner', 'default'],
@@ -87,5 +88,3 @@ const globals = {
   useShowToast: ['./web/stores/ToastsStore', 'useShowToast'],
   useUpdateEntities: ['./web/stores/EntitiesStore', 'useUpdateEntities'],
 };
-
-module.exports = globals;

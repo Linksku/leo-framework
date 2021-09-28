@@ -20,4 +20,4 @@ unzip build.zip
 rm build.zip
 
 pm2 start $APP_NAME_LOWER
-chmod -R +x scripts
+chmod -R +x ./scripts

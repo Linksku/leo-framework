@@ -266,7 +266,6 @@ function useEntity<T extends EntityType>(
 
   useEffect(() => {
     if (id == null) {
-      // eslint-disable-next-line unicorn/no-useless-undefined
       return undefined;
     }
 

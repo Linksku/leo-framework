@@ -1,11 +1,11 @@
-const path = require('path');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
-const childProcess = require('child_process');
+import path from 'path';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import TerserPlugin from 'terser-webpack-plugin';
+import childProcess from 'child_process';
 
-const mergeReplaceArrays = require('./shared/lib/mergeReplaceArrays');
-const baseConfig = require('./webpack.web');
-const shortenCssClass = require('./scripts/shortenCssClass');
+import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
+import baseConfig from './webpack.web';
+import shortenCssClass from './scripts/shortenCssClass';
 
 if (!process.env.SERVER || !process.env.NODE_ENV) {
   throw new Error('Env vars not set.');
@@ -16,7 +16,7 @@ const jsVersion = Number.parseInt(
   10,
 );
 
-module.exports = mergeReplaceArrays(baseConfig, {
+export default mergeReplaceArrays(baseConfig, {
   entry: {
     '../sw': path.resolve('./web/sw.ts'),
   },

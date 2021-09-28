@@ -1,9 +1,9 @@
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 
-const mergeReplaceArrays = require('./shared/lib/mergeReplaceArrays');
-const baseConfig = require('./webpack.web');
+import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
+import baseConfig from './webpack.web';
 
-module.exports = mergeReplaceArrays(baseConfig, {
+export default mergeReplaceArrays(baseConfig, {
   mode: 'development',
   module: {
     rules: baseConfig.module.rules.map(rule => {

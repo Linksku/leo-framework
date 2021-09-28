@@ -22,6 +22,7 @@ import type { default as _Checkbox } from '../../../web/components/ui/Checkbox';
 import type { default as _Dropdown } from '../../../web/components/ui/Dropdown';
 import type { default as _FileInput } from '../../../web/components/ui/FileInput';
 import type { default as _Input } from '../../../web/components/ui/Input';
+import type { default as _Link } from '../../../web/components/ui/Link';
 import type { default as _Radio } from '../../../web/components/ui/Radio';
 import type { default as _Select } from '../../../web/components/ui/Select';
 import type { default as _Spinner } from '../../../web/components/ui/Spinner';
@@ -105,6 +106,7 @@ declare global {
   const Dropdown: typeof _Dropdown;
   const FileInput: typeof _FileInput;
   const Input: typeof _Input;
+  const Link: typeof _Link;
   const Radio: typeof _Radio;
   const Select: typeof _Select;
   const Spinner: typeof _Spinner;

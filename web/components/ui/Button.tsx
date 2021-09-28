@@ -45,6 +45,10 @@ export default function Button({
   small = false,
   ...props
 }: Props) {
+  if (process.env.NODE_ENV !== 'production' && Component === 'input' && label) {
+    throw new Error('Button: input can\'t have label, use value.');
+  }
+
   const inner = LeftSvg || label || RightSvg
     ? (
       <>
@@ -105,7 +109,7 @@ export default function Button({
   }
 
   return (
-    <a
+    <Link
       href={href}
       className={cn(styles.btn, className, {
         [styles.outline]: outline,
@@ -122,6 +126,6 @@ export default function Button({
       {...props}
     >
       {inner}
-    </a>
+    </Link>
   );
 }

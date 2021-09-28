@@ -35,7 +35,7 @@ function LoginRoute() {
             <p className={styles.loggedInMsg}>
               Already logged in.
               {' '}
-              <a href="/">Go back to home</a>
+              <Link href="/">Go back to home</Link>
               {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
               {'.'}
             </p>
@@ -82,10 +82,10 @@ function LoginRoute() {
         </form>
 
         <p>
-          <a href="/register">Register</a>
+          <Link href="/register">Register</Link>
         </p>
         <p>
-          <a href="/resetpassword">Forgot Password?</a>
+          <Link href="/resetpassword">Forgot Password?</Link>
         </p>
       </div>
     </StackWrapInner>

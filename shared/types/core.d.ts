@@ -31,10 +31,10 @@ type StrictlyEmptyObj = Record<string, never>;
 
 type Primitive = string | number | bigint | boolean | symbol | null | undefined;
 
+type Json = Primitive | Array<Json> | ObjectOf<Json>;
+
 // Only use for function params.
-type Pojo = Partial<{
-  [key: string]: Primitive | Pojo | ReadonlyArray<Primitive | Pojo>;
-}>;
+type Pojo = ObjectOf<Json>;
 
 type AnyFunction = (...args: any[]) => any;
 

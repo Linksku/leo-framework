@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 import { defineApi } from 'services/ApiManager';
 import { getCookieJwt, getHeaderJwt, isPasswordValid } from 'lib/apiHelpers/jwtAuth';
@@ -17,6 +18,11 @@ const dataSchema = {
   },
   additionalProperties: false as const,
 };
+
+async function getPasswordHash(password: string) {
+  const salt = await bcrypt.genSalt();
+  return bcrypt.hash(`${password}${process.env.PASSWORD_PEPPER}`, salt);
+}
 
 async function _sendAuthToken(userId: number, res: ExpressResponse) {
   const { cookieJwt, headerJwt } = await promiseObj({
@@ -82,7 +88,7 @@ defineApi(
     try {
       userId = await BaseUser.insert({
         email,
-        password,
+        password: await getPasswordHash(password),
         name,
         birthday,
       });
@@ -118,7 +124,7 @@ defineApi(
       throw new HandledError('Email or password is incorrect.', 400);
     }
 
-    const user = await BaseUser.findOne('email', email.toLowerCase());
+    const user = await BaseUser.findOne({ email: email.toLowerCase() });
     if (!user || !await isPasswordValid(user.password, password)) {
       throw new HandledError('Email or password is incorrect.', 400);
     }
@@ -145,7 +151,7 @@ defineApi(
       throw new HandledError('Email or password is incorrect.', 400);
     }
 
-    const user = await BaseUser.findOne('email', email.toLowerCase());
+    const user = await BaseUser.findOne({ email: email.toLowerCase() });
     if (!user) {
       throw new HandledError('Can\'t find email.', 400);
     }
@@ -221,7 +227,7 @@ defineApi(
       throw new HandledError('Invalid token', 400);
     }
 
-    const user = await BaseUser.findOne('id', userId);
+    const user = await BaseUser.findOne({ id: userId });
     if (!user) {
       throw new HandledError('Invalid user.', 400);
     }
@@ -247,7 +253,10 @@ defineApi(
       throw new HandledError('Invalid token', 400);
     }
 
-    await BaseUser.patch('id', user.id, { password });
+    await BaseUser.patch(
+      { id: user.id },
+      { password: await getPasswordHash(password) },
+    );
     await UserMeta.deleteAll({
       userId: user.id,
       metaKey: 'resetPassword',

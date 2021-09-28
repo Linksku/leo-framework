@@ -1,6 +1,6 @@
-const path = require('path');
-const childProcess = require('child_process');
-const webpack = require('webpack');
+import path from 'path';
+import childProcess from 'child_process';
+import webpack from 'webpack';
 
 const ROOT = path.resolve('.');
 const WEB_ROOT = path.resolve('./web');
@@ -29,11 +29,15 @@ for (const k of ENV_KEYS) {
 }
 
 // todo: mid/hard memory usage.
-module.exports = {
+export default {
   module: {
     rules: [
       {
         test: /\.(j|t)sx?$/,
+        resolve: {
+          // Allow importing without extensions.
+          fullySpecified: false,
+        },
         include: [
           WEB_ROOT,
           WEB_SRC_ROOT,
@@ -61,7 +65,7 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: ['.js', '.ts', '.tsx'],
+    extensions: ['.js', '.ts', '.tsx', '.cjs'],
     alias: {
       ejs: 'ejs/ejs.min',
     },
@@ -76,13 +80,9 @@ module.exports = {
         childProcess.execSync('git rev-list --count master').toString().trim(),
         10,
       ),
-      SCRIPT_PATH: process.env.SCRIPT_PATH || '',
       ...ENV_OBJ,
     }),
   ],
-  cache: {
-    type: 'memory',
-  },
   stats: {
     optimizationBailout: true,
     logging: 'warn',

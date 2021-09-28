@@ -33,7 +33,7 @@ defineApi(
         entityType,
         entityId,
       });
-      report = await Report.findOne('id', reportId);
+      report = await Report.findOne({ id: reportId });
     }
     return {
       createdEntities: [report],

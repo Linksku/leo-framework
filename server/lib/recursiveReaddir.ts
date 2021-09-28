@@ -1,7 +1,7 @@
-const path = require('path');
-const fs = require('fs').promises;
+import path from 'path';
+import { promises as fs } from 'fs';
 
-async function recursiveReaddirHelper(dir, allFiles = []) {
+async function recursiveReaddirHelper(dir: string, allFiles: string[] = []) {
   const files = (await fs.readdir(dir)).map(f => path.join(dir, f));
   allFiles.push(...files);
   await Promise.all(files.map(async f => (
@@ -10,7 +10,7 @@ async function recursiveReaddirHelper(dir, allFiles = []) {
   return allFiles;
 }
 
-module.exports = async function recursiveReaddir(dir) {
+export default async function recursiveReaddir(dir: string) {
   const allFiles = await recursiveReaddirHelper(dir);
   return allFiles.map(file => file.replace(dir, ''));
-};
+}

@@ -1,19 +1,19 @@
-const fs = require('fs');
-const ejs = require('ejs');
-const path = require('path');
-const mkdirp = require('mkdirp');
-const childProcess = require('child_process');
+import fs from 'fs';
+import ejs from 'ejs';
+import path from 'path';
+import mkdirp from 'mkdirp';
+import childProcess from 'child_process';
 
-const {
+import {
   APP_NAME,
   SITE_TITLE,
   DOMAIN_NAME,
   BASE_PATH,
   HOME_URL,
-} = require('../shared/settings');
-const recursiveReaddir = require('../server/lib/recursiveReaddir');
+} from 'settings';
+import recursiveReaddir from 'lib/recursiveReaddir';
 
-(async () => {
+export default async function buildTemplates() {
   const files = await recursiveReaddir(path.resolve('./web/templates'));
 
   await Promise.all(files.filter(file => file.endsWith('.ejs')).map(async file => {
@@ -42,15 +42,6 @@ const recursiveReaddir = require('../server/lib/recursiveReaddir');
           ? `.${childProcess.execSync('git rev-list --count master').toString().trim()}`
           : '',
       }),
-      err => {
-        if (err) {
-          console.log(err);
-        }
-      },
     );
   }));
-})()
-  .catch(err => {
-    console.error('Failed to build template', err);
-    throw err;
-  });
+}

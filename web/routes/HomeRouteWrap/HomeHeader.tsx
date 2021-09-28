@@ -34,14 +34,14 @@ function HomeHeader() {
         {icons
           .filter(({ authOnly }) => authState === 'in' || !authOnly)
           .map(({ path, Component, label }) => (
-            <a
+            <Link
               key={path}
               href={path}
               className={styles.rightIcon}
               aria-label={label}
             >
               <Component />
-            </a>
+            </Link>
           ))}
       </div>
     </PullToReload>

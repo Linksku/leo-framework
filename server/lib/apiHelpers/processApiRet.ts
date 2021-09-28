@@ -23,9 +23,15 @@ function _normalizeEntities(
   createdEntities: Entity[],
   updatedEntities: Entity[],
 ) {
-  const serializedEntities: SerializedEntity[] = entities.map(e => e.toJSON());
-  const serializedCreatedEntities: SerializedEntity[] = createdEntities.map(e => e.toJSON());
-  const serializedUpdatedEntities: SerializedEntity[] = updatedEntities.map(e => e.toJSON());
+  const serializedEntities: SerializedEntity[] = entities.map(
+    e => e.$formatApiJsonWrapper(),
+  );
+  const serializedCreatedEntities: SerializedEntity[] = createdEntities.map(
+    e => e.$formatApiJsonWrapper(),
+  );
+  const serializedUpdatedEntities: SerializedEntity[] = updatedEntities.map(
+    e => e.$formatApiJsonWrapper(),
+  );
   const included = [] as SerializedEntity[];
 
   function extractIncluded(data: any): data is SerializedEntity {

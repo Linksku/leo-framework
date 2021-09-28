@@ -37,7 +37,7 @@ const SchemaConstants = {
   cursor,
   lng: { type: 'number', minimum: -180, maximum: 180 },
   name: { type: 'string', minLength: 1, maxLength: 50 },
-  nameDefaultEmpty: { type: 'string', minLength: 1, maxLength: 50, default: '' },
+  nameDefaultEmpty: { type: 'string', minLength: 0, maxLength: 50, default: '' },
   type: { type: 'string', minLength: 1, maxLength: 30 },
   nonNegInt: { type: 'integer', minimum: 0 },
   password: { type: 'string', minLength: 8, maxLength: 64 },

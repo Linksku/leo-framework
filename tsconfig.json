@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "commonjs",
+    "module": "esnext",
     "moduleResolution": "node",
     "lib": ["es2019", "dom", "dom.iterable"],
     "allowJs": true,
@@ -12,8 +12,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "baseUrl": "./",
-    // todo: mid/mid noImplicitAny: true and move all JS files to a new folder with new tsconfig
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "strictNullChecks": true,
     "useUnknownInCatchVariables": false,
     "resolveJsonModule": true,

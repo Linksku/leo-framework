@@ -134,12 +134,12 @@ defineApi(
     },
   },
   async function readNotif({ notifId, currentUserId }) {
-    const notif = await Notif.findOne('id', notifId);
+    const notif = await Notif.findOne({ id: notifId });
     if (!notif || notif.userId !== currentUserId) {
       throw new HandledError('Can\'t find notif.', 404);
     }
 
-    await Notif.patch('id', notifId, {
+    await Notif.patch({ id: notifId }, {
       hasRead: true,
     });
     return {

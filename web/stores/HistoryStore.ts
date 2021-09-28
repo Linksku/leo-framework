@@ -196,6 +196,11 @@ const [
     const handleClick = useCallback(event => {
       const el = event.target.closest('a');
       const href = el?.getAttribute('href');
+
+      if (process.env.NODE_ENV !== 'production' && el) {
+        throw new Error(`HistoryStore.handleClick: use <Link> instead of <a> for ${href}`);
+      }
+
       if (href?.startsWith('/')) {
         event.preventDefault();
 

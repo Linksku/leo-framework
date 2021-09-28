@@ -73,7 +73,7 @@ export default function usePaginatedApi<
           if (process.env.NODE_ENV !== 'production'
             && data?.entityIds
             && fetchedIds.length !== data.entityIds.length) {
-            throw new Error(`usePaginatedApi: duplicate ids in ${apiName}`);
+            throw new Error(`usePaginatedApi: duplicate ids in ${apiName}: ${data.entityIds.join(',')}`);
           }
           const newIds = fetchedIds.filter((id: number) => !entityIdsSet.has(id));
           return ({
