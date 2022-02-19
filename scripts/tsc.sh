@@ -1,4 +1,10 @@
 #!/bin/bash
 
-concurrently "tsc --p src/web/tsconfig.json" "tsc --p src/server/tsconfig.json" "tsc --p src/shared/tsconfig.json" \
-  | grep -P '^|(?<=/)\w+\.tsx?(?=\()' --color=always
+rm -f framework/shared/tsconfig.tsbuildinfo
+rm -f framework/server/tsconfig.tsbuildinfo
+rm -f framework/web/tsconfig.tsbuildinfo
+rm -f app/shared/tsconfig.tsbuildinfo
+rm -f app/server/tsconfig.tsbuildinfo
+rm -f app/web/tsconfig.tsbuildinfo
+
+tsc --build | grep -P '^|(?<=/)\w+\.tsx?(?=\()' --color=always

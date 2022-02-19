@@ -1,0 +1,586 @@
+diff --git a/node_modules/objection/LICENSE b/node_modules/objection/LICENSE
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/README.md b/node_modules/objection/README.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/.eslintrc.json b/node_modules/objection/lib/.eslintrc.json
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/initialize.js b/node_modules/objection/lib/initialize.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/AjvValidator.js b/node_modules/objection/lib/model/AjvValidator.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/Model.js b/node_modules/objection/lib/model/Model.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/ModifierNotFoundError.js b/node_modules/objection/lib/model/ModifierNotFoundError.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/NotFoundError.js b/node_modules/objection/lib/model/NotFoundError.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/RelationDoesNotExistError.js b/node_modules/objection/lib/model/RelationDoesNotExistError.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/ValidationError.js b/node_modules/objection/lib/model/ValidationError.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/Validator.js b/node_modules/objection/lib/model/Validator.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/graph/ModelGraph.js b/node_modules/objection/lib/model/graph/ModelGraph.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/graph/ModelGraphBuilder.js b/node_modules/objection/lib/model/graph/ModelGraphBuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/graph/ModelGraphEdge.js b/node_modules/objection/lib/model/graph/ModelGraphEdge.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/graph/ModelGraphNode.js b/node_modules/objection/lib/model/graph/ModelGraphNode.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/inheritModel.js b/node_modules/objection/lib/model/inheritModel.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelBindKnex.js b/node_modules/objection/lib/model/modelBindKnex.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelClone.js b/node_modules/objection/lib/model/modelClone.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelColPropMap.js b/node_modules/objection/lib/model/modelColPropMap.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelId.js b/node_modules/objection/lib/model/modelId.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelJsonAttributes.js b/node_modules/objection/lib/model/modelJsonAttributes.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelParseRelations.js b/node_modules/objection/lib/model/modelParseRelations.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelQueryProps.js b/node_modules/objection/lib/model/modelQueryProps.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelSet.js b/node_modules/objection/lib/model/modelSet.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelTableMetadata.js b/node_modules/objection/lib/model/modelTableMetadata.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelToJson.js b/node_modules/objection/lib/model/modelToJson.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelUtils.js b/node_modules/objection/lib/model/modelUtils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelValidate.js b/node_modules/objection/lib/model/modelValidate.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelValues.js b/node_modules/objection/lib/model/modelValues.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/model/modelVisitor.js b/node_modules/objection/lib/model/modelVisitor.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/objection.js b/node_modules/objection/lib/objection.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/FunctionBuilder.js b/node_modules/objection/lib/queryBuilder/FunctionBuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/InternalOptions.js b/node_modules/objection/lib/queryBuilder/InternalOptions.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/JoinBuilder.js b/node_modules/objection/lib/queryBuilder/JoinBuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilder.js b/node_modules/objection/lib/queryBuilder/QueryBuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilderBase.js b/node_modules/objection/lib/queryBuilder/QueryBuilderBase.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilderContext.js b/node_modules/objection/lib/queryBuilder/QueryBuilderContext.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilderContextBase.js b/node_modules/objection/lib/queryBuilder/QueryBuilderContextBase.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilderOperationSupport.js b/node_modules/objection/lib/queryBuilder/QueryBuilderOperationSupport.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilderUserContext.js b/node_modules/objection/lib/queryBuilder/QueryBuilderUserContext.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/RawBuilder.js b/node_modules/objection/lib/queryBuilder/RawBuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/ReferenceBuilder.js b/node_modules/objection/lib/queryBuilder/ReferenceBuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/RelationExpression.js b/node_modules/objection/lib/queryBuilder/RelationExpression.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/StaticHookArguments.js b/node_modules/objection/lib/queryBuilder/StaticHookArguments.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/ValueBuilder.js b/node_modules/objection/lib/queryBuilder/ValueBuilder.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphAction.js b/node_modules/objection/lib/queryBuilder/graph/GraphAction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphData.js b/node_modules/objection/lib/queryBuilder/graph/GraphData.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphFetcher.js b/node_modules/objection/lib/queryBuilder/graph/GraphFetcher.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphNodeDbExistence.js b/node_modules/objection/lib/queryBuilder/graph/GraphNodeDbExistence.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphOperation.js b/node_modules/objection/lib/queryBuilder/graph/GraphOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphOptions.js b/node_modules/objection/lib/queryBuilder/graph/GraphOptions.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphUpsert.js b/node_modules/objection/lib/queryBuilder/graph/GraphUpsert.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/delete/GraphDelete.js b/node_modules/objection/lib/queryBuilder/graph/delete/GraphDelete.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/delete/GraphDeleteAction.js b/node_modules/objection/lib/queryBuilder/graph/delete/GraphDeleteAction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/insert/GraphInsert.js b/node_modules/objection/lib/queryBuilder/graph/insert/GraphInsert.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/insert/GraphInsertAction.js b/node_modules/objection/lib/queryBuilder/graph/insert/GraphInsertAction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/insert/JoinRowGraphInsertAction.js b/node_modules/objection/lib/queryBuilder/graph/insert/JoinRowGraphInsertAction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/patch/GraphPatch.js b/node_modules/objection/lib/queryBuilder/graph/patch/GraphPatch.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/patch/GraphPatchAction.js b/node_modules/objection/lib/queryBuilder/graph/patch/GraphPatchAction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/recursiveUpsert/GraphRecursiveUpsert.js b/node_modules/objection/lib/queryBuilder/graph/recursiveUpsert/GraphRecursiveUpsert.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/graph/recursiveUpsert/GraphRecursiveUpsertAction.js b/node_modules/objection/lib/queryBuilder/graph/recursiveUpsert/GraphRecursiveUpsertAction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/join/JoinResultColumn.js b/node_modules/objection/lib/queryBuilder/join/JoinResultColumn.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/join/JoinResultParser.js b/node_modules/objection/lib/queryBuilder/join/JoinResultParser.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/join/RelationJoiner.js b/node_modules/objection/lib/queryBuilder/join/RelationJoiner.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/join/TableNode.js b/node_modules/objection/lib/queryBuilder/join/TableNode.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/join/TableTree.js b/node_modules/objection/lib/queryBuilder/join/TableTree.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/join/utils.js b/node_modules/objection/lib/queryBuilder/join/utils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/DelegateOperation.js b/node_modules/objection/lib/queryBuilder/operations/DelegateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/DeleteOperation.js b/node_modules/objection/lib/queryBuilder/operations/DeleteOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/FindByIdOperation.js b/node_modules/objection/lib/queryBuilder/operations/FindByIdOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/FindByIdsOperation.js b/node_modules/objection/lib/queryBuilder/operations/FindByIdsOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/FindOperation.js b/node_modules/objection/lib/queryBuilder/operations/FindOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/FirstOperation.js b/node_modules/objection/lib/queryBuilder/operations/FirstOperation.js
+old mode 100644
+new mode 100755
+index 29177fc..11d726e
+--- a/node_modules/objection/lib/queryBuilder/operations/FirstOperation.js
++++ b/node_modules/objection/lib/queryBuilder/operations/FirstOperation.js
+@@ -7,7 +7,7 @@ class FirstOperation extends QueryBuilderOperation {
+     const modelClass = builder.modelClass();
+ 
+     if (builder.isFind() && modelClass.useLimitInFirst) {
+-      knexBuilder = knexBuilder.limit(1);
++      knexBuilder = knexBuilder.limit(1, { skipBinding: true });
+     }
+ 
+     return knexBuilder;
+diff --git a/node_modules/objection/lib/queryBuilder/operations/FromOperation.js b/node_modules/objection/lib/queryBuilder/operations/FromOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/InsertAndFetchOperation.js b/node_modules/objection/lib/queryBuilder/operations/InsertAndFetchOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/InsertGraphAndFetchOperation.js b/node_modules/objection/lib/queryBuilder/operations/InsertGraphAndFetchOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/InsertGraphOperation.js b/node_modules/objection/lib/queryBuilder/operations/InsertGraphOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/InsertOperation.js b/node_modules/objection/lib/queryBuilder/operations/InsertOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/InstanceDeleteOperation.js b/node_modules/objection/lib/queryBuilder/operations/InstanceDeleteOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/InstanceFindOperation.js b/node_modules/objection/lib/queryBuilder/operations/InstanceFindOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/InstanceInsertOperation.js b/node_modules/objection/lib/queryBuilder/operations/InstanceInsertOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/InstanceUpdateOperation.js b/node_modules/objection/lib/queryBuilder/operations/InstanceUpdateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/JoinRelatedOperation.js b/node_modules/objection/lib/queryBuilder/operations/JoinRelatedOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/KnexOperation.js b/node_modules/objection/lib/queryBuilder/operations/KnexOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/MergeOperation.js b/node_modules/objection/lib/queryBuilder/operations/MergeOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/ObjectionToKnexConvertingOperation.js b/node_modules/objection/lib/queryBuilder/operations/ObjectionToKnexConvertingOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/OnBuildKnexOperation.js b/node_modules/objection/lib/queryBuilder/operations/OnBuildKnexOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/OnBuildOperation.js b/node_modules/objection/lib/queryBuilder/operations/OnBuildOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/OnErrorOperation.js b/node_modules/objection/lib/queryBuilder/operations/OnErrorOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/QueryBuilderOperation.js b/node_modules/objection/lib/queryBuilder/operations/QueryBuilderOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/RangeOperation.js b/node_modules/objection/lib/queryBuilder/operations/RangeOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/RelateOperation.js b/node_modules/objection/lib/queryBuilder/operations/RelateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/ReturningOperation.js b/node_modules/objection/lib/queryBuilder/operations/ReturningOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/RunAfterOperation.js b/node_modules/objection/lib/queryBuilder/operations/RunAfterOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/RunBeforeOperation.js b/node_modules/objection/lib/queryBuilder/operations/RunBeforeOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/UnrelateOperation.js b/node_modules/objection/lib/queryBuilder/operations/UnrelateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/UpdateAndFetchOperation.js b/node_modules/objection/lib/queryBuilder/operations/UpdateAndFetchOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/UpdateOperation.js b/node_modules/objection/lib/queryBuilder/operations/UpdateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/UpsertGraphAndFetchOperation.js b/node_modules/objection/lib/queryBuilder/operations/UpsertGraphAndFetchOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/UpsertGraphOperation.js b/node_modules/objection/lib/queryBuilder/operations/UpsertGraphOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/WhereCompositeOperation.js b/node_modules/objection/lib/queryBuilder/operations/WhereCompositeOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/eager/EagerOperation.js b/node_modules/objection/lib/queryBuilder/operations/eager/EagerOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/eager/JoinEagerOperation.js b/node_modules/objection/lib/queryBuilder/operations/eager/JoinEagerOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/eager/NaiveEagerOperation.js b/node_modules/objection/lib/queryBuilder/operations/eager/NaiveEagerOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/eager/WhereInEagerOperation.js b/node_modules/objection/lib/queryBuilder/operations/eager/WhereInEagerOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonHasPostgresOperation.js b/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonHasPostgresOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonNotObjectPostgresOperation.js b/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonNotObjectPostgresOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonPostgresOperation.js b/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonPostgresOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/jsonApi/postgresJsonApi.js b/node_modules/objection/lib/queryBuilder/operations/jsonApi/postgresJsonApi.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/select/SelectOperation.js b/node_modules/objection/lib/queryBuilder/operations/select/SelectOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/select/Selection.js b/node_modules/objection/lib/queryBuilder/operations/select/Selection.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeMsSqlOperation.js b/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeMsSqlOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeOperation.js b/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeSqliteOperation.js b/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeSqliteOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/parsers/jsonFieldExpressionParser.js b/node_modules/objection/lib/queryBuilder/parsers/jsonFieldExpressionParser.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/parsers/jsonFieldExpressionParser.pegjs b/node_modules/objection/lib/queryBuilder/parsers/jsonFieldExpressionParser.pegjs
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/parsers/relationExpressionParser.js b/node_modules/objection/lib/queryBuilder/parsers/relationExpressionParser.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/parsers/relationExpressionParser.pegjs b/node_modules/objection/lib/queryBuilder/parsers/relationExpressionParser.pegjs
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/transformations/CompositeQueryTransformation.js b/node_modules/objection/lib/queryBuilder/transformations/CompositeQueryTransformation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/transformations/QueryTransformation.js b/node_modules/objection/lib/queryBuilder/transformations/QueryTransformation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/transformations/WrapMysqlModifySubqueryTransformation.js b/node_modules/objection/lib/queryBuilder/transformations/WrapMysqlModifySubqueryTransformation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/queryBuilder/transformations/index.js b/node_modules/objection/lib/queryBuilder/transformations/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/Relation.js b/node_modules/objection/lib/relations/Relation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/RelationDeleteOperation.js b/node_modules/objection/lib/relations/RelationDeleteOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/RelationFindOperation.js b/node_modules/objection/lib/relations/RelationFindOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/RelationInsertOperation.js b/node_modules/objection/lib/relations/RelationInsertOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/RelationOwner.js b/node_modules/objection/lib/relations/RelationOwner.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/RelationProperty.js b/node_modules/objection/lib/relations/RelationProperty.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/RelationUpdateOperation.js b/node_modules/objection/lib/relations/RelationUpdateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/belongsToOne/BelongsToOneDeleteOperation.js b/node_modules/objection/lib/relations/belongsToOne/BelongsToOneDeleteOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/belongsToOne/BelongsToOneInsertOperation.js b/node_modules/objection/lib/relations/belongsToOne/BelongsToOneInsertOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/belongsToOne/BelongsToOneRelateOperation.js b/node_modules/objection/lib/relations/belongsToOne/BelongsToOneRelateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/belongsToOne/BelongsToOneRelation.js b/node_modules/objection/lib/relations/belongsToOne/BelongsToOneRelation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/belongsToOne/BelongsToOneUnrelateOperation.js b/node_modules/objection/lib/relations/belongsToOne/BelongsToOneUnrelateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/hasMany/HasManyInsertOperation.js b/node_modules/objection/lib/relations/hasMany/HasManyInsertOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/hasMany/HasManyRelateOperation.js b/node_modules/objection/lib/relations/hasMany/HasManyRelateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/hasMany/HasManyRelation.js b/node_modules/objection/lib/relations/hasMany/HasManyRelation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/hasMany/HasManyUnrelateOperation.js b/node_modules/objection/lib/relations/hasMany/HasManyUnrelateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/hasOne/HasOneRelation.js b/node_modules/objection/lib/relations/hasOne/HasOneRelation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/hasOneThrough/HasOneThroughRelation.js b/node_modules/objection/lib/relations/hasOneThrough/HasOneThroughRelation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/ManyToManyModifyMixin.js b/node_modules/objection/lib/relations/manyToMany/ManyToManyModifyMixin.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/ManyToManyRelation.js b/node_modules/objection/lib/relations/manyToMany/ManyToManyRelation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/ManyToManySqliteModifyMixin.js b/node_modules/objection/lib/relations/manyToMany/ManyToManySqliteModifyMixin.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteOperation.js b/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteOperationBase.js b/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteOperationBase.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteSqliteOperation.js b/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteSqliteOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/find/ManyToManyFindOperation.js b/node_modules/objection/lib/relations/manyToMany/find/ManyToManyFindOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/insert/ManyToManyInsertOperation.js b/node_modules/objection/lib/relations/manyToMany/insert/ManyToManyInsertOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/relate/ManyToManyRelateOperation.js b/node_modules/objection/lib/relations/manyToMany/relate/ManyToManyRelateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateOperation.js b/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateOperationBase.js b/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateOperationBase.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateSqliteOperation.js b/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateSqliteOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateOperation.js b/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateOperationBase.js b/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateOperationBase.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateSqliteOperation.js b/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateSqliteOperation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/transaction.js b/node_modules/objection/lib/transaction.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/assert.js b/node_modules/objection/lib/utils/assert.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/buildUtils.js b/node_modules/objection/lib/utils/buildUtils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/classUtils.js b/node_modules/objection/lib/utils/classUtils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/clone.js b/node_modules/objection/lib/utils/clone.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/createModifier.js b/node_modules/objection/lib/utils/createModifier.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/deprecate.js b/node_modules/objection/lib/utils/deprecate.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/identifierMapping.js b/node_modules/objection/lib/utils/identifierMapping.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/internalPropUtils.js b/node_modules/objection/lib/utils/internalPropUtils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/knexUtils.js b/node_modules/objection/lib/utils/knexUtils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/mixin.js b/node_modules/objection/lib/utils/mixin.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/normalizeIds.js b/node_modules/objection/lib/utils/normalizeIds.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/objectUtils.js b/node_modules/objection/lib/utils/objectUtils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/parseFieldExpression.js b/node_modules/objection/lib/utils/parseFieldExpression.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/promiseUtils/after.js b/node_modules/objection/lib/utils/promiseUtils/after.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/promiseUtils/afterReturn.js b/node_modules/objection/lib/utils/promiseUtils/afterReturn.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/promiseUtils/index.js b/node_modules/objection/lib/utils/promiseUtils/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/promiseUtils/isPromise.js b/node_modules/objection/lib/utils/promiseUtils/isPromise.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/promiseUtils/map.js b/node_modules/objection/lib/utils/promiseUtils/map.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/promiseUtils/mapAfterAllReturn.js b/node_modules/objection/lib/utils/promiseUtils/mapAfterAllReturn.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/promiseUtils/try.js b/node_modules/objection/lib/utils/promiseUtils/try.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/resolveModel.js b/node_modules/objection/lib/utils/resolveModel.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/lib/utils/tmpColumnUtils.js b/node_modules/objection/lib/utils/tmpColumnUtils.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/objection/typings/objection/index.d.ts b/node_modules/objection/typings/objection/index.d.ts
+old mode 100644
+new mode 100755
+index 5be592c..c6dbfa3
+--- a/node_modules/objection/typings/objection/index.d.ts
++++ b/node_modules/objection/typings/objection/index.d.ts
+@@ -221,7 +221,7 @@ declare namespace Objection {
+   /**
+    * Just like PartialModelObject but this is applied recursively to relations.
+    */
+-  type PartialModelGraph<M, T = M & GraphParameters> = {
++  type PartialModelGraph<M, T = M & GraphParameters> = T extends any ? {
+     [K in DataPropertyNames<T>]?: Defined<T[K]> extends Model
+       ? PartialModelGraph<Defined<T[K]>>
+       : Defined<T[K]> extends Array<infer I>
+@@ -229,7 +229,7 @@ declare namespace Objection {
+         ? PartialModelGraph<I>[]
+         : Expression<T[K]>
+       : Expression<T[K]>;
+-  };
++  } : never;
+ 
+   /**
+    * Extracts the property names (excluding relations) of a model class.
+@@ -534,6 +534,7 @@ declare namespace Objection {
+     (table: TableRef<QB>, leftCol: ColumnRef, rightCol: ColumnRef): QB;
+     (table: TableRef<QB>, cb: CallbackVoid<Knex.JoinClause>): QB;
+     (table: TableRef<QB>, raw: Raw): QB;
++    (table: TableRef<QB>, columns: Record<string, ColumnRef>): QB;
+     (raw: Raw): QB;
+   }
+ 
+@@ -545,6 +546,7 @@ declare namespace Objection {
+ 
+   interface AggregateMethod<QB extends AnyQueryBuilder> {
+     (column: ColumnRef): QB;
++    (columns: Record<string, ColumnRef>): QB;
+   }
+ 
+   interface CountMethod<QB extends AnyQueryBuilder> {

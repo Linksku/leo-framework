@@ -1,0 +1,17 @@
+.count {
+  position: absolute;
+  top: math.div($headerHeight - 2.4rem, 2) - 0.8rem;
+  right: $containerPadLeftRight - 0.8rem;
+  font-size: 1rem;
+  font-weight: 700;
+  background-color: #f02849;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 1.6rem;
+  width: 1.6rem;
+  line-height: 1;
+  letter-spacing: 0.3px;
+}

@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig-base.json",
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable"],
+    "jsx": "react",
+    "paths": {
+      "baseUrl": ["."],
+      "*": [
+        "framework/shared/*",
+        "framework/web/*"
+      ]
+    },
+    "rootDir": ".."
+  },
+  "include": [
+    "../shared",
+    "."
+  ],
+  "exclude": [
+    "./**/*.cjs",
+    "./**/*.js"
+  ]
+}

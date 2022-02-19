@@ -4,17 +4,18 @@ import mapValues from 'lodash/mapValues';
 import webpack from 'webpack';
 
 import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
-import globals from './server/config/globals.cjs';
-import globalsSrc from './src/server/config/globals.cjs';
+import globals from './framework/server/config/globals.cjs';
+import globalsSrc from './app/server/config/globals.cjs';
+import sharedGlobals from './framework/shared/config/globals.cjs';
+import sharedGlobalsSrc from './app/shared/config/globals.cjs';
 import baseConfig from './webpack.common';
 
 export default mergeReplaceArrays(baseConfig, {
   target: 'node',
   entry: {
-    main: path.resolve('./server/server.ts'),
+    main: path.resolve('./framework/server/server.ts'),
   },
   output: {
-    path: path.resolve('./build/server'),
     filename: '[name].js',
     chunkFormat: 'module',
     environment: {
@@ -31,14 +32,14 @@ export default mergeReplaceArrays(baseConfig, {
           ...rule,
           exclude: [
             path.resolve('./node_modules'),
-            path.resolve('./web'),
+            path.resolve('./framework/web'),
           ],
         };
       }
       if (rule.test.toString() === '/\\.scss$/') {
         return {
           ...rule,
-          use: ['isomorphic-style-loader', ...rule.use],
+          use: ['isomorphic-style-loader', ...(rule.use ?? [])],
         };
       }
       return rule;
@@ -46,7 +47,12 @@ export default mergeReplaceArrays(baseConfig, {
   },
   plugins: [
     ...baseConfig.plugins,
-    new webpack.ProvidePlugin(mapValues({ ...globals, ...globalsSrc }, v => {
+    new webpack.ProvidePlugin(mapValues({
+      ...sharedGlobals,
+      ...sharedGlobalsSrc,
+      ...globals,
+      ...globalsSrc,
+    }, v => {
       let p = Array.isArray(v) ? v[0] : v;
       if (p.startsWith('.')) {
         p = path.resolve(p);

@@ -7,6 +7,9 @@ import transformWebpackCopied from './scripts/lib/transformWebpackCopied';
 
 export default mergeReplaceArrays(baseConfig, {
   mode: 'development',
+  output: {
+    path: path.resolve('./build/development/server'),
+  },
   module: {
     rules: baseConfig.module.rules.map(rule => {
       if (rule.test.toString() === '/\\.(j|t)sx?$/') {
@@ -27,13 +30,13 @@ export default mergeReplaceArrays(baseConfig, {
     new CopyPlugin({
       patterns: [
         {
-          from: path.resolve('./server/public'),
-          to: path.resolve('./build/server'),
+          from: path.resolve('./framework/server/public'),
+          to: path.resolve('./build/development/server'),
           transform: transformWebpackCopied,
         },
         {
-          from: path.resolve('./src/server/public'),
-          to: path.resolve('./build/server'),
+          from: path.resolve('./app/server/public'),
+          to: path.resolve('./build/development/server'),
           transform: transformWebpackCopied,
         },
       ],

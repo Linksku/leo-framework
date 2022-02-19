@@ -1,0 +1,40 @@
+.card {
+  background-color: #fff;
+  border-radius: 3px;
+  box-shadow: 0 4px 5px 0 rgb(0 0 0 / 14%), 0 1px 10px 0 rgb(0 0 0 / 12%), 0 2px 4px -1px rgb(0 0 0 / 30%);
+  overflow: hidden;
+  padding: 0 15px;
+  margin-bottom: 20px;
+
+  @include gtMd {
+    padding: 0 20px;
+  }
+
+  @include gtLg {
+    padding: 0 25px;
+  }
+}
+
+.topMargin {
+  margin-bottom: 10px;
+
+  @include gtMd {
+    margin-bottom: 15px;
+  }
+
+  @include gtLg {
+    margin-bottom: 20px;
+  }
+}
+
+.bottomMargin {
+  margin-top: 15px;
+
+  @include gtMd {
+    margin-top: 20px;
+  }
+
+  @include gtLg {
+    margin-top: 25px;
+  }
+}

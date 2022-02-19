@@ -11,18 +11,21 @@ if (!process.env.SERVER || !process.env.NODE_ENV) {
 
 export default mergeReplaceArrays(baseConfig, {
   mode: 'production',
+  output: {
+    path: path.resolve('./build/production/server'),
+  },
   plugins: [
     ...baseConfig.plugins,
     new CopyPlugin({
       patterns: [
         {
-          from: path.resolve('./server/public'),
-          to: path.resolve('./build/server'),
+          from: path.resolve('./framework/server/public'),
+          to: path.resolve('./build/production/server'),
           transform: transformWebpackCopied,
         },
         {
-          from: path.resolve('./src/server/public'),
-          to: path.resolve('./build/server'),
+          from: path.resolve('./app/server/public'),
+          to: path.resolve('./build/production/server'),
           transform: transformWebpackCopied,
         },
       ],

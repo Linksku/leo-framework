@@ -1,34 +1,37 @@
+const yargs = require('yargs');
 const mapValues = require('lodash/mapValues');
 
-const webGlobals = require('./web/config/globals.cjs');
-const webSrcGlobals = require('./src/web/config/globals.cjs');
-const serverGlobals = require('./server/config/globals.cjs');
-const serverSrcGlobals = require('./src/server/config/globals.cjs');
+const webGlobals = require('./framework/web/config/globals.cjs');
+const webSrcGlobals = require('./app/web/config/globals.cjs');
+const serverGlobals = require('./framework/server/config/globals.cjs');
+const serverSrcGlobals = require('./app/server/config/globals.cjs');
+const sharedGlobals = require('./framework/shared/config/globals.cjs');
+const sharedSrcGlobals = require('./app/shared/config/globals.cjs');
 
-// todo: low/mid speed up linting
-module.exports = {
+const config = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
     ecmaFeatures: {
       jsx: true,
+      impliedStrict: true,
     },
-    project: 'tsconfig.json',
+    // All .js and .cjs files are handled by scripts/tsconfig
+    // .ts and .tsx files are handled by [web,server,shared]/tsconfig
+    project: 'scripts/tsconfig.json',
     extraFileExtensions: [
       '.cjs',
     ],
   },
   extends: [
     'airbnb',
+    'airbnb/hooks',
     'plugin:@typescript-eslint/recommended',
     'plugin:unicorn/recommended',
   ],
   plugins: [
     '@typescript-eslint',
-    'react',
-    'react-hooks',
-    'jsx-a11y',
     'class-property',
     'css-modules',
     'unicorn',
@@ -74,8 +77,8 @@ module.exports = {
     'jsx-a11y/no-noninteractive-element-interactions': 0,
     'lines-between-class-members': 0,
     'react/react-in-jsx-scope': 2,
-    'no-await-in-loop': 1,
-    'no-restricted-syntax': [2, 'ForInStatement', 'LabeledStatement', 'WithStatement'],
+    'no-await-in-loop': 2,
+    'no-restricted-syntax': [2, 'ForInStatement', 'WithStatement'],
     'react/no-unused-prop-types': 2,
     'react/prefer-stateless-function': 1,
     eqeqeq: [2, 'always', {
@@ -100,9 +103,10 @@ module.exports = {
       ImportDeclaration: 'first',
       FunctionExpression: { parameters: 'first' },
       SwitchCase: 1,
+      ignoredNodes: ['TemplateLiteral > *'],
     }],
     'no-console': [2, {
-      allow: ['info', 'warn', 'error', 'assert', 'time', 'timeEnd', 'timeStamp'],
+      allow: ['assert', 'time', 'timeEnd', 'timeStamp'],
     }],
     'no-debugger': 2,
     'no-dupe-args': 2,
@@ -156,6 +160,11 @@ module.exports = {
     'no-delete-var': 2,
     'no-label-var': 2,
     'no-shadow-restricted-names': 2,
+    'no-shadow': [2, {
+      builtinGlobals: false,
+      hoist: 'functions',
+      allow: ['_'],
+    }],
     'no-undef': 0, // Typescript doesn't work well with this yet.
     'array-bracket-spacing': 2,
     'brace-style': [2, '1tbs', { allowSingleLine: true }],
@@ -275,8 +284,6 @@ module.exports = {
     'no-continue': 0,
     'prefer-arrow-callback': [2, { allowNamedFunctions: true }],
     'prefer-destructuring': [2, { array: false, object: true }],
-    'react-hooks/rules-of-hooks': 2,
-    'react-hooks/exhaustive-deps': 2,
     'no-empty': [2, {
       allowEmptyCatch: true,
     }],
@@ -288,9 +295,9 @@ module.exports = {
       ignoreRestSiblings: true,
     }],
     '@typescript-eslint/no-var-requires': 0,
-    '@typescript-eslint/ban-ts-comment': [1, {
+    '@typescript-eslint/ban-ts-comment': [2, {
       'ts-expect-error': true,
-      'ts-ignore': true,
+      'ts-ignore': 'allow-with-description',
       'ts-nocheck': true,
       'ts-check': false,
       minimumDescriptionLength: 3,
@@ -305,25 +312,20 @@ module.exports = {
     '@typescript-eslint/await-thenable': 1,
     // Too slow.
     '@typescript-eslint/unbound-method': 1,
-    '@typescript-eslint/promise-function-async': 1,
+    '@typescript-eslint/promise-function-async': 0,
     '@typescript-eslint/no-misused-promises': [1, {
       checksVoidReturn: false,
     }],
     '@typescript-eslint/return-await': 2,
     '@typescript-eslint/no-explicit-any': 0,
-    // Use shared/lib/defined
+    // Use TS.defined
     '@typescript-eslint/no-non-null-assertion': 2,
     '@typescript-eslint/no-empty-function': 0,
-    'import/extensions': [2, 'ignorePackages', {
-      js: 'never',
-      jsx: 'never',
-      ts: 'never',
-      tsx: 'never',
-    }],
-    // Disabling because adding `file:../` to `src/package.json` breaks yarn
+    'import/extensions': 0,
+    // Disabling because adding `file:../` to `app/package.json` breaks yarn
     'import/no-extraneous-dependencies': [0, {
       devDependencies: false,
-      packageDir: ['.', './src'],
+      packageDir: ['.', './app'],
     }],
     'react/require-default-props': [2, { ignoreFunctionalComponents: true }],
     'jsx-a11y/accessible-emoji': 0,
@@ -352,19 +354,34 @@ module.exports = {
     'unicorn/prefer-array-flat-map': 1,
     'require-await': 0,
     '@typescript-eslint/require-await': 2,
+    'no-loop-func': 0,
+    'space-before-function-paren': 0,
+    '@typescript-eslint/space-before-function-paren': [2, {
+      anonymous: 'never',
+      named: 'never',
+      asyncArrow: 'always',
+    }],
+    'function-paren-newline': 0,
+    'no-restricted-exports': 0,
+    'react/jsx-no-useless-fragment': [2, { allowExpressions: true }],
+    'react/no-unstable-nested-components': 0,
+    'react/function-component-definition': [2, {
+      namedComponents: 'function-declaration',
+      unnamedComponents: 'arrow-function',
+    }],
+    'import/no-relative-packages': 0,
   },
   overrides: [
     {
       files: [
-        'web/**/*.js',
-        'src/web/**/*.js',
-        'web/**/*.ts',
-        'src/web/**/*.ts',
-        'web/**/*.tsx',
-        'src/web/**/*.tsx',
-        'web/**/*.cjs',
-        'src/web/**/*.cjs',
+        'framework/web/**/*.ts',
+        'app/web/**/*.ts',
+        'framework/web/**/*.tsx',
+        'app/web/**/*.tsx',
       ],
+      parserOptions: {
+        project: 'app/web/tsconfig.json',
+      },
       env: {
         browser: true,
         node: false,
@@ -373,16 +390,16 @@ module.exports = {
         'import/resolver': {
           node: {
             paths: [
-              'src/web',
-              'src/shared',
-              'web',
-              'shared',
+              'app/web',
+              'app/shared',
+              'framework/web',
+              'framework/shared',
             ],
           },
           alias: {
             map: [
-              ['config', './src/web/config'],
-              ['config', './src/shared/config'],
+              ['config', './app/web/config'],
+              ['config', './app/shared/config'],
             ],
           },
         },
@@ -391,31 +408,34 @@ module.exports = {
         'no-restricted-imports': [2, { patterns: [
           'lodash',
           'lodash/*',
-          // 'react-use',
-          'react-use/lib/useAsync', // lib/hooks/useAsync
-          'react-use/lib/useEvent', // too many add/remove event listeners
+          'react-use', // Inefficient library.
         ] }],
       },
       globals: {
         self: false,
         process: false,
+        ...mapValues(sharedSrcGlobals, () => false),
+        ...mapValues(sharedGlobals, () => false),
         ...mapValues(webSrcGlobals, () => false),
         ...mapValues(webGlobals, () => false),
       },
     },
     {
       files: [
-        'web/**/*.js',
-        'web/**/*.ts',
-        'web/**/*.tsx',
-        'web/**/*.cjs',
+        'framework/web/**/*.ts',
+        'framework/web/**/*.tsx',
       ],
+      parserOptions: {
+        project: process.env.VSCODE_PID
+          ? 'app/web/tsconfig.json'
+          : 'framework/web/tsconfig.json',
+      },
       settings: {
         'import/resolver': {
           node: {
             paths: [
-              'web',
-              'shared',
+              'framework/web',
+              'framework/shared',
             ],
           },
         },
@@ -423,35 +443,32 @@ module.exports = {
       globals: {
         self: false,
         process: false,
+        ...mapValues(sharedGlobals, () => false),
         ...mapValues(webGlobals, () => false),
       },
     },
     {
       files: [
-        'server/**/*.js',
-        'src/server/**/*.js',
-        'server/**/*.ts',
-        'src/server/**/*.ts',
-        'server/**/*.cjs',
-        'src/server/**/*.cjs',
+        'framework/server/**/*.ts',
+        'app/server/**/*.ts',
       ],
-      rules: {
-        'no-console': 0,
+      parserOptions: {
+        project: 'app/server/tsconfig.json',
       },
       settings: {
         'import/resolver': {
           node: {
             paths: [
-              'src/server',
-              'src/shared',
-              'server',
-              'shared',
+              'app/server',
+              'app/shared',
+              'framework/server',
+              'framework/shared',
             ],
           },
           alias: {
             map: [
-              ['config', './src/server/config'],
-              ['config', './src/shared/config'],
+              ['config', './app/server/config'],
+              ['config', './app/shared/config'],
             ],
           },
         },
@@ -459,22 +476,27 @@ module.exports = {
       globals: {
         self: false,
         process: false,
+        ...mapValues(sharedSrcGlobals, () => false),
+        ...mapValues(sharedGlobals, () => false),
         ...mapValues(serverSrcGlobals, () => false),
         ...mapValues(serverGlobals, () => false),
       },
     },
     {
       files: [
-        'server/**/*.js',
-        'server/**/*.ts',
-        'server/**/*.cjs',
+        'framework/server/**/*.ts',
       ],
+      parserOptions: {
+        project: process.env.VSCODE_PID
+          ? 'app/server/tsconfig.json'
+          : 'framework/server/tsconfig.json',
+      },
       settings: {
         'import/resolver': {
           node: {
             paths: [
-              'server',
-              'shared',
+              'framework/server',
+              'framework/shared',
             ],
           },
         },
@@ -482,29 +504,29 @@ module.exports = {
       globals: {
         self: false,
         process: false,
+        ...mapValues(sharedGlobals, () => false),
         ...mapValues(serverGlobals, () => false),
       },
     },
     {
       files: [
-        'shared/**/*.js',
-        'src/shared/**/*.js',
-        'shared/**/*.ts',
-        'src/shared/**/*.ts',
-        'shared/**/*.cjs',
-        'src/shared/**/*.cjs',
+        'framework/shared/**/*.ts',
+        'app/shared/**/*.ts',
       ],
+      parserOptions: {
+        project: 'app/shared/tsconfig.json',
+      },
       settings: {
         'import/resolver': {
           node: {
             paths: [
-              'src/shared',
-              'shared',
+              'app/shared',
+              'framework/shared',
             ],
           },
           alias: {
             map: [
-              ['config', './src/shared/config'],
+              ['config', './app/shared/config'],
             ],
           },
         },
@@ -512,19 +534,46 @@ module.exports = {
     },
     {
       files: [
-        'shared/**/*.js',
-        'shared/**/*.ts',
-        'shared/**/*.cjs',
+        'framework/shared/**/*.ts',
       ],
+      parserOptions: {
+        project: process.env.VSCODE_PID
+          ? 'app/shared/tsconfig.json'
+          : 'framework/shared/tsconfig.json',
+      },
       settings: {
         'import/resolver': {
           node: {
             paths: [
-              'shared',
+              'framework/shared',
             ],
           },
         },
       },
     },
+    {
+      files: [
+        'framework/server/scripts/**/*.ts',
+        'app/server/scripts/**/*.ts',
+      ],
+      rules: {
+        'no-console': 0,
+        'no-await-in-loop': 0,
+        'unicorn/no-process-exit': 0,
+      },
+    },
   ],
 };
+
+const { argv } = yargs(process.argv);
+if ('quiet' in argv && argv.quiet) {
+  for (const [k, v] of Object.entries(config.rules)) {
+    if (v === 1) {
+      config.rules[k] = 0;
+    } else if (Array.isArray(v) && v[0] === 1) {
+      v[0] = 0;
+    }
+  }
+}
+
+module.exports = config;

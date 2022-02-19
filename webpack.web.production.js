@@ -2,8 +2,10 @@ import path from 'path';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
 import childProcess from 'child_process';
+import CopyPlugin from 'copy-webpack-plugin';
 
 import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
+import transformWebpackCopied from './scripts/lib/transformWebpackCopied';
 import baseConfig from './webpack.web';
 import shortenCssClass from './scripts/shortenCssClass';
 
@@ -18,10 +20,11 @@ const jsVersion = Number.parseInt(
 
 export default mergeReplaceArrays(baseConfig, {
   entry: {
-    '../sw': path.resolve('./web/sw.ts'),
+    '../sw': path.resolve('./framework/web/sw.ts'),
   },
   mode: 'production',
   output: {
+    path: path.resolve('./build/production/web'),
     filename: `js/[name].${jsVersion}.js`,
     chunkFilename: `js/chunks/[name].${jsVersion}.js`,
   },
@@ -70,16 +73,33 @@ export default mergeReplaceArrays(baseConfig, {
       filename: `css/[name].${jsVersion}.css`,
       chunkFilename: `css/chunks/[name].${jsVersion}.css`,
     }),
+    new CopyPlugin({
+      patterns: [
+        {
+          from: path.resolve('./framework/web/public'),
+          to: path.resolve('./build/production/web'),
+          transform: transformWebpackCopied,
+        },
+        {
+          from: path.resolve('./app/web/public'),
+          to: path.resolve('./build/production/web'),
+          transform: transformWebpackCopied,
+        },
+      ],
+    }),
   ],
   optimization: {
     minimize: true,
     minimizer: [
       new TerserPlugin({
         terserOptions: {
-          ecma: 6,
+          ecma: 8,
           module: true,
           compress: {
             passes: 2,
+            // According to Vercel, these can cause bugs.
+            comparisons: false,
+            inline: 2,
           },
           output: {
             comments: false,

@@ -1,0 +1,24 @@
+.container {
+  padding: 5px $containerPadLeftRight;
+}
+
+$listItemPadding: 8px;
+
+.input {
+  margin-bottom: 5px !important;
+}
+
+.listItem {
+  padding: $listItemPadding 0;
+  display: flex;
+  align-items: center;
+
+  svg {
+    margin-right: 10px;
+    height: 2.8rem;
+    width: 2.8rem;
+    fill: $lightTextColor;
+    filter: drop-shadow(0 0 1px rgb(0 0 0 / 10%)) drop-shadow(0 0 rgb(0 0 0 / 30%));
+    transition: transform 0.2s;
+  }
+}

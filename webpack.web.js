@@ -1,17 +1,17 @@
 import path from 'path';
 import mapValues from 'lodash/mapValues';
 import webpack from 'webpack';
-import CopyPlugin from 'copy-webpack-plugin';
 
 import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
-import globals from './web/config/globals.cjs';
-import globalsSrc from './src/web/config/globals.cjs';
+import globals from './framework/web/config/globals.cjs';
+import globalsSrc from './app/web/config/globals.cjs';
+import sharedGlobals from './framework/shared/config/globals.cjs';
+import sharedGlobalsSrc from './app/shared/config/globals.cjs';
 import baseConfig from './webpack.common';
-import transformWebpackCopied from './scripts/lib/transformWebpackCopied';
-import { ASSETS_URL } from './shared/settings';
+import { ASSETS_URL } from './framework/shared/settings';
 
-const WEB_ROOT = path.resolve('./web');
-const WEB_SRC_ROOT = path.resolve('./src/web');
+const WEB_ROOT = path.resolve('./framework/web');
+const WEB_SRC_ROOT = path.resolve('./app/web');
 
 export default mergeReplaceArrays(baseConfig, {
   module: {
@@ -40,9 +40,10 @@ export default mergeReplaceArrays(baseConfig, {
             loader: 'sass-resources-loader',
             options: {
               resources: [
-                path.resolve('./web/styles/imports/sassVariables.scss'),
-                path.resolve('./web/styles/imports/mixins.scss'),
-                path.resolve('./web/styles/imports/helpers.scss'),
+                path.resolve('./framework/web/styles/imports/modules.scss'),
+                path.resolve('./framework/web/styles/imports/sassVariables.scss'),
+                path.resolve('./framework/web/styles/imports/mixins.scss'),
+                path.resolve('./framework/web/styles/imports/helpers.scss'),
               ],
             },
           },
@@ -52,14 +53,19 @@ export default mergeReplaceArrays(baseConfig, {
         test: /\.svg$/,
         use: [
           {
-            loader: 'react-svg-loader',
+            loader: '@svgr/webpack',
             options: {
-              svgo: {
+              svgoConfig: {
                 plugins: [
                   {
-                    removeDimensions: true,
-                    removeViewBox: false,
+                    name: 'preset-default',
+                    params: {
+                      overrides: {
+                        removeViewBox: false,
+                      },
+                    },
                   },
+                  'removeDimensions',
                 ],
               },
             },
@@ -70,40 +76,30 @@ export default mergeReplaceArrays(baseConfig, {
     ],
   },
   entry: {
-    main: process.env.ANALYZER
-      ? path.resolve('./web/bundleAnalyzerHack.ts')
-      : path.resolve('./web/web.tsx'),
+    main: path.resolve('./framework/web/web.tsx'),
   },
   output: {
     publicPath: `${ASSETS_URL}/`,
-    // todo: low/mid separate dirs for prod and dev
-    path: path.resolve('./build/web'),
     filename: 'js/[name].js',
     chunkFilename: `js/chunks/[name].js`,
   },
   plugins: [
     ...baseConfig.plugins,
-    new webpack.ProvidePlugin(mapValues({ ...globals, ...globalsSrc }, v => {
-      let p = Array.isArray(v) ? v[0] : v;
-      if (p.startsWith('.')) {
-        p = path.resolve(p);
-      }
+    new webpack.ProvidePlugin(
+      mapValues({
+        ...sharedGlobals,
+        ...sharedGlobalsSrc,
+        ...globals,
+        ...globalsSrc,
+      },
+      v => {
+        let p = Array.isArray(v) ? v[0] : v;
+        if (p.startsWith('.')) {
+          p = path.resolve(p);
+        }
 
-      return Array.isArray(v) ? [p, v[1]] : p;
-    })),
-    new CopyPlugin({
-      patterns: [
-        {
-          from: path.resolve('./web/public'),
-          to: path.resolve('./build/web'),
-          transform: transformWebpackCopied,
-        },
-        {
-          from: path.resolve('./src/web/public'),
-          to: path.resolve('./build/web'),
-          transform: transformWebpackCopied,
-        },
-      ],
-    }),
+        return Array.isArray(v) ? [p, v[1]] : p;
+      }),
+    ),
   ],
 });

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -o allexport; source src/env; set +o allexport
+set -o allexport; source app/env; set +o allexport
 
 pm2 stop $APP_NAME_LOWER
 

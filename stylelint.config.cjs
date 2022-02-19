@@ -1,5 +1,7 @@
+const lowerCamelCase = '^[a-z][a-zA-Z0-9]+$';
+
 module.exports = {
-  extends: 'stylelint-config-standard',
+  extends: 'stylelint-config-standard-scss',
   plugins: [
     'stylelint-scss',
     'stylelint-no-unsupported-browser-features',
@@ -15,13 +17,11 @@ module.exports = {
     'no-empty-source': null,
     'plugin/no-unsupported-browser-features': [true, {
       browsers: [
-        'last 10 versions',
+        'last 2 versions',
+        'last 2 years',
         'not < 0.1%',
-        'not dead',
         'not ie > 0',
         'not op_mini all',
-        'not edge < 70',
-        'not samsung < 9',
       ],
       ignore: ['css3-cursors-newer'],
     }],
@@ -31,5 +31,15 @@ module.exports = {
       'font-size': ['em', 'rem', 'lh', 'rlh'],
       'line-height': ['px', 'rem'],
     },
+    'selector-class-pattern': lowerCamelCase,
+    'scss/dollar-variable-pattern': lowerCamelCase,
+    'scss/at-mixin-pattern': lowerCamelCase,
+    'scss/percent-placeholder-pattern': lowerCamelCase,
+    'keyframes-name-pattern': lowerCamelCase,
+    'string-quotes': 'single',
+    'scss/dollar-variable-empty-line-before': null,
+    'scss/double-slash-comment-empty-line-before': null,
+    'shorthand-property-no-redundant-values': null,
+    'selector-attribute-quotes': null,
   },
 };

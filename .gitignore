@@ -20,7 +20,7 @@ package-lock.json
 .eslintcache
 stats.json
 /.env
-/src/.env
+/app/.env
 /isolate-*.log
 /*.gpg
 /*.zip
@@ -31,6 +31,7 @@ stats.json
 *.jks
 /temp
 /tmp
-src/
+tsconfig.tsbuildinfo
+app/
 android/
 resources/

@@ -1,0 +1,28 @@
+.dropdown {
+  @extend %oneLine;
+
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: $zIndexDropdown;
+  background-color: #fff;
+  border-bottom: 1px solid color.mix($primaryColor, $inputBorderColor, $weight: 33%);
+  border-bottom-left-radius: $inputBorderRadius;
+  border-bottom-right-radius: $inputBorderRadius;
+  overflow: hidden;
+}
+
+.dropdownInner {
+  overflow-y: auto;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  touch-action: pan-y;
+  max-height: 70vh;
+}
+
+.option {
+  padding: $inputPadding;
+  color: $inputColor;
+  border-left: 1px solid  color.mix($primaryColor, $inputBorderColor, $weight: 33%);
+  border-right: 1px solid  color.mix($primaryColor, $inputBorderColor, $weight: 33%);
+}

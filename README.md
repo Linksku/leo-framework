@@ -7,22 +7,23 @@
 ```
 mv .git .git-framework
 git init
-cp src-template src
+cp app-template app
 ```
 
 ## Installation ##
 
 1. Install:
-- Node 12+
+- Node 14+
 - Yarn
-- MySQL 8+
+- Postgres 14+
 - Redis 5+
+- Materialize 0.14+
 
 2. Run:
 
 ```
 yarn
-yarn src
+yarn app
 ```
 
 ## Developing Locally ##

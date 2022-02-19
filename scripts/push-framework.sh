@@ -2,7 +2,7 @@
 
 cp .gitignore .gitignore-temp
 
-echo 'src/' >> .gitignore
+echo 'app/' >> .gitignore
 echo 'android/' >> .gitignore
 echo 'resources/' >> .gitignore
 

@@ -1,0 +1,48 @@
+// Responsive.
+$screenXs: 360px;
+$screenSm: 480px;
+$screenMd: 768px;
+$screenLg: 1200px;
+
+// Basics.
+$primaryColor: #2196f3;
+$fadedPrimaryColorBg: color.scale($primaryColor, $saturation: -10%, $lightness: 50%);
+$fadedPrimaryColorText: color.scale($primaryColor, $saturation: -60%, $lightness: -10%);
+$linkColor: $primaryColor;
+
+$textColor: #333;
+$lightTextColor: #666;
+$fadedTextColor: #999;
+
+$fontFamily: roboto, helvetica, sans-serif;
+$headingFontFamily: roboto, helvetica, sans-serif;
+
+$separatorColor: #eaeaea;
+$homeBackgroundColor: #f8f8f8;
+
+$zIndexDropdown: 100;
+$zIndexSticky: 200;
+$zIndexFixed: 300;
+$zIndexSidebar: 400;
+$zIndexStack: 500;
+$zIndexSlideUp: 600;
+$zIndexAlert: 700;
+$zIndexToast: 800;
+
+// Inputs.
+$inputHeight: 4.2rem;
+$inputPadding: 1rem;
+$inputBorderColor: #ccc;
+$inputBorder: 1px solid $inputBorderColor;
+$inputBorderRadius: 4px;
+$inputColor: $lightTextColor;
+$inputPlaceholderColor: $fadedTextColor;
+
+// Layout.
+$bodyMinWidth: 280px;
+$containerMaxWidth: $screenLg;
+$containerPadLeftRight: 1rem;
+$sidebarMinWidth: 250px;
+$sidebarMaxWidth: 500px;
+$headerHeight: 4.5rem;
+$footerHeight: 4.5rem;

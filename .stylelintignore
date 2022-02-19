@@ -1,2 +1,2 @@
-web/styles/vendors/**/*.css
-web/styles/vendors/**/*.scss
+framework/web/styles/vendors/**/*.css
+framework/web/styles/vendors/**/*.scss

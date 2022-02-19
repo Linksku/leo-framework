@@ -1,0 +1,21 @@
+.container {
+  padding: 10px $containerPadLeftRight;
+}
+
+.loggedInMsg {
+  margin-bottom: 20px;
+
+  svg {
+    fill: $fadedPrimaryColorBg;
+  }
+}
+
+.form {
+  margin-bottom: 20px;
+}
+
+.hint {
+  margin-top: -5px;
+  color: $fadedTextColor;
+  font-size: 0.9em;
+}

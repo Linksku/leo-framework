@@ -1,27 +1,11 @@
 {
-  "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
-    "moduleResolution": "node",
-    "lib": ["es2019", "dom", "dom.iterable"],
-    "allowJs": true,
-    "checkJs": true,
-    "noEmit": true,
-    "strict": true,
-    "isolatedModules": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "baseUrl": "./",
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "useUnknownInCatchVariables": false,
-    "resolveJsonModule": true,
-    "types": ["node"],
-    "jsx": "react",
-    // todo: mid/mid tsconfig noUncheckedIndexedAccess
-  },
-  "include": [
-    ".",
-    "**/.*"
+  "files": [],
+  "references": [
+    { "path": "./framework/shared" },
+    { "path": "./framework/server" },
+    { "path": "./framework/web" },
+    { "path": "./app/shared" },
+    { "path": "./app/server" },
+    { "path": "./app/web" }
   ]
 }

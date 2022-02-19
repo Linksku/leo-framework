@@ -1,0 +1,182 @@
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  // stylelint-disable-next-line declaration-property-unit-allowed-list
+  font-size: 9px;
+  min-height: 100vh;
+  position: relative;
+  background-color: #fff;
+  color: $textColor;
+  font-family: $fontFamily;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  user-select: none;
+
+  @include gtXs {
+    // stylelint-disable-next-line declaration-property-unit-allowed-list
+    font-size: 10px;
+  }
+
+  @include gtMd {
+    // stylelint-disable-next-line declaration-property-unit-allowed-list
+    font-size: 11px;
+  }
+
+  @include gtLg {
+    // stylelint-disable-next-line declaration-property-unit-allowed-list
+    font-size: 13px;
+  }
+}
+
+body {
+  font-size: 1.6rem;
+  line-height: 1.2;
+  overflow: hidden;
+  display: block !important;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  @extend %oneLine;
+
+  font-family: $headingFontFamily;
+  font-size: 1em;
+  font-weight: 500;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+// Title.
+// h1 {}
+
+// Main heading.
+h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+// Section heading.
+h3 {
+  margin-bottom: 0.5rem;
+}
+
+// Item heading.
+h4 {
+  font-weight: 400;
+}
+
+p {
+  margin-top: 0;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  overflow-wrap: break-word;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+label[for] {
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+a,
+[role=button] {
+  color: $textColor;
+  text-decoration: none;
+  outline: none;
+}
+
+a,
+img {
+  -webkit-user-drag: none;
+}
+
+a,
+[role=button],
+[tabindex],
+button,
+input[type=button],
+input[type=submit],
+input[type=reset],
+input[type=checkbox],
+input[type=radio],
+input[type=file],
+select,
+label {
+  cursor: pointer;
+}
+
+p a {
+  color: $primaryColor;
+}
+
+table {
+  border-collapse: collapse;
+  margin-bottom: 1em;
+}
+
+th {
+  text-align: left;
+}
+
+td,
+th {
+  padding: 0.5rem 0.8rem;
+
+  &:not(:first-child) {
+    border-left: 1px solid $separatorColor;
+  }
+
+  &:not(:last-child) {
+    border-right: 1px solid $separatorColor;
+  }
+}
+
+thead {
+  border-bottom: 1px solid $separatorColor;
+}
+
+tbody {
+  tr:not(:first-child) {
+    border-top: 1px solid $separatorColor;
+  }
+
+  tr:not(:last-child) {
+    border-bottom: 1px solid $separatorColor;
+  }
+}
+
+tfoot {
+  border-top: 1px solid $separatorColor;
+}
+
+ul,
+ol {
+  padding-left: 2rem;
+  margin-top: 0;
+
+  @include gtMd {
+    padding-left: 3rem;
+  }
+}
+
+svg {
+  fill: currentColor;
+}
+
+p svg {
+  height: 0.9em;
+  width: 0.9em;
+  display: inline-block;
+}
+
+// Ios input shadow: https://stackoverflow.com/questions/23211656/remove-ios-input-shadow
+input,
+input[type],
+textarea {
+  background-clip: padding-box !important;
+}

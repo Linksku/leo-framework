@@ -3,10 +3,10 @@ import childProcess from 'child_process';
 import webpack from 'webpack';
 
 const ROOT = path.resolve('.');
-const WEB_ROOT = path.resolve('./web');
-const WEB_SRC_ROOT = path.resolve('./src/web');
-const SERVER_ROOT = path.resolve('./server');
-const SERVER_SRC_ROOT = path.resolve('./src/server');
+const WEB_ROOT = path.resolve('./framework/web');
+const WEB_SRC_ROOT = path.resolve('./app/web');
+const SERVER_ROOT = path.resolve('./framework/server');
+const SERVER_SRC_ROOT = path.resolve('./app/server');
 
 const ENV_KEYS = [
   'SERVER',
@@ -14,7 +14,8 @@ const ENV_KEYS = [
   'PORT',
   'BASE_PATH',
   'TZ',
-  'MYSQL_DB',
+  'POSTGRES_DB',
+  'MATERIALIZE_DB',
   'MOBILE_APP_ID',
   'APP_NAME',
   'APP_NAME_LOWER',
@@ -30,6 +31,7 @@ for (const k of ENV_KEYS) {
 
 // todo: mid/hard memory usage.
 export default {
+  mode: 'development',
   module: {
     rules: [
       {
@@ -43,11 +45,13 @@ export default {
           WEB_SRC_ROOT,
           SERVER_ROOT,
           SERVER_SRC_ROOT,
-          path.resolve('./shared'),
-          path.resolve('./src/shared'),
+          path.resolve('./framework/shared'),
+          path.resolve('./app/shared'),
           path.resolve('./scripts'),
         ],
-        exclude: [path.resolve('./node_modules')],
+        exclude: [
+          path.resolve('./node_modules'),
+        ],
         use: [
           {
             loader: 'babel-loader',
@@ -68,10 +72,13 @@ export default {
     extensions: ['.js', '.ts', '.tsx', '.cjs'],
     alias: {
       ejs: 'ejs/ejs.min',
+      // SVGR imports boxicons/node_modules/react
+      react: path.resolve('./node_modules/react/index.js'),
     },
   },
   optimization: {
     minimize: !!process.env.ANALYZER,
+    concatenateModules: !process.env.ANALYZER,
   },
   context: ROOT,
   plugins: [
@@ -83,10 +90,22 @@ export default {
       ...ENV_OBJ,
     }),
   ],
-  stats: {
-    optimizationBailout: true,
-    logging: 'warn',
-    // all: false,
-  },
+  stats: process.env.ANALYZER
+    ? true
+    : {
+      optimizationBailout: true,
+      logging: 'warn',
+      assets: false,
+      version: false,
+      hash: false,
+      chunks: false,
+      chunkModules: false,
+      modules: false,
+      // all: false,
+    },
   devtool: false,
+  watchOptions: {
+    aggregateTimeout: 50,
+    ignored: '**/node_modules',
+  },
 };

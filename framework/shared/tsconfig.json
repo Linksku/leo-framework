@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig-base.json",
+  "compilerOptions": {
+    "paths": {
+      "baseUrl": ["."],
+      "*": [
+        "framework/shared/*"
+      ]
+    },
+    "rootDir": "."
+  },
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "./**/*.cjs",
+    "./**/*.js"
+  ]
+}

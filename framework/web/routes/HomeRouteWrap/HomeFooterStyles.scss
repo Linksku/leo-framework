@@ -1,0 +1,66 @@
+.container {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: $zIndexFixed;
+  background-color: #fff;
+  border-top: 1px solid $separatorColor;
+  height: $headerHeight;
+  box-sizing: content-box;
+}
+
+.containerInner {
+  @extend %maxWidthContainer;
+
+  display: flex;
+  justify-content: space-evenly;
+}
+
+.tabIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 $containerPadLeftRight;
+  height: $headerHeight;
+  border: 0.2rem;
+  flex-basis: 0;
+  flex-grow: 1;
+
+  svg {
+    height: 2.4rem;
+    width: 2.4rem;
+    fill: $lightTextColor;
+    transition: all 0.2s;
+  }
+}
+
+.smallTabIcon svg {
+  height: 2.2rem;
+  width: 2.2rem;
+}
+
+.tabActive {
+  border: 0;
+  position: relative;
+
+  svg {
+    height: 3rem;
+    width: 3rem;
+    fill: #000;
+  }
+
+  &.smallTabIcon svg {
+    height: 2.8rem;
+    width: 2.8rem;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: calc(math.div($headerHeight - 3rem, 2) - 3px);
+    left: calc(50% - 0.75rem);
+    width: 1.5rem;
+    border-bottom: 2px solid $primaryColor;
+  }
+}

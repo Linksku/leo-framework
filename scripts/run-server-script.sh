@@ -1,44 +1,44 @@
 #!/bin/bash
 
-set -o allexport; source src/env; set +o allexport
+set -o allexport; source app/env; set +o allexport
 
 name=$1
 shift
-if [ -f "build/server/$name.js" ]; then
-  rm build/server/$name.js
+if [ -f "build/$NODE_ENV/server/$name.js" ]; then
+  rm build/$NODE_ENV/server/$name.js
 fi
 
-if [ -e "server/scripts/$name.js" ] || [ -e "server/scripts/$name.ts" ]; then
-  SCRIPT_PATH="server/scripts/$name" \
+if [ -e "framework/server/scripts/$name.js" ] || [ -e "framework/server/scripts/$name.ts" ]; then
+  SCRIPT_PATH="framework/server/scripts/$name" \
   node --es-module-specifier-resolution=node \
-  node_modules/webpack/bin/webpack.js --config webpack.server.js \
-  --entry ./server/lib/serverScript \
-  --entry "./server/scripts/$name" \
+  node_modules/webpack/bin/webpack.js --config webpack.server.$NODE_ENV.js \
+  --entry ./framework/server/lib/serverScript \
+  --entry "./framework/server/scripts/$name" \
   --output-filename $name.js
-  node --es-module-specifier-resolution=node $PREFIX build/server/$name.js $@
-elif [ -e "server/scripts/$name/index.js" ] || [ -e "server/scripts/$name/index.ts" ]; then
-  SCRIPT_PATH="server/scripts/$name/index" \
+  node --es-module-specifier-resolution=node $PREFIX build/$NODE_ENV/server/$name.js $@
+elif [ -e "framework/server/scripts/$name/index.js" ] || [ -e "framework/server/scripts/$name/index.ts" ]; then
+  SCRIPT_PATH="framework/server/scripts/$name/index" \
   node --es-module-specifier-resolution=node \
-  node_modules/webpack/bin/webpack.js --config webpack.server.js \
-  --entry ./server/lib/serverScript \
-  --entry "./server/scripts/$name/index" \
+  node_modules/webpack/bin/webpack.js --config webpack.server.$NODE_ENV.js \
+  --entry ./framework/server/lib/serverScript \
+  --entry "./framework/server/scripts/$name/index" \
   --output-filename $name.js
-  node --es-module-specifier-resolution=node $PREFIX build/server/$name.js $@
-elif [ -e "src/server/scripts/$name.js" ] || [ -e "src/server/scripts/$name.ts" ]; then
-  SCRIPT_PATH="src/server/scripts/$name" node --es-module-specifier-resolution=node \
-  node_modules/webpack/bin/webpack.js --config webpack.server.js \
-  --entry ./server/lib/serverScript \
-  --entry "./src/server/scripts/$name" \
+  node --es-module-specifier-resolution=node $PREFIX build/$NODE_ENV/server/$name.js $@
+elif [ -e "app/server/scripts/$name.js" ] || [ -e "app/server/scripts/$name.ts" ]; then
+  SCRIPT_PATH="app/server/scripts/$name" node --es-module-specifier-resolution=node \
+  node_modules/webpack/bin/webpack.js --config webpack.server.$NODE_ENV.js \
+  --entry ./framework/server/lib/serverScript \
+  --entry "./app/server/scripts/$name" \
   --output-filename $name.js
-  node --es-module-specifier-resolution=node $PREFIX build/server/$name.js $@
-elif [ -e "src/server/scripts/$name/index.js" ] || [ -e "src/server/scripts/$name/index.ts" ]; then
-  SCRIPT_PATH="src/server/scripts/$name/index" \
+  node --es-module-specifier-resolution=node $PREFIX build/$NODE_ENV/server/$name.js $@
+elif [ -e "app/server/scripts/$name/index.js" ] || [ -e "app/server/scripts/$name/index.ts" ]; then
+  SCRIPT_PATH="app/server/scripts/$name/index" \
   node --es-module-specifier-resolution=node \
-  node_modules/webpack/bin/webpack.js --config webpack.server.js \
-  --entry ./server/lib/serverScript \
-  --entry "./src/server/scripts/$name/index" \
+  node_modules/webpack/bin/webpack.js --config webpack.server.$NODE_ENV.js \
+  --entry ./framework/server/lib/serverScript \
+  --entry "./app/server/scripts/$name/index" \
   --output-filename $name.js
-  node --es-module-specifier-resolution=node $PREFIX build/server/$name.js $@
+  node --es-module-specifier-resolution=node $PREFIX build/$NODE_ENV/server/$name.js $@
 else
   echo "Script not found"
 fi

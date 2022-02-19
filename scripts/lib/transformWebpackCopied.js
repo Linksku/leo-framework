@@ -1,5 +1,5 @@
 export default function transformWebpackCopied(content, absoluteFrom) {
-  if (!['html', 'css', 'js', 'json', 'txt'].includes(absoluteFrom.replace(/^.+\./, ''))) {
+  if (!['html', 'css', 'js', 'cjs', 'json', 'txt'].includes(absoluteFrom.replace(/^.+\./, ''))) {
     return content;
   }
   return content

@@ -8,14 +8,20 @@ module.exports = {
     '@babel/preset-typescript',
   ],
   plugins: [
+    ['@babel/plugin-transform-typescript', {
+      allowDeclareFields: true,
+    }],
     '@babel/plugin-syntax-dynamic-import',
+    ['@babel/plugin-proposal-decorators', {
+      legacy: true,
+    }],
     '@babel/plugin-proposal-class-properties',
     '@babel/plugin-proposal-optional-chaining',
   ],
   sourceType: 'unambiguous',
   overrides: [
     {
-      test: ['./web', './src/web'],
+      test: ['./app/web', './framework/web'],
       presets: [
         ['@babel/preset-react', {
           pragma: 'ReactCreateElement',
@@ -26,10 +32,10 @@ module.exports = {
       ],
       plugins: [
         ['module-resolver', {
-          root: ['./web', './shared', './src/web', './src/shared'],
+          root: ['./app/web', './app/shared', './framework/web', './framework/shared'],
           extensions: ['.js', '.ts', '.tsx', '.cjs'],
           alias: {
-            config: ['./src/web/config', './src/shared/config'],
+            config: ['./app/web/config', './app/shared/config'],
           },
         }],
         // this cause bugs
@@ -37,7 +43,7 @@ module.exports = {
       ],
     },
     {
-      test: ['./server', './src/server'],
+      test: ['./app/server', './framework/server'],
       presets: [
         ['@babel/preset-env', {
           useBuiltIns: 'usage',
@@ -50,22 +56,22 @@ module.exports = {
       ],
       plugins: [
         ['module-resolver', {
-          root: ['./server', './shared', './src/server', './src/shared'],
+          root: ['./app/server', './app/shared', './framework/server', './framework/shared'],
           extensions: ['.js', '.ts', '.cjs'],
           alias: {
-            config: ['./src/server/config', './src/shared/config'],
+            config: ['./app/server/config', './app/shared/config'],
           },
         }],
       ],
     },
     {
-      test: ['./shared', './src/shared'],
+      test: ['./app/shared', './framework/shared'],
       plugins: [
         ['module-resolver', {
-          root: ['./shared', './src/shared'],
+          root: ['./app/shared', './framework/shared'],
           extensions: ['.js', '.ts', '.cjs'],
           alias: {
-            config: './src/shared/config',
+            config: './app/shared/config',
           },
         }],
       ],

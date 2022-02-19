@@ -1,10 +1,16 @@
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import CopyPlugin from 'copy-webpack-plugin';
+import path from 'path';
 
 import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
+import transformWebpackCopied from './scripts/lib/transformWebpackCopied';
 import baseConfig from './webpack.web';
 
 export default mergeReplaceArrays(baseConfig, {
   mode: 'development',
+  output: {
+    path: path.resolve('./build/development/web'),
+  },
   module: {
     rules: baseConfig.module.rules.map(rule => {
       if (rule.test.toString() === '/\\.(j|t)sx?$/') {
@@ -40,6 +46,20 @@ export default mergeReplaceArrays(baseConfig, {
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
       chunkFilename: 'css/chunks/[name].css',
+    }),
+    new CopyPlugin({
+      patterns: [
+        {
+          from: path.resolve('./framework/web/public'),
+          to: path.resolve('./build/development/web'),
+          transform: transformWebpackCopied,
+        },
+        {
+          from: path.resolve('./app/web/public'),
+          to: path.resolve('./build/development/web'),
+          transform: transformWebpackCopied,
+        },
+      ],
     }),
     // Limiting to 1 chunk is slower.
   ],
