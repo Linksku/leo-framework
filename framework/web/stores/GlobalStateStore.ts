@@ -1,6 +1,6 @@
-import useUpdate from 'lib/hooks/useUpdate';
+import useUpdate from 'utils/hooks/useUpdate';
 
-import GlobalStateEventEmitter from 'lib/singletons/GlobalStateEventEmitter';
+import GlobalStateEventEmitter from 'services/GlobalStateEventEmitter';
 
 export const [
   GlobalStateProvider,
@@ -17,7 +17,7 @@ function useGlobalState<T>(
   key: string,
   initialState: T | (() => T),
 ): [Memoed<T>, SetState<T>] {
-  if (process.env.NODE_ENV !== 'production'
+  if (!process.env.PRODUCTION
     && (
       (!key.startsWith('use') && !/^[A-Z]/.test(key))
       || (!key.includes(':') && !key.includes('.'))

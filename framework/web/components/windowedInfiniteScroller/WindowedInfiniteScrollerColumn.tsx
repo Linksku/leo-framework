@@ -1,7 +1,7 @@
-import useMountedState from 'lib/hooks/useMountedState';
+import useMountedState from 'utils/hooks/useMountedState';
 
-import useLatest from 'lib/hooks/useLatest';
-import { useThrottle } from 'lib/throttle';
+import useLatest from 'utils/hooks/useLatest';
+import { useThrottle } from 'utils/throttle';
 
 import styles from './WindowedInfiniteScrollerColumnStyles.scss';
 
@@ -229,7 +229,7 @@ export default function WindowedInfiniteScrollerColumn({
               }
             } else if (item) {
               item.setVisible(false);
-            } else if (process.env.NODE_ENV !== 'production') {
+            } else if (!process.env.PRODUCTION) {
               throw new Error('Expected item to exist.');
             }
           }

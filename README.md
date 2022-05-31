@@ -3,7 +3,6 @@
 1. Clone this repo
 
 2. Run:
-
 ```
 mv .git .git-framework
 git init
@@ -16,21 +15,28 @@ cp app-template app
 - Node 14+
 - Yarn
 - Postgres 14+
-- Redis 5+
-- Materialize 0.14+
 
-2. Run:
-
+2. Run in the project root:
 ```
 yarn
 yarn app
 ```
 
+### Set Up Database ###
+
+1. Create a Postgres database.
+
+2. Edit `app/.env` and `app/.env`.
+
+3. Todo
+
 ## Developing Locally ##
 
-1. Run `yarn serve`.
+1. Run `yarn docker`.
 
-2. Go to `http://localhost:6969`.
+2. Run `yarn serve`.
+
+3. Go to `http://localhost:6969`.
 
 ## Linting & Testing ##
 

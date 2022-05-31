@@ -35,7 +35,7 @@ function MediaFileInput({
     ? register(name, registerOpts)
     : null;
 
-  if (process.env.NODE_ENV !== 'production' && register && !clearField) {
+  if (!process.env.PRODUCTION && register && !clearField) {
     throw new Error('clearField is required for react-hook-form.');
   }
 

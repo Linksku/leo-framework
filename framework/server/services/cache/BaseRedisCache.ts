@@ -1,9 +1,10 @@
-import DataLoader from 'dataloader';
+import type DataLoader from 'dataloader';
 import QuickLRU from 'quick-lru';
 
 import redis from 'services/redis';
-import RedisDataLoader from 'lib/redis/RedisDataLoader';
 import { MAX_CACHE_TTL } from 'serverSettings';
+import createDataLoader from 'utils/createDataLoader';
+import RedisDataLoader from './utils/RedisDataLoader';
 
 export type ConstructorProps<T> = {
   redisNamespace: string,
@@ -37,14 +38,13 @@ export default class BaseRedisCache<T> {
   }: ConstructorProps<T>) {
     this.redisNamespace = redisNamespace;
 
-    this.getDataLoader = new DataLoader<string, T | undefined>(
+    this.getDataLoader = createDataLoader<string, T | undefined>(
       async (keys: readonly string[]) => {
         const results = await redis.mget(keys.map(k => `${redisNamespace}:${k}`));
         return results.map((val, idx) => unserialize(val ?? undefined, keys[idx]));
       },
       {
         maxBatchSize: 1000,
-        cache: false,
       },
     );
 
@@ -60,7 +60,7 @@ export default class BaseRedisCache<T> {
     this.delDataLoader = new RedisDataLoader(
       'del',
       (k: string) => [
-        `${redisNamespace}:${k}`,
+        [`${redisNamespace}:${k}`],
       ],
     );
 

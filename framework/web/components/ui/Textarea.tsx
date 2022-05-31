@@ -1,6 +1,6 @@
 import type { UseFormRegister, RegisterOptions } from 'react-hook-form';
 
-import mergeRefs from 'lib/mergeRefs';
+import mergeRefs from 'utils/mergeRefs';
 
 import styles from './TextareaStyles.scss';
 

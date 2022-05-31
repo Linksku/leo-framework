@@ -11,15 +11,14 @@ import { DOMAIN_NAME } from 'settings';
 
 const app = express();
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.PRODUCTION) {
   Sentry.getCurrentHub().bindClient(
     new Sentry.NodeClient({
-      dsn: process.env.SENTRY_DSN_SERVER,
+      ...TS.defined(Sentry.getCurrentHub().getClient()).getOptions(),
       integrations: [
         new Sentry.Integrations.Http({ tracing: true }),
         new Tracing.Integrations.Express({ app }),
       ],
-      tracesSampleRate: 1, // process.env.NODE_ENV === 'production' ? 0.01 : 1,
     }),
   );
   app.use(Sentry.Handlers.requestHandler());
@@ -65,7 +64,7 @@ if (process.env.SERVER !== 'production') {
         if (/\.html$/i.test(file)) {
           res.setHeader(
             'Cache-Control',
-            process.env.NODE_ENV === 'production' ? 'public,max-age=60' : 'public,max-age=0',
+            process.env.PRODUCTION ? 'public,max-age=60' : 'public,max-age=0',
           );
         }
       },
@@ -82,7 +81,7 @@ if (process.env.SERVER !== 'production') {
 
     res.set(
       'Cache-Control',
-      process.env.NODE_ENV === 'production' ? 'public,max-age=60' : 'public,max-age=0',
+      process.env.PRODUCTION ? 'public,max-age=60' : 'public,max-age=0',
     );
     res.send(indexFile);
     res.end();

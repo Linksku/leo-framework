@@ -4,8 +4,8 @@ import TerserPlugin from 'terser-webpack-plugin';
 import childProcess from 'child_process';
 import CopyPlugin from 'copy-webpack-plugin';
 
-import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
-import transformWebpackCopied from './scripts/lib/transformWebpackCopied';
+import mergeReplaceArrays from './scripts/utils/mergeReplaceArrays';
+import transformWebpackCopied from './scripts/utils/transformWebpackCopied';
 import baseConfig from './webpack.web';
 import shortenCssClass from './scripts/shortenCssClass';
 
@@ -93,7 +93,7 @@ export default mergeReplaceArrays(baseConfig, {
     minimizer: [
       new TerserPlugin({
         terserOptions: {
-          ecma: 8,
+          ecma: 2017,
           module: true,
           compress: {
             passes: 2,

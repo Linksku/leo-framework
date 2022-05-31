@@ -8,7 +8,7 @@ type State = {
   err: Error | null,
 };
 
-export default class ErrorBoundary extends React.Component<Props, State> {
+export default class ErrorBoundary extends React.Component<React.PropsWithChildren<Props>, State> {
   // override
   static getDerivedStateFromError(err: Error) {
     return { err };
@@ -17,7 +17,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   override state: State = { err: null };
 
   override componentDidCatch(err: Error) {
-    ErrorLogger.error(err);
+    ErrorLogger.error(err, '', false);
   }
 
   override render() {
@@ -31,6 +31,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
       return (
         <ErrorPage
           title="Error"
+          content={err.message}
         />
       );
     }

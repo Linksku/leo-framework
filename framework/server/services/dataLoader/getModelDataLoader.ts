@@ -1,4 +1,6 @@
-import DataLoader from 'dataloader';
+import type DataLoader from 'dataloader';
+
+import createDataLoader from 'utils/createDataLoader';
 
 const dataLoaders: ObjectOf<DataLoader<
   ModelPartial<ModelClass>,
@@ -7,18 +9,18 @@ const dataLoaders: ObjectOf<DataLoader<
 
 export default function getModelDataLoader<T extends ModelClass>(Model: T): DataLoader<
   ModelPartial<T>,
-  InstanceType<T> | null
+  ModelInstance<T> | null
 > {
   if (!dataLoaders[Model.type]) {
-    dataLoaders[Model.type] = new DataLoader(
+    dataLoaders[Model.type] = createDataLoader(
       async (partials: readonly ModelPartial<T>[]) => {
-        let query = Model.query();
+        let query = modelQuery(Model);
         for (const partial of partials) {
           query = query.orWhere(partial);
         }
         const rows = await query;
 
-        if (process.env.NODE_ENV !== 'production') {
+        if (!process.env.PRODUCTION) {
           for (const row of rows) {
             row.$validate();
           }
@@ -37,10 +39,10 @@ export default function getModelDataLoader<T extends ModelClass>(Model: T): Data
         );
       },
       {
-        maxBatchSize: 100,
-        cache: false,
+        objKeys: true,
+        maxBatchSize: 1000,
       },
     );
   }
-  return dataLoaders[Model.type] as DataLoader<ModelPartial<T>, InstanceType<T> | null>;
+  return dataLoaders[Model.type] as DataLoader<ModelPartial<T>, ModelInstance<T> | null>;
 }

@@ -4,12 +4,12 @@ import Alerts from 'components/frame/Alerts';
 import Toasts from 'components/frame/Toasts';
 import SlideUpWrap from 'components/frame/SlideUpWrap';
 import StackWrapOuter from 'components/frame/StackWrapOuter';
-import pathToRoute from 'lib/pathToRoute';
+import pathToRoute from 'utils/pathToRoute';
 import HomeRouteWrap from 'routes/HomeRouteWrap';
 import LoadingRoute from 'routes/LoadingRoute';
-import useEffectIfReady from 'lib/hooks/useEffectIfReady';
-import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
-import { loadErrorLogger } from 'lib/ErrorLogger';
+import useEffectIfReady from 'utils/hooks/useEffectIfReady';
+import useTimeComponentPerf from 'utils/hooks/useTimeComponentPerf';
+import { loadErrorLogger } from 'services/ErrorLogger';
 import ErrorBoundary from 'components/ErrorBoundary';
 import { RouteProvider } from 'stores/RouteStore';
 

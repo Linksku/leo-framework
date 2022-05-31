@@ -45,7 +45,7 @@ export default function Button({
   small = false,
   ...props
 }: Props) {
-  if (process.env.NODE_ENV !== 'production' && Component === 'input' && label) {
+  if (!process.env.PRODUCTION && Component === 'input' && label) {
     throw new Error('Button: input can\'t have label, use value.');
   }
 
@@ -96,7 +96,7 @@ export default function Button({
         })}
         style={{
           color,
-          borderColor: color,
+          borderColor: outline ? color : undefined,
         }}
         role="button"
         tabIndex={0}
@@ -120,7 +120,7 @@ export default function Button({
       })}
       style={{
         color,
-        borderColor: color,
+        borderColor: outline ? color : undefined,
       }}
       onClick={!disabled && onClick ? onClick : undefined}
       {...props}

@@ -1,0 +1,11 @@
+diff --git a/node_modules/constate/dist/ts/src/index.d.ts b/node_modules/constate/dist/ts/src/index.d.ts
+index 26c95bb..bf99382 100644
+--- a/node_modules/constate/dist/ts/src/index.d.ts
++++ b/node_modules/constate/dist/ts/src/index.d.ts
+@@ -8,5 +8,5 @@ declare type ConstateTuple<Props, Value, Selectors extends Selector<Value>[]> =
+     React.FC<React.PropsWithChildren<Props>>,
+     ...Hooks<Value, Selectors>
+ ];
+-declare function constate<Props, Value, Selectors extends Selector<Value>[]>(useValue: (props: Props) => Value, ...selectors: Selectors): ConstateTuple<Props, Value, Selectors>;
++declare function constate<Props, Value, Selectors extends Selector<Value>[]>(useValue: (props: Props) => Value, ...selectors: Selectors): ConstateTuple<Props, Memoed<Value>, Selectors>;
+ export default constate;

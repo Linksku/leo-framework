@@ -1,4 +1,4 @@
-import shallowEqual from 'lib/shallowEqual';
+import shallowEqual from 'utils/shallowEqual';
 
 export const [
   GlobalMemoProvider,
@@ -20,7 +20,7 @@ function useGlobalMemo<T>(
   deps: MemoDependencyList,
 ): T {
   // todo: mid/mid warn if triggered too often
-  if (process.env.NODE_ENV !== 'production'
+  if (!process.env.PRODUCTION
     && !key.startsWith('use')
     && !/^[A-Z]/.test(key)
     && !key.includes(':')

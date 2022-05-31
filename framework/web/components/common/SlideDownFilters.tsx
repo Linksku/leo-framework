@@ -1,4 +1,4 @@
-import { useAnimatedValue, useAnimation } from 'lib/hooks/useAnimation';
+import { useAnimatedValue, useAnimation } from 'utils/hooks/useAnimation';
 
 import styles from './SlideDownFiltersStyles.scss';
 

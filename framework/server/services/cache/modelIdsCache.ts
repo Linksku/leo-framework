@@ -1,5 +1,5 @@
 import BaseRedisCache from 'services/cache/BaseRedisCache';
-import getIndexesFirstColumn from 'lib/modelUtils/getIndexesFirstColumn';
+import getIndexesFirstColumn from 'utils/models/getIndexesFirstColumn';
 import getModelIndexDataLoader from 'services/dataLoader/getModelIndexDataLoader';
 import getModelCacheKey from './utils/getModelCacheKey';
 
@@ -30,7 +30,7 @@ async function invalidateCache<T extends ModelClass>(
   const indexes = getIndexesFirstColumn(Model);
   const cacheKeys = [...indexes]
     .filter(col => partial[col] !== undefined)
-    .map(col => getModelCacheKey(Model, col, partial));
+    .map(col => getModelCacheKey(Model, [col], partial));
   await Promise.all(cacheKeys.map(k => redisCache.del(k)));
 }
 
@@ -41,14 +41,14 @@ export default {
     partial: ModelPartial<T>,
   ): Promise<EntityId[]> {
     const getIds = async () => {
-      const rows = await getModelIndexDataLoader(Model, column).load(partial);
+      const rows = await getModelIndexDataLoader(Model, [column]).load(partial);
       const ids = rows.map(row => row[0] as number);
       const nonNumberId = ids.find(id => typeof id !== 'number');
       if (nonNumberId !== undefined) {
         throw new Error(`modelIdsCache(${Model.type}, ${column}): returned non-numbers "${nonNumberId}" (${typeof nonNumberId})`);
       }
       // Arbitrary number.
-      if (process.env.NODE_ENV !== 'production' && ids.length > 10_000) {
+      if (!process.env.PRODUCTION && ids.length > 10_000) {
         throw new Error(`modelIdsCache(${Model.type}, ${column}): too many rows.`);
       }
       return ids;
@@ -78,16 +78,16 @@ export default {
 
   handleUpdate<T extends ModelClass>(
     _Model: T,
-    _partial: InstanceType<T>,
+    _partial: ModelInstance<T>,
   ): void {
     // Nothing happens.
   },
 
   handleInsert<T extends ModelClass>(
     Model: T,
-    ent: InstanceType<T>,
+    ent: ModelInstance<T>,
   ): Promise<void> {
-    // todo: mid/mid use redis lists instead of invalidating every time
+    // todo: mid/hard use redis lists instead of invalidating every time
     return invalidateCache(Model, ent);
   },
 

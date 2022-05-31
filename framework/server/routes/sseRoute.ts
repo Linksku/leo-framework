@@ -3,12 +3,12 @@ import jwt from 'jsonwebtoken';
 import cors from 'cors';
 
 import SseConnectionsManager from 'services/SseConnectionsManager';
-import serializeEvent from 'lib/serializeEvent';
-import generateUuid from 'lib/generateUuid';
+import serializeEvent from 'utils/serializeEvent';
+import generateUuid from 'utils/generateUuid';
 import SseBroadcastManager from 'services/SseBroadcastManager';
-import handleApiError from 'lib/apiHelpers/handleApiError';
-import rateLimitMiddleware from 'lib/apiHelpers/rateLimitMiddleware';
-import requestContextMiddleware from 'lib/apiHelpers/requestContextMiddleware';
+import handleApiError from 'routes/api/helpers/handleApiError';
+import rateLimitMiddleware from 'routes/api/helpers/rateLimitMiddleware';
+import requestContextMiddleware from 'routes/api/helpers/requestContextMiddleware';
 import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
 
 const router = express.Router();
@@ -64,7 +64,7 @@ router.get('/', async (req, res) => {
       });
 
       if (!currentUserId) {
-        ErrorLogger.warn(new Error('sseRoute: failed to verify OTP.'));
+        throw new HandledError('Failed to verify OTP.', 401);
       }
     }
 

@@ -11,7 +11,7 @@ import {
   BASE_PATH,
   HOME_URL,
 } from 'settings';
-import recursiveReaddir from 'lib/recursiveReaddir';
+import recursiveReaddir from 'utils/recursiveReaddir';
 
 export default async function buildTemplates() {
   const files = await recursiveReaddir(path.resolve('./framework/web/templates'));
@@ -37,7 +37,7 @@ export default async function buildTemplates() {
         description: process.env.DESCRIPTION,
         content: '<div id="react"></div>',
         id: 'main',
-        production: process.env.NODE_ENV === 'production',
+        production: process.env.PRODUCTION,
         fileVersion: process.env.SERVER === 'production'
           ? `.${childProcess.execSync('git rev-list --count master').toString().trim()}`
           : '',

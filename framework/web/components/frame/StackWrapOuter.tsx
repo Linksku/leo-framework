@@ -1,7 +1,7 @@
-import { useAnimatedValue, useAnimation } from 'lib/hooks/useAnimation';
-import useSwipeNavigation from 'lib/hooks/useSwipeNavigation';
-import mergeRefs from 'lib/mergeRefs';
-import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
+import { useAnimatedValue, useAnimation } from 'utils/hooks/useAnimation';
+import useSwipeNavigation from 'utils/hooks/useSwipeNavigation';
+import mergeRefs from 'utils/mergeRefs';
+import useTimeComponentPerf from 'utils/hooks/useTimeComponentPerf';
 import ErrorBoundary from 'components/ErrorBoundary';
 
 import styles from './StackWrapOuterStyles.scss';

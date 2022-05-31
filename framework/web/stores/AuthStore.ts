@@ -1,5 +1,5 @@
-import useAuthTokenLS from 'lib/hooks/localStorage/useAuthTokenLS';
-import { setErrorLoggerUserId } from 'lib/ErrorLogger';
+import useAuthTokenLS from 'utils/hooks/localStorage/useAuthTokenLS';
+import { setErrorLoggerUserId } from 'services/ErrorLogger';
 
 /*
 in -> current user is set
@@ -17,7 +17,7 @@ const [
   function AuthStore() {
     const [authToken, setAuthToken, removeAuthToken] = useAuthTokenLS();
     const [state, setState] = useState<{
-      currentUserId: User['id'] | null,
+      currentUserId: IUser['id'] | null,
       authState: AuthStateType,
     }>({
       currentUserId: null,
@@ -31,7 +31,7 @@ const [
       redirectPath,
     }: {
       authToken: string | null,
-      userId: User['id'] | null,
+      userId: IUser['id'] | null,
       // todo: mid/mid redirect to previous path
       redirectPath: string,
     }) => {
@@ -49,7 +49,7 @@ const [
       });
     }, [setAuthToken, removeAuthToken]);
 
-    const fetchedCurrentUser = useCallback((currentUserId: User['id'] | null) => {
+    const fetchedCurrentUser = useCallback((currentUserId: IUser['id'] | null) => {
       setErrorLoggerUserId(currentUserId);
       setState({
         currentUserId,
@@ -77,11 +77,11 @@ const [
   },
 );
 
-function useCurrentUserId(errorMessage: string): User['id'];
+function useCurrentUserId(errorMessage: string): IUser['id'];
 
-function useCurrentUserId(errorMessage?: null): User['id'] | null;
+function useCurrentUserId(errorMessage?: null): IUser['id'] | null;
 
-function useCurrentUserId(errorMessage?: string | null): User['id'] | null {
+function useCurrentUserId(errorMessage?: string | null): IUser['id'] | null {
   const id = _useCurrentUserId();
   if (!id && errorMessage) {
     throw new Error(errorMessage);

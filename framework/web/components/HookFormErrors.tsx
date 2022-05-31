@@ -16,7 +16,7 @@ export default function HookFormErrors({
     return null;
   }
 
-  if (process.env.NODE_ENV !== 'production' && errorValues.some(err => !err.message)) {
+  if (!process.env.PRODUCTION && errorValues.some(err => !err.message)) {
     // eslint-disable-next-line no-console
     console.error('Missing error message.', errors);
   }

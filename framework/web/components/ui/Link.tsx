@@ -6,6 +6,8 @@ type Props = {
   rel?: React.AnchorHTMLAttributes<HTMLAnchorElement>['rel'],
 } & React.AnchorHTMLAttributes<HTMLAnchorElement>;
 
+const VALID_PREFIXES = ['/', 'http://', 'https://', 'mailto:'];
+
 function Link({
   href,
   onClick,
@@ -15,10 +17,8 @@ function Link({
   children,
   ...props
 }: React.PropsWithChildren<Props>, ref?: React.ForwardedRef<HTMLAnchorElement>) {
-  if (process.env.NODE_ENV !== 'production' && href) {
-    if (!href.startsWith('/')
-      && !href.startsWith('http://')
-      && !href.startsWith('https://')) {
+  if (!process.env.PRODUCTION && href) {
+    if (!VALID_PREFIXES.some(prefix => href.startsWith(prefix))) {
       throw new Error(`Link: invalid href: ${href}`);
     }
     if (target && !href.startsWith('/') && !rel?.includes('noopener')) {
@@ -26,34 +26,52 @@ function Link({
     }
   }
   const pushPath = usePushPath();
+  const handleClick = (event: React.MouseEvent) => {
+    if (disabled) {
+      if (href?.startsWith('/')) {
+        event.stopPropagation();
+      }
+      event.preventDefault();
+      return;
+    }
 
+    onClick?.(event);
+    event.stopPropagation();
+
+    if (href?.startsWith('/')) {
+      event.preventDefault();
+      pushPath(href);
+    }
+  };
+
+  if (href) {
+    return (
+      <a
+        {...props}
+        ref={ref}
+        href={href}
+        rel={rel}
+        target={target}
+        onClick={handleClick}
+      >
+        {children}
+      </a>
+    );
+  }
+
+  if (!process.env.PRODUCTION && (rel || target)) {
+    throw new Error('Link: can\'t use rel or target without href.');
+  }
   return (
-    <a
+    <span
       {...props}
       ref={ref}
-      href={href}
-      rel={rel}
-      target={target}
-      onClick={(event: React.MouseEvent) => {
-        if (disabled) {
-          if (href?.startsWith('/')) {
-            event.stopPropagation();
-          }
-          event.preventDefault();
-          return;
-        }
-
-        onClick?.(event);
-        event.stopPropagation();
-
-        if (href?.startsWith('/')) {
-          event.preventDefault();
-          pushPath(href);
-        }
-      }}
+      onClick={handleClick}
+      role="button"
+      tabIndex={-1}
     >
       {children}
-    </a>
+    </span>
   );
 }
 

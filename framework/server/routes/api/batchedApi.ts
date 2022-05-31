@@ -1,8 +1,7 @@
-import type { ApiDefinition, RouteRet } from 'services/ApiManager';
 import { defineApi, nameToApi } from 'services/ApiManager';
-import handleApiError from 'lib/apiHelpers/handleApiError';
-import apiHandlerWrap from 'lib/apiHelpers/apiHandlerWrap';
-import RequestContextLocalStorage from 'services/RequestContextLocalStorage';
+import RequestContextLocalStorage from 'services/requestContext/RequestContextLocalStorage';
+import handleApiError from './helpers/handleApiError';
+import apiHandlerWrap from './helpers/apiHandlerWrap';
 
 defineApi(
   {
@@ -63,10 +62,10 @@ defineApi(
       additionalProperties: false,
     },
   },
-  async function batched({ apis, currentUserId }, res) {
+  async function batchedApi({ apis, currentUserId }: ApiHandlerParams<'batched'>, res) {
     const rc = getRC();
     const typedApis = apis as { name: ApiName, params: ApiNameToParams[ApiName] }[];
-    const results = await Promise.all<RouteRet<any> | ApiErrorResponse>(typedApis.map(
+    const results = await Promise.all<ApiRouteRet<any> | ApiErrorResponse>(typedApis.map(
       // Must be async for RequestContextLocalStorage.enterWith
       async <Name extends ApiName>({ name, params }: {
         name: Name,

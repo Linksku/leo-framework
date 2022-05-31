@@ -1,7 +1,7 @@
-import useSwipeNavigation from 'lib/hooks/useSwipeNavigation';
+import useSwipeNavigation from 'utils/hooks/useSwipeNavigation';
 import ErrorBoundary from 'components/ErrorBoundary';
-import { useAnimatedValue, useAnimation } from 'lib/hooks/useAnimation';
-import mergeRefs from 'lib/mergeRefs';
+import { useAnimatedValue, useAnimation } from 'utils/hooks/useAnimation';
+import mergeRefs from 'utils/mergeRefs';
 
 import styles from './SlideUpWrapStyles.scss';
 

@@ -1,7 +1,8 @@
 /* eslint-disable max-len */
 /* eslint-disable react/jsx-one-expression-per-line */
 import StackWrapInner from 'components/frame/StackWrapInner';
-import { APP_NAME, SUPPORT_EMAIL } from 'settings';
+import SupportEmail from 'components/SupportEmail';
+import { APP_NAME, HOME_URL, DOMAIN_NAME } from 'settings';
 
 import styles from './CookiePolicyRouteStyles.scss';
 
@@ -11,7 +12,7 @@ export default function CookiePolicyRoute() {
       title="Cookie Policy"
       bodyClassName={styles.container}
     >
-      <p>This Cookie Policy explains how {APP_NAME} (&quot;Company&quot;, &quot;we&quot;, &quot;us&quot;, and &quot;our&quot;) uses cookies and similar technologies to recognize you when you visit our websites at {process.env.DOMAIN_NAME}, (&quot;Websites&quot;). It explains what these technologies are and why we use them, as well as your rights to control our use of them.</p>
+      <p>This Cookie Policy explains how {APP_NAME} (&quot;Company&quot;, &quot;we&quot;, &quot;us&quot;, and &quot;our&quot;) uses cookies and similar technologies to recognize you when you visit our websites at{' '}<Link href={HOME_URL}>{DOMAIN_NAME}</Link>, (&quot;Websites&quot;). It explains what these technologies are and why we use them, as well as your rights to control our use of them.</p>
       <p>In some cases we may use cookies to collect personal information, or that becomes personal information if we combine it with other information.</p>
 
       <h2>What are cookies?</h2>
@@ -51,7 +52,7 @@ export default function CookiePolicyRoute() {
       <p>The date at the top of this Cookie Policy indicates when it was last updated.</p>
 
       <h2>Where can I get further information?</h2>
-      <p>If you have any questions about our use of cookies or other technologies, please email us at {SUPPORT_EMAIL}.</p>
+      <p>If you have any questions about our use of cookies or other technologies, please email us at{' '}{SupportEmail}.</p>
     </StackWrapInner>
   );
 }

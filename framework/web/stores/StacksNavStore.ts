@@ -13,10 +13,13 @@ export const [
       prevState,
       curState,
       direction,
+      didRefresh,
     } = useHistoryStore();
     const { isHome, wasHome } = useHomeNavStore();
 
-    if (isHome) {
+    if (didRefresh) {
+      stackBot = curState;
+    } else if (isHome) {
       stackBot = curState;
       if (!wasHome) {
         // Stack -> home.

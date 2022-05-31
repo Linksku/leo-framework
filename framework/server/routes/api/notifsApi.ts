@@ -1,8 +1,8 @@
 import { defineApi } from 'services/ApiManager';
 import { LAST_SEEN_NOTIFS_TIME, LAST_SEEN_CHATS_TIME } from 'consts/coreUserMetaKeys';
-import paginateQuery from 'lib/dbUtils/paginateQuery';
+import paginateQuery from 'utils/db/paginateQuery';
 import { decorateNotifs } from 'services/NotifsManager';
-import { toDbDateTime } from 'lib/dbUtils/dbDate';
+import { toDbDateTime } from 'utils/db/dbDate';
 
 defineApi(
   {
@@ -29,7 +29,7 @@ defineApi(
       additionalProperties: false,
     },
   },
-  async function getUnseenNotifIds({ currentUserId }) {
+  async function unseenNotifIdsApi({ currentUserId }: ApiHandlerParams<'unseenNotifIds'>) {
     const { lastSeenNotifsRow, lastSeenChatsRow } = await promiseObj({
       lastSeenNotifsRow: UserMeta.selectOne({
         metaKey: LAST_SEEN_NOTIFS_TIME,
@@ -42,12 +42,12 @@ defineApi(
     });
 
     const { chatReplyNotifs, otherNotifs } = await promiseObj({
-      chatReplyNotifs: Notif.query()
-        .select('id')
+      chatReplyNotifs: modelQuery(Notif)
+        .select(Notif.cols.id)
         .where({
-          userId: currentUserId,
-          hasRead: false,
-          notifType: 'chatReplyCreated',
+          [Notif.cols.userId]: currentUserId,
+          [Notif.cols.hasRead]: false,
+          [Notif.cols.notifType]: 'chatReplyCreated',
         })
         .where(builder => {
           if (lastSeenChatsRow?.metaValue) {
@@ -59,13 +59,16 @@ defineApi(
           }
         })
         .limit(9),
-      otherNotifs: Notif.query()
-        .select(['notifType', 'id'])
+      otherNotifs: modelQuery(Notif)
+        .select([
+          Notif.cols.notifType,
+          Notif.cols.id,
+        ])
         .where({
-          userId: currentUserId,
-          hasRead: false,
+          [Notif.cols.userId]: currentUserId,
+          [Notif.cols.hasRead]: false,
         })
-        .whereNot('notifType', 'chatReplyCreated')
+        .whereNot(Notif.cols.notifType, 'chatReplyCreated')
         .where(builder => {
           if (lastSeenNotifsRow?.metaValue) {
             void builder.where(
@@ -107,10 +110,10 @@ defineApi(
       },
       additionalProperties: false,
     },
-    dataSchema: SchemaConstants.pagination,
+    dataSchema: SchemaConstants.entityPagination,
   },
-  async function getNotifs({ currentUserId, limit, cursor }) {
-    const query = Notif.query()
+  async function notifsApi({ currentUserId, limit, cursor }: ApiHandlerParams<'notifs'>) {
+    const query = modelQuery(Notif)
       .select(Notif.cols.all)
       .where(Notif.cols.userId, currentUserId);
 
@@ -118,7 +121,7 @@ defineApi(
       query,
       [
         {
-          column: raw('extract(epoch from "notifs"."time")'),
+          column: raw(`cast(extract(epoch from ${Notif.colsQuoted.time}) as float8)`),
           columnWithoutTransforms: Notif.cols.time,
           order: 'desc',
         },
@@ -153,17 +156,15 @@ defineApi(
       additionalProperties: false,
     },
   },
-  function seenNotifs({ currentUserId, notifType }) {
+  function seenNotifsApi({ currentUserId, notifType }: ApiHandlerParams<'seenNotifs'>) {
     void wrapPromise(
-      UserMeta.insertBT({
+      UserMeta.insert({
         userId: currentUserId,
         metaKey: notifType === 'chats'
           ? LAST_SEEN_CHATS_TIME
           : LAST_SEEN_NOTIFS_TIME,
         metaValue: toDbDateTime(new Date()),
-      }, {
-        onDuplicate: 'update',
-      }),
+      }, 'update'),
       'warn',
       'Update last view notifs times',
     );
@@ -187,13 +188,13 @@ defineApi(
       additionalProperties: false,
     },
   },
-  async function readNotif({ notifId, currentUserId }) {
+  async function readNotifApi({ notifId, currentUserId }: ApiHandlerParams<'readNotif'>) {
     const notif = await Notif.selectOne({ id: notifId });
     if (!notif || notif.userId !== currentUserId) {
       throw new HandledError('Can\'t find notif.', 404);
     }
 
-    await Notif.updateBT({ id: notifId }, {
+    await Notif.update({ id: notifId }, {
       hasRead: true,
     });
     return {

@@ -1,5 +1,5 @@
 import { redisSub, redisPub } from 'services/redis';
-import getServerId from 'lib/getServerId';
+import getServerId from 'utils/getServerId';
 
 type Message = {
   data: string,

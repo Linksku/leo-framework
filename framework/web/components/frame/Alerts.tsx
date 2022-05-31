@@ -1,5 +1,5 @@
-import usePrevious from 'lib/hooks/usePrevious';
-import useUpdate from 'lib/hooks/useUpdate';
+import usePrevious from 'utils/hooks/usePrevious';
+import useUpdate from 'utils/hooks/useUpdate';
 
 import styles from './AlertsStyles.scss';
 
@@ -27,9 +27,9 @@ function Alerts() {
     onClose,
   } = alerts[0] ?? prevAlerts?.[0] ?? {};
 
-  const startHiding = !!prevAlerts?.length && !alerts.length && !ref.current.isHiding;
+  const closedAllAlerts = !!prevAlerts?.length && !alerts.length;
   useEffect(() => {
-    if (startHiding) {
+    if (closedAllAlerts && !ref.current.isHiding) {
       ref.current.isHiding = true;
       ref.current.hideTimer = window.setTimeout(() => {
         requestAnimationFrame(() => {
@@ -41,9 +41,9 @@ function Alerts() {
       clearTimeout(ref.current.hideTimer);
       ref.current.isHiding = false;
     }
-  }, [startHiding, alerts, update]);
+  }, [closedAllAlerts, alerts, update]);
 
-  if (!alerts.length && !ref.current.isHiding && !startHiding) {
+  if (!alerts.length && !prevAlerts?.length && !ref.current.isHiding) {
     return null;
   }
 

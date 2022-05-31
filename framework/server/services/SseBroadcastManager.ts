@@ -1,8 +1,16 @@
-import type { RouteRet } from 'services/ApiManager';
 import SseConnectionsManager from 'services/SseConnectionsManager';
 import PubSubManager from 'services/PubSubManager';
-import serializeEvent from 'lib/serializeEvent';
-import processApiRet from 'lib/apiHelpers/processApiRet';
+import serializeEvent from 'utils/serializeEvent';
+import processApiRet from 'routes/api/helpers/processApiRet';
+
+export type SseData = {
+  // temp
+  data: any,
+  entities?: Model[];
+  createdEntities?: Model[];
+  updatedEntities?: Model[];
+  deletedIds?: Partial<Record<ModelType, EntityId[]>>,
+};
 
 type SubUnsubMessage = {
   sessionId: string,
@@ -17,7 +25,7 @@ const eventTypesToSessionIds = Object.create(null) as ObjectOf<Set<string>>;
 
 const SseBroadcastManager = {
   subscribe(sessionId: string, eventName: string, eventParams: Pojo) {
-    if ((!eventName || !eventParams) && process.env.NODE_ENV !== 'production') {
+    if ((!eventName || !eventParams) && !process.env.PRODUCTION) {
       throw new Error('SseBroadcastManager.subscribe: invalid params.');
     }
     const eventType = serializeEvent(eventName, eventParams);
@@ -102,7 +110,7 @@ const SseBroadcastManager = {
   broadcastData(
     eventName: string,
     eventParams: Pojo,
-    data: RouteRet<any>,
+    data: SseData,
   ) {
     const eventType = serializeEvent(eventName, eventParams);
     // todo: mid/mid validate SSE data

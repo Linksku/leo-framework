@@ -1,9 +1,9 @@
 import CopyPlugin from 'copy-webpack-plugin';
 import path from 'path';
 
-import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
+import mergeReplaceArrays from './scripts/utils/mergeReplaceArrays';
 import baseConfig from './webpack.server';
-import transformWebpackCopied from './scripts/lib/transformWebpackCopied';
+import transformWebpackCopied from './scripts/utils/transformWebpackCopied';
 
 if (!process.env.SERVER || !process.env.NODE_ENV) {
   throw new Error('Env vars not set.');

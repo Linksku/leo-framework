@@ -1,8 +1,9 @@
 import InfoSvg from 'fontawesome5/svgs/solid/info-circle.svg';
+import dayjs from 'dayjs';
 
 import StackWrapInner from 'components/frame/StackWrapInner';
 import HookFormErrors from 'components/HookFormErrors';
-import { MIN_USER_AGE, MAX_USER_AGE } from 'consts/users';
+import { MIN_USER_AGE, MAX_USER_AGE } from 'consts/coreUsers';
 
 import styles from './RegisterRouteStyles.scss';
 
@@ -48,7 +49,6 @@ function RegisterRoute() {
           </p>
         )
         : null}
-      <HookFormErrors errors={errors} additionalError={apiError} />
       <form
         onSubmit={handleSubmit(data => {
           void registerUser({
@@ -99,7 +99,7 @@ function RegisterRoute() {
           required
         />
         <p className={styles.hint}>
-          * Aliases are ok.
+          * Real name not required.
         </p>
 
         <Input
@@ -124,7 +124,7 @@ function RegisterRoute() {
           required
         />
         <p className={styles.hint}>
-          * Only age is shown.
+          * Only age will be displayed.
         </p>
 
         <p>
@@ -141,6 +141,8 @@ function RegisterRoute() {
           {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
           {'.'}
         </p>
+
+        <HookFormErrors errors={errors} additionalError={apiError} />
 
         <Button
           Component="input"

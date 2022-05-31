@@ -1,19 +1,15 @@
 {
   "extends": "../tsconfig-base.json",
   "compilerOptions": {
+    "checkJs": true,
     "noImplicitAny": false,
-    "rootDir": ".."
+    "rootDir": "..",
   },
   "include": [
-    "../framework/**/*.cjs",
-    "../framework/**/*.js",
-    "../app/**/*.cjs",
-    "../app/**/*.js",
     "../**/*.cjs",
     "../**/*.js",
-    "../*.cjs",
-    "../*.js",
-    "../.*.cjs",
-    "../.*.js"
-  ]
+    "../**/.*.ts",
+    "../**/.*.cjs",
+    "../**/.*.js",
+  ],
 }

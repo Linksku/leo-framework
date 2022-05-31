@@ -1,4 +1,4 @@
-import { gfycatRegex, videoRegex } from 'lib/isUrlVideo';
+import { gfycatRegex, videoRegex } from 'utils/isUrlVideo';
 
 import styles from './VideoStyles.scss';
 

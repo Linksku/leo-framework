@@ -2,10 +2,11 @@ import jwt from 'jsonwebtoken';
 
 import { defineApi } from 'services/ApiManager';
 import SseBroadcastManager from 'services/SseBroadcastManager';
+import { DEFAULT_AUTH_EXPIRATION } from 'serverSettings';
 
 defineApi(
   {
-    method: 'post',
+    method: 'get',
     name: 'sseOtp',
     // todo: low/easy add empty obj schema constant
     paramsSchema: {
@@ -22,7 +23,7 @@ defineApi(
       additionalProperties: false,
     },
   },
-  async function sseOtp({ currentUserId }) {
+  async function sseOtpApi({ currentUserId }: ApiHandlerParams<'sseOtp'>) {
     if (!currentUserId) {
       return {
         data: {
@@ -36,7 +37,7 @@ defineApi(
         { id: currentUserId },
         TS.defined(process.env.SSE_JWT_KEY),
         {
-          expiresIn: 60 * 1000,
+          expiresIn: DEFAULT_AUTH_EXPIRATION / 1000,
         },
         (err, otpJwt) => {
           if (err) {
@@ -80,7 +81,7 @@ defineApi(
       additionalProperties: false,
     },
   },
-  function sseSubscribe({ sessionId, events }) {
+  function sseSubscribeApi({ sessionId, events }: ApiHandlerParams<'sseSubscribe'>) {
     // todo: high/hard validate event permissions
 
     for (const event of events) {
@@ -118,7 +119,7 @@ defineApi(
       additionalProperties: false,
     },
   },
-  function sseUnsubscribe({ sessionId, events }) {
+  function sseUnsubscribeApi({ sessionId, events }: ApiHandlerParams<'sseUnsubscribe'>) {
     for (const event of events) {
       SseBroadcastManager.unsubscribe(sessionId, event.name, event.params);
     }

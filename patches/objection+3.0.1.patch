@@ -1,223 +1,5 @@
-diff --git a/node_modules/objection/LICENSE b/node_modules/objection/LICENSE
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/README.md b/node_modules/objection/README.md
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/.eslintrc.json b/node_modules/objection/lib/.eslintrc.json
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/initialize.js b/node_modules/objection/lib/initialize.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/AjvValidator.js b/node_modules/objection/lib/model/AjvValidator.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/Model.js b/node_modules/objection/lib/model/Model.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/ModifierNotFoundError.js b/node_modules/objection/lib/model/ModifierNotFoundError.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/NotFoundError.js b/node_modules/objection/lib/model/NotFoundError.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/RelationDoesNotExistError.js b/node_modules/objection/lib/model/RelationDoesNotExistError.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/ValidationError.js b/node_modules/objection/lib/model/ValidationError.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/Validator.js b/node_modules/objection/lib/model/Validator.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/graph/ModelGraph.js b/node_modules/objection/lib/model/graph/ModelGraph.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/graph/ModelGraphBuilder.js b/node_modules/objection/lib/model/graph/ModelGraphBuilder.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/graph/ModelGraphEdge.js b/node_modules/objection/lib/model/graph/ModelGraphEdge.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/graph/ModelGraphNode.js b/node_modules/objection/lib/model/graph/ModelGraphNode.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/inheritModel.js b/node_modules/objection/lib/model/inheritModel.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelBindKnex.js b/node_modules/objection/lib/model/modelBindKnex.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelClone.js b/node_modules/objection/lib/model/modelClone.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelColPropMap.js b/node_modules/objection/lib/model/modelColPropMap.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelId.js b/node_modules/objection/lib/model/modelId.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelJsonAttributes.js b/node_modules/objection/lib/model/modelJsonAttributes.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelParseRelations.js b/node_modules/objection/lib/model/modelParseRelations.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelQueryProps.js b/node_modules/objection/lib/model/modelQueryProps.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelSet.js b/node_modules/objection/lib/model/modelSet.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelTableMetadata.js b/node_modules/objection/lib/model/modelTableMetadata.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelToJson.js b/node_modules/objection/lib/model/modelToJson.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelUtils.js b/node_modules/objection/lib/model/modelUtils.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelValidate.js b/node_modules/objection/lib/model/modelValidate.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelValues.js b/node_modules/objection/lib/model/modelValues.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/model/modelVisitor.js b/node_modules/objection/lib/model/modelVisitor.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/objection.js b/node_modules/objection/lib/objection.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/FunctionBuilder.js b/node_modules/objection/lib/queryBuilder/FunctionBuilder.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/InternalOptions.js b/node_modules/objection/lib/queryBuilder/InternalOptions.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/JoinBuilder.js b/node_modules/objection/lib/queryBuilder/JoinBuilder.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilder.js b/node_modules/objection/lib/queryBuilder/QueryBuilder.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilderBase.js b/node_modules/objection/lib/queryBuilder/QueryBuilderBase.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilderContext.js b/node_modules/objection/lib/queryBuilder/QueryBuilderContext.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilderContextBase.js b/node_modules/objection/lib/queryBuilder/QueryBuilderContextBase.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilderOperationSupport.js b/node_modules/objection/lib/queryBuilder/QueryBuilderOperationSupport.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/QueryBuilderUserContext.js b/node_modules/objection/lib/queryBuilder/QueryBuilderUserContext.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/RawBuilder.js b/node_modules/objection/lib/queryBuilder/RawBuilder.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/ReferenceBuilder.js b/node_modules/objection/lib/queryBuilder/ReferenceBuilder.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/RelationExpression.js b/node_modules/objection/lib/queryBuilder/RelationExpression.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/StaticHookArguments.js b/node_modules/objection/lib/queryBuilder/StaticHookArguments.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/ValueBuilder.js b/node_modules/objection/lib/queryBuilder/ValueBuilder.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphAction.js b/node_modules/objection/lib/queryBuilder/graph/GraphAction.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphData.js b/node_modules/objection/lib/queryBuilder/graph/GraphData.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphFetcher.js b/node_modules/objection/lib/queryBuilder/graph/GraphFetcher.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphNodeDbExistence.js b/node_modules/objection/lib/queryBuilder/graph/GraphNodeDbExistence.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphOperation.js b/node_modules/objection/lib/queryBuilder/graph/GraphOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphOptions.js b/node_modules/objection/lib/queryBuilder/graph/GraphOptions.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/GraphUpsert.js b/node_modules/objection/lib/queryBuilder/graph/GraphUpsert.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/delete/GraphDelete.js b/node_modules/objection/lib/queryBuilder/graph/delete/GraphDelete.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/delete/GraphDeleteAction.js b/node_modules/objection/lib/queryBuilder/graph/delete/GraphDeleteAction.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/insert/GraphInsert.js b/node_modules/objection/lib/queryBuilder/graph/insert/GraphInsert.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/insert/GraphInsertAction.js b/node_modules/objection/lib/queryBuilder/graph/insert/GraphInsertAction.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/insert/JoinRowGraphInsertAction.js b/node_modules/objection/lib/queryBuilder/graph/insert/JoinRowGraphInsertAction.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/patch/GraphPatch.js b/node_modules/objection/lib/queryBuilder/graph/patch/GraphPatch.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/patch/GraphPatchAction.js b/node_modules/objection/lib/queryBuilder/graph/patch/GraphPatchAction.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/recursiveUpsert/GraphRecursiveUpsert.js b/node_modules/objection/lib/queryBuilder/graph/recursiveUpsert/GraphRecursiveUpsert.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/graph/recursiveUpsert/GraphRecursiveUpsertAction.js b/node_modules/objection/lib/queryBuilder/graph/recursiveUpsert/GraphRecursiveUpsertAction.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/join/JoinResultColumn.js b/node_modules/objection/lib/queryBuilder/join/JoinResultColumn.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/join/JoinResultParser.js b/node_modules/objection/lib/queryBuilder/join/JoinResultParser.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/join/RelationJoiner.js b/node_modules/objection/lib/queryBuilder/join/RelationJoiner.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/join/TableNode.js b/node_modules/objection/lib/queryBuilder/join/TableNode.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/join/TableTree.js b/node_modules/objection/lib/queryBuilder/join/TableTree.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/join/utils.js b/node_modules/objection/lib/queryBuilder/join/utils.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/DelegateOperation.js b/node_modules/objection/lib/queryBuilder/operations/DelegateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/DeleteOperation.js b/node_modules/objection/lib/queryBuilder/operations/DeleteOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/FindByIdOperation.js b/node_modules/objection/lib/queryBuilder/operations/FindByIdOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/FindByIdsOperation.js b/node_modules/objection/lib/queryBuilder/operations/FindByIdsOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/FindOperation.js b/node_modules/objection/lib/queryBuilder/operations/FindOperation.js
-old mode 100644
-new mode 100755
 diff --git a/node_modules/objection/lib/queryBuilder/operations/FirstOperation.js b/node_modules/objection/lib/queryBuilder/operations/FirstOperation.js
-old mode 100644
-new mode 100755
-index 29177fc..11d726e
+index 29177fc..11d726e 100644
 --- a/node_modules/objection/lib/queryBuilder/operations/FirstOperation.js
 +++ b/node_modules/objection/lib/queryBuilder/operations/FirstOperation.js
 @@ -7,7 +7,7 @@ class FirstOperation extends QueryBuilderOperation {
@@ -229,346 +11,152 @@ index 29177fc..11d726e
      }
  
      return knexBuilder;
-diff --git a/node_modules/objection/lib/queryBuilder/operations/FromOperation.js b/node_modules/objection/lib/queryBuilder/operations/FromOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/InsertAndFetchOperation.js b/node_modules/objection/lib/queryBuilder/operations/InsertAndFetchOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/InsertGraphAndFetchOperation.js b/node_modules/objection/lib/queryBuilder/operations/InsertGraphAndFetchOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/InsertGraphOperation.js b/node_modules/objection/lib/queryBuilder/operations/InsertGraphOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/InsertOperation.js b/node_modules/objection/lib/queryBuilder/operations/InsertOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/InstanceDeleteOperation.js b/node_modules/objection/lib/queryBuilder/operations/InstanceDeleteOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/InstanceFindOperation.js b/node_modules/objection/lib/queryBuilder/operations/InstanceFindOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/InstanceInsertOperation.js b/node_modules/objection/lib/queryBuilder/operations/InstanceInsertOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/InstanceUpdateOperation.js b/node_modules/objection/lib/queryBuilder/operations/InstanceUpdateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/JoinRelatedOperation.js b/node_modules/objection/lib/queryBuilder/operations/JoinRelatedOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/KnexOperation.js b/node_modules/objection/lib/queryBuilder/operations/KnexOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/MergeOperation.js b/node_modules/objection/lib/queryBuilder/operations/MergeOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/ObjectionToKnexConvertingOperation.js b/node_modules/objection/lib/queryBuilder/operations/ObjectionToKnexConvertingOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/OnBuildKnexOperation.js b/node_modules/objection/lib/queryBuilder/operations/OnBuildKnexOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/OnBuildOperation.js b/node_modules/objection/lib/queryBuilder/operations/OnBuildOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/OnErrorOperation.js b/node_modules/objection/lib/queryBuilder/operations/OnErrorOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/QueryBuilderOperation.js b/node_modules/objection/lib/queryBuilder/operations/QueryBuilderOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/RangeOperation.js b/node_modules/objection/lib/queryBuilder/operations/RangeOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/RelateOperation.js b/node_modules/objection/lib/queryBuilder/operations/RelateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/ReturningOperation.js b/node_modules/objection/lib/queryBuilder/operations/ReturningOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/RunAfterOperation.js b/node_modules/objection/lib/queryBuilder/operations/RunAfterOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/RunBeforeOperation.js b/node_modules/objection/lib/queryBuilder/operations/RunBeforeOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/UnrelateOperation.js b/node_modules/objection/lib/queryBuilder/operations/UnrelateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/UpdateAndFetchOperation.js b/node_modules/objection/lib/queryBuilder/operations/UpdateAndFetchOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/UpdateOperation.js b/node_modules/objection/lib/queryBuilder/operations/UpdateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/UpsertGraphAndFetchOperation.js b/node_modules/objection/lib/queryBuilder/operations/UpsertGraphAndFetchOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/UpsertGraphOperation.js b/node_modules/objection/lib/queryBuilder/operations/UpsertGraphOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/WhereCompositeOperation.js b/node_modules/objection/lib/queryBuilder/operations/WhereCompositeOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/eager/EagerOperation.js b/node_modules/objection/lib/queryBuilder/operations/eager/EagerOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/eager/JoinEagerOperation.js b/node_modules/objection/lib/queryBuilder/operations/eager/JoinEagerOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/eager/NaiveEagerOperation.js b/node_modules/objection/lib/queryBuilder/operations/eager/NaiveEagerOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/eager/WhereInEagerOperation.js b/node_modules/objection/lib/queryBuilder/operations/eager/WhereInEagerOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonHasPostgresOperation.js b/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonHasPostgresOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonNotObjectPostgresOperation.js b/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonNotObjectPostgresOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonPostgresOperation.js b/node_modules/objection/lib/queryBuilder/operations/jsonApi/WhereJsonPostgresOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/jsonApi/postgresJsonApi.js b/node_modules/objection/lib/queryBuilder/operations/jsonApi/postgresJsonApi.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/select/SelectOperation.js b/node_modules/objection/lib/queryBuilder/operations/select/SelectOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/select/Selection.js b/node_modules/objection/lib/queryBuilder/operations/select/Selection.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeMsSqlOperation.js b/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeMsSqlOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeOperation.js b/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeSqliteOperation.js b/node_modules/objection/lib/queryBuilder/operations/whereInComposite/WhereInCompositeSqliteOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/parsers/jsonFieldExpressionParser.js b/node_modules/objection/lib/queryBuilder/parsers/jsonFieldExpressionParser.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/parsers/jsonFieldExpressionParser.pegjs b/node_modules/objection/lib/queryBuilder/parsers/jsonFieldExpressionParser.pegjs
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/parsers/relationExpressionParser.js b/node_modules/objection/lib/queryBuilder/parsers/relationExpressionParser.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/parsers/relationExpressionParser.pegjs b/node_modules/objection/lib/queryBuilder/parsers/relationExpressionParser.pegjs
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/transformations/CompositeQueryTransformation.js b/node_modules/objection/lib/queryBuilder/transformations/CompositeQueryTransformation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/transformations/QueryTransformation.js b/node_modules/objection/lib/queryBuilder/transformations/QueryTransformation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/transformations/WrapMysqlModifySubqueryTransformation.js b/node_modules/objection/lib/queryBuilder/transformations/WrapMysqlModifySubqueryTransformation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/queryBuilder/transformations/index.js b/node_modules/objection/lib/queryBuilder/transformations/index.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/Relation.js b/node_modules/objection/lib/relations/Relation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/RelationDeleteOperation.js b/node_modules/objection/lib/relations/RelationDeleteOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/RelationFindOperation.js b/node_modules/objection/lib/relations/RelationFindOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/RelationInsertOperation.js b/node_modules/objection/lib/relations/RelationInsertOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/RelationOwner.js b/node_modules/objection/lib/relations/RelationOwner.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/RelationProperty.js b/node_modules/objection/lib/relations/RelationProperty.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/RelationUpdateOperation.js b/node_modules/objection/lib/relations/RelationUpdateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/belongsToOne/BelongsToOneDeleteOperation.js b/node_modules/objection/lib/relations/belongsToOne/BelongsToOneDeleteOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/belongsToOne/BelongsToOneInsertOperation.js b/node_modules/objection/lib/relations/belongsToOne/BelongsToOneInsertOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/belongsToOne/BelongsToOneRelateOperation.js b/node_modules/objection/lib/relations/belongsToOne/BelongsToOneRelateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/belongsToOne/BelongsToOneRelation.js b/node_modules/objection/lib/relations/belongsToOne/BelongsToOneRelation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/belongsToOne/BelongsToOneUnrelateOperation.js b/node_modules/objection/lib/relations/belongsToOne/BelongsToOneUnrelateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/hasMany/HasManyInsertOperation.js b/node_modules/objection/lib/relations/hasMany/HasManyInsertOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/hasMany/HasManyRelateOperation.js b/node_modules/objection/lib/relations/hasMany/HasManyRelateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/hasMany/HasManyRelation.js b/node_modules/objection/lib/relations/hasMany/HasManyRelation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/hasMany/HasManyUnrelateOperation.js b/node_modules/objection/lib/relations/hasMany/HasManyUnrelateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/hasOne/HasOneRelation.js b/node_modules/objection/lib/relations/hasOne/HasOneRelation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/hasOneThrough/HasOneThroughRelation.js b/node_modules/objection/lib/relations/hasOneThrough/HasOneThroughRelation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/ManyToManyModifyMixin.js b/node_modules/objection/lib/relations/manyToMany/ManyToManyModifyMixin.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/ManyToManyRelation.js b/node_modules/objection/lib/relations/manyToMany/ManyToManyRelation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/ManyToManySqliteModifyMixin.js b/node_modules/objection/lib/relations/manyToMany/ManyToManySqliteModifyMixin.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteOperation.js b/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteOperationBase.js b/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteOperationBase.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteSqliteOperation.js b/node_modules/objection/lib/relations/manyToMany/delete/ManyToManyDeleteSqliteOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/find/ManyToManyFindOperation.js b/node_modules/objection/lib/relations/manyToMany/find/ManyToManyFindOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/insert/ManyToManyInsertOperation.js b/node_modules/objection/lib/relations/manyToMany/insert/ManyToManyInsertOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/relate/ManyToManyRelateOperation.js b/node_modules/objection/lib/relations/manyToMany/relate/ManyToManyRelateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateOperation.js b/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateOperationBase.js b/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateOperationBase.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateSqliteOperation.js b/node_modules/objection/lib/relations/manyToMany/unrelate/ManyToManyUnrelateSqliteOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateOperation.js b/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateOperationBase.js b/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateOperationBase.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateSqliteOperation.js b/node_modules/objection/lib/relations/manyToMany/update/ManyToManyUpdateSqliteOperation.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/transaction.js b/node_modules/objection/lib/transaction.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/assert.js b/node_modules/objection/lib/utils/assert.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/buildUtils.js b/node_modules/objection/lib/utils/buildUtils.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/classUtils.js b/node_modules/objection/lib/utils/classUtils.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/clone.js b/node_modules/objection/lib/utils/clone.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/createModifier.js b/node_modules/objection/lib/utils/createModifier.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/deprecate.js b/node_modules/objection/lib/utils/deprecate.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/identifierMapping.js b/node_modules/objection/lib/utils/identifierMapping.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/internalPropUtils.js b/node_modules/objection/lib/utils/internalPropUtils.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/knexUtils.js b/node_modules/objection/lib/utils/knexUtils.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/mixin.js b/node_modules/objection/lib/utils/mixin.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/normalizeIds.js b/node_modules/objection/lib/utils/normalizeIds.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/objectUtils.js b/node_modules/objection/lib/utils/objectUtils.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/parseFieldExpression.js b/node_modules/objection/lib/utils/parseFieldExpression.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/promiseUtils/after.js b/node_modules/objection/lib/utils/promiseUtils/after.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/promiseUtils/afterReturn.js b/node_modules/objection/lib/utils/promiseUtils/afterReturn.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/promiseUtils/index.js b/node_modules/objection/lib/utils/promiseUtils/index.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/promiseUtils/isPromise.js b/node_modules/objection/lib/utils/promiseUtils/isPromise.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/promiseUtils/map.js b/node_modules/objection/lib/utils/promiseUtils/map.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/promiseUtils/mapAfterAllReturn.js b/node_modules/objection/lib/utils/promiseUtils/mapAfterAllReturn.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/promiseUtils/try.js b/node_modules/objection/lib/utils/promiseUtils/try.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/resolveModel.js b/node_modules/objection/lib/utils/resolveModel.js
-old mode 100644
-new mode 100755
-diff --git a/node_modules/objection/lib/utils/tmpColumnUtils.js b/node_modules/objection/lib/utils/tmpColumnUtils.js
-old mode 100644
-new mode 100755
 diff --git a/node_modules/objection/typings/objection/index.d.ts b/node_modules/objection/typings/objection/index.d.ts
-old mode 100644
-new mode 100755
-index 5be592c..c6dbfa3
+index 5be592c..884f68e 100644
 --- a/node_modules/objection/typings/objection/index.d.ts
 +++ b/node_modules/objection/typings/objection/index.d.ts
-@@ -221,7 +221,7 @@ declare namespace Objection {
+@@ -167,8 +167,6 @@ declare namespace Objection {
+     [key: string]: Modifier<QB>;
+   }
+ 
+-  type RelationExpression<M extends Model> = string | object;
+-
    /**
-    * Just like PartialModelObject but this is applied recursively to relations.
+    * If T is an array, returns the item type, otherwise returns T.
     */
--  type PartialModelGraph<M, T = M & GraphParameters> = {
-+  type PartialModelGraph<M, T = M & GraphParameters> = T extends any ? {
-     [K in DataPropertyNames<T>]?: Defined<T[K]> extends Model
-       ? PartialModelGraph<Defined<T[K]>>
-       : Defined<T[K]> extends Array<infer I>
-@@ -229,7 +229,7 @@ declare namespace Objection {
-         ? PartialModelGraph<I>[]
-         : Expression<T[K]>
-       : Expression<T[K]>;
+@@ -177,12 +175,9 @@ declare namespace Objection {
+   /**
+    * Type for keys of non-function properties of T.
+    */
+-  type NonFunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? never : K }[keyof T];
+-
+-  /**
+-   * Type that attempts to only select the user-defined model properties.
+-   */
+-  type DataPropertyNames<T> = Exclude<NonFunctionPropertyNames<T>, 'QueryBuilderType'>;
++  type NonFunctionPropertyNames<T> = T extends any
++    ? { [K in keyof T]: T[K] extends Function ? never : K }[keyof T]
++    : never;
+ 
+   /**
+    * Removes `undefined` from a type.
+@@ -192,49 +187,17 @@ declare namespace Objection {
+   /**
+    * A Pojo version of model.
+    */
+-  type ModelObject<T extends Model> = {
+-    [K in DataPropertyNames<T>]: T[K];
 -  };
-+  } : never;
++  type ModelObject<T extends Model> = T['cls']['Interface'];
+ 
+   /**
+    * Any object that has some of the properties of model class T match this type.
+    */
+-  type PartialModelObject<T extends Model> = {
+-    [K in DataPropertyNames<T>]?: Defined<T[K]> extends Model
+-      ? T[K]
+-      : Defined<T[K]> extends Array<infer I>
+-      ? I extends Model
+-        ? I[]
+-        : Expression<T[K]>
+-      : Expression<T[K]>;
+-  };
+-
+-  /**
+-   * Additional optional parameters that may be used in graphs.
+-   */
+-  type GraphParameters = {
+-    '#dbRef'?: MaybeCompositeId;
+-    '#ref'?: string;
+-    '#id'?: string;
+-  };
+-
+-  /**
+-   * Just like PartialModelObject but this is applied recursively to relations.
+-   */
+-  type PartialModelGraph<M, T = M & GraphParameters> = {
+-    [K in DataPropertyNames<T>]?: Defined<T[K]> extends Model
+-      ? PartialModelGraph<Defined<T[K]>>
+-      : Defined<T[K]> extends Array<infer I>
+-      ? I extends Model
+-        ? PartialModelGraph<I>[]
+-        : Expression<T[K]>
+-      : Expression<T[K]>;
+-  };
++  type PartialModelObject<T extends Model> = Partial<T['cls']['Interface']>;
  
    /**
     * Extracts the property names (excluding relations) of a model class.
-@@ -534,6 +534,7 @@ declare namespace Objection {
+    */
+-  type ModelProps<T extends Model> = Exclude<
++  type ModelProps<T extends Model> = T extends any ? Exclude<
+     {
+       [K in keyof T]?: Defined<T[K]> extends Model
+         ? never
+@@ -247,47 +210,7 @@ declare namespace Objection {
+         : K;
+     }[keyof T],
+     undefined | 'QueryBuilderType'
+-  >;
+-
+-  /**
+-   * Extracts the relation names of the a model class.
+-   */
+-  type ModelRelations<T extends Model> = Defined<
+-    {
+-      [K in keyof T]?: Defined<T[K]> extends Model
+-        ? K
+-        : Defined<T[K]> extends Array<infer I>
+-        ? I extends Model
+-          ? K
+-          : never
+-        : never;
+-    }[keyof T]
+-  >;
+-
+-  /**
+-   * Given a model property type, returns a query builer type of
+-   * correct kind if the property is a model or a model array.
+-   */
+-  type RelatedQueryBuilder<T> = T extends Model
+-    ? SingleQueryBuilder<QueryBuilderType<T>>
+-    : T extends Array<infer I>
+-    ? I extends Model
+-      ? QueryBuilderType<I>
+-      : never
+-    : never;
+-
+-  /**
+-   * Just like RelatedQueryBuilder but always returns an array
+-   * query builder even if the property type is a model and not
+-   * an array of models.
+-   */
+-  type ArrayRelatedQueryBuilder<T> = T extends Model
+-    ? QueryBuilderType<T>
+-    : T extends Array<infer I>
+-    ? I extends Model
+-      ? QueryBuilderType<I>
+-      : never
+-    : never;
++  > : never;
+ 
+   /**
+    * Gets the query builder type for a model type.
+@@ -520,20 +443,12 @@ declare namespace Objection {
+     (alias: string, expr: CallbackVoid<QB> | AnyQueryBuilder | Raw): QB;
+   }
+ 
+-  interface JoinRelatedOptions {
+-    alias?: string | boolean;
+-    aliases?: Record<string, string>;
+-  }
+-
+-  interface JoinRelatedMethod<QB extends AnyQueryBuilder> {
+-    (expr: RelationExpression<ModelType<QB>>, opt?: JoinRelatedOptions): QB;
+-  }
+-
+   interface JoinMethod<QB extends AnyQueryBuilder> {
+     (table: TableRef<QB>, leftCol: ColumnRef, op: Operator, rightCol: ColumnRef): QB;
      (table: TableRef<QB>, leftCol: ColumnRef, rightCol: ColumnRef): QB;
      (table: TableRef<QB>, cb: CallbackVoid<Knex.JoinClause>): QB;
      (table: TableRef<QB>, raw: Raw): QB;
@@ -576,7 +164,7 @@ index 5be592c..c6dbfa3
      (raw: Raw): QB;
    }
  
-@@ -545,6 +546,7 @@ declare namespace Objection {
+@@ -545,6 +460,7 @@ declare namespace Objection {
  
    interface AggregateMethod<QB extends AnyQueryBuilder> {
      (column: ColumnRef): QB;
@@ -584,3 +172,470 @@ index 5be592c..c6dbfa3
    }
  
    interface CountMethod<QB extends AnyQueryBuilder> {
+@@ -580,10 +496,6 @@ declare namespace Objection {
+ 
+   type ForIdValue = MaybeCompositeId | AnyQueryBuilder;
+ 
+-  interface AllowGraphMethod<QB extends AnyQueryBuilder> {
+-    (expr: RelationExpression<ModelType<QB>>): QB;
+-  }
+-
+   interface IdentityMethod<QB extends AnyQueryBuilder> {
+     (): QB;
+   }
+@@ -684,71 +596,6 @@ declare namespace Objection {
+     (cb: OnErrorCallback<QB>): QB;
+   }
+ 
+-  export interface InsertGraphOptions {
+-    relate?: boolean | string[];
+-    allowRefs?: boolean;
+-  }
+-
+-  interface InsertGraphMethod<M extends Model> {
+-    <QB extends AnyQueryBuilder>(
+-      this: QB,
+-      graph: PartialModelGraph<M>,
+-      options?: InsertGraphOptions
+-    ): SingleQueryBuilder<QB>;
+-
+-    <QB extends AnyQueryBuilder>(
+-      this: QB,
+-      graph: PartialModelGraph<M>[],
+-      options?: InsertGraphOptions
+-    ): ArrayQueryBuilder<QB>;
+-  }
+-
+-  export interface UpsertGraphOptions {
+-    relate?: boolean | string[];
+-    unrelate?: boolean | string[];
+-    insertMissing?: boolean | string[];
+-    update?: boolean | string[];
+-    noInsert?: boolean | string[];
+-    noUpdate?: boolean | string[];
+-    noDelete?: boolean | string[];
+-    noRelate?: boolean | string[];
+-    noUnrelate?: boolean | string[];
+-    allowRefs?: boolean;
+-  }
+-
+-  interface UpsertGraphMethod<M extends Model> {
+-    <QB extends AnyQueryBuilder>(
+-      this: QB,
+-      graph: PartialModelGraph<M>[],
+-      options?: UpsertGraphOptions
+-    ): ArrayQueryBuilder<QB>;
+-
+-    <QB extends AnyQueryBuilder>(
+-      this: QB,
+-      graph: PartialModelGraph<M>,
+-      options?: UpsertGraphOptions
+-    ): SingleQueryBuilder<QB>;
+-  }
+-
+-  interface GraphExpressionObjectMethod<QB extends AnyQueryBuilder> {
+-    (): any;
+-  }
+-
+-  export interface GraphOptions {
+-    minimize?: boolean;
+-    separator?: string;
+-    aliases?: { [key: string]: string };
+-    joinOperation?: string;
+-    maxBatchSize?: number;
+-  }
+-
+-  interface ModifyGraphMethod<QB extends AnyQueryBuilder> {
+-    <M extends Model>(
+-      expr: RelationExpression<ModelType<QB>>,
+-      modifier: Modifier<QueryBuilderType<M>>
+-    ): QB;
+-  }
+-
+   interface ContextMethod<QB extends AnyQueryBuilder> {
+     (context: object): QB;
+     (): QueryContext;
+@@ -893,15 +740,6 @@ declare namespace Objection {
+     withRecursive: WithMethod<this>;
+     withWrapped: WithMethod<this>;
+ 
+-    joinRelated: JoinRelatedMethod<this>;
+-    innerJoinRelated: JoinRelatedMethod<this>;
+-    outerJoinRelated: JoinRelatedMethod<this>;
+-    leftJoinRelated: JoinRelatedMethod<this>;
+-    leftOuterJoinRelated: JoinRelatedMethod<this>;
+-    rightJoinRelated: JoinRelatedMethod<this>;
+-    rightOuterJoinRelated: JoinRelatedMethod<this>;
+-    fullOuterJoinRelated: JoinRelatedMethod<this>;
+-
+     join: JoinMethod<this>;
+     joinRaw: JoinRawMethod<this>;
+     innerJoin: JoinMethod<this>;
+@@ -971,18 +809,9 @@ declare namespace Objection {
+     insertAndFetch(insert: PartialModelObject<M>[]): ArrayQueryBuilder<this>;
+     insertAndFetch(): SingleQueryBuilder<this>;
+ 
+-    relate(
+-      ids: MaybeCompositeId | MaybeCompositeId[] | PartialModelObject<M> | PartialModelObject<M>[]
+-    ): NumberQueryBuilder<this>;
+-
+-    unrelate(): NumberQueryBuilder<this>;
+     for(ids: ForIdValue | ForIdValue[]): this;
+ 
+-    withGraphFetched(expr: RelationExpression<M>, options?: GraphOptions): this;
+-    withGraphJoined(expr: RelationExpression<M>, options?: GraphOptions): this;
+-
+     truncate(): Promise<void>;
+-    allowGraph: AllowGraphMethod<this>;
+ 
+     throwIfNotFound: (
+       arg?: any
+@@ -1025,16 +854,6 @@ declare namespace Objection {
+     onBuildKnex: OnBuildKnexMethod<this>;
+     onError: OnErrorMethod<this>;
+ 
+-    insertGraph: InsertGraphMethod<M>;
+-    insertGraphAndFetch: InsertGraphMethod<M>;
+-
+-    upsertGraph: UpsertGraphMethod<M>;
+-    upsertGraphAndFetch: UpsertGraphMethod<M>;
+-
+-    graphExpressionObject: GraphExpressionObjectMethod<this>;
+-
+-    modifyGraph: ModifyGraphMethod<this>;
+-
+     context: ContextMethod<this>;
+     clearContext: ClearContextMethod<this>;
+ 
+@@ -1046,12 +865,9 @@ declare namespace Objection {
+     isInsert: BooleanReturningMethod;
+     isUpdate: BooleanReturningMethod;
+     isDelete: BooleanReturningMethod;
+-    isRelate: BooleanReturningMethod;
+-    isUnrelate: BooleanReturningMethod;
+     isInternal: BooleanReturningMethod;
+     hasWheres: BooleanReturningMethod;
+     hasSelects: BooleanReturningMethod;
+-    hasWithGraph: BooleanReturningMethod;
+ 
+     has: HasMethod;
+     clear: ClearMethod<this>;
+@@ -1059,8 +875,6 @@ declare namespace Objection {
+     clearSelect: IdentityMethod<this>;
+     clearOrder: IdentityMethod<this>;
+     clearWhere: IdentityMethod<this>;
+-    clearWithGraph: IdentityMethod<this>;
+-    clearAllowGraph: IdentityMethod<this>;
+ 
+     ModelType: M;
+     ResultType: R;
+@@ -1083,15 +897,6 @@ declare namespace Objection {
+ 
+   type X<T> = Promise<T>;
+ 
+-  interface FetchGraphOptions {
+-    transaction?: TransactionOrKnex;
+-    skipFetched?: boolean;
+-  }
+-
+-  interface TraverserFunction {
+-    (model: Model, parentModel: Model, relationName: string): void;
+-  }
+-
+   type ArrayQueryBuilderThunk<M extends Model> = () => ArrayQueryBuilder<QueryBuilderType<M>>;
+   type CancelQueryThunk = (result: any) => void;
+ 
+@@ -1100,7 +905,6 @@ declare namespace Objection {
+     cancelQuery: CancelQueryThunk;
+     context: QueryContext;
+     transaction: TransactionOrKnex;
+-    relation?: Relation;
+     modelOptions?: ModelOptions;
+     items: Model[];
+     inputItems: M[];
+@@ -1110,68 +914,9 @@ declare namespace Objection {
+   export type Transaction = Knex.Transaction;
+   export type TransactionOrKnex = Transaction | Knex;
+ 
+-  export interface RelationMappings {
+-    [relationName: string]: RelationMapping<any>;
+-  }
+-
+-  export type RelationMappingsThunk = () => RelationMappings;
+-
+   type ModelClassFactory = () => AnyModelConstructor;
+   type ModelClassSpecifier = ModelClassFactory | AnyModelConstructor | string;
+-  type RelationMappingHook<M extends Model> = (
+-    model: M,
+-    context: QueryContext
+-  ) => Promise<void> | void;
+   type StringOrReferenceBuilder = string | ReferenceBuilder;
+-  type RelationMappingColumnRef = StringOrReferenceBuilder | StringOrReferenceBuilder[];
+-
+-  export interface RelationMapping<M extends Model> {
+-    relation: RelationType;
+-    modelClass: ModelClassSpecifier;
+-    join: RelationJoin;
+-    modify?: Modifier<QueryBuilderType<M>>;
+-    filter?: Modifier<QueryBuilderType<M>>;
+-    beforeInsert?: RelationMappingHook<M>;
+-  }
+-
+-  export interface RelationJoin {
+-    from: RelationMappingColumnRef;
+-    to: RelationMappingColumnRef;
+-    through?: RelationThrough<any>;
+-  }
+-
+-  export interface RelationThrough<M extends Model> {
+-    from: RelationMappingColumnRef;
+-    to: RelationMappingColumnRef;
+-    extra?: string | string[] | Record<string, string>;
+-    modelClass?: ModelClassSpecifier;
+-    beforeInsert?: RelationMappingHook<M>;
+-  }
+-
+-  export interface RelationType extends Constructor<Relation> {}
+-
+-  export interface Relation {
+-    name: string;
+-    ownerModelClass: typeof Model;
+-    relatedModelClass: typeof Model;
+-    ownerProp: RelationProperty;
+-    relatedProp: RelationProperty;
+-    joinModelClass: typeof Model;
+-    joinTable: string;
+-    joinTableOwnerProp: RelationProperty;
+-    joinTableRelatedProp: RelationProperty;
+-  }
+-
+-  export interface RelationProperty {
+-    size: number;
+-    modelClass: typeof Model;
+-    props: string[];
+-    cols: string[];
+-  }
+-
+-  export interface Relations {
+-    [name: string]: Relation;
+-  }
+ 
+   export interface QueryContext {
+     transaction: Transaction;
+@@ -1319,7 +1064,6 @@ declare namespace Objection {
+     tableName: string;
+     idColumn: string | string[];
+     jsonSchema: JSONSchema;
+-    relationMappings: RelationMappings | RelationMappingsThunk;
+     modelPaths: string[];
+     jsonAttributes: string[];
+     virtualAttributes: string[];
+@@ -1328,8 +1072,6 @@ declare namespace Objection {
+     dbRefProp: string;
+     propRefRegex: RegExp;
+     pickJsonSchemaProperties: boolean;
+-    relatedFindQueryMutates: boolean;
+-    relatedInsertQueryMutates: boolean;
+     useLimitInFirst: boolean;
+     modifiers: Modifiers;
+     columnNameMappers: ColumnNameMappers;
+@@ -1338,25 +1080,7 @@ declare namespace Objection {
+     ref: ReferenceFunction;
+     fn: FunctionFunction;
+ 
+-    BelongsToOneRelation: RelationType;
+-    HasOneRelation: RelationType;
+-    HasManyRelation: RelationType;
+-    ManyToManyRelation: RelationType;
+-    HasOneThroughRelation: RelationType;
+-
+-    defaultGraphOptions?: GraphOptions;
+-
+-    query(this: Constructor<M>, trxOrKnex?: TransactionOrKnex): QueryBuilderType<M>;
+-
+-    relatedQuery<K extends keyof M>(
+-      relationName: K,
+-      trxOrKnex?: TransactionOrKnex
+-    ): ArrayRelatedQueryBuilder<M[K]>;
+-
+-    relatedQuery<RM extends Model>(
+-      relationName: string,
+-      trxOrKnex?: TransactionOrKnex
+-    ): QueryBuilderType<RM>;
++    // query(this: Constructor<M>, trxOrKnex?: TransactionOrKnex): QueryBuilderType<M>;
+ 
+     fromJson(json: object, opt?: ModelOptions): M;
+     fromDatabaseJson(json: object): M;
+@@ -1381,34 +1105,6 @@ declare namespace Objection {
+     bindKnex(trxOrKnex: TransactionOrKnex): this;
+     bindTransaction(trxOrKnex: TransactionOrKnex): this;
+ 
+-    fetchGraph(
+-      modelOrObject: PartialModelObject<M>,
+-      expression: RelationExpression<M>,
+-      options?: FetchGraphOptions
+-    ): SingleQueryBuilder<QueryBuilderType<M>>;
+-
+-    fetchGraph(
+-      modelOrObject: PartialModelObject<M>[],
+-      expression: RelationExpression<M>,
+-      options?: FetchGraphOptions
+-    ): QueryBuilderType<M>;
+-
+-    getRelations(): Relations;
+-    getRelation(name: string): Relation;
+-
+-    traverse(models: Model | Model[], traverser: TraverserFunction): void;
+-    traverse(
+-      filterConstructor: ModelConstructor<Model>,
+-      models: Model | Model[],
+-      traverser: TraverserFunction
+-    ): void;
+-    traverseAsync(models: Model | Model[], traverser: TraverserFunction): Promise<void>;
+-    traverseAsync(
+-      filterConstructor: ModelConstructor<Model>,
+-      models: Model | Model[],
+-      traverser: TraverserFunction
+-    ): Promise<void>;
+-
+     beforeFind(args: StaticHookArguments<any>): any;
+     afterFind(args: StaticHookArguments<any>): any;
+     beforeInsert(args: StaticHookArguments<any>): any;
+@@ -1425,7 +1121,6 @@ declare namespace Objection {
+     static tableName: string;
+     static idColumn: string | string[];
+     static jsonSchema: JSONSchema;
+-    static relationMappings: RelationMappings | RelationMappingsThunk;
+     static modelPaths: string[];
+     static jsonAttributes: string[];
+     static virtualAttributes: string[];
+@@ -1434,8 +1129,6 @@ declare namespace Objection {
+     static dbRefProp: string;
+     static propRefRegex: RegExp;
+     static pickJsonSchemaProperties: boolean;
+-    static relatedFindQueryMutates: boolean;
+-    static relatedInsertQueryMutates: boolean;
+     static useLimitInFirst: boolean;
+     static modifiers: Modifiers;
+     static columnNameMappers: ColumnNameMappers;
+@@ -1444,30 +1137,6 @@ declare namespace Objection {
+     static ref: ReferenceFunction;
+     static fn: FunctionFunction;
+ 
+-    static BelongsToOneRelation: RelationType;
+-    static HasOneRelation: RelationType;
+-    static HasManyRelation: RelationType;
+-    static ManyToManyRelation: RelationType;
+-    static HasOneThroughRelation: RelationType;
+-
+-    static defaultGraphOptions?: GraphOptions;
+-
+-    static query<M extends Model>(
+-      this: Constructor<M>,
+-      trxOrKnex?: TransactionOrKnex
+-    ): QueryBuilderType<M>;
+-
+-    static relatedQuery<M extends Model, K extends keyof M>(
+-      this: Constructor<M>,
+-      relationName: K,
+-      trxOrKnex?: TransactionOrKnex
+-    ): ArrayRelatedQueryBuilder<M[K]>;
+-
+-    static relatedQuery<RM extends Model>(
+-      relationName: string,
+-      trxOrKnex?: TransactionOrKnex
+-    ): QueryBuilderType<RM>;
+-
+     static fromJson<M extends Model>(this: Constructor<M>, json: object, opt?: ModelOptions): M;
+     static fromDatabaseJson<M extends Model>(this: Constructor<M>, json: object): M;
+ 
+@@ -1491,36 +1160,6 @@ declare namespace Objection {
+     static bindKnex<M>(this: M, trxOrKnex: TransactionOrKnex): M;
+     static bindTransaction<M>(this: M, trxOrKnex: TransactionOrKnex): M;
+ 
+-    static fetchGraph<M extends Model>(
+-      this: Constructor<M>,
+-      modelOrObject: PartialModelObject<M>,
+-      expression: RelationExpression<M>,
+-      options?: FetchGraphOptions
+-    ): SingleQueryBuilder<QueryBuilderType<M>>;
+-
+-    static fetchGraph<M extends Model>(
+-      this: Constructor<M>,
+-      modelOrObject: PartialModelObject<M>[],
+-      expression: RelationExpression<M>,
+-      options?: FetchGraphOptions
+-    ): QueryBuilderType<M>;
+-
+-    static getRelations(): Relations;
+-    static getRelation(name: string): Relation;
+-
+-    static traverse(models: Model | Model[], traverser: TraverserFunction): void;
+-    static traverse(
+-      filterConstructor: typeof Model,
+-      models: Model | Model[],
+-      traverser: TraverserFunction
+-    ): void;
+-    static traverseAsync(models: Model | Model[], traverser: TraverserFunction): Promise<void>;
+-    static traverseAsync(
+-      filterConstructor: typeof Model,
+-      models: Model | Model[],
+-      traverser: TraverserFunction
+-    ): Promise<void>;
+-
+     static beforeFind(args: StaticHookArguments<any>): any;
+     static afterFind(args: StaticHookArguments<any>): any;
+     static beforeInsert(args: StaticHookArguments<any>): any;
+@@ -1532,26 +1171,11 @@ declare namespace Objection {
+ 
+     $modelClass: ModelClass<this>;
+ 
+-    $relatedQuery<K extends keyof this>(
+-      relationName: K,
+-      trxOrKnex?: TransactionOrKnex
+-    ): RelatedQueryBuilder<this[K]>;
+-
+-    $relatedQuery<RM extends Model>(
+-      relationName: string,
+-      trxOrKnex?: TransactionOrKnex
+-    ): QueryBuilderType<RM>;
+-
+-    $query(trxOrKnex?: TransactionOrKnex): SingleQueryBuilder<QueryBuilderType<this>>;
++    // $query(trxOrKnex?: TransactionOrKnex): SingleQueryBuilder<QueryBuilderType<this>>;
+ 
+     $id(id: any): void;
+     $id(): any;
+ 
+-    $fetchGraph(
+-      expression: RelationExpression<this>,
+-      options?: FetchGraphOptions
+-    ): SingleQueryBuilder<QueryBuilderType<this>>;
+-
+     $formatDatabaseJson(json: Pojo): Pojo;
+     $parseDatabaseJson(json: Pojo): Pojo;
+ 
+@@ -1578,24 +1202,10 @@ declare namespace Objection {
+     $setJson(json: object, opt?: ModelOptions): this;
+     $setDatabaseJson(json: object): this;
+ 
+-    $setRelated<RM extends Model>(
+-      relation: String | Relation,
+-      related: RM | RM[] | null | undefined
+-    ): this;
+-
+-    $appendRelated<RM extends Model>(
+-      relation: String | Relation,
+-      related: RM | RM[] | null | undefined
+-    ): this;
+-
+     $set(obj: Pojo): this;
+     $omit(keys: string | string[] | { [key: string]: boolean }): this;
+     $pick(keys: string | string[] | { [key: string]: boolean }): this;
+     $clone(opt?: CloneOptions): this;
+-    $traverse(filterConstructor: typeof Model, traverser: TraverserFunction): this;
+-    $traverse(traverser: TraverserFunction): this;
+-    $traverseAsync(filterConstructor: typeof Model, traverser: TraverserFunction): Promise<this>;
+-    $traverseAsync(traverser: TraverserFunction): Promise<this>;
+ 
+     $knex(): Knex;
+     $transaction(): Knex;

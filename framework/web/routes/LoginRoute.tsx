@@ -46,7 +46,7 @@ function LoginRoute() {
             </p>
           )
           : null}
-        <HookFormErrors errors={errors} additionalError={apiError} />
+
         <form
           onSubmit={handleSubmit(async data => loginUser(data))}
           className={styles.form}
@@ -77,6 +77,8 @@ function LoginRoute() {
             required
             placeholder="********"
           />
+
+          <HookFormErrors errors={errors} additionalError={apiError} />
 
           <Button
             Component="input"

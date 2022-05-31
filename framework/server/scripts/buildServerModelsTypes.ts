@@ -2,57 +2,54 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
 
-import models, { frameworkModels } from 'lib/Model/models';
-import Entity from 'lib/Model/Entity';
-import MVCache from 'lib/Model/MVCache';
+import allModels, { ModelsArr, frameworkModels } from 'services/model/allModels';
+import Entity from 'services/model/Entity';
 
-function getOutput(forFramework: boolean) {
-  const filteredModels = forFramework
-    ? frameworkModels
-    : models;
-
-  return `${filteredModels.map(
-    m => `import type _${m.Model.name} from '${path.relative(
-      forFramework ? 'framework/server/types/generated' : 'app/server/types/generated',
-      m.filepath.slice(0, m.filepath.lastIndexOf('.')),
-    )}';`,
-  ).join('\n')}
+function getOutput(models: ModelsArr) {
+  return `${
+  models
+    .filter(m => m.Model.getReplicaTable() === null)
+    .map(m => `type ${m.Model.name} = ${m.Model.name}Class['instanceType'];`)
+    .join('\n')
+}
 
 declare global {
   type EntityType =
-    | '${filteredModels.filter(m => m.Model.prototype instanceof Entity).map(m => m.Model.type).join(`'
+    | '${models.filter(m => m.Model.prototype instanceof Entity).map(m => m.Model.type).join(`'
     | '`)}';
 
-  type CacheType =
-    | '${filteredModels.filter(m => m.Model.prototype instanceof MVCache).map(m => m.Model.type).join(`'
-    | '`)}';
-
-${filteredModels.map(m => `  type ${m.Model.name}Class = typeof _${m.Model.name};
-  type ${m.Model.name} = InstanceType<${m.Model.name}Class>;`).join('\n')}
+${
+  models
+    .filter(m => m.Model.getReplicaTable() !== null)
+    .map(m => `  type ${m.Model.name} = ${m.Model.name}Class['instanceType'];`)
+    .join('\n')
+}
 
   // Use ModelTypeToInstance, ModelInstancesMap[ModelType] creates a union of all models
   type ModelInstancesMap = {
-${filteredModels.map(m => `    ${m.Model.type}: ${m.Model.name};`).join('\n')}
+${models.map(m => `    ${m.Model.type}: ${m.Model.name};`).join('\n')}
   }
 
   // Use ModelTypeToClass, ModelClassesMap[ModelType] creates a union of all models
   type ModelClassesMap = {
-${filteredModels.map(m => `    ${m.Model.type}: ${m.Model.name}Class;`).join('\n')}
+${models.map(m => `    ${m.Model.type}: ${m.Model.name}Class;`).join('\n')}
   }
 }
+
+export {};
 `;
 }
 
 export default async function buildServerModelsTypes() {
-  await mkdirp(path.resolve('./framework/server/types/generated'));
+  await mkdirp(path.resolve('./framework/server/types/__generated__'));
   await fs.writeFile(
-    path.resolve('./framework/server/types/generated/models.d.ts'),
-    getOutput(true),
+    path.resolve('./framework/server/types/__generated__/models.d.ts'),
+    getOutput(frameworkModels),
   );
 
-  await mkdirp(path.resolve('./app/server/types/generated'));
+  await mkdirp(path.resolve('./app/server/types/__generated__'));
   await fs.writeFile(
-    path.resolve('./app/server/types/generated/models.d.ts'),
-    getOutput(false),
+    path.resolve('./app/server/types/__generated__/models.d.ts'),
+    getOutput(allModels),
   );
 }

@@ -4,34 +4,43 @@ npm-debug.log
 yarn-error.log
 package-lock.json
 
+# Git
+.git/
+.git-framework/
+.gitignore-temp
+
 # Build
 /build
 /dist
 /build.*
+/kafka/**/target/
 
-# OSX
+# Framework
+/.env
+/app/.env
+
+# Generated
+/stats.json
+/isolate-*.log
+*.tsbuildinfo
+
+# OS
 .DS_Store
+*:Zone.Identifier
 
 # IDE
 .idea/
 .vscode/
 
+# Misc
 .ipynb_checkpoints
 .eslintcache
-stats.json
-/.env
-/app/.env
-/isolate-*.log
 /*.gpg
 /*.zip
-.git/
-.git-framework/
-.gitignore-temp
 *.pepk
 *.jks
 /temp
 /tmp
-tsconfig.tsbuildinfo
 app/
 android/
 resources/

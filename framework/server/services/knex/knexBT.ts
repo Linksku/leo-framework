@@ -3,24 +3,36 @@ import Knex from 'knex';
 import { HTTP_TIMEOUT } from 'settings';
 import './initKnex';
 
-if (!process.env.POSTGRES_USER) {
-  throw new Error('POSTGRES_USER env var not set.');
+if (!process.env.PG_BT_USER) {
+  throw new Error('PG_BT_USER env var not set.');
 }
 
-// todo: high/hard add at least 1 mysql local read replica
-const knexBT = Knex({
+/*
+Postgres config:
+listen_addresses = '*'
+wal_level = logical
+wal_writer_delay = 10ms
+max_wal_senders = 100
+max_replication_slots = 100
+
+pg_hba:
+host  all  all  0.0.0.0/0  scram-sha-256
+*/
+
+// BT = base table, aka master
+const knexBT = Knex<any, any[]>({
   client: 'pg',
   connection: {
-    host: process.env.POSTGRES_HOST,
-    port: TS.parseIntOrNull(process.env.POSTGRES_PORT) ?? undefined,
-    user: process.env.POSTGRES_USER,
-    password: process.env.POSTGRES_PASS,
-    database: process.env.POSTGRES_DB,
+    host: process.env.PG_BT_HOST,
+    port: TS.parseIntOrNull(process.env.PG_BT_PORT) ?? undefined,
+    user: process.env.PG_BT_USER,
+    password: process.env.PG_BT_PASS,
+    database: process.env.PG_BT_DB,
     charset: 'utf8',
     timezone: 'utc',
     dateStrings: true,
   },
-  searchPath: process.env.POSTGRES_DB,
+  searchPath: process.env.PG_BT_SCHEMA,
   pool: {
     min: 0,
     max: 10,
@@ -31,7 +43,7 @@ const knexBT = Knex({
     },
   },
   acquireConnectionTimeout: HTTP_TIMEOUT / 2,
-  debug: process.env.NODE_ENV !== 'production',
+  debug: !process.env.PRODUCTION,
   log: {
     debug({
       sql,
@@ -41,7 +53,7 @@ const knexBT = Knex({
       bindings: any,
     }) {
       const rc = getRC();
-      if (process.env.NODE_ENV === 'production'
+      if (process.env.PRODUCTION
         || process.env.IS_SERVER_SCRIPT
         || !sql
         || sql.startsWith('explain ')
@@ -52,39 +64,11 @@ const knexBT = Knex({
 
       if (rc?.debug) {
         printDebug(
-          rc ? `Query ${rc.path}` : 'Query',
+          rc ? `Query BT ${rc.path}` : 'Query BT',
           'success',
           knexBT.raw(sql, bindings).toString(),
         );
       }
-
-      // todo: mid/mid make explain statements work for postgres
-      /*
-      void knex.raw(`explain ${sql}`, bindings)
-        .then(results => {
-          const filesorts = results[0].filter(
-            (row: any) => row.Extra?.toLowerCase().includes('filesort'),
-          );
-          if (filesorts.length) {
-            printDebug(
-              rc ? `Filesort ${rc.path}:` : 'Filesort:',
-              'error',
-              knex.raw(sql, bindings).toString(),
-            );
-          }
-
-          const temporaries = results[0].filter(
-            (row: any) => row.Extra?.toLowerCase().includes('temporary'),
-          );
-          if (!sql.startsWith('select distinct ') && temporaries.length) {
-            printDebug(
-              rc ? `Using temporary ${rc.path}:` : 'Using temporary:',
-              'error',
-              knex.raw(sql, bindings).toString(),
-            );
-          }
-        });
-      */
     },
   },
 });

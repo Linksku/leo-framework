@@ -1,4 +1,4 @@
-import { useAnimatedValue } from 'lib/hooks/useAnimation';
+import { useAnimatedValue } from 'utils/hooks/useAnimation';
 
 export const [
   UIFrameProvider,

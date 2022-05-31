@@ -12,12 +12,12 @@ const sharedAppGlobals = require('../../../app/shared/config/globals.cjs');
 type GlobalsConfig = ObjectOf<string | string[]>;
 
 const allGlobals: [GlobalsConfig, string][] = [
-  [webGlobals, './framework/web/types/generated/globals.d.ts'],
-  [{ ...webGlobals, ...webAppGlobals }, './app/web/types/generated/globals.d.ts'],
-  [serverGlobals, './framework/server/types/generated/globals.d.ts'],
-  [{ ...serverGlobals, ...serverAppGlobals }, './app/server/types/generated/globals.d.ts'],
-  [sharedGlobals, './framework/shared/types/generated/globals.d.ts'],
-  [{ ...sharedGlobals, ...sharedAppGlobals }, './app/shared/types/generated/globals.d.ts'],
+  [webGlobals, './framework/web/types/__generated__/globals.d.ts'],
+  [{ ...webGlobals, ...webAppGlobals }, './app/web/types/__generated__/globals.d.ts'],
+  [serverGlobals, './framework/server/types/__generated__/globals.d.ts'],
+  [{ ...serverGlobals, ...serverAppGlobals }, './app/server/types/__generated__/globals.d.ts'],
+  [sharedGlobals, './framework/shared/types/__generated__/globals.d.ts'],
+  [{ ...sharedGlobals, ...sharedAppGlobals }, './app/shared/types/__generated__/globals.d.ts'],
 ];
 
 export default async function buildGlobalTypes() {
@@ -27,6 +27,11 @@ export default async function buildGlobalTypes() {
 
     for (const [varName, v] of TS.objEntries(globals)) {
       let p = Array.isArray(v) ? v[0] : v;
+      if (p.startsWith('./framework/server/models/')
+        || p.startsWith('./app/server/models/')) {
+        // Model types are defined in models.d.ts
+        continue;
+      }
 
       if (p.startsWith('./')) {
         p = path.relative(path.dirname(outFile), p);

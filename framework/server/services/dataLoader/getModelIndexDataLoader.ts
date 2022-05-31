@@ -1,4 +1,6 @@
-import DataLoader from 'dataloader';
+import type DataLoader from 'dataloader';
+
+import createDataLoader from 'utils/createDataLoader';
 
 const dataLoaders: ObjectOf<ObjectOf<DataLoader<
   ModelPartial<ModelClass>,
@@ -13,16 +15,15 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
   (string | number)[][]
 > {
   const typeDataLoaders = TS.objValOrSetDefault(dataLoaders, Model.type, Object.create(null));
-  const indexArr = Array.isArray(index) ? index : [index];
-  const indexStr = indexArr.join(',');
+  const indexStr = index.join(',');
   if (!typeDataLoaders[indexStr]) {
-    typeDataLoaders[indexStr] = new DataLoader(
+    typeDataLoaders[indexStr] = createDataLoader(
       async (partials: readonly ModelPartial<T>[]) => {
         const selectCols = new Set([
-          ...indexArr,
+          ...index,
           ...partials.flatMap(partial => Object.keys(partial)),
         ]);
-        let query = Model.query().select([...selectCols]);
+        let query = modelQuery(Model).select([...selectCols]);
         for (const partial of partials) {
           query = query.orWhere(partial);
         }
@@ -39,15 +40,14 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
             return true;
           });
 
-          return matchedRows.map(row => indexArr.map(
-            // @ts-ignore wontfix key error
-            col => row[col],
+          return matchedRows.map(row => index.map(
+            col => row[col] as unknown as string | number,
           ));
         });
       },
       {
+        objKeys: true,
         maxBatchSize: 100,
-        cache: false,
       },
     );
   }

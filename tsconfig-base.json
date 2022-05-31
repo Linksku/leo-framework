@@ -4,7 +4,6 @@
     "module": "esnext",
     "moduleResolution": "node",
     "allowJs": true,
-    "checkJs": true,
     "noEmit": true,
     "noEmitHelpers": true,
     "strict": true,
@@ -20,7 +19,6 @@
     "types": ["node"],
     "experimentalDecorators": true,
     "noErrorTruncation": true,
-    "composite": true
   },
   "exclude": [
     "./node_modules",
@@ -28,6 +26,8 @@
     "./build",
     "./app-template",
     "./capacitor",
-    "./patches"
-  ]
+    "./patches",
+    "./app/infra",
+    "./framework/infra",
+  ],
 }

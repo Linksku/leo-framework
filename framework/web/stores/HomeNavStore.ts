@@ -1,6 +1,6 @@
 import HOME_TABS from 'config/homeTabs';
-import useUpdatedState from 'lib/hooks/useUpdatedState';
-import shallowEqual from 'lib/shallowEqual';
+import useUpdatedState from 'utils/hooks/useUpdatedState';
+import shallowEqual from 'utils/shallowEqual';
 import { useAddPopHandler } from './HistoryStore';
 
 type TabType = ValueOf<typeof HOME_TABS>;

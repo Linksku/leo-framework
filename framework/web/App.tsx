@@ -1,6 +1,6 @@
 import Router from 'Router';
 import ErrorBoundary from 'components/ErrorBoundary';
-import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
+import useTimeComponentPerf from 'utils/hooks/useTimeComponentPerf';
 import LoadingRoute from 'routes/LoadingRoute';
 
 import { AlertsProvider } from 'stores/AlertsStore';

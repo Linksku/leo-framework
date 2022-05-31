@@ -1,6 +1,6 @@
 import SearchSvg from 'fontawesome5/svgs/solid/search.svg';
 
-import { useThrottle } from 'lib/throttle';
+import { useThrottle } from 'utils/throttle';
 
 import styles from './SearchFormStyles.scss';
 

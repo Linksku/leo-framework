@@ -1,6 +1,6 @@
-import type { AnimationStyle } from 'lib/hooks/useAnimation';
+import type { AnimationStyle } from 'utils/hooks/useAnimation';
 
-import useSwipeNavigation from 'lib/hooks/useSwipeNavigation';
+import useSwipeNavigation from 'utils/hooks/useSwipeNavigation';
 import { HomeSidebarInner } from 'config/homeComponents';
 import ErrorBoundary from 'components/ErrorBoundary';
 

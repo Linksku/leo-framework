@@ -4,14 +4,16 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
 
+import ucFirst from 'utils/ucFirst';
 import 'routes/apiRoutes';
 import 'config/apis';
-import { apis } from 'services/ApiManager';
+import { getApis } from 'services/ApiManager';
 
 // todo: low/mid handle image field types
 export default async function buildApiTypes() {
   const paramsInterfaces = [] as string[];
   const dataInterfaces = [] as string[];
+  const apis = getApis();
 
   for (const api of apis) {
     if (api.config.paramsSchema) {
@@ -24,7 +26,7 @@ export default async function buildApiTypes() {
           unknownAny: false,
         },
       );
-      paramsInterfaces.push(`interface ${api.handler.name[0].toUpperCase()}${api.handler.name.slice(1)}Params {
+      paramsInterfaces.push(`interface ${ucFirst(api.config.name)}ApiParams {
 ${fields.split('\n').slice(1, -2).join('\n').replace(/"/g, '\'')}
 }
 `);
@@ -40,7 +42,7 @@ ${fields.split('\n').slice(1, -2).join('\n').replace(/"/g, '\'')}
           unknownAny: false,
         },
       );
-      dataInterfaces.push(`interface ${api.handler.name[0].toUpperCase()}${api.handler.name.slice(1)}Data {
+      dataInterfaces.push(`interface ${ucFirst(api.config.name)}ApiData {
 ${fields.split('\n').slice(1, -2).join('\n').replace(/"/g, '\'')}
 }
 `);
@@ -54,7 +56,7 @@ ${
   apis.map(
     a => `  '${a.config.name}': ${
       a.config.paramsSchema
-        ? `${a.handler.name[0].toUpperCase()}${a.handler.name.slice(1)}Params`
+        ? `${ucFirst(a.config.name)}ApiParams`
         : 'undefined'
     },`,
   ).join('\n')
@@ -66,7 +68,7 @@ ${
   apis.map(
     a => `  '${a.config.name}': ${
       a.config.dataSchema
-        ? `${a.handler.name[0].toUpperCase()}${a.handler.name.slice(1)}Data`
+        ? `${ucFirst(a.config.name)}ApiData`
         : 'null'
     },`,
   ).join('\n')
@@ -81,15 +83,15 @@ type AuthApiName = '${apis.filter(a => a.config.auth).map(a => a.config.name).jo
 `;
 
   // todo: low/mid only include default routes in default shared folder
-  await mkdirp(path.resolve('./framework/shared/types/generated'));
+  await mkdirp(path.resolve('./framework/shared/types/__generated__'));
   await fs.writeFile(
-    path.resolve('./framework/shared/types/generated/api.d.ts'),
+    path.resolve('./framework/shared/types/__generated__/api.d.ts'),
     content,
   );
 
-  await mkdirp(path.resolve('./app/shared/types/generated'));
+  await mkdirp(path.resolve('./app/shared/types/__generated__'));
   await fs.writeFile(
-    path.resolve('./app/shared/types/generated/api.d.ts'),
+    path.resolve('./app/shared/types/__generated__/api.d.ts'),
     content,
   );
 }

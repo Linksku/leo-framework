@@ -1,14 +1,14 @@
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
 import { UniqueViolationError } from 'db-errors';
 
 import { defineApi } from 'services/ApiManager';
-import { getCookieJwt, getHeaderJwt, isPasswordValid } from 'lib/apiHelpers/jwtAuth';
-import sendEmail from 'lib/sendEmail';
+import sendEmail from 'services/sendEmail';
 import { RESET_PASSWORD_HASH } from 'consts/coreUserMetaKeys';
 import { APP_NAME, HOME_URL, DOMAIN_NAME } from 'settings';
 import { DEFAULT_AUTH_EXPIRATION } from 'serverSettings';
-import UsersManager from 'services/UsersManager';
+import { getBirthdayInvalidReason, getNameInvalidReason, getPasswordInvalidReason } from 'helpers/users/validateUser';
+import { getCookieJwt, getHeaderJwt } from 'helpers/auth/jwt';
+import { getPasswordHash, isPasswordValid } from 'helpers/auth/passwords';
 
 const dataSchema = TS.literal({
   type: 'object',
@@ -19,11 +19,6 @@ const dataSchema = TS.literal({
   },
   additionalProperties: false,
 } as const);
-
-async function getPasswordHash(password: string) {
-  const salt = await bcrypt.genSalt();
-  return bcrypt.hash(`${password}${process.env.PASSWORD_PEPPER}`, salt);
-}
 
 async function _sendAuthToken(userId: EntityId, res: ExpressResponse) {
   const { cookieJwt, headerJwt } = await promiseObj({
@@ -62,32 +57,37 @@ defineApi(
         email: SchemaConstants.email,
         password: SchemaConstants.password,
         name: SchemaConstants.name,
-        birthday: SchemaConstants.date,
+        birthday: SchemaConstants.dateStr,
       },
       additionalProperties: false,
     },
     dataSchema,
   },
-  async function registerUser({ email, password, name, birthday }, res) {
-    const invalidBirthdayReason = UsersManager.getBirthdayInvalidReason(birthday);
+  async function registerUserApi({
+    email,
+    password,
+    name,
+    birthday,
+  }: ApiHandlerParams<'registerUser'>, res) {
+    const invalidBirthdayReason = getBirthdayInvalidReason(birthday);
     if (invalidBirthdayReason) {
       throw new HandledError(invalidBirthdayReason, 400);
     }
 
-    const invalidPasswordReason = UsersManager.getPasswordInvalidReason(password);
+    const invalidPasswordReason = getPasswordInvalidReason(password);
     if (invalidPasswordReason) {
       throw new HandledError(invalidPasswordReason, 400);
     }
 
     name = name.trim();
-    const nameInvalidReason = UsersManager.getNameInvalidReason(name);
+    const nameInvalidReason = getNameInvalidReason(name);
     if (nameInvalidReason) {
       throw new HandledError(nameInvalidReason, 400);
     }
 
     let userId: EntityId;
     try {
-      const user = await User.insertBTReturningMVEntity({
+      const user = await User.insert({
         email: email.toLowerCase(),
         password: await getPasswordHash(password),
         name,
@@ -121,7 +121,7 @@ defineApi(
     },
     dataSchema,
   },
-  async function loginUser({ email, password }, res) {
+  async function loginUserApi({ email, password }: ApiHandlerParams<'loginUser'>, res) {
     if (!email || !password) {
       throw new HandledError('Email or password is incorrect.', 400);
     }
@@ -148,7 +148,7 @@ defineApi(
       additionalProperties: false,
     },
   },
-  async function resetPassword({ email }) {
+  async function resetPasswordApi({ email }: ApiHandlerParams<'resetPassword'>) {
     if (!email) {
       throw new HandledError('Email or password is incorrect.', 400);
     }
@@ -169,12 +169,12 @@ defineApi(
     });
 
     const hash = crypto.createHash('sha256').update(randToken).digest('base64');
-    // todo: mid/mid use redis
-    await UserMeta.deleteBT({
+    // todo: mid/mid use redis instead of UserMeta
+    await UserMeta.delete({
       userId: user.id,
       metaKey: RESET_PASSWORD_HASH,
     });
-    await UserMeta.insertBT({
+    await UserMeta.insert({
       userId: user.id,
       metaKey: RESET_PASSWORD_HASH,
       metaValue: JSON.stringify({
@@ -221,7 +221,11 @@ defineApi(
     },
     dataSchema,
   },
-  async function verifyResetPassword({ userId, token, password }, res) {
+  async function verifyResetPasswordApi({
+    userId,
+    token,
+    password,
+  }: ApiHandlerParams<'verifyResetPassword'>, res) {
     if (!userId) {
       throw new HandledError('Invalid user.', 400);
     }
@@ -237,11 +241,11 @@ defineApi(
     let data;
     try {
       // todo: mid/mid add skip cache option to entloader
-      const row = await UserMeta.query()
-        .select('metaValue')
+      const row = await modelQuery(UserMeta)
+        .select(UserMeta.cols.metaValue)
         .findOne({
-          userId: user.id,
-          metaKey: RESET_PASSWORD_HASH,
+          [UserMeta.cols.userId]: user.id,
+          [UserMeta.cols.metaKey]: RESET_PASSWORD_HASH,
         });
       if (row?.metaValue) {
         data = JSON.parse(row.metaValue);
@@ -258,11 +262,11 @@ defineApi(
       throw new HandledError('Invalid token', 400);
     }
 
-    await User.updateBT(
+    await User.update(
       { id: user.id },
       { password: await getPasswordHash(password) },
     );
-    await UserMeta.deleteBT({
+    await UserMeta.delete({
       userId: user.id,
       metaKey: 'resetPassword',
     });

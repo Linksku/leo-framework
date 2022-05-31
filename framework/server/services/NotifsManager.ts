@@ -1,5 +1,5 @@
-import generateRandUnsignedInt from 'lib/generateRandUnsignedInt';
-import createBullQueue, { wrapProcessJob } from 'lib/createBullQueue';
+import generateRandUnsignedInt from 'utils/generateRandUnsignedInt';
+import createBullQueue, { wrapProcessJob } from 'helpers/createBullQueue';
 import SseBroadcastManager from './SseBroadcastManager';
 
 type GenNotifs<Params> = (params: Params, currentUserId: EntityId) => {
@@ -87,9 +87,9 @@ void wrapPromise(
         params,
         hasRead: false,
       }));
-      const insertedNotifs = await Notif.insertBulkBTReturningMVEntities(
+      const insertedNotifs = await Notif.insertBulk(
         notifObjs,
-        { onDuplicate: 'update' },
+        'update',
       );
 
       for (const notif of insertedNotifs) {

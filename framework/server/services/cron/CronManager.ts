@@ -1,5 +1,5 @@
 import type Bull from 'bull';
-import createBullQueue, { wrapProcessJob } from 'lib/createBullQueue';
+import createBullQueue, { wrapProcessJob } from 'helpers/createBullQueue';
 
 const cronDefinitions: ObjectOf<{
   handler: () => void | Promise<void>,

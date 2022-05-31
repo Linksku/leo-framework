@@ -4,7 +4,7 @@ import { defineApi } from 'services/ApiManager';
 defineApi(
   {
     method: 'post',
-    name: 'report',
+    name: 'createReport',
     auth: true,
     paramsSchema: {
       type: 'object',
@@ -19,7 +19,7 @@ defineApi(
       additionalProperties: false,
     },
   },
-  async function createReport({ entityType, entityId, currentUserId }) {
+  async function createReportApi({ entityType, entityId, currentUserId }: ApiHandlerParams<'createReport'>) {
     let report = await Report.selectOne({
       reporterId: currentUserId,
       entityType,
@@ -27,12 +27,10 @@ defineApi(
     });
 
     if (!report) {
-      report = await Report.insertBTReturningMVEntity({
+      report = await Report.insert({
         reporterId: currentUserId,
         entityType,
         entityId,
-      }, {
-        waitForMVInserted: false,
       });
     }
     return {

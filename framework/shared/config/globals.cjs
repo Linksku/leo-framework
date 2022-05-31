@@ -1,5 +1,5 @@
 module.exports = {
-  pause: ['./framework/shared/lib/pause', 'default'],
-  promiseObj: ['./framework/shared/lib/promiseObj', 'default'],
-  TS: ['./framework/shared/lib/tsHelpers', 'default'],
+  pause: ['./framework/shared/utils/pause', 'default'],
+  promiseObj: ['./framework/shared/utils/promiseObj', 'default'],
+  TS: ['./framework/shared/utils/ts', 'default'],
 };

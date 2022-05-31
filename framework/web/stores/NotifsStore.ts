@@ -1,4 +1,5 @@
-import omitSingle from 'lib/omitSingle';
+import omitSingle from 'utils/omitSingle';
+import useHandleEntityEvent from 'utils/hooks/entities/useHandleEntityEvent';
 
 export const [
   NotifsProvider,
@@ -7,8 +8,7 @@ export const [
   function NotifsStore() {
     const authState = useAuthState();
     const currentUserId = useCurrentUserId();
-    const { addEntityListener } = useEntitiesStore();
-    const [unseenNotifIds, setUnseenNotifIds] = useState<ObjectOf<Set<Notif['id']>>>({});
+    const [unseenNotifIds, setUnseenNotifIds] = useState<ObjectOf<Set<INotif['id']>>>({});
 
     useApi(
       'unseenNotifIds',
@@ -45,23 +45,17 @@ export const [
       'notifCreated',
       { userId: currentUserId },
       {
-        isReady: !!currentUserId,
+        isReady: authState !== 'out',
       },
     );
 
-    useEffect(() => {
-      const offCreate = addEntityListener('create', 'notif', notif => {
-        setUnseenNotifIds(s => {
-          const set = s[notif.notifType] ?? new Set();
-          set.add(notif.id);
-          return { ...s, [notif.notifType]: set };
-        });
+    useHandleEntityEvent('create', 'notif', useCallback(notif => {
+      setUnseenNotifIds(s => {
+        const set = s[notif.notifType] ?? new Set();
+        set.add(notif.id);
+        return { ...s, [notif.notifType]: set };
       });
-
-      return () => {
-        offCreate();
-      };
-    }, [addEntityListener]);
+    }, []));
 
     const seenNotifs = useCallback(() => {
       void updateSeenNotifs({

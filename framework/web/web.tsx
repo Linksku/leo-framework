@@ -1,16 +1,16 @@
-import 'lib/hacks/consoleTimeImports';
+import 'utils/hacks/consoleTimeImports';
 
 import 'styles/styles.scss';
 
-import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
-import 'lib/wdyr';
+import 'services/wdyr';
 import App from 'App';
-import fetcher from 'lib/fetcher';
-import preventClicksAfterMove from 'lib/preventClicksAfterMove';
-import setVhCssVar from 'lib/setVhCssVar';
+import fetcher from 'utils/fetcher';
+import preventClicksAfterMove from 'utils/preventClicksAfterMove';
+import setVhCssVar from 'utils/setVhCssVar';
 
-if (process.env.NODE_ENV !== 'production') {
+if (!process.env.PRODUCTION) {
   console.timeEnd('Imports');
 
   // @ts-ignore for debugging
@@ -29,14 +29,15 @@ setVhCssVar();
 
 const tz = (new Date()).getTimezoneOffset() / 60;
 if (tz >= 2 && tz <= 11) {
-  render(
+  const root = createRoot(TS.notNull(document.getElementById('react')));
+  root.render(
     <React.StrictMode>
       <App />
     </React.StrictMode>,
-    document.getElementById('react'),
   );
 } else {
   // todo: high/veryhard gdpr
+  // eslint-disable-next-line no-alert
   alert('Not available outside US/Canada.');
 }
 

@@ -1,13 +1,7 @@
-import SseEventEmitter from 'lib/singletons/SseEventEmitter';
-import serializeEvent, { unserializeEvent } from 'lib/serializeEvent';
+import SseEventEmitter from 'services/SseEventEmitter';
+import serializeEvent, { unserializeEvent } from 'utils/serializeEvent';
 import { API_URL } from 'settings';
-import useHandleApiEntities from 'lib/hooks/useApi/useHandleApiEntities';
-
-const ReadyState = {
-  CONNECTING: 0,
-  OPEN: 1,
-  CLOSED: 2,
-};
+import useHandleApiEntities from 'utils/hooks/useApi/useHandleApiEntities';
 
 export const [
   SseProvider,
@@ -16,7 +10,7 @@ export const [
   function SseStore() {
     const ref = useRef({
       subscriptions: new Set<string>(),
-      readyState: ReadyState.CLOSED,
+      readyState: EventSource.CLOSED,
       numReconnects: 0,
       lastReconnectTime: 0,
       reconnectTimer: 0,
@@ -26,7 +20,8 @@ export const [
       sessionId: null as string | null,
     });
     const { authToken } = useAuthStore();
-    const handleApiEntities = useHandleApiEntities(true);
+    const { addRelationsConfigs } = useApiStore();
+    const handleApiEntities = useHandleApiEntities(addRelationsConfigs, true);
 
     const { fetchApi: sseSubscribe } = useDeferredApi(
       'sseSubscribe',
@@ -40,7 +35,7 @@ export const [
     );
 
     const { fetchApi: sseUnsubscribe } = useDeferredApi(
-      'sseSubscribe',
+      'sseUnsubscribe',
       {},
       {
         type: 'load',
@@ -52,34 +47,51 @@ export const [
 
     const closeSse = useCallback(() => {
       ref.current.source?.close();
-      ref.current.readyState = ReadyState.CLOSED;
+      ref.current.readyState = EventSource.CLOSED;
       ref.current.sessionId = null;
       window.clearTimeout(ref.current.reconnectTimer);
     }, []);
 
     useEffect(() => {
-      // todo: low/mid types for sse
-      SseEventEmitter.on(
-        'sseConnected',
-        (data: any) => {
-          ref.current.sessionId = data?.sessionId ?? null;
+      const handleConnect = (data: any) => {
+        ref.current.sessionId = data?.sessionId ?? null;
 
-          if (ref.current.sessionId) {
-            const events = [...ref.current.subscriptions]
-              .filter(sub => !ref.current.defaultSubbed.has(sub))
-              .map(sub => unserializeEvent(sub));
-            if (events.length) {
-              void sseSubscribe({
-                sessionId: ref.current.sessionId,
-                events,
-              });
-            }
-          } else {
-            closeSse();
+        if (ref.current.sessionId) {
+          const events = [...ref.current.subscriptions]
+            .filter(sub => !ref.current.defaultSubbed.has(sub))
+            .map(sub => unserializeEvent(sub));
+          if (events.length) {
+            void sseSubscribe({
+              sessionId: ref.current.sessionId,
+              events,
+            });
           }
-        },
-      );
+        } else {
+          closeSse();
+        }
+      };
+
+      // todo: low/mid types for sse
+      SseEventEmitter.on('sseConnected', handleConnect);
+
+      return () => {
+        SseEventEmitter.off('sseConnected', handleConnect);
+      };
     }, [sseSubscribe, closeSse]);
+
+    const { refetch } = useApi('sseOtp', {}, {
+      shouldFetch: !!authToken,
+      onFetch({ otp }) {
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        createEventSource(otp);
+      },
+      swrConfig: {
+        refreshInterval: 24 * 60 * 60 * 1000,
+        revalidateIfStale: false,
+        revalidateOnFocus: false,
+        revalidateOnReconnect: false,
+      },
+    });
 
     const createEventSource = useCallback((otp: string | null) => {
       closeSse();
@@ -94,7 +106,7 @@ export const [
         },
       );
       ref.current.source = source;
-      ref.current.readyState = ReadyState.CONNECTING;
+      ref.current.readyState = EventSource.CONNECTING;
       ref.current.defaultSubbed = new Set(ref.current.subscriptions);
 
       source.addEventListener('message', msg => {
@@ -123,13 +135,13 @@ export const [
       });
 
       source.addEventListener('open', () => {
-        ref.current.readyState = ReadyState.OPEN;
+        ref.current.readyState = EventSource.OPEN;
       });
 
-      source.addEventListener('error', e => {
+      source.addEventListener('error', err => {
         // Error event doesn't contain additional info.
         ErrorLogger.warn(
-          e instanceof ErrorEvent ? e.error : new Error('SseStore: error event'),
+          err instanceof ErrorEvent ? err.error : new Error('SseStore: error event'),
         );
 
         closeSse();
@@ -142,64 +154,41 @@ export const [
         }
 
         ref.current.reconnectTimer = window.setTimeout(
-          createEventSource,
+          refetch,
           timeout,
         );
         ref.current.numReconnects++;
         ref.current.lastReconnectTime = performance.now();
       });
-    }, [closeSse, handleApiEntities]);
-
-    // todo: low/mid fetch sse otp using useApi
-    const { fetchApi: fetchOtp } = useDeferredApi('sseOtp', {}, {
-      type: 'load',
-      method: 'post',
-      onFetch(data) {
-        createEventSource(data.otp);
-      },
-      noReturnState: true,
-      showToastOnError: false,
-    });
-
-    // If connection exists and isn't close, do nothing.
-    const startSse = useCallback(() => {
-      if (ref.current.readyState === ReadyState.CLOSED) {
-        // OTP is needed for auth, not for connecting to SSE.
-        if (authToken) {
-          ref.current.readyState = ReadyState.CONNECTING;
-          void fetchOtp();
-        } else {
-          createEventSource(null);
-        }
-      }
-    }, [authToken, fetchOtp, createEventSource]);
+    }, [closeSse, handleApiEntities, refetch]);
 
     const addSubscription = useCallback((name: string, params: Memoed<Pojo>) => {
       const event = serializeEvent(name, params);
       const hasSubbed = ref.current.subscriptions.has(event);
       ref.current.subscriptions.add(event);
 
-      if (ref.current.readyState === ReadyState.CLOSED
-        || !ref.current.sessionId) {
-        startSse();
-      } else if (ref.current.readyState === ReadyState.OPEN
-        && !hasSubbed) {
+      if (ref.current.readyState === EventSource.CLOSED && !authToken) {
+        // OTP is needed for auth, not for connecting to SSE.
+        createEventSource(null);
+      } else if (ref.current.readyState === EventSource.OPEN
+        && !hasSubbed
+        && ref.current.sessionId) {
         void sseSubscribe({
           sessionId: ref.current.sessionId,
           events: [{ name, params }],
         });
       }
-    }, [startSse, sseSubscribe]);
+    }, [authToken, createEventSource, sseSubscribe]);
 
     const removeSubscription = useCallback((name: string, params: Memoed<Pojo>) => {
       const event = serializeEvent(name, params);
       const hasSubbed = ref.current.subscriptions.has(event);
       ref.current.subscriptions.delete(serializeEvent(name, params));
 
-      if (ref.current.readyState !== ReadyState.CLOSED
+      if (ref.current.readyState !== EventSource.CLOSED
         && !ref.current.subscriptions.size) {
         closeSse();
-      } else if (ref.current.readyState === ReadyState.OPEN
+      } else if (ref.current.readyState === EventSource.OPEN
         && ref.current.sessionId
         && hasSubbed) {
         void sseUnsubscribe({

@@ -1,18 +1,50 @@
 const id = TS.literal({ type: 'integer', minimum: 1 } as const);
 const idArr = TS.literal({ type: 'array', items: id } as const);
 const url = TS.literal({ type: 'string', format: 'url', maxLength: 255 } as const);
-const datetime = {
+const datetime = TS.literal({
   instanceof: 'Date',
-  tsType: 'Date',
   // todo: low/mid extend JSONSchema with custom props
-} as JSONSchema;
+  tsType: 'Date',
+} as const);
 const cursor = TS.literal({ type: 'string', minLength: 1 } as const);
 
 const SchemaConstants = TS.literal({
-  content: { type: 'string', minLength: 1, maxLength: 2048 },
-  stringDefaultEmpty: { type: 'string', default: '' },
-  jsonObj: { type: 'string', minLength: 2, default: '{}' },
+  // Core.
+  id,
+  idArr,
+  version: { type: 'integer', default: 0 },
+  limit: { type: 'integer', minimum: 1, maximum: 30 },
+  cursor,
+
+  // Standard.
+  dateStr: {
+    type: 'string',
+    format: 'date',
+  },
+  date: datetime,
+  datetime,
+  datetimeDefaultMin: {
+    ...datetime,
+    // 1000-01-01 00:00:00
+    default: new Date(1000, 0, 1),
+  },
+  datetimeDefaultNow: datetime,
+  email: { type: 'string', format: 'email', maxLength: 255 },
+  file: {
+    type: 'object',
+    properties: {},
+    tsType: 'Express.Multer.File',
+  },
   jsonArr: { type: 'string', minLength: 2, default: '[]' },
+  jsonObj: { type: 'string', minLength: 2, default: '{}' },
+  lat: { type: 'number', minimum: -90, maximum: 90 },
+  lng: { type: 'number', minimum: -180, maximum: 180 },
+  nonNegInt: { type: 'integer', minimum: 0 },
+  pojo: {
+    type: 'object',
+    properties: {},
+    tsType: 'Pojo',
+  },
   timestamp: datetime,
   timestampDefaultNow: {
     ...datetime,
@@ -23,38 +55,30 @@ const SchemaConstants = TS.literal({
     ...datetime,
     default: new Date(0),
   },
-  date: {
-    type: 'string',
-    format: 'date',
-  },
-  datetime,
-  datetimeDefaultNow: datetime,
-  datetimeDefaultMin: {
-    ...datetime,
-    // 1000-01-01 00:00:00
-    default: new Date(1000, 0, 1),
-  },
-  email: { type: 'string', format: 'email', maxLength: 255 },
-  id,
-  idArr,
-  version: { type: 'integer', default: 0 },
-  limit: { type: 'integer', minimum: 1, maximum: 30 },
-  cursor,
-  lat: { type: 'number', minimum: -90, maximum: 90 },
-  lng: { type: 'number', minimum: -180, maximum: 180 },
-  name: { type: 'string', minLength: 1, maxLength: 50 },
-  nameDefaultEmpty: { type: 'string', minLength: 0, maxLength: 50, default: '' },
-  type: { type: 'string', minLength: 1, maxLength: 30 },
-  nonNegInt: { type: 'integer', minimum: 0 },
-  password: { type: 'string', minLength: 8, maxLength: 64 },
   url,
-  urlOrEmpty: {
-    anyOf: [
-      url,
-      { enum: [''], default: '' },
-    ],
-  },
+
+  // Framework-specific.
+  content: { type: 'string', minLength: 1, maxLength: 2048 },
+  name: { type: 'string', minLength: 1, maxLength: 50 },
   pagination: {
+    type: 'object',
+    required: ['entityIds', 'hasCompleted'],
+    properties: {
+      entityIds: {
+        type: 'array',
+        items: {
+          anyOf: [
+            id,
+            { type: 'string' },
+          ],
+        },
+      },
+      cursor,
+      hasCompleted: { type: 'boolean' },
+    },
+    additionalProperties: false,
+  },
+  entityPagination: {
     type: 'object',
     required: ['entityIds', 'hasCompleted'],
     properties: {
@@ -64,16 +88,8 @@ const SchemaConstants = TS.literal({
     },
     additionalProperties: false,
   },
-  pojo: {
-    type: 'object',
-    properties: {},
-    tsType: 'Pojo',
-  },
-  file: {
-    type: 'object',
-    properties: {},
-    tsType: 'Express.Multer.File',
-  },
+  password: { type: 'string', minLength: 8, maxLength: 64 },
+  type: { type: 'string', minLength: 1, maxLength: 30 },
 } as const);
 
 type SchemaConstantsType = typeof SchemaConstants;

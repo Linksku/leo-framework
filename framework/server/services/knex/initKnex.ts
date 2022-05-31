@@ -1,3 +1,4 @@
+import Knex from 'knex';
 import pg from 'pg';
 import pgArray from 'postgres-array';
 
@@ -20,5 +21,17 @@ pg.types.setTypeParser(1016, val => pgArray.parse(val, str => {
   }
   return int;
 }));
+
+Knex.QueryBuilder.extend('lateralJoin', function lateralJoin(table: any) {
+  // @ts-ignore Knex is missing type
+  this._joinType('lateral').join(table, raw('true'));
+  return this;
+});
+
+Knex.QueryBuilder.extend('lateralLeftJoin', function lateralLeftJoin(table: any) {
+  // @ts-ignore Knex is missing type
+  this._joinType('left lateral').join(table, raw('true'));
+  return this;
+});
 
 export {};

@@ -91,6 +91,7 @@ a,
 }
 
 a,
+[role=button],
 img {
   -webkit-user-drag: none;
 }
@@ -110,7 +111,8 @@ label {
   cursor: pointer;
 }
 
-p a {
+p a,
+p [role=button] {
   color: $primaryColor;
 }
 

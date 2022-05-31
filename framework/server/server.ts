@@ -4,11 +4,13 @@ import { promises as fs } from 'fs';
 import spdy from 'spdy';
 import express from 'express';
 
-import 'lib/initDotenv';
-import 'lib/errorLogger/initErrorLogger';
+import 'helpers/initServer/initDotenv';
+import 'services/errorLogger/initErrorLogger';
 import { DOMAIN_NAME, PORT } from 'settings';
-import initCheckTimeZone from 'lib/initCheckTimeZone';
-import getServerId from 'lib/getServerId';
+import initCheckInfra from 'helpers/initServer/initCheckInfra';
+import initCheckPgExtensions from 'helpers/initServer/initCheckPgExtensions';
+import initCheckTimeZone from 'helpers/initServer/initCheckTimeZone';
+import getServerId from 'utils/getServerId';
 import redis from 'services/redis';
 import app from 'app';
 import 'config/cronjobs';
@@ -20,15 +22,21 @@ try {
   }
 
   if (cluster.isMaster) {
-    if (process.env.NODE_ENV === 'production') {
-      await initCheckTimeZone();
+    if (process.env.PRODUCTION) {
+      await Promise.all([
+        initCheckInfra(),
+        initCheckPgExtensions(),
+        initCheckTimeZone(),
+      ]);
     } else {
+      void wrapPromise(initCheckInfra(), 'fatal', 'Check infra');
+      void wrapPromise(initCheckPgExtensions(), 'fatal', 'Check PG extensions');
       void wrapPromise(initCheckTimeZone(), 'fatal', 'Check timezone');
       void wrapPromise(redis.flushall(), 'warn', 'Redis flushall');
     }
   }
 
-  const numCpus = process.env.NODE_ENV === 'production'
+  const numCpus = process.env.PRODUCTION
     ? os.cpus().length
     : 1;
 

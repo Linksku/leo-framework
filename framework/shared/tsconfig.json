@@ -4,16 +4,12 @@
     "paths": {
       "baseUrl": ["."],
       "*": [
-        "framework/shared/*"
-      ]
+        "framework/shared/*",
+      ],
     },
-    "rootDir": "."
+    "rootDir": "../..",
   },
   "include": [
-    "."
+    ".",
   ],
-  "exclude": [
-    "./**/*.cjs",
-    "./**/*.js"
-  ]
 }

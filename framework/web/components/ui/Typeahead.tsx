@@ -1,7 +1,8 @@
 import type { Props as DropdownProps } from 'components/ui/DropdownMenu';
-import { useThrottle } from 'lib/throttle';
-import useLatest from 'lib/hooks/useLatest';
-import mergeRefs from 'lib/mergeRefs';
+import { useThrottle } from 'utils/throttle';
+import useLatest from 'utils/hooks/useLatest';
+import mergeRefs from 'utils/mergeRefs';
+import useEffectOncePerDeps from 'utils/hooks/useEffectOncePerDeps';
 import Input from './Input';
 import DropdownMenu from './DropdownMenu';
 import styles from './TypeaheadStyles.scss';
@@ -49,6 +50,7 @@ export default function Typeahead({
         return;
       }
 
+      // todo: mid/easy add loading state for typeahead
       const data = await fetchResults(newInput);
       setState(s => ({
         ...s,
@@ -66,7 +68,7 @@ export default function Typeahead({
     [fetchResults],
   );
 
-  useEffect(() => {
+  useEffectOncePerDeps(() => {
     setState(s => ({
       ...s,
       input: defaultValue ?? '',
@@ -75,7 +77,14 @@ export default function Typeahead({
 
   useEffect(() => {
     if (inputRef.current) {
-      inputRef.current.value = input;
+      // https://stackoverflow.com/a/46012210/599184
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const setValue = TS.defined(Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set);
+      setValue.call(inputRef.current, input);
+      inputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }, [input]);
 
@@ -98,7 +107,11 @@ export default function Typeahead({
           setState(s => (!s.isFocused ? s : { ...s, isFocused: false }));
         }}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-          setState(s => (s.isFocused ? s : { ...s, isFocused: true }));
+          setState(
+            s => (s.isFocused || s.input === event.target.value
+              ? s
+              : { ...s, isFocused: true }),
+          );
           throttledFetchResults(event.target.value);
         }}
         defaultValue={input}

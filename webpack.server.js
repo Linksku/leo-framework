@@ -3,7 +3,7 @@ import nodeExternals from 'webpack-node-externals';
 import mapValues from 'lodash/mapValues';
 import webpack from 'webpack';
 
-import mergeReplaceArrays from './scripts/lib/mergeReplaceArrays';
+import mergeReplaceArrays from './scripts/utils/mergeReplaceArrays';
 import globals from './framework/server/config/globals.cjs';
 import globalsSrc from './app/server/config/globals.cjs';
 import sharedGlobals from './framework/shared/config/globals.cjs';

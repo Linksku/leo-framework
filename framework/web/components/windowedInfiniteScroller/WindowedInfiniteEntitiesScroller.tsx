@@ -1,7 +1,7 @@
-import type { PaginatedApiName, ShouldAddCreatedEntity } from 'lib/hooks/useApi/usePaginatedApi';
-import type { EntityEvents } from 'lib/hooks/entities/useHandleEntityEvents';
-import usePaginatedApi from 'lib/hooks/useApi/usePaginatedApi';
-import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
+import type { PaginatedApiName, ShouldAddCreatedEntity } from 'utils/hooks/useApi/usePaginatedApi';
+import type { EntityEvents } from 'utils/hooks/entities/useHandleEntityEvents';
+import usePaginatedApi from 'utils/hooks/useApi/usePaginatedApi';
+import useTimeComponentPerf from 'utils/hooks/useTimeComponentPerf';
 
 import type { ItemRendererProps } from './WindowedInfiniteScrollerColumn';
 import WindowedInfiniteScroller from './WindowedInfiniteScroller';

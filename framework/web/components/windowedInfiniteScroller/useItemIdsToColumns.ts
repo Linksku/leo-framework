@@ -1,6 +1,6 @@
-import usePrevious from 'lib/hooks/usePrevious';
+import usePrevious from 'utils/hooks/usePrevious';
 
-import useUpdatedState from 'lib/hooks/useUpdatedState';
+import useUpdatedState from 'utils/hooks/useUpdatedState';
 
 import type { Item } from './WindowedInfiniteScrollerColumn';
 
@@ -30,8 +30,7 @@ export default function useItemIdsToColumns(
         columnItemIds[0].unshift(addedItemIds[i]);
         initialVisibleIds.add(addedItemIds[i]);
       }
-      // todo: mid/easy add assert function
-    } else if (process.env.NODE_ENV !== 'production' && addedItemIds.length < prevAddedItemsCount) {
+    } else if (!process.env.PRODUCTION && addedItemIds.length < prevAddedItemsCount) {
       throw new Error('useItemIdsToColumns: added items decreased.');
     }
 
@@ -40,7 +39,7 @@ export default function useItemIdsToColumns(
       for (let col = 0; col < columns; col++) {
         columnItemIds[col] = columnItemIds[col].filter(id => !deletedItemIds.has(id));
       }
-    } else if (process.env.NODE_ENV !== 'production' && deletedItemIds.size < prevDeletedItemsCount) {
+    } else if (!process.env.PRODUCTION && deletedItemIds.size < prevDeletedItemsCount) {
       throw new Error('useItemIdsToColumns: delete items decreased.');
     }
 
@@ -104,7 +103,7 @@ export default function useItemIdsToColumns(
           }
         }
       }
-    } else if (process.env.NODE_ENV !== 'production' && origItemIds.length < prevOrigItemsCount) {
+    } else if (!process.env.PRODUCTION && origItemIds.length < prevOrigItemsCount) {
       throw new Error('useItemIdsToColumns: items decreased.');
     }
 

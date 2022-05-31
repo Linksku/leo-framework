@@ -1,5 +1,5 @@
-import { useAnimation } from 'lib/hooks/useAnimation';
-import useSwipeNavigation from 'lib/hooks/useSwipeNavigation';
+import { useAnimation } from 'utils/hooks/useAnimation';
+import useSwipeNavigation from 'utils/hooks/useSwipeNavigation';
 
 import { useShowHomeFooter } from 'config/homeFooterConfig';
 

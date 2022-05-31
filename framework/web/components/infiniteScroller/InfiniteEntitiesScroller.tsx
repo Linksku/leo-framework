@@ -1,7 +1,7 @@
-import type { PaginatedApiName, ShouldAddCreatedEntity } from 'lib/hooks/useApi/usePaginatedApi';
-import usePaginatedApi from 'lib/hooks/useApi/usePaginatedApi';
-import useTimeComponentPerf from 'lib/hooks/useTimeComponentPerf';
-import useVisibilityObserver from 'lib/hooks/useVisibilityObserver';
+import type { PaginatedApiName, ShouldAddCreatedEntity } from 'utils/hooks/useApi/usePaginatedApi';
+import usePaginatedApi from 'utils/hooks/useApi/usePaginatedApi';
+import useTimeComponentPerf from 'utils/hooks/useTimeComponentPerf';
+import useVisibilityObserver from 'utils/hooks/useVisibilityObserver';
 
 import styles from './InfiniteEntitiesScrollerStyles.scss';
 

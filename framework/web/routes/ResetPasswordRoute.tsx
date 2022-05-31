@@ -33,7 +33,6 @@ function ResetPasswordRoute() {
   return (
     <StackWrapInner title="Reset Password">
       <div className={styles.container}>
-        <HookFormErrors errors={errors} additionalError={apiError} />
         <form
           onSubmit={handleSubmit(async data => resetPassword(data))}
           className={styles.form}
@@ -49,6 +48,8 @@ function ResetPasswordRoute() {
             disabled={fetching}
             required
           />
+
+          <HookFormErrors errors={errors} additionalError={apiError} />
 
           <Button
             Component="input"

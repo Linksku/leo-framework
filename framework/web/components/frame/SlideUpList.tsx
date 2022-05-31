@@ -1,3 +1,5 @@
+import useEffectOncePerDeps from 'utils/hooks/useEffectOncePerDeps';
+
 import styles from './SlideUpListStyles.scss';
 
 type Props = {
@@ -18,7 +20,7 @@ export default function SlideUpList({
   const hideSlideUp = useHideSlideUp();
   const itemsShown = items.filter(item => !item.hidden);
 
-  useEffect(() => {
+  useEffectOncePerDeps(() => {
     if (!itemsShown.length) {
       ErrorLogger.warn(
         new Error(`SlideUpList(${context}: no items shown`),

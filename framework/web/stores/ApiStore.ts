@@ -1,12 +1,13 @@
-import type { EntityEvents } from 'lib/hooks/entities/useHandleEntityEvents';
-import useAuthTokenLS from 'lib/hooks/localStorage/useAuthTokenLS';
-import fetcher from 'lib/fetcher';
-import ApiError from 'lib/ApiError';
+import type { EntityEvents } from 'utils/hooks/entities/useHandleEntityEvents';
+import useAuthTokenLS from 'utils/hooks/localStorage/useAuthTokenLS';
+import fetcher from 'utils/fetcher';
+import ApiError from 'utils/ApiError';
 import { HTTP_TIMEOUT, API_URL } from 'settings';
-import isErrorResponse from 'lib/hooks/useApi/isErrorResponse';
-import useHandleApiEntities from 'lib/hooks/useApi/useHandleApiEntities';
-import useHandleErrorResponse from 'lib/hooks/useApi/useHandleErrorResponse';
-import extraApiProps from 'lib/hooks/useApi/extraApiProps';
+import isErrorResponse from 'utils/hooks/useApi/isErrorResponse';
+import useHandleApiEntities from 'utils/hooks/useApi/useHandleApiEntities';
+import useHandleErrorResponse from 'utils/hooks/useApi/useHandleErrorResponse';
+import extraApiProps from 'utils/hooks/useApi/extraApiProps';
+import useUpdate from 'utils/hooks/useUpdate';
 
 export interface BatchedRequest<Name extends ApiName> {
   name: Name,
@@ -31,11 +32,39 @@ export const [
       }>,
       batchTimer: null as number | null,
       batchedRequests: [] as BatchedRequest<any>[],
+      relationsConfigs: Object.create(null) as ApiRelationsConfigs,
     });
     const [authToken] = useAuthTokenLS();
-    const handleApiEntities = useHandleApiEntities();
     const handleErrorResponse = useHandleErrorResponse();
     const { addEntityListener } = useEntitiesStore();
+    const catchAsync = useCatchAsync();
+    const update = useUpdate();
+
+    const addRelationsConfigs = useCallback((configs: ApiRelationsConfigs) => {
+      let changed = false;
+      for (const [entityType, entityConfigs] of TS.objEntries(configs)) {
+        for (const [relationName, config] of TS.objEntries(entityConfigs)) {
+          const modelConfigs = TS.objValOrSetDefault(
+            ref.current.relationsConfigs,
+            entityType,
+            Object.create(null),
+          );
+          if (!modelConfigs[relationName]) {
+            modelConfigs[relationName] = config;
+            changed = true;
+          }
+        }
+      }
+
+      if (changed) {
+        update();
+      }
+    }, [update]);
+    if (!process.env.PRODUCTION && typeof window !== 'undefined') {
+      // @ts-ignore for debugging
+      window.relationsConfigs = ref.current.relationsConfigs;
+    }
+    const handleApiEntities = useHandleApiEntities(addRelationsConfigs);
 
     const fetchNextBatch = useCallback(async () => {
       if (!ref.current.batchedRequests.length) {
@@ -46,8 +75,11 @@ export const [
       const curBatch = ref.current.batchedRequests;
       ref.current.batchedRequests = [];
       const { name, params } = curBatch[0];
+      let fullResponse: MemoDeep<ApiResponse<any>>;
+      let successResponse: MemoDeep<ApiSuccessResponse<any>>;
+      let status: number;
       try {
-        const { data: fullResponse, status } = curBatch.length === 1
+        const { data: _fullResponse, status: _status } = curBatch.length === 1
           ? await fetcher.get(
             `${API_URL}/api/${name}`,
             {
@@ -75,53 +107,26 @@ export const [
               timeout: HTTP_TIMEOUT,
             },
           );
+        fullResponse = _fullResponse as unknown as MemoDeep<ApiResponse<any>>;
+        status = _status;
 
         if (isErrorResponse(fullResponse)) {
-          if (process.env.NODE_ENV !== 'production' && fullResponse?.error.stack) {
+          if (!process.env.PRODUCTION && fullResponse?.error.stack) {
             // eslint-disable-next-line no-console
             console.error(fullResponse.error.stack.join('\n'));
           }
           const err = new ApiError('batched', fullResponse?.status ?? status, fullResponse?.error);
-          ErrorLogger.error(err, `Batched api failed ${fullResponse?.status ?? status ?? ''}`);
+          ErrorLogger.error(err, `Batched API failed ${fullResponse?.status ?? status ?? ''}`);
           throw err;
+        } else {
+          successResponse = fullResponse;
         }
 
-        const results: MemoDeep<ApiResponse<any>>[] = curBatch.length === 1
-          ? markMemoed([fullResponse])
-          : (fullResponse as MemoDeep<ApiSuccessResponse<'batched'>>).data.results;
-        if (results.length !== curBatch.length) {
+        if (curBatch.length > 1 && successResponse.data.results.length !== curBatch.length) {
           const err = new Error('Batched API response has wrong length.');
           ErrorLogger.error(err);
           throw err;
         }
-
-        batchedUpdates(() => {
-          handleApiEntities(fullResponse);
-          for (const [idx, result] of results.entries()) {
-            if (isErrorResponse(result)) {
-              if (process.env.NODE_ENV !== 'production' && result?.error.stack) {
-                // eslint-disable-next-line no-console
-                console.error(result.error.stack.join('\n'));
-              }
-              const err = new ApiError(
-                curBatch[idx].name,
-                result.status ?? status,
-                result.error,
-              );
-
-              handleErrorResponse({
-                caller: 'queueBatchedRequest',
-                name: curBatch[idx].name,
-                status: err.status,
-                err,
-              });
-
-              curBatch[idx].failPromise(err);
-            } else {
-              curBatch[idx].succPromise(result.data);
-            }
-          }
-        });
       } catch (_err) {
         const err = _err instanceof Error
           ? _err
@@ -139,7 +144,41 @@ export const [
             b.failPromise(err);
           }
         });
+        return;
       }
+
+      const results: MemoDeep<ApiErrorResponse | Pick<ApiSuccessResponse<any>, 'data'>>[]
+        = curBatch.length === 1
+          ? [successResponse]
+          : successResponse.data.results;
+
+      batchedUpdates(() => {
+        handleApiEntities(successResponse);
+        for (const [idx, result] of results.entries()) {
+          if (isErrorResponse(result)) {
+            if (!process.env.PRODUCTION && result?.error.stack) {
+              // eslint-disable-next-line no-console
+              console.error(result.error.stack.join('\n'));
+            }
+            const err = new ApiError(
+              curBatch[idx].name,
+              result.status ?? status,
+              result.error,
+            );
+
+            handleErrorResponse({
+              caller: 'queueBatchedRequest',
+              name: curBatch[idx].name,
+              status: err.status,
+              err,
+            });
+
+            curBatch[idx].failPromise(err);
+          } else {
+            curBatch[idx].succPromise(result.data);
+          }
+        }
+      });
     }, [authToken, handleApiEntities, handleErrorResponse]);
 
     const clearCache = useCallback((cacheKey: string) => {
@@ -200,7 +239,9 @@ export const [
       }
 
       if (!ref.current.batchTimer) {
-        ref.current.batchTimer = window.setTimeout(fetchNextBatch, 0);
+        ref.current.batchTimer = window.setTimeout(() => {
+          void catchAsync(fetchNextBatch());
+        }, 0);
       }
       return new Promise<ApiData<Name>>((succ, fail) => {
         ref.current.batchedRequests.push({
@@ -227,7 +268,7 @@ export const [
           },
         });
       });
-    }, [fetchNextBatch, clearCache]);
+    }, [fetchNextBatch, clearCache, catchAsync]);
 
     useEffect(() => {
       const clearCacheTimer = window.setInterval(() => {
@@ -236,7 +277,7 @@ export const [
             clearCache(k);
           }
         }
-      }, 1000);
+      }, 5000);
 
       return () => {
         window.clearInterval(clearCacheTimer);
@@ -247,6 +288,8 @@ export const [
       clearCache,
       clearCacheOnEvents,
       queueBatchedRequest,
+      addRelationsConfigs,
+      relationsConfigs: ref.current.relationsConfigs,
     });
   },
 );

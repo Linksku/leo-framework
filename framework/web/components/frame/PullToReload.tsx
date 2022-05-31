@@ -1,8 +1,8 @@
 import SyncSvg from 'fontawesome5/svgs/solid/sync-alt.svg';
 
-import useSwipeNavigation from 'lib/hooks/useSwipeNavigation';
-import { useAnimation } from 'lib/hooks/useAnimation';
-import mergeRefs from 'lib/mergeRefs';
+import useSwipeNavigation from 'utils/hooks/useSwipeNavigation';
+import { useAnimation } from 'utils/hooks/useAnimation';
+import mergeRefs from 'utils/mergeRefs';
 
 import styles from './PullToReloadStyles.scss';
 

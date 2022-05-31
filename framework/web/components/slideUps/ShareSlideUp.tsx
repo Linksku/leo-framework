@@ -7,7 +7,7 @@ import ShareSvg from 'boxicons/svg/solid/bxs-share-alt.svg';
 import { Share } from '@capacitor/share';
 
 import { HOME_URL } from 'settings';
-import useCopyText from 'lib/hooks/useCopyText';
+import useCopyText from 'utils/hooks/useCopyText';
 
 import styles from './ShareSlideUpStyles.scss';
 
@@ -84,7 +84,7 @@ export default function ShareSlideUp({ path }: Props) {
           href={template.replace('%url%', encodeURIComponent(url))}
           className={styles.listItem}
           target="_blank"
-          rel="noreferrer nofollow"
+          rel="noreferrer noopener nofollow"
         >
           <Svg
             style={{

@@ -7,9 +7,13 @@
   flex-direction: column;
 }
 
-.topBarWrap {
+.topBarWrap,
+.bottomBarWrap {
   flex-shrink: 0;
   z-index: $zIndexFixed;
+}
+
+.topBarWrap {
   height: $headerHeight;
 }
 
@@ -20,4 +24,24 @@
   overflow-y: scroll;
   // stylelint-disable-next-line plugin/no-unsupported-browser-features
   touch-action: pan-y;
+}
+
+.bottomBarWrap {
+  height: $footerHeight;
+}
+
+.bottomBarInner {
+  @extend %maxWidthContainer;
+
+  height: $footerHeight;
+  max-height: $footerHeight;
+  overflow: hidden;
+  box-sizing: content-box;
+  border-top: 1px solid $separatorColor;
+  background-color: #fff;
+  position: relative;
+  display: flex;
+  align-items: center;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  touch-action: none;
 }

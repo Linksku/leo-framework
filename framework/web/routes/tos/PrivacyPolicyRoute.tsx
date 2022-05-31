@@ -1,7 +1,8 @@
 /* eslint-disable max-len */
 /* eslint-disable react/jsx-one-expression-per-line */
 import StackWrapInner from 'components/frame/StackWrapInner';
-import { APP_NAME, SUPPORT_EMAIL } from 'settings';
+import SupportEmail from 'components/SupportEmail';
+import { APP_NAME, HOME_URL, DOMAIN_NAME } from 'settings';
 
 import styles from './PrivacyPolicyRouteStyles.scss';
 
@@ -11,11 +12,11 @@ export default function PrivacyPolicyRoute() {
       title="Privacy Notice"
       bodyClassName={styles.container}
     >
-      <p>Thank you for choosing to be part of our community at {APP_NAME} (&quot;Company,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). We are committed to protecting your personal information and your right to privacy. If you have any questions or concerns about this privacy notice or our practices with regard to your personal information, please contact us at {SUPPORT_EMAIL}.</p>
+      <p>Thank you for choosing to be part of our community at {APP_NAME} (&quot;Company,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). We are committed to protecting your personal information and your right to privacy. If you have any questions or concerns about this privacy notice or our practices with regard to your personal information, please contact us at{' '}{SupportEmail}.</p>
 
       <p>This privacy notice describes how we might use your information if you:</p>
       <ul>
-        <li>Visit our website at {process.env.DOMAIN_NAME}</li>
+        <li>Visit our website at{' '}<Link href={HOME_URL}>{DOMAIN_NAME}</Link></li>
         <li>Download and use our mobile application — {APP_NAME}</li>
         <li>Engage with us in other related ways ― including any sales, marketing, or events</li>
       </ul>
@@ -66,7 +67,7 @@ export default function PrivacyPolicyRoute() {
       <p>We use the information we collect or receive:</p>
       <ul>
         <li>To facilitate account creation and logon process. If you choose to link your account with us to a third-party account (such as your Google or Facebook account), we use the information you allowed us to collect from those third parties to facilitate account creation and logon process for the performance of the contract. See the section below headed &quot;HOW DO WE HANDLE YOUR SOCIAL LOGINS?&quot; for further information.</li>
-        <li>To post testimonials. We post testimonials on our Services that may contain personal information. Prior to posting a testimonial, we will obtain your consent to use your name and the content of the testimonial. If you wish to update, or delete your testimonial, please contact us at {SUPPORT_EMAIL} and be sure to include your name, testimonial location, and contact information.</li>
+        <li>To post testimonials. We post testimonials on our Services that may contain personal information. Prior to posting a testimonial, we will obtain your consent to use your name and the content of the testimonial. If you wish to update, or delete your testimonial, please contact us at{' '}{SupportEmail}{' '}and be sure to include your name, testimonial location, and contact information.</li>
         <li>Request feedback. We may use your information to request feedback and to contact you about your use of our Services.</li>
         <li>To enable user-to-user communications. We may use your information in order to enable user-to-user communications with each user&apos;s consent.</li>
         <li>To manage user accounts. We may use your information for the purposes of managing our account and keeping it in working order.</li>
@@ -144,7 +145,7 @@ export default function PrivacyPolicyRoute() {
       <p>In Short:  You may review, change, or terminate your account at any time.</p>
       <p>If you are a resident in the EEA or UK and you believe we are unlawfully processing your personal information, you also have the right to complain to your local data protection supervisory authority. You can find their contact details here: https://ec.europa.eu/justice/data-protection/bodies/authorities/index_en.htm.</p>
       <p>If you are a resident in Switzerland, the contact details for the data protection authorities are available here: https://www.edoeb.admin.ch/edoeb/en/home.html.</p>
-      <p>If you have questions or comments about your privacy rights, you may email us at {SUPPORT_EMAIL}.</p>
+      <p>If you have questions or comments about your privacy rights, you may email us at{' '}{SupportEmail}.</p>
       <h3>Account Information</h3>
       <p>If you would at any time like to review or change the information in your account or terminate your account, you can:</p>
       <ul>
@@ -253,7 +254,7 @@ export default function PrivacyPolicyRoute() {
         <li>Social media cookies</li>
       </ul>
       <p>More information about our data collection and sharing practices can be found in this privacy notice.</p>
-      <p>You may contact us by email at {SUPPORT_EMAIL}, or by referring to the contact details at the bottom of this document.</p>
+      <p>You may contact us by email at{' '}{SupportEmail}, or by referring to the contact details at the bottom of this document.</p>
       <p>If you are using an authorized agent to exercise your right to opt-out we may deny a request if the authorized agent does not submit proof that they have been validly authorized to act on your behalf.</p>
       <h3>Will your information be shared with anyone else?</h3>
       <p>We may disclose your personal information with our service providers pursuant to a written contract between us and each service provider. Each service provider is a for-profit entity that processes the information on our behalf.</p>
@@ -291,17 +292,17 @@ export default function PrivacyPolicyRoute() {
         <li>you can designate an authorized agent to make a request under the CCPA on your behalf. We may deny a request from an authorized agent that does not submit proof that they have been validly authorized to act on your behalf in accordance with the CCPA.</li>
         <li>you may request to opt-out from future selling of your personal information to third parties. Upon receiving a request to opt-out, we will act upon the request as soon as feasibly possible, but no later than 15 days from the date of the request submission.</li>
       </ul>
-      <p>To exercise these rights, you can contact us by email at {SUPPORT_EMAIL}, or by referring to the contact details at the bottom of this document. If you have a complaint about how we handle your data, we would like to hear from you.</p>
+      <p>To exercise these rights, you can contact us by email at{' '}{SupportEmail}, or by referring to the contact details at the bottom of this document. If you have a complaint about how we handle your data, we would like to hear from you.</p>
 
       <h2>13. DO WE MAKE UPDATES TO THIS NOTICE?</h2>
       <p>In Short:  Yes, we will update this notice as necessary to stay compliant with relevant laws.</p>
       <p>We may update this privacy notice from time to time. The updated version will be indicated by an updated &quot;Revised&quot; date and the updated version will be effective as soon as it is accessible. If we make material changes to this privacy notice, we may notify you either by prominently posting a notice of such changes or by directly sending you a notification. We encourage you to review this privacy notice frequently to be informed of how we are protecting your information.</p>
 
       <h2>14. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?</h2>
-      <p>If you have questions or comments about this notice, you may email us at {SUPPORT_EMAIL}.</p>
+      <p>If you have questions or comments about this notice, you may email us at{' '}{SupportEmail}.</p>
 
       <h2>15. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?</h2>
-      <p>Based on the applicable laws of your country, you may have the right to request access to the personal information we collect from you, change that information, or delete it in some circumstances. To request to review, update, or delete your personal information, please visit: {process.env.DOMAIN_NAME}/editprofile.</p>
+      <p>Based on the applicable laws of your country, you may have the right to request access to the personal information we collect from you, change that information, or delete it in some circumstances. To request to review, update, or delete your personal information, please visit:{' '}<Link href={`${HOME_URL}/editprofile`}>{DOMAIN_NAME}/editprofile</Link>.</p>
     </StackWrapInner>
   );
 }

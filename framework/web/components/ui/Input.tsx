@@ -26,7 +26,7 @@ function Input({
   onBlur,
   ...props
 }: React.PropsWithChildren<Props>, ref?: React.ForwardedRef<HTMLInputElement>) {
-  if (process.env.NODE_ENV !== 'production' && props.disabled && onBlur) {
+  if (!process.env.PRODUCTION && props.disabled && onBlur) {
     // https://github.com/facebook/react/issues/9142
     ErrorLogger.warn(new Error('Input won\'t trigger onBlur when disabled.'));
   }

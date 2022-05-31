@@ -1,25 +1,31 @@
 import equal from 'fast-deep-equal';
 
-import EntitiesEventEmitter from 'lib/singletons/EntitiesEventEmitter';
+import EntitiesEventEmitter from 'services/EntitiesEventEmitter';
+import { mergeEntityExtras, mergeEntityDevRelations } from 'utils/models/mergeEntityProps';
 
 export type EntityEventHandler<T extends EntityType> = (ent: TypeToEntity<T>) => void;
+
+type EntitiesMap = Memoed<ObjectOf<
+  Memoed<Entity>
+>>;
 
 function getEventKey(action: EntityAction, type: EntityType, id?: EntityId) {
   return id ? `${action},${type},${id}` : `${action},${type}`;
 }
 
-function hasChangedExtrasKeys(oldEntity: Entity, newEntity: Entity): boolean {
-  const oldExtras = oldEntity.extras;
-  const newExtras = newEntity.extras;
-  if (!newExtras) {
+function mapHasNewKeyOrChanged(
+  oldMap?: ObjectOf<any>,
+  newMap?: ObjectOf<any>,
+): boolean {
+  if (!newMap) {
     return false;
   }
-  if (!oldExtras) {
+  if (!oldMap) {
     return true;
   }
 
-  for (const [k, newVal] of TS.objEntries(newExtras)) {
-    if (!TS.hasOwnProp(oldExtras, k) || !equal(oldExtras[k], newVal)) {
+  for (const [k, newVal] of TS.objEntries(newMap)) {
+    if (!TS.hasOwnProp(oldMap, k) || !equal(oldMap[k], newVal)) {
       return true;
     }
   }
@@ -33,22 +39,19 @@ export const [
   useMutateEntity,
 ] = constate(
   function EntitiesStore() {
-    const entitiesRef = useRef(Object.create(null) as ObjectOf<
-      Memoed<ObjectOf<
-        Entity
-      >>
-    >);
+    const entitiesRef = useRef(
+      Object.create(null) as ObjectOf<EntitiesMap>);
 
-    if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
+    if (!process.env.PRODUCTION && typeof window !== 'undefined') {
       // @ts-ignore for debugging
       window.entities = entitiesRef.current;
     }
 
     // entities: [{ id, type }]
-    // overwrite means replace object even if nothing changed
+    // forceOverwrite means replace object even if nothing changed
     const addOrUpdateEntities = useCallback((
       entities: Entity | Entity[],
-      overwrite = false,
+      forceOverwrite = false,
     ) => {
       if (!entities || (Array.isArray(entities) && !entities.length)) {
         return [];
@@ -59,7 +62,7 @@ export const [
 
       const changed: Entity[] = [];
       const newEntities = Object.assign(
-        Object.create(null),
+        Object.create(null) as ObjectOf<EntitiesMap>,
         entitiesRef.current,
       );
       for (const entity of entities) {
@@ -68,27 +71,38 @@ export const [
           continue;
         }
 
-        if (!newEntities[entity.type]) {
-          newEntities[entity.type] = Object.create(null);
-        }
+        let entitiesMap = TS.objValOrSetDefault(
+          newEntities,
+          entity.type,
+          Object.create(null) as EntitiesMap,
+        );
 
-        if (!newEntities[entity.type][entity.id]
-          || overwrite
-          || hasChangedExtrasKeys(newEntities[entity.type][entity.id], entity)) {
-          if (newEntities[entity.type] === entitiesRef.current[entity.type]) {
-            newEntities[entity.type] = Object.assign(
+        const newEntity = entitiesMap[entity.id];
+        if (!newEntity
+          || forceOverwrite
+          || mapHasNewKeyOrChanged(newEntity.extras, entity.extras)
+          || !equal(newEntity.devRelations, entity.devRelations)) {
+          if (entitiesMap === entitiesRef.current[entity.type]) {
+            entitiesMap = Object.assign(
               Object.create(null),
               entitiesRef.current[entity.type],
             );
+            newEntities[entity.type] = entitiesMap;
           }
 
-          if (newEntities[entity.type][entity.id]?.extras) {
-            entity.extras = {
-              ...newEntities[entity.type][entity.id].extras,
-              ...entity.extras,
-            };
+          if (newEntity?.extras) {
+            entity.extras = mergeEntityExtras(
+              entity.extras,
+              newEntity.extras,
+            );
           }
-          newEntities[entity.type][entity.id] = entity;
+          if (newEntity?.devRelations) {
+            entity.devRelations = mergeEntityDevRelations(
+              entity.devRelations,
+              newEntity.devRelations,
+            );
+          }
+          entitiesMap[entity.id] = entity;
           changed.push(entity);
         }
       }
@@ -96,7 +110,7 @@ export const [
       if (changed.length) {
         entitiesRef.current = newEntities;
 
-        if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
+        if (!process.env.PRODUCTION && typeof window !== 'undefined') {
           // @ts-ignore for debugging
           window.entities = entitiesRef.current;
         }
@@ -163,7 +177,7 @@ export const [
         { [type]: newEntities },
       );
 
-      if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
+      if (!process.env.PRODUCTION && typeof window !== 'undefined') {
         // @ts-ignore for debugging
         window.entities = entitiesRef.current;
       }
@@ -199,7 +213,7 @@ export const [
         ? updater(entity)
         : updater;
 
-      if (process.env.NODE_ENV !== 'production' && updates) {
+      if (!process.env.PRODUCTION && updates) {
         // eslint-disable-next-line no-console
         console.log(
           `mutate(${type}, ${id})`,
@@ -214,7 +228,7 @@ export const [
         createEntities([{ id, type, ...updates.entity } as Memoed<TypeToEntity<T>>]);
       } else if (updates?.action === 'update') {
         if (!entity) {
-          if (process.env.NODE_ENV !== 'production') {
+          if (!process.env.PRODUCTION) {
             ErrorLogger.warn(new Error(`mutateEntity(${type},${id}): entity to update not found.`));
           }
           return;

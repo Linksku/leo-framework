@@ -11,3 +11,5 @@ rm -f framework/web/tsconfig.tsbuildinfo
 rm -f app/shared/tsconfig.tsbuildinfo
 rm -f app/server/tsconfig.tsbuildinfo
 rm -f app/web/tsconfig.tsbuildinfo
+
+docker volume prune -f

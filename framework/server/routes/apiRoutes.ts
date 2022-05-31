@@ -4,12 +4,12 @@ import multer from 'multer';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
-import { apis } from 'services/ApiManager';
-import apiWrap from 'lib/apiHelpers/apiWrap';
-import { fetchUserIdByJwt } from 'lib/apiHelpers/jwtAuth';
+import { getApis } from 'services/ApiManager';
+import apiWrap from 'routes/api/helpers/apiWrap';
+import { fetchUserIdByJwt } from 'helpers/auth/jwt';
 import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
-import rateLimitMiddleware from 'lib/apiHelpers/rateLimitMiddleware';
-import requestContextMiddleware from 'lib/apiHelpers/requestContextMiddleware';
+import rateLimitMiddleware from 'routes/api/helpers/rateLimitMiddleware';
+import requestContextMiddleware from 'routes/api/helpers/requestContextMiddleware';
 
 import './api/authApis';
 import './api/batchedApi';
@@ -61,7 +61,8 @@ function apiNotFound(
 }
 
 const router = express.Router();
-if (process.env.NODE_ENV !== 'production') {
+const apis = getApis();
+if (!process.env.PRODUCTION) {
   router.use((req, res, next) => {
     if (req.query?.DEBUG) {
       printDebug(`${req.method} ${req.path} start`, 'highlight');

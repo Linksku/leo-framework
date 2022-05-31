@@ -33,7 +33,7 @@ function WindowedInfiniteScroller({
   columnClassName,
   ...props
 }: Props) {
-  if (process.env.NODE_ENV !== 'production' && reverse && columns > 1) {
+  if (!process.env.PRODUCTION && reverse && columns > 1) {
     throw new Error('Reverse scroller only works with 1 column.');
   }
 

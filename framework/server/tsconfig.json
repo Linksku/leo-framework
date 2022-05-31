@@ -5,17 +5,13 @@
       "baseUrl": ["."],
       "*": [
         "framework/shared/*",
-        "framework/server/*"
-      ]
+        "framework/server/*",
+      ],
     },
-    "rootDir": ".."
+    "rootDir": "../..",
   },
   "include": [
+    ".",
     "../shared",
-    "."
   ],
-  "exclude": [
-    "./**/*.cjs",
-    "./**/*.js"
-  ]
 }

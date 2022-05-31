@@ -4,12 +4,12 @@ export default function ReportSlideUpListItem({
   entityType,
   entityId,
 }: {
-  entityType: Report['entityType'],
+  entityType: IReport['entityType'],
   entityId: NumericEntityId,
 }) {
   // todo: mid/mid hide post after reporting, maybe hide from future loads
   const { fetchApi } = useDeferredApi(
-    'report',
+    'createReport',
     { entityType, entityId },
     {
       type: 'create',

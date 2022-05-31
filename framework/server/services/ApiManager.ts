@@ -1,55 +1,12 @@
-import type { ValidateFunction } from 'ajv';
+import ajv from 'services/ajv';
 
-import ajv from 'lib/ajv';
-
-export type RouteRet<Name extends ApiName> = Pick<
-  ApiSuccessResponse<Name>,
-  'data' | 'deletedIds'
-> & {
-  entities?: Model[];
-  createdEntities?: Model[];
-  updatedEntities?: Model[];
-};
-
-export type ApiConfig<Name extends ApiName> = {
-  method?: 'get' | 'post',
-  name: Name,
-  auth?: boolean,
-  paramsSchema: {
-    type: 'object',
-    required?: string[],
-    properties: Record<string, JSONSchema>,
-    additionalProperties: false,
-  },
-  dataSchema?: {
-    type: 'object',
-    required?: string[],
-    properties: Record<string, JSONSchema>,
-    additionalProperties: false,
-  },
-  fileFields?: { name: (keyof ApiNameToParams[Name]) & string, maxCount: number }[],
-};
-
-export type ApiHandler<Name extends ApiName> = (
-  params: ApiNameToParams[Name] & {
-    currentUserId: Name extends AuthApiName ? EntityId : EntityId | undefined;
-  },
-  // todo: low/mid add cookies to RouteRet instead of passing res to apis
-  res: ExpressResponse,
-) => RouteRet<Name> | Promise<RouteRet<Name>>;
-
-export type ApiDefinition<Name extends ApiName> = {
-  config: ApiConfig<Name>,
-  validateParams: ValidateFunction,
-  validateData?: ValidateFunction,
-  handler: ApiHandler<Name>,
-};
-
-export const apis = [] as ApiDefinition<any>[];
+let apis = [] as ApiDefinition<any>[];
+let isSorted = true;
 export const nameToApi = {} as ObjectOf<ApiDefinition<any>>;
 
 export function defineApi<Name extends ApiName>(
   config: ApiConfig<Name>,
+  // Note: need to add ApiHandlerParams manually in handlers for VS Code typing
   handler: ApiHandler<Name>,
 ) {
   const api = {
@@ -59,5 +16,13 @@ export function defineApi<Name extends ApiName>(
     handler,
   };
   apis.push(api);
+  isSorted = false;
   nameToApi[config.name] = api;
+}
+
+export function getApis(): Readonly<ApiDefinition<any>[]> {
+  if (!isSorted) {
+    apis = apis.sort((a, b) => a.config.name.localeCompare(b.config.name));
+  }
+  return apis;
 }

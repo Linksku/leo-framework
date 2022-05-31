@@ -2,9 +2,11 @@
   @extend %maxWidthContainer;
 
   height: $headerHeight;
+  max-height: $headerHeight;
+  overflow: hidden;
   box-sizing: content-box;
-  background-color: #fff;
   border-bottom: 1px solid $separatorColor;
+  background-color: #fff;
   position: relative;
   display: flex;
   align-items: stretch;
@@ -14,14 +16,12 @@
 
 .btnWrap {
   padding: 0 $containerPadLeftRight;
-  box-sizing: content-box;
   display: flex;
   align-items: center;
 }
 
 .svgWrap {
   padding: 0 $containerPadLeftRight;
-  box-sizing: content-box;
   display: flex;
   align-items: center;
 }

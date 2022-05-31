@@ -1,5 +1,5 @@
-import getPartialUniqueIndex from 'lib/modelUtils/getPartialUniqueIndex';
-import getPartialUniqueIndexes from 'lib/modelUtils/getPartialUniqueIndexes';
+import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
+import getPartialUniqueIndexes from 'utils/models/getPartialUniqueIndexes';
 import getModelDataLoader from 'services/dataLoader/getModelDataLoader';
 import BaseRedisCache from './BaseRedisCache';
 import getModelCacheKey from './utils/getModelCacheKey';
@@ -33,7 +33,7 @@ const redisCache = new BaseRedisCache<Model | null>({
 
 async function set<T extends ModelClass>(
   Model: T,
-  ent: InstanceType<T>,
+  ent: ModelInstance<T>,
 ): Promise<void> {
   if (!Model.cacheable) {
     return;
@@ -70,7 +70,7 @@ export default {
   async get<T extends ModelClass>(
     Model: T,
     partial: ModelPartial<T>,
-  ): Promise<InstanceType<T> | null> {
+  ): Promise<ModelInstance<T> | null> {
     if (!Model.cacheable) {
       return getModelDataLoader(Model).load(partial);
     }
@@ -81,7 +81,7 @@ export default {
     }
 
     const cacheKey = getModelCacheKey(Model, uniqueIndex, partial);
-    const fromRedis = (await redisCache.get(cacheKey)) as Nullish<InstanceType<T>>;
+    const fromRedis = (await redisCache.get(cacheKey)) as Nullish<ModelInstance<T>>;
     if (fromRedis !== undefined) {
       return fromRedis;
     }
@@ -98,14 +98,14 @@ export default {
 
   handleUpdate<T extends ModelClass>(
     Model: T,
-    ent: InstanceType<T>,
+    ent: ModelInstance<T>,
   ): Promise<void> {
     return set(Model, ent);
   },
 
   handleInsert<T extends ModelClass>(
     Model: T,
-    ent: InstanceType<T>,
+    ent: ModelInstance<T>,
   ): Promise<void> {
     return set(Model, ent);
   },

@@ -1,4 +1,4 @@
-import useTimeAgo from 'lib/hooks/useTimeAgo';
+import useTimeAgo from 'utils/hooks/useTimeAgo';
 
 import styles from './NotifItemStyles.scss';
 
@@ -9,7 +9,7 @@ type Props = {
 function NotifItem({ itemId }: Props) {
   const notif = useEntity('notif', itemId);
   const pushPath = usePushPath();
-  const timeAgo = useTimeAgo(notif?.time);
+  const timeAgo = useTimeAgo(notif?.time.getTime());
   const mutateEntity = useMutateEntity();
 
   const { fetchApi: readNotif } = useDeferredApi(

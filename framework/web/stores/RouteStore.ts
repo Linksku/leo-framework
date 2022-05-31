@@ -4,6 +4,7 @@ export const [
   useRouteMatches,
   useRouteQuery,
 ] = constate(
+  // todo: low/easy add more fields to RouteStore instead of fetching from history/stack stores
   function RouteStore({
     routeConfig,
     historyState,

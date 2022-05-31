@@ -3,7 +3,7 @@ if (!process.env.APP_NAME || !process.env.PORT || !process.env.DOMAIN_NAME) {
 }
 
 // Don't export these because Webpack can't optimize.
-const PROD_BUILD = process.env.NODE_ENV === 'production';
+const PROD_BUILD = process.env.PRODUCTION;
 const PROD_SERVER = process.env.SERVER === 'production';
 
 // eslint-disable-next-line prefer-destructuring
