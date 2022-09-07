@@ -1,6 +1,5 @@
 import path from 'path';
 
-import BaseModel from 'services/model/Model';
 import readdirRecursive from 'utils/readdirRecursive';
 
 export type ModelsArr = {
@@ -9,6 +8,8 @@ export type ModelsArr = {
 }[];
 
 function filterModels(models: ModelsArr) {
+  // eslint-disable-next-line global-require
+  const BaseModel = require('services/model/Model').default;
   const seen: ObjectOf<string> = Object.create(null);
   return models.filter(({ Model, path: filepath }) => {
     if (!Model) {

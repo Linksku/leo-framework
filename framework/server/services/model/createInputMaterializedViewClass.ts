@@ -16,18 +16,22 @@ export type InputMaterializedViewConfig<
   // eslint-disable-next-line @typescript-eslint/ban-types
   StaticProps extends ObjectOf<any> = {},
   // eslint-disable-next-line @typescript-eslint/ban-types
-  Props extends ObjectOf<any> = {}
-> = Optional<MaterializedViewConfig<Type, StaticProps, Props>, 'MVQueryDeps'>
+  Props extends ObjectOf<any> = {},
+> = SetOptional<MaterializedViewConfig<Type, StaticProps, Props>, 'MVQueryDeps'>
   & InputMaterializedViewConfigStaticProps;
 
 export function processInputMaterializedViewConfig<
-  Config extends InputMaterializedViewConfig<ModelType>
+  Config extends InputMaterializedViewConfig<ModelType>,
 >(
   config: Config,
 ): Pick<Config, keyof MaterializedViewConfig<any>> & {
     MVQueryDeps: ModelClass[],
     MVQuery: QueryBuilder<Model>,
   } {
+  if (config.BTClass == null) {
+    throw new Error(`processInputMaterializedViewConfig(${config.type}): missing BTClass.`);
+  }
+
   return {
     ...omit(config, [
       'BTClass',

@@ -6,6 +6,6 @@ export default async function deleteKafkaConnector(name: string) {
     'DELETE',
   );
   if (res.status >= 400) {
-    throw new Error(`deleteKafkaConnector(${name}): failed to delete connector: ${JSON.stringify(res.data)}`);
+    throw new ErrorWithCtx(`deleteKafkaConnector(${name}): failed to delete connector (${res.status})`, JSON.stringify(res.data).slice(0, 100));
   }
 }

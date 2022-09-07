@@ -7,13 +7,15 @@ import validateNotUniquePartial from 'utils/models/validateNotUniquePartial';
 import findPartialMatchingPartial from 'utils/models/findPartialMatchingPartial';
 import getValDbType from 'utils/db/getValDbType';
 import knexBT from 'services/knex/knexBT';
+import { updateLastWriteTime } from 'services/model/helpers/lastWriteTimeHelpers';
+import waitForRRUpdate from 'utils/models/waitForRRUpdate';
 import BaseEntity from './BaseEntity';
 
 import insert from './methods/insert';
 import insertBulk from './methods/insertBulk';
 
 // todo: mid/veryhard EntityLoader doesn't work with transactions
-// todo: mid/mid add count function
+// todo: mid/mid add cached count method
 export default class EntityMutator extends BaseEntity {
   static insert = insert;
 
@@ -23,6 +25,9 @@ export default class EntityMutator extends BaseEntity {
     this: T,
     partial: ModelPartial<T>,
     obj: ModelPartial<T>,
+    { waitForRR }: {
+      waitForRR?: boolean,
+    } = {},
   ): Promise<EntityInstance<T> | null> {
     validateUniquePartial(this, partial);
 
@@ -39,6 +44,12 @@ export default class EntityMutator extends BaseEntity {
       })
       .where(partial)
       .returning('*');
+    if (!process.env.PRODUCTION) {
+      for (const row of rows) {
+        row.$validate();
+      }
+    }
+
     const updated = rows[0] as EntityInstance<T> | undefined;
     if (!updated) {
       // Row doesn't exist, maybe delete from cache instead.
@@ -52,7 +63,11 @@ export default class EntityMutator extends BaseEntity {
     await Promise.all([
       modelsCache.handleUpdate(this, updated),
       modelIdsCache.handleUpdate(this, updated),
+      updateLastWriteTime(this.type),
     ]);
+    if (waitForRR) {
+      await waitForRRUpdate(this, updated.id, updated.version);
+    }
     return updated;
   }
 
@@ -60,6 +75,9 @@ export default class EntityMutator extends BaseEntity {
     this: T,
     uniqueColOrIndex: ModelKey<T> | ModelKey<T>[],
     objs: ModelPartial<T>[],
+    { waitForRR }: {
+      waitForRR?: boolean,
+    } = {},
   ): Promise<(EntityInstance<T> | null)[]> {
     const firstObj = objs[0];
     if (!firstObj) {
@@ -89,7 +107,7 @@ export default class EntityMutator extends BaseEntity {
       // @ts-ignore Objection type
       .patch({
         ...fromPairs(updateCols.map(
-          k => [k, raw(`t.??::${getValDbType(this, k, firstObj[k])}`, [k])],
+          k => [k, raw('t.??', [k])],
         )),
         version: raw(`
           case
@@ -97,7 +115,13 @@ export default class EntityMutator extends BaseEntity {
             else version + 1
           end
           from (
-            values ${objs.map(_ => `(${allCols.map(_ => '?').join(',')})`).join(',')}
+            values ${
+              [
+                `(${allCols.map(k => `?::${getValDbType(this, k, firstObj[k])}`).join(',')})`,
+                ...objs.slice(1).map(_ => `(${allCols.map(_ => '?').join(',')})`),
+              ]
+                .join(',')
+            }
           )
           t(${allCols.map(_ => '??')})
         `, [
@@ -108,16 +132,25 @@ export default class EntityMutator extends BaseEntity {
       .where(
         fromPairs(uniqueIndex.map(index => [
           `${this.tableName}.${index}`,
-          raw(`t.??::${getValDbType(this, index, firstObj[index])}`, [index]),
+          raw('t.??', [index]),
         ])),
       )
       .returning('*');
 
     const updated = (await query) as EntityInstance<T>[];
+    if (!process.env.PRODUCTION) {
+      for (const ent of updated) {
+        ent.$validate();
+      }
+    }
+
     const objsWithUpdated = objs.map(obj => {
       const ent = findPartialMatchingPartial(updated, uniqueIndex, obj);
       return TS.tuple(obj, ent ?? null);
     });
+    if (!process.env.PRODUCTION && objsWithUpdated.length < updated.length) {
+      ErrorLogger.warn(new Error(`${this.name}.updateBulk: returned entities don't match updates`));
+    }
 
     await Promise.all(objsWithUpdated.flatMap(([obj, ent]) => {
       if (!ent) {
@@ -132,7 +165,17 @@ export default class EntityMutator extends BaseEntity {
       ];
     }));
 
-    return objsWithUpdated.map(pair => pair[1]);
+    const updatedEnts = objsWithUpdated.map(pair => pair[1]);
+    const nonNullUpdatedEnts = TS.filterNulls(updatedEnts);
+    if (nonNullUpdatedEnts.length) {
+      await updateLastWriteTime(this.type);
+      if (waitForRR) {
+        const last = nonNullUpdatedEnts[nonNullUpdatedEnts.length - 1];
+        await waitForRRUpdate(this, last.id, last.version);
+      }
+    }
+
+    return updatedEnts;
   }
 
   static async delete<T extends EntityClass>(
@@ -145,6 +188,12 @@ export default class EntityMutator extends BaseEntity {
       .delete()
       .where(partial)
       .returning('*');
+    if (!process.env.PRODUCTION) {
+      for (const row of rows) {
+        row.$validate();
+      }
+    }
+
     const deleted = rows[0] as EntityInstance<T> | undefined;
     if (!deleted) {
       return null;
@@ -153,7 +202,9 @@ export default class EntityMutator extends BaseEntity {
     await Promise.all([
       modelsCache.handleDelete(this, deleted),
       modelIdsCache.handleDelete(this, deleted),
+      updateLastWriteTime(this.type),
     ]);
+
     return deleted;
   }
 
@@ -161,17 +212,29 @@ export default class EntityMutator extends BaseEntity {
     this: T,
     partial: ModelPartial<T>,
   ): Promise<EntityInstance<T>[]> {
-    validateNotUniquePartial(this, partial);
+    if (!process.env.PRODUCTION) {
+      validateNotUniquePartial(this, partial);
+    }
 
     const query = entityQuery(this, knexBT)
       .delete()
       .where(partial)
       .returning('*');
     const deleted = (await query) as EntityInstance<T>[];
+    if (!process.env.PRODUCTION) {
+      for (const ent of deleted) {
+        ent.$validate();
+      }
+    }
+
     await Promise.all([
       ...deleted.map(ent => modelsCache.handleDelete(this, ent)),
       ...deleted.map(ent => modelIdsCache.handleDelete(this, ent)),
     ]);
+    if (deleted.length) {
+      await updateLastWriteTime(this.type);
+    }
+
     return deleted;
   }
 }

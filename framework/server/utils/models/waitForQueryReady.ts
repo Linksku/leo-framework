@@ -1,5 +1,4 @@
 import type { Knex } from 'knex';
-import { performance } from 'perf_hooks';
 
 import { HTTP_TIMEOUT } from 'settings';
 
@@ -34,7 +33,7 @@ export default async function waitForQueryReady(
     }
 
     if (performance.now() + waitTime - startTime >= maxWaitTime) {
-      throw new Error(`waitForQueryReady: timed out (last error: ${lastErr})`);
+      throw new ErrorWithCtx('waitForQueryReady: timed out', `${lastErr}`);
     }
     // eslint-disable-next-line no-await-in-loop
     await pause(waitTime);
@@ -44,5 +43,5 @@ export default async function waitForQueryReady(
     }
   }
 
-  throw new Error(`waitForQueryReady: possible infinite loop (last error: ${lastErr}).`);
+  throw new ErrorWithCtx('waitForQueryReady: reached end of loop', `${lastErr}`);
 }

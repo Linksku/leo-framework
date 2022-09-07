@@ -48,7 +48,7 @@ function LoginRoute() {
           : null}
 
         <form
-          onSubmit={handleSubmit(async data => loginUser(data))}
+          onSubmit={handleSubmit(data => loginUser(data))}
           className={styles.form}
         >
           <Input

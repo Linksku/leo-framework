@@ -4,7 +4,7 @@ type ModelSerializedForApi = {
   type: ModelType,
   id: ApiEntityId,
   extras?: ObjectOf<any>,
-  devRelations?: string[],
+  includedRelations?: string[],
 };
 
 type ApiRelationConfig = {
@@ -21,7 +21,7 @@ type ApiRelationConfig = {
   },
 };
 
-type ApiRelationsConfigs = Partial<Record<ModelType, ObjectOf<ApiRelationConfig>>>;
+type ApiRelationConfigs = Partial<Record<ModelType, ObjectOf<ApiRelationConfig>>>;
 
 type ApiSuccessResponse<Name extends ApiName> = {
   status: 200,
@@ -32,27 +32,31 @@ type ApiSuccessResponse<Name extends ApiName> = {
   deletedIds?: Partial<Record<ModelType, EntityId[]>>,
   meta?: {
     dateProps?: Partial<Record<ModelType, string[]>>,
-    relationConfigs?: ApiRelationsConfigs,
+    relationConfigs?: ApiRelationConfigs,
   },
 };
 
 type ApiErrorData = {
   msg: string,
   stack?: string[],
-  debugDetails?: any,
+  debugCtx?: any,
 };
 
 type ApiErrorResponse = {
   status: number,
-  error: ApiErrorObject,
+  error: ApiErrorData,
 };
 
 type ApiResponse<Name extends ApiName> = ApiSuccessResponse<Name> | ApiErrorResponse;
 
+type ApiAllRelations = Partial<{
+  [T in ModelType]: keyof ModelRelationTypes<T> extends never
+    ? never
+    : (keyof ModelRelationTypes<T> & string)[];
+}>;
+
 type ApiParams<Name extends ApiName> = ApiNameToParams[Name] & {
-  relations?: Partial<{
-    [T in ModelType]: (ModelNestedRelations[T] | keyof ModelTypeToRelations<T>)[];
-  }>;
+  relations?: ApiAllRelations,
 };
 
 type SseResponse = ApiSuccessResponse<any> & {

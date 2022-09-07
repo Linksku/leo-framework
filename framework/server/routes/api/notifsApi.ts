@@ -49,15 +49,14 @@ defineApi(
           [Notif.cols.hasRead]: false,
           [Notif.cols.notifType]: 'chatReplyCreated',
         })
-        .where(builder => {
-          if (lastSeenChatsRow?.metaValue) {
-            void builder.where(
-              Notif.cols.time,
-              '>',
-              toDbDateTime(new Date(lastSeenChatsRow.metaValue)),
-            );
-          }
-        })
+        .where(builder => (lastSeenChatsRow?.metaValue
+          ? builder.where(
+            Notif.cols.time,
+            '>',
+            toDbDateTime(new Date(lastSeenChatsRow.metaValue)),
+          )
+          : builder
+        ))
         .limit(9),
       otherNotifs: modelQuery(Notif)
         .select([
@@ -69,15 +68,14 @@ defineApi(
           [Notif.cols.hasRead]: false,
         })
         .whereNot(Notif.cols.notifType, 'chatReplyCreated')
-        .where(builder => {
-          if (lastSeenNotifsRow?.metaValue) {
-            void builder.where(
-              Notif.cols.time,
-              '>',
-              toDbDateTime(new Date(lastSeenNotifsRow.metaValue)),
-            );
-          }
-        })
+        .where(builder => (lastSeenNotifsRow?.metaValue
+          ? builder.where(
+            Notif.cols.time,
+            '>',
+            toDbDateTime(new Date(lastSeenNotifsRow.metaValue)),
+          )
+          : builder
+        ))
         .limit(9),
     });
 
@@ -157,14 +155,14 @@ defineApi(
     },
   },
   function seenNotifsApi({ currentUserId, notifType }: ApiHandlerParams<'seenNotifs'>) {
-    void wrapPromise(
+    wrapPromise(
       UserMeta.insert({
         userId: currentUserId,
         metaKey: notifType === 'chats'
           ? LAST_SEEN_CHATS_TIME
           : LAST_SEEN_NOTIFS_TIME,
         metaValue: toDbDateTime(new Date()),
-      }, 'update'),
+      }, { onDuplicate: 'update' }),
       'warn',
       'Update last view notifs times',
     );
@@ -191,7 +189,7 @@ defineApi(
   async function readNotifApi({ notifId, currentUserId }: ApiHandlerParams<'readNotif'>) {
     const notif = await Notif.selectOne({ id: notifId });
     if (!notif || notif.userId !== currentUserId) {
-      throw new HandledError('Can\'t find notif.', 404);
+      throw new UserFacingError('Can\'t find notif.', 404);
     }
 
     await Notif.update({ id: notifId }, {

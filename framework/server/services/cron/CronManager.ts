@@ -8,15 +8,22 @@ const cronDefinitions: ObjectOf<{
 
 let queue: Bull.Queue<null> | undefined;
 
-async function startCronJob(name: string, handler: () => void | Promise<void>, repeat: string) {
-  await TS.defined(queue).process(name, wrapProcessJob(async () => {
-    const ret = handler();
-    if (ret instanceof Promise) {
-      await ret;
-    }
-  }));
+function startCronJob(name: string, handler: () => void | Promise<void>, repeat: string) {
+  wrapPromise(
+    TS.defined(queue).process(
+      name,
+      wrapProcessJob(async () => {
+        const ret = handler();
+        if (ret instanceof Promise) {
+          await ret;
+        }
+      }),
+    ),
+    'fatal',
+    `Define cron job ${name}`,
+  );
 
-  void wrapPromise(
+  wrapPromise(
     TS.defined(queue).add(name, null, {
       repeat: {
         cron: repeat,
@@ -26,7 +33,7 @@ async function startCronJob(name: string, handler: () => void | Promise<void>, r
       removeOnFail: true,
     }),
     'fatal',
-    `Start cron job ${name}`,
+    `Add cron job ${name}`,
   );
 }
 
@@ -40,11 +47,7 @@ export function defineCronJob(
   }
 
   if (queue) {
-    void wrapPromise(
-      startCronJob(name, handler, repeat),
-      'fatal',
-      `Define cron job ${name}`,
-    );
+    startCronJob(name, handler, repeat);
   } else {
     cronDefinitions[name] = {
       handler,
@@ -64,7 +67,6 @@ export async function startCronJobs() {
   await Promise.all(existingJobs.map(job => queue?.removeRepeatableByKey(job.key)));
 
   for (const [name, { handler, repeat }] of TS.objEntries(cronDefinitions)) {
-    // eslint-disable-next-line no-await-in-loop
-    await startCronJob(name, handler, repeat);
+    startCronJob(name, handler, repeat);
   }
 }

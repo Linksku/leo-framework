@@ -1,36 +1,20 @@
-import equal from 'fast-deep-equal';
-
 import EntitiesEventEmitter from 'services/EntitiesEventEmitter';
-import { mergeEntityExtras, mergeEntityDevRelations } from 'utils/models/mergeEntityProps';
+import {
+  hasNewOrChangedExtras,
+  hasNewIncludedRelations,
+  mergeEntityExtras,
+  mergeEntityIncludedRelations,
+} from 'utils/models/mergeEntityProps';
+import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 
 export type EntityEventHandler<T extends EntityType> = (ent: TypeToEntity<T>) => void;
 
-type EntitiesMap = Memoed<ObjectOf<
-  Memoed<Entity>
+export type EntitiesMap<T extends Entity = Entity> = Memoed<ObjectOf<
+  Memoed<T>
 >>;
 
 function getEventKey(action: EntityAction, type: EntityType, id?: EntityId) {
   return id ? `${action},${type},${id}` : `${action},${type}`;
-}
-
-function mapHasNewKeyOrChanged(
-  oldMap?: ObjectOf<any>,
-  newMap?: ObjectOf<any>,
-): boolean {
-  if (!newMap) {
-    return false;
-  }
-  if (!oldMap) {
-    return true;
-  }
-
-  for (const [k, newVal] of TS.objEntries(newMap)) {
-    if (!TS.hasOwnProp(oldMap, k) || !equal(oldMap[k], newVal)) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 export const [
@@ -39,13 +23,26 @@ export const [
   useMutateEntity,
 ] = constate(
   function EntitiesStore() {
-    const entitiesRef = useRef(
-      Object.create(null) as ObjectOf<EntitiesMap>);
+    const entitiesRef = useRef(deepFreezeIfDev(
+      Object.create(null) as ObjectOf<EntitiesMap>,
+    ));
 
-    if (!process.env.PRODUCTION && typeof window !== 'undefined') {
-      // @ts-ignore for debugging
-      window.entities = entitiesRef.current;
-    }
+    const getEntities = useCallback(
+      <T extends EntityType>(
+        type: T,
+      ) => (entitiesRef.current[type] ?? Object.create(null)) as Memoed<ObjectOf<
+        Memoed<TypeToEntity<T>>
+      >>,
+      [],
+    );
+
+    const getEntity = useCallback(
+      <T extends EntityType>(
+        type: T,
+        id: EntityId,
+      ) => (entitiesRef.current[type]?.[id] ?? null) as TypeToEntity<T> | null,
+      [],
+    );
 
     // entities: [{ id, type }]
     // forceOverwrite means replace object even if nothing changed
@@ -77,29 +74,29 @@ export const [
           Object.create(null) as EntitiesMap,
         );
 
-        const newEntity = entitiesMap[entity.id];
-        if (!newEntity
+        const oldEntity = entitiesMap[entity.id];
+        if (!oldEntity
           || forceOverwrite
-          || mapHasNewKeyOrChanged(newEntity.extras, entity.extras)
-          || !equal(newEntity.devRelations, entity.devRelations)) {
+          || hasNewOrChangedExtras(oldEntity.extras, entity.extras)
+          || hasNewIncludedRelations(oldEntity.includedRelations, entity.includedRelations)) {
           if (entitiesMap === entitiesRef.current[entity.type]) {
             entitiesMap = Object.assign(
               Object.create(null),
-              entitiesRef.current[entity.type],
+              entitiesMap,
             );
             newEntities[entity.type] = entitiesMap;
           }
 
-          if (newEntity?.extras) {
+          if (oldEntity?.extras) {
             entity.extras = mergeEntityExtras(
+              oldEntity.extras,
               entity.extras,
-              newEntity.extras,
             );
           }
-          if (newEntity?.devRelations) {
-            entity.devRelations = mergeEntityDevRelations(
-              entity.devRelations,
-              newEntity.devRelations,
+          if (oldEntity?.includedRelations) {
+            entity.includedRelations = mergeEntityIncludedRelations(
+              oldEntity.includedRelations,
+              entity.includedRelations,
             );
           }
           entitiesMap[entity.id] = entity;
@@ -108,7 +105,7 @@ export const [
       }
 
       if (changed.length) {
-        entitiesRef.current = newEntities;
+        entitiesRef.current = deepFreezeIfDev(newEntities);
 
         if (!process.env.PRODUCTION && typeof window !== 'undefined') {
           // @ts-ignore for debugging
@@ -130,7 +127,6 @@ export const [
       });
     }, [addOrUpdateEntities]);
 
-    // todo: mid/hard not all returned entities are newly created
     const createEntities = useCallback((entities: Entity | Entity[]) => {
       const changed = addOrUpdateEntities(entities, true);
 
@@ -171,11 +167,11 @@ export const [
       for (const entity of entitiesToDelete) {
         delete newEntities[entity.id];
       }
-      entitiesRef.current = Object.assign(
+      entitiesRef.current = deepFreezeIfDev(Object.assign(
         Object.create(null),
         entitiesRef.current,
         { [type]: newEntities },
-      );
+      ));
 
       if (!process.env.PRODUCTION && typeof window !== 'undefined') {
         // @ts-ignore for debugging
@@ -192,7 +188,7 @@ export const [
 
     type MutateEntityUpdates<T extends EntityType> = {
       action: Exclude<EntityAction, 'update' | 'delete'>,
-      entity: Optional<TypeToEntity<T>, 'id' | 'type'>,
+      entity: SetOptional<TypeToEntity<T>, 'id' | 'type'>,
     }
     | {
       action: 'update',
@@ -207,9 +203,8 @@ export const [
       updater: MutateEntityUpdates<T>
         | ((ent: TypeToEntity<T> | null) => MutateEntityUpdates<T>),
     ) {
-      const entity = entitiesRef.current[type]?.[id] ?? null as TypeToEntity<T> | null;
+      const entity = (entitiesRef.current[type]?.[id] ?? null) as TypeToEntity<T> | null;
       const updates = typeof updater === 'function'
-        // @ts-ignore unknown TS issue
         ? updater(entity)
         : updater;
 
@@ -270,8 +265,17 @@ export const [
       EntitiesEventEmitter.off(key, cb);
     }, []);
 
+    if (!process.env.PRODUCTION && typeof window !== 'undefined') {
+      // @ts-ignore for debugging
+      window.entities = entitiesRef.current;
+      // @ts-ignore for debugging
+      window.mutateEntity = mutateEntity;
+    }
+
     return useDeepMemoObj({
       entitiesRef,
+      getEntities,
+      getEntity,
       addEntityListener,
       removeEntityListener,
       loadEntities,

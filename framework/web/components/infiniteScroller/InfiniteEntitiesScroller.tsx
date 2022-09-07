@@ -1,6 +1,5 @@
 import type { PaginatedApiName, ShouldAddCreatedEntity } from 'utils/hooks/useApi/usePaginatedApi';
 import usePaginatedApi from 'utils/hooks/useApi/usePaginatedApi';
-import useTimeComponentPerf from 'utils/hooks/useTimeComponentPerf';
 import useVisibilityObserver from 'utils/hooks/useVisibilityObserver';
 
 import styles from './InfiniteEntitiesScrollerStyles.scss';
@@ -9,7 +8,7 @@ type Props<
   Type extends EntityType,
   Name extends PaginatedApiName,
   // eslint-disable-next-line @typescript-eslint/ban-types
-  OtherProps extends ObjectOf<any> = {}
+  OtherProps extends ObjectOf<any> = {},
 > = {
   apiName: Name,
   apiParams: ApiParams<Name>,
@@ -27,19 +26,19 @@ type Props<
 
 function InfiniteEntitiesScroller<
   Type extends EntityType,
-  Name extends PaginatedApiName
+  Name extends PaginatedApiName,
 >(props: Props<Type, Name> & { otherItemProps?: undefined }): ReactElement;
 
 function InfiniteEntitiesScroller<
   Type extends EntityType,
   Name extends PaginatedApiName,
-  OtherProps extends ObjectOf<any>
+  OtherProps extends ObjectOf<any>,
 >(props: Props<Type, Name, OtherProps> & { otherItemProps: Memoed<OtherProps> }): ReactElement;
 
 function InfiniteEntitiesScroller<
   Type extends EntityType,
   Name extends PaginatedApiName,
-  OtherProps
+  OtherProps extends ObjectOf<any>,
 >({
   apiName,
   apiParams,
@@ -51,8 +50,6 @@ function InfiniteEntitiesScroller<
   notFoundMsg = 'Nothing found',
   className,
 }: Props<Type, Name, OtherProps> & { otherItemProps?: OtherProps }) {
-  useTimeComponentPerf(`Scroller:${apiName}`);
-
   const {
     fetching,
     fetchingFirstTime,

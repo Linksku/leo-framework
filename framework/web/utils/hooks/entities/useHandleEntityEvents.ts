@@ -1,10 +1,13 @@
 import type { EntityEventHandler } from 'stores/EntitiesStore';
 
-export type EntityEvents = Memoed<{
+export type EntityEvent = {
   actionType: EntityAction,
   entityType: EntityType,
   id?: EntityId,
-}[]>;
+  cb?: EntityEventHandler<EntityType>,
+};
+
+export type EntityEvents = Memoed<EntityEvent[]>;
 
 export default function useHandleEntityEvents(
   events: EntityEvents,
@@ -15,11 +18,11 @@ export default function useHandleEntityEvents(
     const unsubs: (() => void)[] = [];
 
     if (events.length) {
-      for (const { actionType, entityType, id } of events) {
+      for (const { actionType, entityType, id, cb: cb2 } of events) {
         if (id) {
           unsubs.push(addEntityListener(actionType, entityType, id, cb));
         } else {
-          unsubs.push(addEntityListener(actionType, entityType, cb));
+          unsubs.push(addEntityListener(actionType, entityType, cb2 ?? cb));
         }
       }
     }

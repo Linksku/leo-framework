@@ -1,6 +1,4 @@
 .container {
-  @extend %maxWidthContainer;
-
   height: $headerHeight;
   max-height: $headerHeight;
   overflow: hidden;
@@ -8,31 +6,30 @@
   border-bottom: 1px solid $separatorColor;
   background-color: #fff;
   position: relative;
-  display: flex;
-  align-items: stretch;
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features
   touch-action: none;
 }
 
-.btnWrap {
+.inner {
+  @extend %maxWidthContainer;
+
+  height: $headerHeight;
   padding: 0 $containerPadLeftRight;
   display: flex;
-  align-items: center;
+  align-items: stretch;
 }
 
-.svgWrap {
-  padding: 0 $containerPadLeftRight;
+.btnWrap {
   display: flex;
   align-items: center;
+  min-width: 1.8rem;
 }
 
 .title {
   @extend %oneLine;
 
   flex-grow: 1;
-  font-weight: 500;
+  padding: 0 math.div($containerPadLeftRight, 2) 0 $containerPadLeftRight;
   height: $headerHeight;
-  display: flex;
-  align-items: center;
-  max-width: calc(100% - (#{$containerPadLeftRight} * 2 + 1.8rem) * 2);
+  line-height: $headerHeight;
+  font-weight: 500;
 }

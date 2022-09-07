@@ -4,10 +4,10 @@ import TerserPlugin from 'terser-webpack-plugin';
 import childProcess from 'child_process';
 import CopyPlugin from 'copy-webpack-plugin';
 
-import mergeReplaceArrays from './scripts/utils/mergeReplaceArrays';
-import transformWebpackCopied from './scripts/utils/transformWebpackCopied';
+import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
+import transformWebpackCopied from './scripts/helpers/transformWebpackCopied';
 import baseConfig from './webpack.web';
-import shortenCssClass from './scripts/shortenCssClass';
+import shortenCssClass from './scripts/helpers/shortenCssClass';
 
 if (!process.env.SERVER || !process.env.NODE_ENV) {
   throw new Error('Env vars not set.');
@@ -53,7 +53,7 @@ export default mergeReplaceArrays(baseConfig, {
                   {
                     options: {
                       modules: {
-                        getLocalIdent: shortenCssClass,
+                        getLocalIdent: shortenCssClass('./build/production/cssClasses'),
                       },
                     },
                   },
@@ -108,12 +108,6 @@ export default mergeReplaceArrays(baseConfig, {
         extractComments: false,
       }),
     ],
-    splitChunks: {
-      cacheGroups: {
-        default: false,
-        defaultVendors: false,
-      },
-    },
   },
   stats: {
     optimizationBailout: true,

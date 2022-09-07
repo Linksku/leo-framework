@@ -6,18 +6,6 @@ const frameworkModels = [
     replicaTable: 'notif',
   },
   {
-    type: 'report',
-    path: 'framework/server/models/report/Report.ts',
-    // Model: require('../../models/report/Report').default,
-    replicaTable: 'report',
-  },
-  {
-    type: 'reportsCountMV',
-    path: 'framework/server/models/report/ReportsCountMV.ts',
-    // Model: require('../../models/report/ReportsCountMV').default,
-    replicaTable: null,
-  },
-  {
     type: 'user',
     path: 'framework/server/models/user/User.ts',
     // Model: require('../../models/user/User').default,

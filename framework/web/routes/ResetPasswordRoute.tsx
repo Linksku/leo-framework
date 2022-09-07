@@ -34,7 +34,7 @@ function ResetPasswordRoute() {
     <StackWrapInner title="Reset Password">
       <div className={styles.container}>
         <form
-          onSubmit={handleSubmit(async data => resetPassword(data))}
+          onSubmit={handleSubmit(data => resetPassword(data))}
           className={styles.form}
         >
           <Input

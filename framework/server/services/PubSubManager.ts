@@ -15,14 +15,14 @@ const serverId = getServerId();
 
 const PubSubManager = {
   publish(eventType: string, data: string) {
-    const message: Message = {
+    const msg: Message = {
       data,
       serverId,
     };
-    void wrapPromise(
+    wrapPromise(
       redisPub.publish(
         `${REDIS_EVENT_NAME}${eventType}`,
-        JSON.stringify(message),
+        JSON.stringify(msg),
       ),
       'warn',
       `Publish pubsub event ${eventType}`,
@@ -35,7 +35,7 @@ const PubSubManager = {
   ) {
     if (!eventTypesToCbs[eventType]) {
       eventTypesToCbs[eventType] = new Set();
-      void wrapPromise(
+      wrapPromise(
         redisSub.subscribe(`${REDIS_EVENT_NAME}${eventType}`),
         'warn',
         `Subscribe pubsub event ${eventType}`,
@@ -57,7 +57,7 @@ const PubSubManager = {
     cbs.delete(cb);
     if (!cbs.size) {
       delete eventTypesToCbs[eventType];
-      void wrapPromise(
+      wrapPromise(
         redisSub.unsubscribe(`${REDIS_EVENT_NAME}${eventType}`),
         'warn',
         `Unsubscribe pubsub event ${eventType}`,
@@ -67,30 +67,31 @@ const PubSubManager = {
 
   unsubscribeAll(eventType: string) {
     delete eventTypesToCbs[eventType];
-    void wrapPromise(
+    wrapPromise(
       redisSub.unsubscribe(`${REDIS_EVENT_NAME}${eventType}`),
       'warn',
       `Unsubscribe all pubsub event ${eventType}`,
     );
   },
 
-  handleMessage(this: void, channel: string, messageStr: string) {
+  handleMessage(this: void, channel: string, msgStr: string) {
     if (!channel.startsWith(REDIS_EVENT_NAME)) {
       return;
     }
 
     const eventType = channel.slice(REDIS_EVENT_NAME.length);
-    let message: Message;
+    let msg: Message;
     try {
-      message = JSON.parse(messageStr);
+      msg = JSON.parse(msgStr);
     } catch {
+      ErrorLogger.error(new Error(`PubSubManager.handleMessage(${channel}): msg isn't JSON`), msgStr.slice(0, 100));
       return;
     }
 
     const cbs = eventTypesToCbs[eventType];
-    if (message.serverId !== serverId && cbs) {
+    if (msg.serverId !== serverId && cbs) {
       for (const cb of cbs) {
-        cb(message.data);
+        cb(msg.data);
       }
     }
   },

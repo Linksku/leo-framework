@@ -64,12 +64,18 @@ function createThrottle(
       current.lastCtx = this;
       if (!current.timer) {
         if (allowSchedulingDuringDelay) {
-          current.timer = window.setTimeout(
-            run,
-            Math.max(0, timeout - (performance.now() - current.lastRunTime)),
-          );
+          const delay = Math.max(0, timeout - (performance.now() - current.lastRunTime));
+          if (delay === 0) {
+            run();
+          } else {
+            current.timer = window.setTimeout(run, delay);
+          }
         } else if (performance.now() - current.lastRunTime >= timeout) {
-          current.timer = window.setTimeout(run, timeout);
+          if (timeout === 0) {
+            run();
+          } else {
+            current.timer = window.setTimeout(run, timeout);
+          }
         }
       }
     };

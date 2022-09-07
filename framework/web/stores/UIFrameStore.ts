@@ -1,4 +1,5 @@
 import { useAnimatedValue } from 'utils/hooks/useAnimation';
+import { useAnimation } from 'utils/hooks/useAnimation';
 
 export const [
   UIFrameProvider,
@@ -8,6 +9,7 @@ export const [
   function UIFrameStore() {
     const [sidebarLoaded, setSidebarLoaded] = useState(false);
     const sidebarShownPercent = useAnimatedValue(0);
+    const [sidebarRef, sidebarStyle] = useAnimation<HTMLDivElement>();
 
     const reloadSpinnerDeg = useAnimatedValue(0);
     const reloadPage = useCallback((delay = 0) => {
@@ -30,8 +32,10 @@ export const [
     }, [reloadSpinnerDeg]);
 
     return useDeepMemoObj({
-      sidebarShownPercent,
       sidebarLoaded,
+      sidebarShownPercent,
+      sidebarRef,
+      sidebarStyle,
       showSidebar: useCallback(() => {
         sidebarShownPercent.setVal(100);
         setSidebarLoaded(true);

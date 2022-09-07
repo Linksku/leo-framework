@@ -12,6 +12,9 @@ export default function getValDbType<T extends ModelClass>(
   val: any,
 ): string {
   const colSchema = Model.getSchema()[col];
+  if (!colSchema) {
+    throw new Error(`getValDbType(${Model.name}, ${col}): schema not found`);
+  }
 
   if (colSchema.type === 'string' && colSchema.format === 'date') {
     return 'date';
@@ -21,7 +24,10 @@ export default function getValDbType<T extends ModelClass>(
     return 'timestamp';
   }
 
-  const colSchemaType = colSchema.type;
+  let colSchemaType = colSchema.type;
+  if (Array.isArray(colSchemaType) && colSchemaType.length === 2 && colSchemaType.includes('null')) {
+    colSchemaType = colSchemaType[0];
+  }
   if (colSchemaType && !Array.isArray(colSchemaType)) {
     const postgresType = TS.getProp(
       JSON_SCHEMA_TO_POSTGRES_TYPES,
@@ -35,5 +41,5 @@ export default function getValDbType<T extends ModelClass>(
     return 'timestamp';
   }
 
-  throw new Error(`getValDbType(${Model.name}, ${col}): unknown type for "${val}".`);
+  throw new ErrorWithCtx(`getValDbType(${Model.name}, ${col}): unknown type`, `val = ${val}`);
 }

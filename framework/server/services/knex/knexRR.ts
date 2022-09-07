@@ -45,7 +45,6 @@ const knexRR = Knex<any, any[]>({
         || process.env.IS_SERVER_SCRIPT
         || !sql
         || sql.startsWith('explain ')
-        || !sql.startsWith('select ')
         || rc?.profiling) {
         return;
       }
@@ -57,7 +56,7 @@ const knexRR = Knex<any, any[]>({
           knexRR.raw(sql, bindings).toString(),
         );
 
-        void knexRR.raw(`explain analyze ${sql}`, bindings)
+        knexRR.raw(`explain analyze ${sql}`, bindings)
           .then(
             results => {
               const rows = TS.assertType<{ 'QUERY PLAN': string }[]>(
@@ -71,11 +70,11 @@ const knexRR = Knex<any, any[]>({
                 printDebug(
                   rc ? `Slow RR Query ${rc.path}` : 'Slow RR Query',
                   'error',
-                  plan,
+                  `${sql}\n\nplan`,
                 );
               }
             },
-            () => {},
+            NOOP,
           );
       }
     },

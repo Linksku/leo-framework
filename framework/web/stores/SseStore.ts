@@ -2,6 +2,7 @@ import SseEventEmitter from 'services/SseEventEmitter';
 import serializeEvent, { unserializeEvent } from 'utils/serializeEvent';
 import { API_URL } from 'settings';
 import useHandleApiEntities from 'utils/hooks/useApi/useHandleApiEntities';
+import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 
 export const [
   SseProvider,
@@ -20,8 +21,8 @@ export const [
       sessionId: null as string | null,
     });
     const { authToken } = useAuthStore();
-    const { addRelationsConfigs } = useApiStore();
-    const handleApiEntities = useHandleApiEntities(addRelationsConfigs, true);
+    const { addRelationConfigs, refetch } = useApiStore();
+    const handleApiEntities = useHandleApiEntities(addRelationConfigs, true);
 
     const { fetchApi: sseSubscribe } = useDeferredApi(
       'sseSubscribe',
@@ -61,7 +62,7 @@ export const [
             .filter(sub => !ref.current.defaultSubbed.has(sub))
             .map(sub => unserializeEvent(sub));
           if (events.length) {
-            void sseSubscribe({
+            sseSubscribe({
               sessionId: ref.current.sessionId,
               events,
             });
@@ -79,18 +80,13 @@ export const [
       };
     }, [sseSubscribe, closeSse]);
 
-    const { refetch } = useApi('sseOtp', {}, {
+    useApi('sseOtp', {}, {
       shouldFetch: !!authToken,
       onFetch({ otp }) {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         createEventSource(otp);
       },
-      swrConfig: {
-        refreshInterval: 24 * 60 * 60 * 1000,
-        revalidateIfStale: false,
-        revalidateOnFocus: false,
-        revalidateOnReconnect: false,
-      },
+      refetchOnFocus: false,
     });
 
     const createEventSource = useCallback((otp: string | null) => {
@@ -130,7 +126,7 @@ export const [
         const { name, params } = unserializeEvent(data.eventType);
         batchedUpdates(() => {
           handleApiEntities(data);
-          SseEventEmitter.emit(name, data.data, params);
+          SseEventEmitter.emit(name, deepFreezeIfDev(data.data), params);
         });
       });
 
@@ -138,11 +134,11 @@ export const [
         ref.current.readyState = EventSource.OPEN;
       });
 
-      source.addEventListener('error', err => {
+      source.addEventListener('error', event => {
         // Error event doesn't contain additional info.
-        ErrorLogger.warn(
-          err instanceof ErrorEvent ? err.error : new Error('SseStore: error event'),
-        );
+        if (event instanceof ErrorEvent) {
+          ErrorLogger.warn(event.error);
+        }
 
         closeSse();
 
@@ -154,7 +150,7 @@ export const [
         }
 
         ref.current.reconnectTimer = window.setTimeout(
-          refetch,
+          () => refetch('sseOtp', {}),
           timeout,
         );
         ref.current.numReconnects++;
@@ -162,7 +158,7 @@ export const [
       });
     }, [closeSse, handleApiEntities, refetch]);
 
-    const addSubscription = useCallback((name: string, params: Memoed<Pojo>) => {
+    const addSubscription = useCallback((name: string, params: Memoed<JsonObj>) => {
       const event = serializeEvent(name, params);
       const hasSubbed = ref.current.subscriptions.has(event);
       ref.current.subscriptions.add(event);
@@ -173,14 +169,14 @@ export const [
       } else if (ref.current.readyState === EventSource.OPEN
         && !hasSubbed
         && ref.current.sessionId) {
-        void sseSubscribe({
+        sseSubscribe({
           sessionId: ref.current.sessionId,
           events: [{ name, params }],
         });
       }
     }, [authToken, createEventSource, sseSubscribe]);
 
-    const removeSubscription = useCallback((name: string, params: Memoed<Pojo>) => {
+    const removeSubscription = useCallback((name: string, params: Memoed<JsonObj>) => {
       const event = serializeEvent(name, params);
       const hasSubbed = ref.current.subscriptions.has(event);
       ref.current.subscriptions.delete(serializeEvent(name, params));
@@ -191,7 +187,7 @@ export const [
       } else if (ref.current.readyState === EventSource.OPEN
         && ref.current.sessionId
         && hasSubbed) {
-        void sseUnsubscribe({
+        sseUnsubscribe({
           sessionId: ref.current.sessionId,
           events: [{ name, params }],
         });

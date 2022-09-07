@@ -23,25 +23,25 @@
 }
 
 @mixin ltXs {
-  @media (max-width: $screenXs - 1px) {
+  @media (max-width: #{$screenXs - 1px}) {
     @content;
   }
 }
 
 @mixin ltSm {
-  @media (max-width: $screenSm - 1px) {
+  @media (max-width: #{$screenSm - 1px}) {
     @content;
   }
 }
 
 @mixin ltMd {
-  @media (max-width: $screenMd - 1px) {
+  @media (max-width: #{$screenMd - 1px}) {
     @content;
   }
 }
 
 @mixin ltLg {
-  @media (max-width: $screenLg - 1px) {
+  @media (max-width: #{$screenLg - 1px}) {
     @content;
   }
 }
@@ -74,5 +74,11 @@
 
   @include optionalAtRoot(':-ms-input-placeholder') {
     @content;
+  }
+}
+
+@mixin fadeIn {
+  :global {
+    animation-name: keyframesFadeIn;
   }
 }

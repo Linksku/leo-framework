@@ -2,6 +2,7 @@ import useMountedState from 'utils/hooks/useMountedState';
 
 import useLatest from 'utils/hooks/useLatest';
 import { useThrottle } from 'utils/throttle';
+import useWindowEvent from 'utils/hooks/useWindowEvent';
 
 import styles from './WindowedInfiniteScrollerColumnStyles.scss';
 
@@ -16,7 +17,7 @@ export type Item = {
 
 export type ItemRendererProps<
   // eslint-disable-next-line @typescript-eslint/ban-types
-  OtherProps extends ObjectOf<any> = {}
+  OtherProps extends ObjectOf<any> = {},
 > = {
   otherItemProps?: Memoed<OtherProps>,
   ItemRenderer: React.MemoExoticComponent<React.ComponentType<{
@@ -41,6 +42,7 @@ type ListItemProps = {
   scrollParentRelative: Memoed<(px: number) => void>,
 } & ItemRendererProps;
 
+// todo: mid/easy scroll to newly added list item
 function WindowedInfiniteScrollerListItem({
   id,
   idx,
@@ -129,8 +131,10 @@ function WindowedInfiniteScrollerListItem({
     >
       {visible
         ? (
-          <div ref={handleInnerLoad}>
-            {/* @ts-ignore no idea */}
+          <div
+            ref={handleInnerLoad}
+            className={styles.listItemInner}
+          >
             <ItemRenderer
               itemId={id}
               prevItemId={prevId}
@@ -183,7 +187,16 @@ export default function WindowedInfiniteScrollerColumn({
     elemToId: new Map() as Map<HTMLDivElement, EntityId>,
     curVisibleIds: new Set<EntityId>(initialVisibleIds),
     // todo: low/hard maybe split this into separate IntersectionObservers in each item
-    observer: new IntersectionObserver(entries => {
+    observer: null as IntersectionObserver | null,
+  })));
+  const { innerContainerRef } = useRouteStore();
+
+  useLayoutEffect(() => {
+    if (ref.current.observer) {
+      return;
+    }
+
+    ref.current.observer = new IntersectionObserver(entries => {
       if (!isMounted()) {
         return;
       }
@@ -235,13 +248,17 @@ export default function WindowedInfiniteScrollerColumn({
           }
         });
       }
-    }),
-  })));
+    }, {
+      root: innerContainerRef.current,
+      rootMargin: '500px',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [innerContainerRef.current]);
 
   const handleItemMount = useCallback((item: Item) => {
     latestRef.current.idToItem.set(item.id, item);
     ref.current.elemToId.set(item.elem, item.id);
-    ref.current.observer.observe(item.elem);
+    TS.notNull(ref.current.observer).observe(item.elem);
   }, [latestRef]);
 
   const handleItemInnerLoad = useCallback((id: EntityId, height: number | null) => {
@@ -257,7 +274,7 @@ export default function WindowedInfiniteScrollerColumn({
   const handleItemUnmount = useCallback((id: EntityId) => {
     const item = latestRef.current.idToItem.get(id);
     if (item) {
-      ref.current.observer.unobserve(item.elem);
+      TS.notNull(ref.current.observer).unobserve(item.elem);
       ref.current.elemToId.delete(item.elem);
       latestRef.current.idToItem.delete(item.id);
     }
@@ -284,13 +301,7 @@ export default function WindowedInfiniteScrollerColumn({
     }),
   );
 
-  useEffect(() => {
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [handleResize]);
+  useWindowEvent('resize', handleResize);
 
   return (
     <>
@@ -317,7 +328,14 @@ export default function WindowedInfiniteScrollerColumn({
       ))}
 
       {spinnerShown && !hasCompleted && (
-        <div className={styles.spinner}>
+        <div
+          key={[...ref.current.curVisibleIds].join(',')}
+          className={styles.spinner}
+          style={{
+            paddingTop: reverse ? 100 : undefined,
+            paddingBottom: reverse ? undefined : 100,
+          }}
+        >
           <Spinner />
         </div>
       )}

@@ -14,9 +14,12 @@ type Props = {
 export default function SearchForm({ onSubmit, throttleTimeout = 1000 }: Props) {
   const { register, handleSubmit } = useForm({
     reValidateMode: 'onBlur',
+    defaultValues: {
+      query: '',
+    },
   });
 
-  const _handleSubmit = useThrottle(
+  const _handleSubmit = handleSubmit(useThrottle(
     ({ query }) => {
       onSubmit(query);
     },
@@ -25,11 +28,11 @@ export default function SearchForm({ onSubmit, throttleTimeout = 1000 }: Props) 
       allowSchedulingDuringDelay: true,
     }),
     [onSubmit],
-  );
+  ));
 
   return (
     <form
-      onSubmit={handleSubmit(_handleSubmit)}
+      onSubmit={_handleSubmit}
     >
       <Input
         name="query"
@@ -37,12 +40,13 @@ export default function SearchForm({ onSubmit, throttleTimeout = 1000 }: Props) 
         suffix={(
           <SearchSvg
             className={styles.icon}
-            onClick={handleSubmit(_handleSubmit)}
+            onClick={_handleSubmit}
           />
         )}
         register={register}
         autoCapitalize="none"
         autoCorrect="off"
+        className={styles.input}
       />
     </form>
   );

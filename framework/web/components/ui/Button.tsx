@@ -1,5 +1,6 @@
 import styles from './ButtonStyles.scss';
 
+// todo: low/easy multiline vs single line buttons
 type Props = {
   Component?: 'span' | 'div' | 'input' | 'button',
   color?: string,
@@ -22,31 +23,38 @@ type Props = {
   & React.InputHTMLAttributes<HTMLInputElement>
   & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
-// todo: low/mid add Button size
 // todo: low/easy add loading state: disabled with spinner icon
-export default function Button({
-  Component = 'span',
-  color,
-  className,
-  label,
-  labelClassName,
-  LeftSvg,
-  RightSvg,
-  leftSvgClassName,
-  rightSvgClassName,
-  outline = false,
-  borderless = false,
-  fullWidth = false,
-  // todo: mid/mid consolidate links: Button, a, navigateToHome
-  href,
-  onClick,
-  disabled = false,
-  active = false,
-  small = false,
-  ...props
-}: Props) {
-  if (!process.env.PRODUCTION && Component === 'input' && label) {
-    throw new Error('Button: input can\'t have label, use value.');
+function Button(
+  {
+    Component = 'span',
+    color,
+    className,
+    label,
+    labelClassName,
+    LeftSvg,
+    RightSvg,
+    leftSvgClassName,
+    rightSvgClassName,
+    outline,
+    borderless = false,
+    fullWidth = false,
+    href,
+    onClick,
+    disabled = false,
+    active = false,
+    small = false,
+    children,
+    ...props
+  }: Props,
+  ref?: React.ForwardedRef<HTMLElement>,
+) {
+  if (!process.env.PRODUCTION) {
+    if (Component === 'input' && label) {
+      throw new Error('Button: input can\'t have label, use value.');
+    }
+    if (children) {
+      throw new Error('Button: use label instead of children.');
+    }
   }
 
   const inner = LeftSvg || label || RightSvg
@@ -86,6 +94,8 @@ export default function Button({
   if (!href) {
     return (
       <Component
+        // @ts-ignore ref type
+        ref={ref}
         className={cn(styles.btn, className, {
           [styles.outline]: outline,
           [styles.borderless]: borderless,
@@ -110,6 +120,8 @@ export default function Button({
 
   return (
     <Link
+      // @ts-ignore ref type
+      ref={ref}
       href={href}
       className={cn(styles.btn, className, {
         [styles.outline]: outline,
@@ -129,3 +141,5 @@ export default function Button({
     </Link>
   );
 }
+
+export default React.forwardRef(Button);

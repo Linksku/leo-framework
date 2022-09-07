@@ -1,65 +1,56 @@
 import ImageSvg from 'fontawesome5/svgs/regular/image.svg';
 
+import FixedRatioContainer, { Props as FixedRatioContainerProps } from './FixedRatioContainer';
+
 import styles from './ImageStyles.scss';
 
 type Props = {
   url?: string | null,
-  height?: number | string,
-  width?: number | string,
-  heightPercent?: number,
-  widthPercent?: number,
+  alt?: string,
+  fit?: 'cover' | 'contain' | 'fill',
   defaultSvg?: React.SVGFactory,
-  className?: string,
-};
+  svgPadding?: number | string,
+  svgFill?: string,
+  borderRadius?: number,
+} & FixedRatioContainerProps;
 
 export default function Image({
   url,
-  height,
-  width,
-  heightPercent,
-  widthPercent,
+  alt,
+  fit = 'cover',
   defaultSvg,
-  className,
+  svgPadding = '10%',
+  svgFill,
+  borderRadius,
+  ...containerProps
 }: Props) {
-  const dims: {
-    height: string | undefined,
-    width: string | undefined,
-    paddingBottom: string | undefined,
-  } = {
-    height: undefined,
-    width: undefined,
-    paddingBottom: undefined,
-  };
-  if (height && width) {
-    dims.height = typeof height === 'number' ? `${height}px` : height;
-    dims.width = typeof width === 'number' ? `${width}px` : width;
-    dims.paddingBottom = '0';
-  } else if (heightPercent && widthPercent) {
-    dims.width = `${widthPercent}%`;
-    dims.paddingBottom = `${heightPercent / widthPercent * 100}%`;
-  }
-
   if (url) {
     return (
-      <div
-        className={cn(styles.img, className)}
-        style={{
-          backgroundImage: `url(${url})`,
-          ...dims,
-        }}
-      />
+      <FixedRatioContainer {...containerProps}>
+        <img
+          src={url}
+          alt={alt}
+          className={styles.img}
+          style={{
+            objectFit: fit,
+          }}
+        />
+      </FixedRatioContainer>
     );
   }
 
   const Svg = defaultSvg ?? ImageSvg;
   return (
-    <div
-      className={cn(styles.svgOuter, className)}
-      style={dims}
+    <FixedRatioContainer
+      {...containerProps}
+      padding={svgPadding ?? containerProps.padding}
     >
-      <div className={styles.svgInner}>
-        <Svg />
-      </div>
-    </div>
+      <Svg
+        className={styles.svg}
+        style={{
+          fill: svgFill,
+        }}
+      />
+    </FixedRatioContainer>
   );
 }

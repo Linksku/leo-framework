@@ -43,7 +43,7 @@ const SchemaConstants = TS.literal({
   pojo: {
     type: 'object',
     properties: {},
-    tsType: 'Pojo',
+    tsType: 'JsonObj',
   },
   timestamp: datetime,
   timestampDefaultNow: {
@@ -95,8 +95,7 @@ const SchemaConstants = TS.literal({
 type SchemaConstantsType = typeof SchemaConstants;
 
 for (const val of Object.values(SchemaConstants)) {
-  // @ts-ignore type might be overridden
-  if (val.orNull) {
+  if (TS.hasProp(val, 'orNull')) {
     continue;
   }
 

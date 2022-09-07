@@ -5,20 +5,23 @@ $screenMd: 768px;
 $screenLg: 1200px;
 
 // Basics.
-$primaryColor: #2196f3;
-$fadedPrimaryColorBg: color.scale($primaryColor, $saturation: -10%, $lightness: 50%);
-$fadedPrimaryColorText: color.scale($primaryColor, $saturation: -60%, $lightness: -10%);
-$linkColor: $primaryColor;
-
 $textColor: #333;
 $lightTextColor: #666;
 $fadedTextColor: #999;
+
+$primaryColor: #2196f3;
+$fadedPrimaryColorBg: color.scale($primaryColor, $saturation: -10%, $lightness: 50%);
+$fadedPrimaryColorText: color.scale(
+  color.mix($primaryColor, $lightTextColor, $weight: 30%),
+  $lightness: 15%
+);
+$linkColor: $primaryColor;
 
 $fontFamily: roboto, helvetica, sans-serif;
 $headingFontFamily: roboto, helvetica, sans-serif;
 
 $separatorColor: #eaeaea;
-$homeBackgroundColor: #f8f8f8;
+$greyBackgroundColor: #f8f8f8;
 
 $zIndexDropdown: 100;
 $zIndexSticky: 200;
@@ -40,6 +43,7 @@ $inputPlaceholderColor: $fadedTextColor;
 
 // Layout.
 $bodyMinWidth: 280px;
+$bodyMinHeight: 300px;
 $containerMaxWidth: $screenLg;
 $containerPadLeftRight: 1rem;
 $sidebarMinWidth: 250px;

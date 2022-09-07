@@ -10,6 +10,7 @@ type Props = {
   deletedItemIds: Set<EntityId>,
   initialId?: EntityId,
   reverse: boolean,
+  addToEnd: boolean,
   hasCompleted: boolean,
   completedMsg: ReactNode,
   columns: number,
@@ -25,6 +26,7 @@ function WindowedInfiniteScroller({
   deletedItemIds,
   initialId,
   reverse,
+  addToEnd,
   hasCompleted,
   completedMsg,
   columns,
@@ -43,7 +45,13 @@ function WindowedInfiniteScroller({
     columnItemIds,
     idToItem,
     initialVisibleIds,
-  } = useItemIdsToColumns(origItemIds, addedItemIds, deletedItemIds, columns);
+  } = useItemIdsToColumns({
+    origItemIds,
+    addedItemIds,
+    deletedItemIds,
+    columns,
+    addToEnd,
+  });
 
   const scrollParentRelative = useCallback((px: number) => {
     if (containerRef.current) {

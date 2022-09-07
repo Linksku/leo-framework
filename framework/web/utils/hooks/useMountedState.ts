@@ -1,4 +1,4 @@
-export default function useMountedState(): () => boolean {
+export default function useMountedState(): Memoed<() => boolean> {
   const mountedRef = useRef<boolean>(false);
   const getMountedState = useCallback(() => mountedRef.current, []);
 

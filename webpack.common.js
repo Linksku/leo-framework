@@ -30,7 +30,6 @@ for (const k of ENV_KEYS) {
   ENV_OBJ[k] = process.env[k] || '';
 }
 
-// todo: mid/hard memory usage.
 export default {
   mode: 'development',
   module: {

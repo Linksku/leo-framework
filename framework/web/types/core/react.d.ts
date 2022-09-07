@@ -2,26 +2,22 @@ type ReactNode = React.ReactNode;
 type ReactElement = React.ReactElement;
 type SetState<T> = Memoed<React.Dispatch<React.SetStateAction<T>>>;
 
-type StaticTypes = SetState<any>
-  | React.MutableRefObject<any>
-  | React.SVGFactory
-  // todo: low/easy this was needed for old TS, might be fixed in new version
-  | (React.SVGFactory | undefined);
-
+// eslint-disable-next-line @typescript-eslint/naming-convention
 class __MEMOED {
   private __MEMOED = true;
 }
 
-// todo: low/mid: maybe fork constate to add memoed
 type Memoed<T> = T extends Primitive ? T
   : T extends __MEMOED ? T
   : T & __MEMOED;
 
-type MemoedTypes = Primitive
-  | StaticTypes
+type StableTypes = Primitive
+  | ComponentType<any>
+  | React.MutableRefObject<any>
+  | React.SVGFactory
   | __MEMOED;
 
-type MemoDependencyList = ReadonlyArray<MemoedTypes>;
+type MemoDependencyList = ReadonlyArray<StableTypes>;
 
 // Doesn't work with generics: https://stackoverflow.com/questions/51300602
 type MemoObjShallow<Obj extends ObjectOf<any>> = {
@@ -39,6 +35,28 @@ type MemoDeep<T> =
     : { [K in keyof T]: MemoDeep<T[K]> }
   >;
 
+declare namespace React {
+  function memo<P extends object>(
+    Component: FunctionComponent<P>,
+    propsAreEqual?: (prevProps: Readonly<P>, nextProps: Readonly<P>) => boolean
+  ): NamedExoticComponent<{
+    [K in keyof P]: P[K] extends StableTypes
+      ? P[K]
+      : Memoed<P[K]>;
+  }>;
+  function memo<T extends ComponentClass<any>, P extends ComponentProps<T>>(
+    Component: T,
+    propsAreEqual?: (
+      prevProps: Readonly<P>,
+      nextProps: Readonly<P>,
+    ) => boolean
+  ): MemoExoticComponent<ComponentClass<{
+    [K in keyof P]: P[K] extends StableTypes
+      ? P[K]
+      : Memoed<P[K]>;
+  }>>;
+}
+
 // Change type to enable noImpicitAny
 // https://stackoverflow.com/questions/69703041/enable-noimplicitany-for-functions-wrapped-with-usecallback
 declare function useCallback<T extends (...args: any[]) => any>(
@@ -54,8 +72,11 @@ declare function useMemo<T>(
 declare function useState<S>(
   initialState: S | (() => S),
 ): [
-  // todo: low/mid add readonly
-  Memoed<S>,
+  Memoed<
+    S extends Primitive ? S
+    : (keyof S) extends never ? S
+    : MemoObjShallow<S>
+  >,
   SetState<S>,
 ];
 

@@ -25,7 +25,7 @@
   svg {
     height: 1.6rem;
     width: 1.6rem;
-    fill: $fadedTextColor;
+    fill: $lightTextColor;
     transition: fill 0.2s;
   }
 }
@@ -46,11 +46,11 @@
   height: 0;
   overflow: hidden;
   transition: opacity 0.4s;
-  opacity: 0;
+  filter: opacity(0);
 }
 
 .optionsShown {
-  opacity: 1;
+  filter: opacity(100%);
 }
 
 .option {

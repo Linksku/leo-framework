@@ -18,6 +18,7 @@ package-lock.json
 # Framework
 /.env
 /app/.env
+/app/server/.migrationState.json
 
 # Generated
 /stats.json

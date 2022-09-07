@@ -1,3 +1,5 @@
+import deepFreezeIfDev from 'utils/deepFreezeIfDev';
+
 function setItem(key: string, val: any, raw?: boolean) {
   try {
     window.localStorage.setItem(
@@ -27,7 +29,7 @@ export default function useLocalStorage<T>(
     let parsed: T | null = null;
     try {
       val = window.localStorage.getItem(key);
-      parsed = opts?.raw || !val ? val : JSON.parse(val);
+      parsed = deepFreezeIfDev(opts?.raw || !val ? val : JSON.parse(val));
     } catch {}
 
     if (parsed && validator(parsed)) {

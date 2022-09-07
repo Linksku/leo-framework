@@ -99,6 +99,9 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
         alias = matches[1];
       }
     }
+    if (!process.env.PRODUCTION && col.includes(' ')) {
+      throw new Error(`coalesce: invalid column "${col}"`);
+    }
     return this.select(raw('coalesce(??, ?) ??', [col, defaultVal, alias ?? col]));
   }
 
@@ -118,7 +121,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     config = 'simple',
   ): this {
     return this.whereRaw(
-      `to_tsvector(?, ??) @@ ?::tsquery`,
+      'to_tsvector(?, ??) @@ ?::tsquery',
       [config, col, formatTsquery(query)],
     );
   }
@@ -129,7 +132,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     config = 'simple',
   ): this {
     return this.orWhereRaw(
-      `to_tsvector(?, ??) @@ ?::tsquery`,
+      'to_tsvector(?, ??) @@ ?::tsquery',
       [config, col, formatTsquery(query)],
     );
   }
@@ -157,8 +160,8 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
         `
           (select ${
             typeof cols === 'string'
-              ? `null ??`
-              : cols.map(_ => `null ??`).join(',')
+              ? 'null ??'
+              : cols.map(_ => 'null ??').join(',')
           } from generate_series(0, -1)) ??
         `,
         [
@@ -217,7 +220,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
   }
 
   // Can't use "where" with system_rows
-  tableSample(type: 'bernoulli' | 'system' | 'system_rows', arg: number): this {
-    return this.from(raw(`?? tablesample ${type}(?)`, [this.modelClass().tableName, arg]));
+  tableSample(type: 'bernoulli' | 'system' | 'system_rows', numRows: number): this {
+    return this.from(raw(`?? tablesample ${type}(?)`, [this.modelClass().tableName, numRows]));
   }
 }

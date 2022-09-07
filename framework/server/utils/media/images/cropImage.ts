@@ -12,7 +12,9 @@ export default async function cropImage(img: sharp.Sharp, {
   maxRatio?: number,
   fit?: keyof FitEnum,
 }) {
-  const { height, width } = await img.metadata();
+  const { height, width, orientation } = await img.metadata();
+  // Sharp doesn't use EXIF orientation https://sharp.pixelplumbing.com/api-input#metadata
+  const isRotated90Deg = orientation && orientation >= 5;
   if (!height || !width) {
     throw new Error('Invalid image.');
   }
@@ -26,12 +28,14 @@ export default async function cropImage(img: sharp.Sharp, {
   return {
     img: height === newHeight && width === newWidth
       ? img
-      : img.resize({
-        height: newHeight,
-        width: newWidth,
-        fit,
-      }),
-    height: newHeight,
-    width: newWidth,
+      : img
+        .resize({
+          height: newHeight,
+          width: newWidth,
+          fit,
+        })
+        .withMetadata(),
+    height: isRotated90Deg ? newWidth : newHeight,
+    width: isRotated90Deg ? newHeight : newWidth,
   };
 }

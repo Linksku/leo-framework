@@ -6,9 +6,10 @@ import { createRoot } from 'react-dom/client';
 
 import 'services/wdyr';
 import App from 'App';
-import fetcher from 'utils/fetcher';
-import preventClicksAfterMove from 'utils/preventClicksAfterMove';
-import setVhCssVar from 'utils/setVhCssVar';
+import fetcher from 'core/fetcher';
+import preventClicksAfterMove from 'core/preventClicksAfterMove';
+import iosSafariDisableGestures from 'core/iosSafariDisableGestures';
+import setVhCssVar from 'core/setVhCssVar';
 
 if (!process.env.PRODUCTION) {
   console.timeEnd('Imports');
@@ -21,10 +22,8 @@ window.addEventListener('unhandledrejection', e => {
   ErrorLogger.error(new Error(`unhandled rejection: ${e.reason}`));
 });
 
-document.addEventListener('gesturestart', e => e.preventDefault());
-document.addEventListener('gesturechange', e => e.preventDefault());
-
 preventClicksAfterMove();
+iosSafariDisableGestures();
 setVhCssVar();
 
 const tz = (new Date()).getTimezoneOffset() / 60;

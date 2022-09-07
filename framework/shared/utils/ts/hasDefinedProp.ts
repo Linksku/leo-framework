@@ -1,7 +1,7 @@
 function hasDefinedProp<
   Obj extends Partial<Record<PropertyKey, any>>,
   Prop extends PropertyKey,
-  UnionKeys extends AllKeys<Obj>
+  UnionKeys extends AllKeys<Obj>,
 >(
   obj: Obj,
   prop: Prop & (IsNarrowKey<Prop> extends true ? any : never),

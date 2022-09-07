@@ -6,17 +6,16 @@ export default async function deleteBTReplicationSlot(name: string) {
 
   await retry(
     async () => {
-      const { rows: activeSlots } = await knexBT.raw(`
-        SELECT slot_name, active_pid
-        FROM pg_replication_slots
-        WHERE active_pid IS NOT NULL AND slot_name LIKE ?
-      `, [name]);
+      const activeSlots = await knexBT('pg_replication_slots')
+        .select(['slot_name', 'active_pid'])
+        .whereNotNull('active_pid')
+        .whereLike('slot_name', name);
       return !activeSlots.length;
     },
     {
       times: 5,
       interval: 1000,
-      timeoutErr: `deleteBTReplicationSlot(${name}): slots are active`,
+      err: `deleteBTReplicationSlot(${name}): slots are active`,
     },
   );
 
@@ -28,9 +27,7 @@ export default async function deleteBTReplicationSlot(name: string) {
     );
   } */
 
-  await knexBT.raw(`
-    SELECT pg_drop_replication_slot(slot_name)
-    FROM pg_replication_slots
-    WHERE slot_name LIKE ?
-  `, [name]);
+  await knexBT('pg_replication_slots')
+    .select(raw('pg_drop_replication_slot(slot_name)'))
+    .whereLike('slot_name', name);
 }

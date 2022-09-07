@@ -2,7 +2,7 @@ import pick from 'lodash/pick';
 import omit from 'lodash/omit';
 
 import ucFirst from 'utils/ucFirst';
-import type { RelationsConfig } from './helpers/modelRelations';
+import type { ModelRelationsSpecs } from './helpers/modelRelations';
 import type { BuildClassConfig } from './buildClass';
 
 type ModelConfigStaticProps<Type> = {
@@ -12,8 +12,14 @@ type ModelConfigStaticProps<Type> = {
   jsonAttributes?: string[],
   uniqueIndexes?: (string | string[])[],
   normalIndexes?: (string | string[])[],
-  expressionIndexes?: string[],
-  relations?: RelationsConfig,
+  expressionIndexes?: ({
+    cols: string[],
+    expression: string,
+  } | {
+    col: string,
+    expression: string,
+  })[],
+  relations?: ModelRelationsSpecs,
 };
 
 const HANDLED_STATIC_PROPS = [
@@ -32,7 +38,7 @@ export type ModelConfig<
   // eslint-disable-next-line @typescript-eslint/ban-types
   StaticProps extends ObjectOf<any> = {},
   // eslint-disable-next-line @typescript-eslint/ban-types
-  Props extends ObjectOf<any> = {}
+  Props extends ObjectOf<any> = {},
 > = {
   staticProps: StaticProps,
   props: Props,
@@ -40,7 +46,7 @@ export type ModelConfig<
 
 // todo: mid/hard speed up TS by maybe generating classes
 export function processModelConfig<
-  Config extends ModelConfig<ModelType>
+  Config extends ModelConfig<ModelType>,
 >(config: Config): BuildClassConfig<
   Capitalize<Config['type']>,
   Config['staticProps']
@@ -67,6 +73,24 @@ export function processModelConfig<
   ]);
   if (Object.keys(unhandledConfig).length) {
     throw new Error(`processModelConfig(${config.type}): unhandled config: ${Object.keys(unhandledConfig).join(', ')}`);
+  }
+
+  for (const [idx, index] of config.uniqueIndexes.entries()) {
+    const arr = Array.isArray(index)
+      ? index
+      : [index];
+    for (const col of arr) {
+      const colSchema = config.schema[col];
+      if (!colSchema) {
+        throw new Error(`processModelConfig(${config.type}): no schema for "${col}"`);
+      }
+      // After adding "NULLS NOT DISTINCT" from PG 15, disallow nulls in unique
+
+      // Primary index
+      if (idx === 0 && colSchema.type !== 'number' && colSchema.type !== 'integer' && colSchema.type !== 'string') {
+        throw new Error(`processModelConfig(${config.type}): primary index columns must be number or string`);
+      }
+    }
   }
 
   return {

@@ -3,7 +3,7 @@ import type BaseModel from './Model';
 export type BuildClassConfig<
   Name extends string,
   StaticProps extends ObjectOf<any>,
-  Props extends ObjectOf<any>
+  Props extends ObjectOf<any>,
 > = {
   name: Name,
   staticProps: StaticProps,
@@ -14,7 +14,7 @@ export default function createClass<
   Name extends string,
   StaticProps extends ObjectOf<any>,
   Props extends ObjectOf<any>,
-  BaseClassType extends typeof BaseModel
+  BaseClassType extends typeof BaseModel,
 >(
   config: BuildClassConfig<Name, StaticProps, Props>,
   BaseClass: BaseClassType,
@@ -25,7 +25,7 @@ export default function createClass<
 
       for (const [k, v] of Object.entries(config.props)) {
         if (v !== undefined) {
-          // @ts-ignore wontfix key error
+          // @ts-ignore wontfix add key
           this[k] = v.bind(this);
         }
       }
@@ -37,7 +37,7 @@ export default function createClass<
   if (config.staticProps) {
     for (const [k, v] of Object.entries(config.staticProps)) {
       if (v !== undefined) {
-        // @ts-ignore wontfix key error
+        // @ts-ignore wontfix add key
         Cls[k] = v;
       }
     }

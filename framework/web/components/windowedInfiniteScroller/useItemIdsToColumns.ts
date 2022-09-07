@@ -6,12 +6,19 @@ import type { Item } from './WindowedInfiniteScrollerColumn';
 
 const sumArr = (arr: number[]) => arr.reduce((sum, num) => sum + num, 0);
 
-export default function useItemIdsToColumns(
+export default function useItemIdsToColumns({
+  origItemIds,
+  addedItemIds,
+  deletedItemIds,
+  columns,
+  addToEnd,
+}: {
   origItemIds: EntityId[],
   addedItemIds: EntityId[],
   deletedItemIds: Set<EntityId>,
   columns: number,
-) {
+  addToEnd: boolean,
+}) {
   const prevAddedItemsCount = usePrevious(addedItemIds.length) ?? 0;
   const prevDeletedItemsCount = usePrevious(deletedItemIds.size) ?? 0;
   const prevOrigItemsCount = usePrevious(origItemIds.length) ?? 0;
@@ -20,14 +27,18 @@ export default function useItemIdsToColumns(
     idToItem: new Map() as Map<EntityId, Item>,
     initialVisibleIds: new Set<EntityId>(),
   }), s => {
-    const columnItemIds = s.columnItemIds.map(ids => [...ids]);
+    const columnItemIds = s.columnItemIds.map(ids => ids.slice());
     const idToItem = new Map(s.idToItem);
     const initialVisibleIds = new Set(s.initialVisibleIds);
 
     // Add addedItemIds to columnItemIds.
     if (addedItemIds.length > prevAddedItemsCount) {
       for (let i = prevAddedItemsCount; i < addedItemIds.length; i++) {
-        columnItemIds[0].unshift(addedItemIds[i]);
+        if (addToEnd) {
+          columnItemIds[0].push(addedItemIds[i]);
+        } else {
+          columnItemIds[0].unshift(addedItemIds[i]);
+        }
         initialVisibleIds.add(addedItemIds[i]);
       }
     } else if (!process.env.PRODUCTION && addedItemIds.length < prevAddedItemsCount) {

@@ -3,7 +3,7 @@ import useDeepMemoObj from 'utils/hooks/useDeepMemoObj';
 
 export default function useSse(
   eventName: string,
-  eventParams: Pojo = {},
+  eventParams: JsonObj = {},
   {
     isReady = true,
   } = {},
@@ -11,7 +11,7 @@ export default function useSse(
   const { addSubscription, removeSubscription } = useSseStore();
   const paramsMemo = useDeepMemoObj(eventParams);
 
-  // todo: low/mid multiple components using same event.
+  // todo: low/mid don't remove subscription if another component needs it
   useEffectIfReady(() => {
     addSubscription(eventName, paramsMemo);
 

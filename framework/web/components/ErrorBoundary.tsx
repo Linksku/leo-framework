@@ -2,6 +2,7 @@ import ErrorPage from 'components/ErrorPage';
 
 type Props = {
   renderFallback?: (err: Error) => ReactElement,
+  className?: string,
 };
 
 type State = {
@@ -21,7 +22,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   }
 
   override render() {
-    const { children, renderFallback } = this.props;
+    const { children, renderFallback, className } = this.props;
     const { err } = this.state;
 
     if (err) {
@@ -32,6 +33,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         <ErrorPage
           title="Error"
           content={err.message}
+          className={className}
         />
       );
     }

@@ -2,6 +2,9 @@ import type { EntityEvents } from 'utils/hooks/entities/useHandleEntityEvents';
 import { useThrottle } from 'utils/throttle';
 import useHandleEntityEvent from 'utils/hooks/entities/useHandleEntityEvent';
 import useHandleEntityEvents from 'utils/hooks/entities/useHandleEntityEvents';
+import useUpdate from 'utils/hooks/useUpdate';
+import usePrevious from 'utils/hooks/usePrevious';
+import shallowEqual from 'utils/shallowEqual';
 
 export type PaginatedApiName = {
   [Name in ApiName]: ApiParams<Name> extends {
@@ -17,45 +20,61 @@ export type ShouldAddCreatedEntity<T extends EntityType>
 
 export default function usePaginatedApi<
   Type extends EntityType,
-  Name extends PaginatedApiName
+  Name extends PaginatedApiName,
 >(
   entityType: Type,
   apiName: Name,
   apiParams: ApiParams<Name>,
   {
+    apiKey,
     throttleTimeout,
     shouldAddCreatedEntity,
-    apiRevalidateOnEvents,
+    refetchApiOnEvents,
+    addToEnd,
   }: {
+    apiKey?: string,
     throttleTimeout?: number,
     shouldAddCreatedEntity?: ShouldAddCreatedEntity<Type>,
-    apiRevalidateOnEvents?: EntityEvents,
+    refetchApiOnEvents?: EntityEvents,
+    addToEnd?: boolean,
   } = {},
 ) {
+  const { refetch, getApiState } = useApiStore();
   const [{
     fetchedEntityIds,
     addedEntityIds,
     deletedEntityIds,
-    cursor,
     hasCompleted,
-  }, setState] = useState({
-    fetchedEntityIds: EMPTY_ARR as EntityId[],
-    addedEntityIds: EMPTY_ARR as EntityId[],
-    deletedEntityIds: new Set() as Set<EntityId>,
-    cursor: undefined as string | undefined,
-    hasCompleted: false,
+  }, setState] = useState(() => {
+    const apiState = getApiState(apiName, apiParams, true);
+    return {
+      fetchedEntityIds: (apiState.data?.entityIds ?? EMPTY_ARR) as EntityId[],
+      addedEntityIds: EMPTY_ARR as EntityId[],
+      deletedEntityIds: new Set() as Set<EntityId>,
+      hasCompleted: !!(apiState.data && (apiState.data.hasCompleted || !apiState.data.cursor)),
+    };
   });
   const ref = useRef({
+    cursor: undefined as string | undefined,
     nextCursor: undefined as string | undefined,
   });
+  const update = useUpdate();
 
-  const { fetching, fetchingFirstTime, refetch } = useApi<Name>(
+  const prevName = usePrevious(apiName);
+  const prevParams = usePrevious(apiParams);
+  if (apiName !== prevName || !shallowEqual(apiParams, prevParams)) {
+    ref.current.cursor = undefined;
+  }
+
+  const fullParams = {
+    // todo: low/mid memoize apiParams
+    ...apiParams,
+    cursor: ref.current.cursor,
+  };
+  const fullParamsMemoed = useDeepMemoObj(fullParams) as Memoed<ApiParams<Name>>;
+  const { fetching, fetchingFirstTime } = useApi<Name>(
     apiName,
-    // @ts-ignore idk
-    {
-      ...apiParams,
-      cursor,
-    },
+    fullParamsMemoed,
     {
       onFetch(_data: any) {
         // todo: low/mid maybe create a superclass for scroller APIs.
@@ -79,6 +98,7 @@ export default function usePaginatedApi<
             fetchedEntityIds: newIds.length
               // todo: high/hard after refetching, if new entities were loaded, they have the wrong position
               // e.g. new replies on top instead of bottom
+              // also, if order changed, it still shows old order
               ? [...s.fetchedEntityIds, ...newIds]
               : s.fetchedEntityIds,
             hasCompleted: data.hasCompleted || !data.cursor,
@@ -90,19 +110,15 @@ export default function usePaginatedApi<
         setState(s => (s.hasCompleted ? s : { ...s, hasCompleted: true }));
       },
       shouldFetch: !hasCompleted,
-      revalidateOnEvents: apiRevalidateOnEvents,
+      key: apiKey,
+      refetchOnMount: true,
     },
   );
 
   const fetchNext = useThrottle(
     () => {
-      if (ref.current.nextCursor) {
-        setState(s => (
-          s.cursor === ref.current.nextCursor
-            ? s
-            : ({ ...s, cursor: ref.current.nextCursor })
-        ));
-      }
+      ref.current.cursor = ref.current.nextCursor;
+      update();
     },
     useDeepMemoObj({
       timeout: throttleTimeout ?? 100,
@@ -142,20 +158,24 @@ export default function usePaginatedApi<
   useHandleEntityEvent('create', entityType, handleCreateEntity);
   useHandleEntityEvent('delete', entityType, handleDeleteEntity);
 
-  useHandleEntityEvents(apiRevalidateOnEvents ?? EMPTY_ARR, useCallback(() => {
+  // todo: mid/mid clear cache if events occurred while component was unmounted
+  useHandleEntityEvents(refetchApiOnEvents ?? EMPTY_ARR, useCallback(() => {
     setState(s => ({
       ...s,
       fetchedEntityIds: EMPTY_ARR,
       cursor: undefined,
       hasCompleted: false,
     }));
-    refetch();
-  }, [refetch]));
+    refetch(apiName, fullParamsMemoed);
+  }, [refetch, apiName, fullParamsMemoed]));
 
+  const allEntityIds = addToEnd
+    ? [...addedEntityIds, ...fetchedEntityIds]
+    : [...fetchedEntityIds, ...addedEntityIds];
   return {
     fetching,
     fetchingFirstTime,
-    entityIds: [...addedEntityIds, ...fetchedEntityIds].filter(id => !deletedEntityIds.has(id)),
+    entityIds: allEntityIds.filter(id => !deletedEntityIds.has(id)),
     fetchedEntityIds,
     addedEntityIds,
     deletedEntityIds,

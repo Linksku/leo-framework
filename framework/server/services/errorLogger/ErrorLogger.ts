@@ -1,11 +1,24 @@
-import { SeverityLevel } from '@sentry/types';
+import type { SeverityLevel } from '@sentry/types';
 import * as Sentry from '@sentry/node';
+import chalk from 'chalk';
 
-const _log = (level: SeverityLevel, err: unknown, ctx: string) => {
+const THROTTLE_DURATION = 1000;
+const lastLoggedTimes: ObjectOf<number> = Object.create(null);
+
+// todo: low/mid look into Pino
+const _log = (level: SeverityLevel, err: unknown, debugCtx: string) => {
+  const msg = err instanceof Error
+    ? err.message
+    : (typeof err === 'string' ? err : null);
+  const lastLoggedTime = msg && lastLoggedTimes[msg];
+  if (msg && lastLoggedTime && performance.now() - lastLoggedTime < THROTTLE_DURATION) {
+    return;
+  }
+
   try {
     Sentry.withScope(scope => {
       scope.setLevel(level);
-      scope.setExtra('ctx', ctx);
+      scope.setExtra('ctx', debugCtx);
 
       // eslint-disable-next-line global-require
       require('./setErrorLoggerScope').default(scope);
@@ -24,23 +37,30 @@ const _log = (level: SeverityLevel, err: unknown, ctx: string) => {
 };
 
 export default {
-  warn(err: unknown, ctx = '') {
+  warn(err: Error, debugCtx = '') {
     if (!process.env.PRODUCTION) {
-      printDebug(`${ctx} ${err instanceof Error ? err.stack || err : err}`, 'warn');
+      printDebug(`${debugCtx} ${err instanceof Error ? err.stack || err : err}`, 'warn');
     }
-    _log('warning', err, ctx);
+    _log('warning', err, debugCtx);
   },
 
-  error(err: unknown, ctx = '') {
-    printDebug(`${ctx} ${err instanceof Error ? err.stack || err : err}`, 'error');
-    _log('error', err, ctx);
+  error(err: Error, debugCtx = '') {
+    printDebug(`${debugCtx} ${err instanceof Error ? err.stack || err : err}`, 'error');
+    _log('error', err, debugCtx);
   },
 
-  fatal(err: unknown, ctx = '') {
+  fatal(err: Error, debugCtx = '') {
     // eslint-disable-next-line no-console
-    printDebug(`${ctx} ${err instanceof Error ? err.stack || err : err}`, 'error');
-    _log('fatal', err, ctx);
+    console.log(chalk.red(`${debugCtx} ${err instanceof Error ? err.stack || err : err}`));
+    _log('fatal', err, debugCtx);
     // eslint-disable-next-line unicorn/no-process-exit
     process.exit(1);
+  },
+
+  castError(err: unknown) {
+    if (err instanceof Error) {
+      return err;
+    }
+    return new Error(`Caught non-error: ${err}`);
   },
 } as const;

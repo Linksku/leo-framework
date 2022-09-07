@@ -14,7 +14,7 @@ function _transformDateProps(
           const val = TS.getProp(ent, prop);
           if (val) {
             // new Date() gets timezone wrong if not specified.
-            // @ts-ignore adding new prop to ent
+            // @ts-ignore wontfix add key
             ent[prop] = dayjs(ent[prop]).toDate();
           }
         }
@@ -24,7 +24,7 @@ function _transformDateProps(
 }
 
 export default function useHandleApiEntities(
-  addRelationsConfigs: Memoed<(config: ApiRelationsConfigs) => void>,
+  addRelationConfigs: Memoed<(config: ApiRelationConfigs) => void>,
   allowPost = false,
 ) {
   const { loadEntities, createEntities, updateEntities, deleteEntities } = useEntitiesStore();
@@ -38,7 +38,7 @@ export default function useHandleApiEntities(
   }: MemoDeep<ApiSuccessResponse<any>>) => {
     if (!process.env.PRODUCTION) {
       const invalidEnt = [...entities, ...(createdEntities ?? []), ...(updatedEntities ?? [])]
-        .find(ent => !ent.id || !ent.type || TS.hasProp(ent, 'version') || TS.getProp(ent, 'status') === 'deleted');
+        .find(ent => !ent.id || !ent.type || TS.hasProp(ent, 'version') || TS.getProp(ent, 'isDeleted'));
       if (invalidEnt) {
         throw new Error(`useHandleApiEntities: invalid ent "${JSON.stringify(invalidEnt)}"`);
       }
@@ -82,7 +82,7 @@ export default function useHandleApiEntities(
     }
 
     if (meta?.relationConfigs) {
-      addRelationsConfigs(meta?.relationConfigs);
+      addRelationConfigs(meta?.relationConfigs);
     }
   }, [
     allowPost,
@@ -90,6 +90,6 @@ export default function useHandleApiEntities(
     updateEntities,
     loadEntities,
     deleteEntities,
-    addRelationsConfigs,
+    addRelationConfigs,
   ]);
 }

@@ -4,17 +4,21 @@ set -e
 
 set -o allexport; source app/env; set +o allexport
 
+export NODE_ENV=production
+export SERVER=production
+
 if [[ -n $(git log --oneline origin/master..HEAD) ]]; then
-  echo "Push latest commits"
+  echo "Push commits before deploying"
   exit 1
 fi
 
-scripts/build.sh
+SERVER=production scripts/build.sh
 
 rm build.zip -f
-zip -r build.zip build -x '*server/development*'
+zip -r build.zip build -x 'build/development*' -x 'build/production/server-script' -q
 
-for i in {1..3}; do scp -r build.zip "root@$REMOTE_IP:$REMOTE_ROOT_DIR" && break; done
+for i in {1..2}; do scp -r build.zip "root@$REMOTE_IP:$REMOTE_ROOT_DIR" && break; done
 GIT_REVS=$(git rev-list --count master)
-ssh "root@$REMOTE_IP" "cd $REMOTE_ROOT_DIR && scripts/post-deploy.sh $GIT_REVS"
+ssh "root@$REMOTE_IP" "source ~/.profile; cd $REMOTE_ROOT_DIR; scripts/post-deploy.sh $GIT_REVS"
+
 rm build.zip

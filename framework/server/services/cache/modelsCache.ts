@@ -1,8 +1,8 @@
 import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
-import getPartialUniqueIndexes from 'utils/models/getPartialUniqueIndexes';
+import getPartialAllUniqueIndexes from 'utils/models/getPartialAllUniqueIndexes';
 import getModelDataLoader from 'services/dataLoader/getModelDataLoader';
 import BaseRedisCache from './BaseRedisCache';
-import getModelCacheKey from './utils/getModelCacheKey';
+import { getModelCacheKey } from './utils/getModelCacheKey';
 
 const redisCache = new BaseRedisCache<Model | null>({
   redisNamespace: 'model',
@@ -25,7 +25,9 @@ const redisCache = new BaseRedisCache<Model | null>({
     try {
       const parsed = JSON.parse(json);
       return Model.fromCacheJson(parsed);
-    } catch {}
+    } catch {
+      ErrorLogger.error(new Error(`modelsCache(${key}): data isn't JSON`), json.slice(0, 100));
+    }
     return undefined;
   },
   lruMaxSize: 10_000,
@@ -35,62 +37,60 @@ async function set<T extends ModelClass>(
   Model: T,
   ent: ModelInstance<T>,
 ): Promise<void> {
-  if (!Model.cacheable) {
-    return;
-  }
-
   const allCacheKeys = Model.getUniqueIndexes()
     .map(index => getModelCacheKey(Model, index, ent));
-  await wrapPromise(
-    Promise.all(allCacheKeys.map(key => redisCache.set(key, ent))),
-    'warn',
-    `Failed to set ${Model.type} Redis cache`,
-  );
+  try {
+    await Promise.all(allCacheKeys.map(key => redisCache.set(key, ent, !Model.cacheable)));
+  } catch (err) {
+    ErrorLogger.warn(ErrorLogger.castError(err), `modelsCache.set(${Model.type})`);
+  }
 }
 
 async function setNull<T extends ModelClass>(
   Model: T,
   partial: ModelPartial<T>,
 ): Promise<void> {
-  if (!Model.cacheable) {
-    return;
-  }
-
-  const allCacheKeys = getPartialUniqueIndexes(Model, partial)
+  const allCacheKeys = getPartialAllUniqueIndexes(Model, partial)
     .map(index => getModelCacheKey(Model, index, partial));
-  await wrapPromise(
-    Promise.all(allCacheKeys.map(key => redisCache.set(key, null))),
-    'warn',
-    `Failed to set ${Model.type} Redis cache`,
-  );
+  try {
+    await Promise.all(allCacheKeys.map(key => redisCache.set(key, null, !Model.cacheable)));
+  } catch (err) {
+    ErrorLogger.warn(ErrorLogger.castError(err), `modelsCache.setNull(${Model.type})`);
+  }
 }
 
 export default {
-  // todo: mid/mid fetch from db if it's expiring soon
   async get<T extends ModelClass>(
     Model: T,
     partial: ModelPartial<T>,
   ): Promise<ModelInstance<T> | null> {
-    if (!Model.cacheable) {
-      return getModelDataLoader(Model).load(partial);
-    }
-
     const uniqueIndex = getPartialUniqueIndex(Model, partial);
     if (!uniqueIndex) {
       return null;
     }
 
     const cacheKey = getModelCacheKey(Model, uniqueIndex, partial);
-    const fromRedis = (await redisCache.get(cacheKey)) as Nullish<ModelInstance<T>>;
+    const fromRedis = (await redisCache.get(
+      cacheKey,
+      !Model.cacheable,
+    )) as Nullish<ModelInstance<T>>;
     if (fromRedis !== undefined) {
       return fromRedis;
     }
 
     const instance = await getModelDataLoader(Model).load(partial);
     if (instance) {
-      void set(Model, instance);
+      wrapPromise(
+        set(Model, instance),
+        'warn',
+        `modelsCache.get(${Model.type}) with instance`,
+      );
     } else {
-      void setNull(Model, partial);
+      wrapPromise(
+        setNull(Model, partial),
+        'warn',
+        `modelsCache.get(${Model.type}) without instance`,
+      );
     }
 
     return instance;
@@ -126,12 +126,12 @@ export default {
       return;
     }
 
-    const allCacheKeys = getPartialUniqueIndexes(Model, partial)
+    const allCacheKeys = getPartialAllUniqueIndexes(Model, partial)
       .map(index => getModelCacheKey(Model, index, partial));
-    await wrapPromise(
-      Promise.all(allCacheKeys.map(key => redisCache.del(key))),
-      'warn',
-      `Failed to invalidate ${Model.type} Redis cache`,
-    );
+    try {
+      await Promise.all(allCacheKeys.map(key => redisCache.del(key)));
+    } catch (err) {
+      ErrorLogger.warn(ErrorLogger.castError(err), `modelsCache.invalidate(${Model.type})`);
+    }
   },
 };

@@ -1,3 +1,4 @@
+// todo: low/mid convert some scripts to google/zx
 import yargs from 'yargs';
 
 import 'helpers/initServer/initDotenv';
@@ -23,16 +24,15 @@ try {
 }
 
 if (promise && promise.then) {
-  promise
-    .then(() => {
-      // eslint-disable-next-line unicorn/no-process-exit
-      process.exit(0);
-    })
-    .catch((err: Error) => {
-      printDebug(err, 'error');
-      // eslint-disable-next-line unicorn/no-process-exit
-      process.exit(1);
-    });
+  try {
+    await promise;
+    // eslint-disable-next-line unicorn/no-process-exit
+    process.exit(0);
+  } catch (err) {
+    printDebug(err, 'error');
+    // eslint-disable-next-line unicorn/no-process-exit
+    process.exit(1);
+  }
 } else {
   // eslint-disable-next-line unicorn/no-process-exit
   process.exit(0);

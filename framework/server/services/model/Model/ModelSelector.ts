@@ -3,12 +3,10 @@ import zipObject from 'lodash/zipObject';
 import modelsCache from 'services/cache/modelsCache';
 import modelIdsCache from 'services/cache/modelIdsCache';
 import validateUniquePartial from 'utils/models/validateUniquePartial';
-import validateNotUniquePartial from 'utils/models/validateNotUniquePartial';
-import getIndexesFirstColumn from 'utils/models/getIndexesFirstColumn';
-import getModelIndexDataLoader from 'services/dataLoader/getModelIndexDataLoader';
+import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
+import selectRelatedWithAssocs from 'utils/models/selectRelatedWithAssocs';
+import { warnIfRecentlyWritten } from 'services/model/helpers/lastWriteTimeHelpers';
 import BaseModel from './BaseModel';
-import selectRelated from './methods/selectRelated';
-import includeRelated from './methods/includeRelated';
 
 type OrderByColumns<T extends ModelClass> = {
   column: ModelKey<T>,
@@ -33,25 +31,29 @@ function sortEntities<T extends ModelClass>(
 }
 
 export default class ModelSelector extends BaseModel {
-  static async selectOne<T extends ModelClass>(
+  static async selectOne<
+    T extends ModelClass,
+    P extends ModelPartial<T>,
+  >(
     this: T,
-    _partial: Nullable<ModelPartial<T>>,
+    partial: ModelPartialDefined<T, P>,
   ): Promise<ModelInstance<T> | null> {
-    if (!process.env.PRODUCTION && _partial instanceof BaseModel) {
+    if (!process.env.PRODUCTION && partial instanceof BaseModel) {
       throw new Error(`${this.name}.selectOne: partial is a model instance.`);
     }
-    for (const val of Object.values(_partial)) {
-      // Only truthy values can be unique keys.
-      if (!val) {
+    for (const kv of Object.entries(partial)) {
+      if (kv[1] === undefined) {
+        if (!process.env.PRODUCTION) {
+          ErrorLogger.warn(new Error(`${this.name}.selectOne: partial has undefined value`), JSON.stringify(partial));
+        }
         return null;
       }
     }
-    const partial = _partial as ModelPartial<T>;
 
     validateUniquePartial(this, partial);
 
-    const cached = await modelsCache.get(this, partial);
-    return cached as ModelInstance<T> | null;
+    await warnIfRecentlyWritten(this.type);
+    return modelsCache.get(this, partial);
   }
 
   // May return fewer ents than keys.
@@ -62,7 +64,7 @@ export default class ModelSelector extends BaseModel {
   ): Promise<ModelInstance<T>[]> {
     if (!process.env.PRODUCTION
       && values.length !== (new Set(values.map(v => JSON.stringify(v)))).size) {
-      throw new Error(`${this.type}.selectBulk: duplicate values in ${JSON.stringify(values)}`);
+      throw new ErrorWithCtx(`${this.type}.selectBulk: duplicate values`, JSON.stringify(values).slice(0, 100));
     }
 
     const partials = typeof colOrIndex === 'string'
@@ -78,61 +80,73 @@ export default class ModelSelector extends BaseModel {
           }
           return partial;
         });
-    const entities = await Promise.all(partials.map(
-      partial => this.selectOne(partial),
-    ));
+    const entities = await Promise.all(partials.map(partial => this.selectOne(
+      // @ts-ignore wontfix undefined hack
+      partial,
+    )));
     return TS.filterNulls(entities);
   }
 
   // Order isn't guaranteed.
-  // todo: mid/mid add limit to selectIdColumn
-  static async selectIdColumn<T extends ModelClass>(
+  // todo: mid/mid add limit to selectPrimaryColumn
+  static async selectPrimaryColumn<
+    T extends ModelClass,
+    P extends ModelPartial<T>,
+  >(
     this: T,
-    column: ModelKey<T>,
-    partial: ModelPartial<T>,
-  ): Promise<EntityId[]> {
-    if (Object.keys(partial).length !== 1) {
-      // Temp.
-      throw new Error(`${this.type}.selectIdColumn: only single column is allow`);
-    }
-    if (!getIndexesFirstColumn(this).has(column)) {
-      throw new Error(`${this.type}.selectIdColumn: can't use ${column} as condition`);
-    }
-
-    const ids = await modelIdsCache.get(this, column, partial);
+    partial: ModelPartialDefined<T, P>,
+  ): Promise<(T['primaryIndex'] extends any[] ? (number | string)[] : number | string)[]> {
+    await warnIfRecentlyWritten(this.type);
+    const ids = await modelIdsCache.get(this, partial);
     if (!process.env.PRODUCTION && ids.length > 1000) {
-      throw new Error(`${this.type}.selectIdColumn: ${ids.length} rows: ${Object.keys(partial)}`);
+      throw new ErrorWithCtx(`${this.type}.selectPrimaryColumn: > 1000 rows`, Object.keys(partial).join(','));
     }
-    return ids;
+    return ids as (T['primaryIndex'] extends any[] ? (number | string)[] : number | string)[];
   }
 
   // todo: mid/hard add pagination to selectAll
-  static async selectAll<T extends ModelClass>(
+  static async selectAll<
+    T extends ModelClass,
+    P extends ModelPartial<T>,
+  >(
     this: T,
-    partial: ModelPartial<T>,
+    partial: ModelPartialDefined<T, P>,
     {
       orderByColumns,
+      allowUnique,
     }: {
       orderByColumns?: OrderByColumns<T>,
+      allowUnique?: boolean,
     } = {},
   ): Promise<ModelInstance<T>[]> {
     if (TS.hasProp(partial, 'id')) {
+      if (allowUnique) {
+        const ent = await this.selectOne(partial as ModelPartialDefined<T, P>);
+        return ent ? [ent] : [];
+      }
       throw new Error(`${this.type}.selectAll: can't use id in partial`);
     }
-    validateNotUniquePartial(this, partial);
 
-    let idPartials: ModelPartial<T>[];
-    const idColumn = this.getIdColumn();
-    if (typeof idColumn === 'string') {
-      const ids = await this.selectIdColumn(idColumn, partial);
-      idPartials = ids.map(id => ({
-        [idColumn]: id,
-      } as unknown as ModelPartial<T>));
-    } else {
-      // todo: mid/mid cache multi-column ids
-      const rows = await getModelIndexDataLoader(this, idColumn).load(partial);
-      idPartials = rows.map(r => zipObject(idColumn, r) as unknown as ModelPartial<T>);
+    if (getPartialUniqueIndex(this, partial)) {
+      if (allowUnique) {
+        const ent = await this.selectOne(partial);
+        return ent ? [ent] : [];
+      }
+      throw new Error(`${this.type}.selectAll: can't use unique partial for ${this.type}: ${Object.keys(partial).join(',')}`);
     }
+
+    const ids = await this.selectPrimaryColumn(partial);
+    const idPartials = ids.map(id => {
+      if (Array.isArray(id) && Array.isArray(this.primaryIndex)) {
+        return zipObject(this.primaryIndex, id) as unknown as ModelPartialDefined<T, P>;
+      }
+      if (!Array.isArray(id) && !Array.isArray(this.primaryIndex)) {
+        return {
+          [this.primaryIndex]: id,
+        } as unknown as ModelPartialDefined<T, P>;
+      }
+      throw new Error(`${this.type}.selectAll: invalid ids`);
+    });
 
     const entities = TS.filterNulls(await Promise.all(idPartials.map(
       idPartial => this.selectOne(idPartial),
@@ -143,32 +157,29 @@ export default class ModelSelector extends BaseModel {
     return entities;
   }
 
-  static selectRelated = selectRelated;
-
-  static includeRelated = includeRelated;
-
-  selectedRelated<
-    T extends Model,
-    RelationName extends keyof ModelTypeToRelations<T['cls']['type']> & string
+  static async selectRelated<
+    T extends ModelClass,
+    RelationName extends keyof ModelRelationTypes<T['type']> & string,
   >(
     this: T,
-    name: RelationName,
-  ): Promise<ModelTypeToRelations<T['cls']['type']>[RelationName]['tsType']> {
-    return selectRelated
-      // @ts-ignore idk
-      .call(this.constructor as T['cls'], this, name);
+    entity: ModelInstance<T>,
+    fullName: RelationName,
+  ): Promise<ModelRelationTypes<T['type']>[RelationName]> {
+    const { related } = await selectRelatedWithAssocs(this, entity, fullName);
+    // @ts-ignore wontfix relation
+    return related;
   }
 
-  includeRelated<
+  async selectRelated<
     T extends Model,
-    RelationName extends keyof ModelTypeToRelations<T['cls']['type']> & string,
-    NestedRelation extends ModelNestedRelations[T['cls']['type']]
+    RelationName extends keyof ModelRelationTypes<T['cls']['type']> & string,
   >(
     this: T,
-    names: (RelationName | NestedRelation | null)[],
-  ) {
-    // @ts-ignore idk TS this
-    return includeRelated
-      .call(this.constructor as T['cls'], [this], names);
+    fullName: RelationName,
+  ): Promise<ModelRelationTypes<T['cls']['type']>[RelationName]> {
+    // @ts-ignore wontfix relation
+    const { related } = await selectRelatedWithAssocs(this.constructor, this, fullName);
+    // @ts-ignore wontfix relation
+    return related;
   }
 }

@@ -1,5 +1,3 @@
-import EventEmitter from 'wolfy87-eventemitter';
-
 import styleDeclarationToCss from 'utils/styleDeclarationToCss';
 import getFrameDuration from 'utils/getFrameDuration';
 
@@ -18,19 +16,19 @@ export type AnimationStyle = (
   keyframeVals?: number[],
 ) => Style;
 
-// todo: low/mid change eventemitter to something lightweight
-export class AnimatedValue extends EventEmitter {
+export class AnimatedValue {
   lastSetValTime = performance.now();
   lastDuration = 0;
   startVal: number;
   finalVal: number;
   debugName: string;
+  listeners: Set<() => void>;
 
   constructor(defaultVal: number, debugName?: string) {
-    super();
     this.startVal = defaultVal;
     this.finalVal = defaultVal;
     this.debugName = debugName ?? '';
+    this.listeners = new Set();
   }
 
   getCurVal() {
@@ -58,7 +56,9 @@ export class AnimatedValue extends EventEmitter {
     this.lastDuration = duration;
 
     if (isAnimating || finalVal !== curVal) {
-      this.emit('valChanged');
+      for (const fn of this.listeners) {
+        fn();
+      }
     }
   }
 
@@ -141,15 +141,18 @@ export function useAnimation<T extends HTMLElement>() {
       clearTimeout(ref.current.nextKeyframeTimer);
       ref.current.nextKeyframeTimer = null;
     }
+    if (ref.current.nextKeyframeRaf !== null) {
+      cancelAnimationFrame(ref.current.nextKeyframeRaf);
+      ref.current.nextKeyframeRaf = null;
+    }
 
-    ref.current.nextKeyframeRaf = null;
     if (!animationRef.current || !ref.current.valToStyle || !ref.current.animatedVal) {
       return;
     }
 
     if (!ref.current.hadFirstTransition) {
       // Force repaint.
-      // eslint-disable-next-line no-unused-expressions
+      // eslint-disable-next-line no-unused-expressions, @typescript-eslint/no-unused-expressions
       animationRef.current.scrollTop;
       ref.current.hadFirstTransition = true;
     }
@@ -179,7 +182,9 @@ export function useAnimation<T extends HTMLElement>() {
           MIN_TIMEOUT,
         )
         : window.setTimeout(
-          () => requestAnimationFrame(renderNextKeyframe),
+          () => {
+            ref.current.nextKeyframeRaf = requestAnimationFrame(renderNextKeyframe);
+          },
           nextKeyframe.duration - (getFrameDuration() / 2),
         );
     }
@@ -200,7 +205,7 @@ export function useAnimation<T extends HTMLElement>() {
   ) => {
     if (!ref.current.hasInit) {
       ref.current.hasInit = true;
-      animatedVal.on('valChanged', renderNextKeyframe);
+      animatedVal.listeners.add(renderNextKeyframe);
 
       ref.current.animatedVal = animatedVal;
       ref.current.valToStyle = valToStyle;
@@ -211,6 +216,8 @@ export function useAnimation<T extends HTMLElement>() {
         ref.current.keyframeVals,
         ref.current.lastKeyframeVal,
       );
+    } else if (!process.env.PRODUCTION && ref.current.animatedVal !== animatedVal) {
+      throw new Error('animationStyle: animatedVal changed after init');
     }
 
     return getStyle(
@@ -233,19 +240,28 @@ export function useAnimation<T extends HTMLElement>() {
           MIN_TIMEOUT,
         )
         : window.setTimeout(
-          () => requestAnimationFrame(renderNextKeyframe),
+          () => {
+            ref.current.nextKeyframeRaf = requestAnimationFrame(renderNextKeyframe);
+          },
           nextKeyframe.duration - (getFrameDuration() / 2),
         );
     }
   });
 
   useEffect(() => {
-    ref.current.animatedVal?.on('valChanged', renderNextKeyframe);
+    ref.current.animatedVal?.listeners.add(renderNextKeyframe);
 
     return () => {
       ref.current.hasInit = false;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      ref.current.animatedVal?.off('valChanged', renderNextKeyframe);
+      ref.current.animatedVal?.listeners.delete(renderNextKeyframe);
+
+      if (ref.current.nextKeyframeTimer !== null) {
+        clearTimeout(ref.current.nextKeyframeTimer);
+      }
+      if (ref.current.nextKeyframeRaf !== null) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        cancelAnimationFrame(ref.current.nextKeyframeRaf);
+      }
     };
   }, [renderNextKeyframe]);
 

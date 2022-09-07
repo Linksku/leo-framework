@@ -1,18 +1,9 @@
+// For VS Code
 {
-  "extends": "../../tsconfig-base.json",
-  "compilerOptions": {
-    "lib": ["dom", "dom.iterable"],
-    "jsx": "react",
-    "paths": {
-      "baseUrl": ["."],
-      "*": [
-        "framework/shared/*",
-        "framework/web/*",
-      ],
-    },
-    "rootDir": "../..",
-  },
+  "extends": "./tsconfig-build.json",
   "include": [
+    "../../app/web/types/__generated__",
+    "../../app/shared/types/__generated__",
     ".",
     "../shared",
   ],

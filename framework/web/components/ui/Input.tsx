@@ -79,11 +79,15 @@ function Input({
           }}
           onChange={e => {
             onChange?.(e);
-            void registerProps?.onChange(e);
+            if (registerProps) {
+              wrapPromise(registerProps.onChange(e), 'warn', 'Input.onChange');
+            }
           }}
           onBlur={e => {
             onBlur?.(e);
-            void registerProps?.onBlur(e);
+            if (registerProps) {
+              wrapPromise(registerProps.onBlur(e), 'warn', 'Input.onBlur');
+            }
           }}
           {...props}
         />

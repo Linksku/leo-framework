@@ -1,24 +1,31 @@
 import type { UseFormRegister, RegisterOptions } from 'react-hook-form';
 import TimesSvg from 'fontawesome5/svgs/solid/times-circle.svg';
 
+import fileToDataUrl from 'utils/fileToDataUrl';
+
 import styles from './MediaFileInputStyles.scss';
 
 type Props = {
-  acceptedTypes: string,
+  mediaType: 'image' | 'video' | 'both',
   defaultUrl?: string | null,
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>,
-  renderPreview?: (file: Memoed<File> | null, defaultUrl?: string | null) => ReactElement,
+  renderPreview: (props: {
+    file: Memoed<File> | null,
+    isLoadingImg: boolean,
+    imgUrl: string | null,
+    imgAspectRatio: number,
+  }) => ReactElement,
   className?: string,
   label?: string,
   clearField?: () => void,
   name?: string,
   register?: UseFormRegister<any>,
   registerOpts?: RegisterOptions<any>,
-} & React.LabelHTMLAttributes<HTMLLabelElement>;
+};
 
 // todo: high/veryhard edit uploaded image
 function MediaFileInput({
-  acceptedTypes,
+  mediaType,
   defaultUrl,
   inputProps,
   renderPreview,
@@ -28,23 +35,62 @@ function MediaFileInput({
   name,
   register,
   registerOpts,
-  ...props
 }: Props, ref?: React.ForwardedRef<HTMLInputElement>) {
-  const [file, setFile] = useState<File | null>(null);
-  const registerProps = register && name
-    ? register(name, registerOpts)
-    : null;
-
   if (!process.env.PRODUCTION && register && !clearField) {
     throw new Error('clearField is required for react-hook-form.');
   }
+
+  const [{ file, imgUrl, imgAspectRatio }, setState] = useStateStable({
+    file: null as File | null,
+    imgUrl: null as string | null,
+    imgAspectRatio: 1,
+  });
+  const isImg = (mediaType === 'image' || mediaType === 'both') && file?.type.startsWith('image/');
+  const lastImgRef = useRef(null as File | null);
+  const registerProps = register && name
+    ? register(name, registerOpts)
+    : null;
+  const showToast = useShowToast();
+
+  useEffect(() => {
+    if (isImg && file && !imgUrl && lastImgRef.current !== file) {
+      lastImgRef.current = file;
+      fileToDataUrl(
+        file,
+        url => {
+          if (!url) {
+            return;
+          }
+
+          const img = new Image();
+          img.addEventListener('load', () => {
+            setState({
+              imgUrl: url ?? null,
+              imgAspectRatio: img.width / img.height,
+            });
+          });
+          img.addEventListener('error', () => {
+            setState({
+              file: null,
+              imgUrl: null,
+              imgAspectRatio: 1,
+            });
+            showToast({
+              msg: 'Unable to load image',
+            });
+          });
+
+          img.src = url;
+        },
+      );
+    }
+  }, [file, imgUrl, setState, isImg, showToast]);
 
   return (
     <label
       className={cn(styles.container, className, {
         [styles.withLabel]: label,
       })}
-      {...props}
     >
       {label
         ? (
@@ -52,7 +98,14 @@ function MediaFileInput({
         )
         : null}
       <div className={styles.mediaWrap}>
-        {renderPreview ? renderPreview(file, defaultUrl) : null}
+        {renderPreview
+          ? renderPreview({
+            file,
+            isLoadingImg: !!(isImg && file && !imgUrl),
+            imgUrl,
+            imgAspectRatio,
+          })
+          : null}
         <input
           {...registerProps}
           ref={elem => {
@@ -65,21 +118,36 @@ function MediaFileInput({
             }
           }}
           type="file"
-          accept={acceptedTypes}
+          accept={
+            // todo: low/easy accepted types not working in Windows
+            mediaType === 'both'
+              ? 'image/*,video/*;capture=camera'
+              : (mediaType === 'image' ? 'image/*;capture=camera' : 'video/*;capture=camera')
+          }
           onChange={event => {
-            if (event.target.files?.length) {
-              setFile(event.target.files[0]);
+            const newFile = event.target.files?.[0];
+            if (!newFile) {
+              return;
+            }
+            if (!newFile.type
+              || (mediaType === 'image' && !newFile.type.startsWith('image/'))
+              || (mediaType === 'video' && !newFile.type.startsWith('video/'))) {
+              showToast({
+                msg: 'Unsupported file type',
+              });
             } else {
-              setFile(null);
-            }
+              setState({
+                file: newFile,
+                imgUrl: null,
+                imgAspectRatio: 1,
+              });
 
-            if (registerProps) {
-              void registerProps.onChange(event);
+              if (registerProps) {
+                wrapPromise(registerProps.onChange(event), 'warn', 'MediaFileInput.onChange');
+              }
             }
           }}
-          style={{
-            display: renderPreview ? 'none' : undefined,
-          }}
+          className={styles.input}
           {...inputProps}
         />
         {clearField && (file || defaultUrl)
@@ -90,7 +158,11 @@ function MediaFileInput({
                 event.stopPropagation();
                 event.preventDefault();
                 batchedUpdates(() => {
-                  setFile(null);
+                  setState({
+                    file: null,
+                    imgUrl: null,
+                    imgAspectRatio: 1,
+                  });
                   // react-hook-form doesn't automatically clear value.
                   clearField();
                 });

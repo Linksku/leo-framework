@@ -2,8 +2,8 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
 import path from 'path';
 
-import mergeReplaceArrays from './scripts/utils/mergeReplaceArrays';
-import transformWebpackCopied from './scripts/utils/transformWebpackCopied';
+import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
+import transformWebpackCopied from './scripts/helpers/transformWebpackCopied';
 import baseConfig from './webpack.web';
 
 export default mergeReplaceArrays(baseConfig, {

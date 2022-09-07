@@ -2,23 +2,34 @@ import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
 import modelsCache from 'services/cache/modelsCache';
 import modelIdsCache from 'services/cache/modelIdsCache';
 import knexBT from 'services/knex/knexBT';
+import { updateLastWriteTime } from 'services/model/helpers/lastWriteTimeHelpers';
+import waitForRRUpdate from 'utils/models/waitForRRUpdate';
 
 function insert<T extends EntityClass>(
   this: T,
   obj: EntityPartial<T>,
-  onDuplicate?: 'error' | 'update',
+  opts?: {
+    onDuplicate?: 'update' | 'ignore',
+    waitForRR?: boolean,
+  },
 ): Promise<EntityInstance<T>>;
 
 function insert<T extends EntityClass>(
   this: T,
   obj: EntityPartial<T>,
-  onDuplicate: 'ignore',
+  opts: {
+    onDuplicate: 'ignore',
+    waitForRR?: boolean,
+  },
 ): Promise<EntityInstance<T> | null>;
 
 async function insert<T extends EntityClass>(
   this: T,
   obj: EntityPartial<T>,
-  onDuplicate: 'error' | 'update' | 'ignore' = 'error',
+  { onDuplicate = 'error', waitForRR }: {
+    onDuplicate?: 'error' | 'update' | 'ignore',
+    waitForRR?: boolean,
+  } = {},
 ): Promise<EntityInstance<T> | null> {
   const uniqueIndex = getPartialUniqueIndex(this, obj);
   if (onDuplicate !== 'error' && !uniqueIndex) {
@@ -43,6 +54,10 @@ async function insert<T extends EntityClass>(
   // If there's an UniqueViolationError, don't try to fetch using unique key.
   // E.g. if 2 users create accounts using the same email, it'll fetch the other user's account.
   const row = await query;
+  if (!process.env.PRODUCTION) {
+    row.$validate();
+  }
+
   let inserted: EntityInstance<T> | null;
   if (row.id) {
     inserted = row;
@@ -58,11 +73,17 @@ async function insert<T extends EntityClass>(
         ? [
           modelsCache.handleInsert(this, inserted),
           modelIdsCache.handleInsert(this, inserted),
+          updateLastWriteTime(this.type),
         ]
         : [
           modelsCache.handleUpdate(this, inserted),
           modelIdsCache.handleUpdate(this, inserted),
+          updateLastWriteTime(this.type),
         ]);
+
+    if (waitForRR) {
+      await waitForRRUpdate(this, inserted.id, inserted.version);
+    }
   }
 
   return inserted;

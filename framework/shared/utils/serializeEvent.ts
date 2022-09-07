@@ -1,4 +1,4 @@
-export default function serializeEvent(name: string, params: Pojo = {}) {
+export default function serializeEvent(name: string, params: JsonObj = {}) {
   if (!process.env.PRODUCTION
     && (typeof params !== 'object' || Array.isArray(params))) {
     throw new Error(`serializeEvent: invalid params: ${JSON.stringify(params)}`);

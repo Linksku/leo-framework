@@ -30,9 +30,9 @@ function Textarea({
     : null;
   return (
     <WrapperComponent
-      className={cn(className, styles.inputWrap, {
+      className={cn(styles.inputWrap, {
         [styles.labelWrap]: label,
-      })}
+      }, className)}
     >
       {label
         ? (

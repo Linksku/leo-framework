@@ -24,6 +24,15 @@ declare global {
 
   type ModelPartial<T extends { Interface: IBaseModel }> = Partial<T['Interface']>;
 
+  type ModelPartialDefined<
+    T extends { Interface: IBaseModel },
+    P extends ModelPartial<T>,
+  > = P & (P extends any
+      ? {
+        [K in keyof P]: Defined<P[K]>;
+      }
+      : never);
+
   type ModelKey<T extends { Interface: IBaseModel }> = (keyof T['Interface']) & string;
 
   type ModelIndex<T extends { Interface: IBaseModel }> = ModelKey<T>[];
@@ -37,6 +46,12 @@ declare global {
   } & {
     [k in keyof T]: string;
   };
+
+  type ModelRelationTypes<T extends ModelType> = AllModelRelationsMap[T] extends any
+    ? {
+      [K in keyof AllModelRelationsMap[T]]: AllModelRelationsMap[T][K]['tsType'];
+    }
+    : never;
 
   type QueryBuilder<M extends Model, R = M[]> = CustomQueryBuilder<M, R>;
 }

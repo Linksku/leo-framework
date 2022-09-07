@@ -7,6 +7,7 @@ const MATCHES_CACHE: Map<
   string | RegExp,
   PathToMatches
 > = new Map();
+
 export default function pathToRoute(
   path: Nullish<string>,
 ): {

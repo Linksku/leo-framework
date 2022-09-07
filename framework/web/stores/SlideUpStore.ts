@@ -7,7 +7,7 @@ export const [
   useHideSlideUp,
 ] = constate(
   function SlideUpStore() {
-    const [state, setState] = useState({
+    const [state, setState] = useStateStable({
       shown: false,
       element: null as Memoed<ReactElement> | null,
     });
@@ -16,9 +16,9 @@ export const [
 
     const hideSlideUp = useCallback((instant?: boolean) => {
       if (instant) {
-        setState(s => (s.shown || s.element ? { ...s, shown: false, element: null } : s));
+        setState({ shown: false, element: null });
       } else {
-        setState(s => (s.shown ? { ...s, shown: false } : s));
+        setState({ shown: false });
       }
     }, [setState]);
 

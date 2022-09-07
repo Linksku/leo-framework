@@ -1,15 +1,13 @@
 import type { JSONSchemaDefinition } from 'objection';
 import { Model as ObjectionModel } from 'objection';
+import omit from 'lodash/omit';
+import uniq from 'lodash/uniq';
 
-import {
-  formatModel,
-  formatModelForApi,
-  formatModelPartialForDb,
-  parseModel,
-  parseModelPartialFromDb,
-} from 'utils/models/formatModelPartials';
+import { formatModel, parseModel } from 'utils/models/formatModelPartials';
+import modelInstanceToPojo from 'utils/models/modelInstanceToPojo';
 import isSchemaNullable from 'utils/models/isSchemaNullable';
-import { RelationsConfig, getRelationsMap } from '../helpers/modelRelations';
+import deepFreezeIfDev from 'utils/deepFreezeIfDev';
+import { ModelRelationsSpecs, getRelationsMap } from '../helpers/modelRelations';
 import AjvValidator from './AjvValidator';
 import CustomQueryBuilder from './CustomQueryBuilder';
 
@@ -101,13 +99,21 @@ class BaseModel extends ObjectionModel implements IBaseModel {
 
   static normalIndexes: (string | string[])[] = [];
 
-  static expressionIndexes: string[] = [];
+  static expressionIndexes: ({
+    cols: string[],
+    col?: undefined,
+    expression: string,
+  } | {
+    col: string,
+    cols?: undefined,
+    expression: string,
+  })[] = [];
 
-  static getPrimaryKey<T extends ModelClass>(this: T): ModelIndex<T> {
+  static get primaryIndex() {
     if (!this.uniqueIndexes.length) {
-      throw new Error(`${this.type}.getPrimaryKey: no unique indexes.`);
+      throw new Error(`${this.name}.primaryIndex: no unique indexes.`);
     }
-    return this.getUniqueIndexes()[0];
+    return this.uniqueIndexes[0];
   }
 
   // todo: low/easy turn methods into accessors or memoize
@@ -119,11 +125,11 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     return this.normalIndexes.map(idx => (Array.isArray(idx) ? idx : [idx])) as ModelIndex<T>[];
   }
 
-  static getIdColumn<T extends ModelClass>(this: T): ModelIndex<T> {
-    return this.idColumn as ModelIndex<T>;
+  static getPrimaryIndex<T extends ModelClass>(this: T): ModelIndex<T> {
+    return this.primaryIndex as ModelIndex<T>;
   }
 
-  static relations: RelationsConfig = {};
+  static relations: ModelRelationsSpecs = {};
 
   static get relationsMap() {
     return getRelationsMap(this as ModelClass, this.relations);
@@ -138,10 +144,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
   }
 
   static override get idColumn() {
-    if (!this.uniqueIndexes.length) {
-      throw new Error(`${this.name}.idColumn: no unique indexes.`);
-    }
-    return this.uniqueIndexes[0];
+    return this.primaryIndex;
   }
 
   static override get jsonSchema() {
@@ -169,7 +172,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
 
   static override virtualAttributes = [
     'extras',
-    'relations',
+    'includedRelations',
   ];
 
   /*
@@ -198,7 +201,11 @@ class BaseModel extends ObjectionModel implements IBaseModel {
   // todo: mid/hard get rid of extras and put everything in models or cache
   declare extras?: ObjectOf<any>;
 
-  declare relations?: ObjectOf<Model | Model[] | null>;
+  declare includedRelations?: string[];
+
+  getId(): ApiEntityId {
+    throw new Error(`${this.constructor.name}.getId: not implemented`);
+  }
 
   /*
   To/from Pojo
@@ -212,14 +219,28 @@ class BaseModel extends ObjectionModel implements IBaseModel {
   $toApiJson: Pojo, with extras/relations/type, may have fields removed
   */
 
+  override $toJson<T extends Model>(this: T, _opt: any) {
+    return modelInstanceToPojo(this) as T['cls']['Interface'];
+  }
+
+  override toJSON<T extends Model>(this: T, _opt: any) {
+    // low/mid deep freeze pojo after removing extras
+    return modelInstanceToPojo(this) as T['cls']['Interface'];
+  }
+
   override $parseDatabaseJson(obj: ObjectOf<any>): ObjectOf<any> {
     obj = super.$parseDatabaseJson(obj);
-    return parseModelPartialFromDb(this.constructor as ModelClass, obj);
+    return parseModel(this.constructor as ModelClass, obj, {
+      inPlace: true,
+    });
   }
 
   override $formatDatabaseJson(obj: ObjectOf<any>): ObjectOf<any> {
     obj = super.$formatDatabaseJson(obj);
-    return formatModelPartialForDb(this.constructor as ModelClass, obj);
+    return formatModel(this.constructor as ModelClass, obj, {
+      forDb: true,
+      inPlace: true,
+    });
   }
 
   static fromCacheJson<T extends ModelClass>(this: T, obj: ObjectOf<any>): ModelInstance<T> {
@@ -229,40 +250,30 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     ) as ModelInstance<T>;
   }
 
-  $toCacheJson(): ObjectOf<Primitive> {
-    const obj: ObjectOf<any> = formatModel(
+  $toCacheJson<T extends Model>(this: T): ObjectOf<any> {
+    return formatModel(
       this.constructor as ModelClass,
-      this.$toJson({ shallow: true }),
+      modelInstanceToPojo(this),
     );
+  }
 
-    if (!process.env.PRODUCTION) {
-      for (const [k, v] of TS.objEntries(obj)) {
-        if (!obj[k]
-            && (v instanceof BaseModel || (Array.isArray(v) && v.length))) {
-          throw new Error(`${(this.constructor as ModelClass).type}.$toCacheJson: removing prop ${k}`);
-        }
-      }
-    }
-
+  $formatApiJson<T extends Partial<IBaseModel>>(obj: T): T {
     return obj;
   }
 
-  $formatApiJson(obj: ObjectOf<any>) {
-    return formatModelForApi(
-      this.constructor as ModelClass,
-      obj,
-    );
-  }
+  $toApiJson<T extends Model>(this: T): ModelSerializedForApi {
+    const Model = this.constructor as T['cls'];
+    const { extras, includedRelations } = this;
 
-  getId(): ApiEntityId {
-    throw new Error(`${this.constructor.name}.getId: not implemented`);
-  }
-
-  $toApiJson(): ModelSerializedForApi {
-    return {
-      ...this.$formatApiJson(this.toJSON({ shallow: true })),
+    const obj = modelInstanceToPojo(this);
+    const formatted = formatModel(Model, obj);
+    return deepFreezeIfDev(this.$formatApiJson({
+      type: Model.type,
       id: this.getId(),
-    };
+      ...omit(formatted, ['version']),
+      ...(extras ? { extras } : null),
+      ...(includedRelations ? { includedRelations: uniq(includedRelations) } : null),
+    }));
   }
 }
 

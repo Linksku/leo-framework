@@ -36,6 +36,7 @@ type DeepReadonly<T> = T extends Primitive ? T
   : T extends Set<infer U> ? ReadonlySet<DeepReadonly<U>>
   : T extends Map<infer K, infer V> ? ReadonlyMap<K, DeepReadonly<V>>
   : T extends BuiltInObjects ? T
+  : (keyof T) extends never ? T
   : Readonly<{
     [K in keyof T]: DeepReadonly<T[K]>;
   }>;
@@ -46,45 +47,54 @@ type Mutable<T> = T extends Primitive ? T
   : T extends Map<infer K, infer V> ? Map<K, Mutable<V>>
   : T extends ReadonlyMap<infer K, infer V> ? Map<K, Mutable<V>>
   : T extends BuiltInObjects ? T
+  : (keyof T) extends never ? T
   : {
     -readonly [K in keyof T]: Mutable<T[K]>;
   };
-
-type ObjRequiredKeys<T, Keys extends keyof T> = Omit<T, Keys> & {
-  [P in Keys]-?: Exclude<T[P], undefined>;
-};
 
 type StrictlyEmptyObj = Record<string, never>;
 
 type Primitive = string | number | bigint | boolean | symbol | null | undefined;
 
 // Not comprehensive.
-type BuiltInObjects = AnyFunction
+type BuiltInObjects =
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  | Function
   | Date
   | Error
   | RegExp
-  | ArrayBuffer;
+  | ArrayBuffer
+  | HTMLElement
+  | EventTarget;
 
-// TS can't check object prototype.
-interface Pojo {
-  [K: string]: any;
-}
+type JsonPrimitive = string | number | boolean | null;
 
-type Json = Primitive | Pojo | JsonArr;
+// Not perfect because TS can't check object prototype.
+type JsonObj = ObjectOf<Json>;
 
 type JsonArr = Json[];
+
+type Json = JsonPrimitive | JsonObj | JsonArr;
 
 type AnyFunction = (...args: any[]) => any;
 
 interface Constructor<T> extends Function { new (...args: any[]): T; }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-type RequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T];
+type RequiredKeys<T> = {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  [K in keyof T]-?: {} extends Pick<T, K> ? never : K;
+}[keyof T];
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-type OptionalKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? K : never }[keyof T];
+type OptionalKeys<T> = Exclude<{
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  [K in keyof T]-?: {} extends Pick<T, K> ? K : never;
+}[keyof T], undefined>;
 
-type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+type SetOptional<T, Keys extends keyof T> = Omit<T, Keys>
+  & Partial<Pick<T, Keys>>;
+
+type SetRequired<T, Keys extends keyof T> = Omit<T, Keys>
+  & Required<Pick<T, Keys>>;
 
 // Don't use with entities.
 type InstanceKey<T extends new () => any> = keyof InstanceType<T> & string;
@@ -98,28 +108,14 @@ type UnionToIntersection<U> =
 
 type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true;
 
-type ValOrFunctionRet<T> = T extends AnyFunction ? ReturnType<T> : T;
-
 type Defined<T> = Exclude<T, undefined>;
 
 type IfUndefined<T, Default> = T extends undefined ? Default : T;
 
-type ObjPropOrDefault<
-  Obj,
-  K,
-  Default
-> = K extends keyof Obj
-  ? IfUndefined<Obj[K], Default>
-  : Default;
-
-type ExactMatch<T extends ObjectOf<any>, Expected extends ObjectOf<any>> = T extends Expected
-  ? Exclude<keyof T, keyof Expected> extends never ? true : false
-  : false;
-
 type Get<
   T extends ObjectOf<any>,
   K extends string,
-  Default = undefined
+  Default = undefined,
 > = K extends keyof T ? T[K] : Default;
 
 type AllKeys<T> = T extends unknown ? keyof T : never;
@@ -129,3 +125,5 @@ type IsNarrowKey<K extends PropertyKey> =
   : number extends K ? false
   : symbol extends K ? false
   : true;
+
+type Merge<First, Second> = Omit<First, Extract<keyof First, keyof Second>> & Second;

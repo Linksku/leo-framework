@@ -4,7 +4,7 @@ export default function useRequiredEntity<T extends EntityType>(
 ): Memoed<TypeToEntity<T>> {
   const ent = useEntity(type, id);
   if (!ent) {
-    throw new Error(`Required entity ${type} not found.`);
+    throw new Error(`Required entity ${type}.${id} not found.`);
   }
 
   return ent;

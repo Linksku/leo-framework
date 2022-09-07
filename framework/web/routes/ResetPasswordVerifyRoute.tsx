@@ -36,7 +36,7 @@ function ResetPasswordVerifyRoute() {
         <HookFormErrors errors={errors} additionalError={apiError} />
 
         <form
-          onSubmit={handleSubmit(async data => verifyResetPassword(data))}
+          onSubmit={handleSubmit(data => verifyResetPassword(data))}
           className={styles.form}
         >
           <Input

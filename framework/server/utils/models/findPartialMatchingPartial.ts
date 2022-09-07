@@ -1,6 +1,6 @@
 export default function findPartialMatchingPartial<
   T extends ModelClass,
-  Row extends ModelPartial<T>
+  Row extends ModelPartial<T>,
 >(
   rows: Row[],
   uniqueIndex: ModelIndex<T>,

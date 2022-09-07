@@ -5,24 +5,9 @@ interface INotif extends IBaseModel {
   userId: number;
   groupingId: number;
   time: Date;
-  params: Pojo;
+  params: JsonObj;
   hasRead: boolean;
-};
-
-interface IReport extends IBaseModel {
-  id: number;
-  version: number;
-  reporterId: number;
-  entityType: 'post';
-  entityId: number;
-  time: Date;
-};
-
-interface IReportsCountMV extends IBaseModel {
-  entityType: 'post';
-  entityId: number;
-  count: number;
-};
+}
 
 interface IUser extends IBaseModel {
   id: number;
@@ -32,7 +17,7 @@ interface IUser extends IBaseModel {
   name: string;
   birthday: string;
   registerTime: Date;
-};
+}
 
 interface IUserMeta extends IBaseModel {
   id: number;
@@ -40,33 +25,21 @@ interface IUserMeta extends IBaseModel {
   userId: number;
   metaKey: string;
   metaValue: string;
-};
+}
 
 type ModelType =
   | 'notif'
-  | 'report'
-  | 'reportsCountMV'
   | 'user'
   | 'userMeta';
 
 type ModelInterfacesMap = {
   notif: INotif,
-  report: IReport,
-  reportsCountMV: IReportsCountMV,
   user: IUser,
   userMeta: IUserMeta,
 };
 
 type ModelRelationsMap = {
   notif: {
-  },
-  report: {
-    reporter: {
-      modelType: 'user',
-      tsType: User,
-    },
-  },
-  reportsCountMV: {
   },
   user: {
     userMeta: {
@@ -84,4 +57,4 @@ type ModelRelationsMap = {
       tsType: User,
     },
   },
-}
+};

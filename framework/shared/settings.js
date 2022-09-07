@@ -21,7 +21,7 @@ export const HOME_URL = PORT === 80
   : `${PROTOCOL}${DOMAIN_NAME}:${PORT}`;
 export const ASSETS_URL = PROD_SERVER ? `${PROTOCOL}assets.${DOMAIN_NAME}` : '';
 export const API_URL = PROD_SERVER ? `${PROTOCOL}api.${DOMAIN_NAME}` : '';
-export const HTTP_TIMEOUT = PROD_BUILD ? 5000 : 15_000;
-export const MAX_HTTP_TIMEOUT = 30_000;
+export const HTTP_TIMEOUT = PROD_BUILD ? 5000 : 15 * 1000;
+export const MAX_HTTP_TIMEOUT = 30 * 1000;
 export const NOREPLY_EMAIL = `noreply@${process.env.DOMAIN_NAME}`;
 export const SUPPORT_EMAIL = `support@${process.env.DOMAIN_NAME}`;

@@ -1,0 +1,34 @@
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  // PullToReload goes above content
+  z-index: $zIndexFixed + 1;
+  height: $headerHeight;
+  box-sizing: content-box;
+  background-color: #fff;
+  border-bottom: 1px solid $separatorColor;
+}
+
+.containerInner {
+  @extend %maxWidthContainer;
+
+  height: $headerHeight;
+  display: flex;
+  align-items: stretch;
+}
+
+.rightIcon {
+  display: flex;
+  align-items: center;
+  padding: 0 $containerPadLeftRight;
+  border: 0;
+  position: relative;
+
+  svg {
+    height: 2.4rem;
+    width: 2.4rem;
+    fill: $textColor;
+  }
+}

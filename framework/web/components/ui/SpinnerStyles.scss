@@ -1,10 +1,14 @@
-@keyframes fadeIn {
+@keyframes spinnerFadeIn {
   0% {
-    opacity: 0.1;
+    filter: opacity(0);
+  }
+
+  50% {
+    filter: opacity(0);
   }
 
   100% {
-    opacity: 1;
+    filter: opacity(100%);
   }
 }
 
@@ -26,16 +30,18 @@
   border-color: $primaryColor transparent transparent transparent;
   flex-shrink: 0;
   overflow: hidden;
-  animation: fadeIn 1s;
+  animation-name: spinnerFadeIn;
+  animation-duration: 1s;
   animation-timing-function: ease-in;
 
   div {
     display: block;
     position: absolute;
-    width: 5.1rem;
-    height: 5.1rem;
-    margin: 6px;
-    border: 6px solid transparent;
+    top: 0.1rem;
+    left: 0.1rem;
+    right: 0.1rem;
+    bottom: 0.1rem;
+    border: 0.6rem solid transparent;
     border-top-color: inherit;
     border-radius: 50%;
     animation: loadingSpinner 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
@@ -52,6 +58,10 @@
       animation-delay: -0.15s;
     }
   }
+}
+
+.initialLoad {
+  @include fadeIn;
 }
 
 :export {

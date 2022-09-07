@@ -41,7 +41,6 @@
 
 .scroll {
   overflow-x: auto;
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features
   touch-action: pan-x;
   overflow-y: hidden;
   position: relative;

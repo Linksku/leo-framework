@@ -11,7 +11,7 @@ export default async function initCheckTimeZone() {
     return;
   }
 
-  const rows = await knexBT.raw('show timezone');
+  const rows = await knexBT.raw('SHOW TIMEZONE');
   if (rows?.rows?.[0]?.TimeZone !== 'UTC') {
     ErrorLogger.fatal(new Error('DB isn\'t UTC.'));
   }

@@ -21,7 +21,7 @@ function renderBtn(
   if (Svg) {
     return (
       <div
-        className={styles.svgWrap}
+        className={styles.btnWrap}
         onClick={onClick}
         role="button"
         tabIndex={-1}
@@ -49,10 +49,9 @@ type Props = {
     onTouchStart?: React.TouchEventHandler,
     [k: string]: any,
   }),
-} & React.HTMLAttributes<HTMLDivElement>;
+};
 
 function TitleBar({
-  children,
   title,
   onLeftBtnClick,
   leftBtnProps,
@@ -64,19 +63,29 @@ function TitleBar({
   rightSvgDim = 1.8,
   className,
   bindSwipe,
-  ...props
-}: React.PropsWithChildren<Props>) {
+}: Props) {
   return (
     <div
       className={cn(styles.container, className)}
       {...bindSwipe?.()}
-      {...props}
     >
-      {renderBtn(onLeftBtnClick, leftBtnProps, LeftSvg, leftSvgDim)}
-      <h1 className={styles.title}>
-        {title ?? children}
-      </h1>
-      {renderBtn(onRightBtnClick, rightBtnProps, RightSvg, rightSvgDim)}
+      <div className={styles.inner}>
+        {renderBtn(onLeftBtnClick, leftBtnProps, LeftSvg, leftSvgDim)}
+        <h1
+          className={styles.title}
+          style={{
+            paddingLeft: leftBtnProps || LeftSvg
+              ? undefined
+              : 0,
+            paddingRight: rightBtnProps || RightSvg
+              ? undefined
+              : 0,
+          }}
+        >
+          {title}
+        </h1>
+        {renderBtn(onRightBtnClick, rightBtnProps, RightSvg, rightSvgDim)}
+      </div>
     </div>
   );
 }

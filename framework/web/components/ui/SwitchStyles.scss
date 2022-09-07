@@ -1,10 +1,14 @@
 .wrap {
-  display: block;
-  position: relative;
   margin-bottom: 1.5rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.switch {
+  display: inline-block;
+  position: relative;
   height: 20px;
   width: 36px;
-  cursor: pointer;
 }
 
 .input {
@@ -46,4 +50,10 @@
     left: 16px;
     background-color: $primaryColor;
   }
+}
+
+.label {
+  @extend %label;
+
+  margin-left: 8px;
 }

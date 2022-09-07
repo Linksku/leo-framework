@@ -6,11 +6,11 @@
 }
 
 .leftSvgWithLabel {
-  margin-right: 0.8rem;
+  margin-right: 0.7rem;
 }
 
 .rightSvgWithLabel {
-  margin-left: 0.8rem;
+  margin-left: 0.7rem;
 }
 
 .btn {
@@ -23,6 +23,7 @@
   border-radius: 4px;
   overflow: visible;
   text-transform: none;
+  flex-shrink: 0;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -92,5 +93,9 @@
     padding: 0.3rem 0.7rem;
     line-height: 2.2rem;
     font-size: 1.4rem;
+
+    &.outline {
+      border-width: 1px;
+    }
   }
 }

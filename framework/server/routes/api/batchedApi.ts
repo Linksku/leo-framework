@@ -1,7 +1,12 @@
+import omit from 'lodash/omit';
+
 import { defineApi, nameToApi } from 'services/ApiManager';
 import RequestContextLocalStorage from 'services/requestContext/RequestContextLocalStorage';
-import handleApiError from './helpers/handleApiError';
-import apiHandlerWrap from './helpers/apiHandlerWrap';
+import validateApiParams from './helpers/validateApiParams';
+import formatApiHandlerParams from './helpers/formatApiHandlerParams';
+import validateApiRet from './helpers/validateApiRet';
+import includeRelatedEntities from './helpers/includeRelatedEntities';
+import formatApiErrorResponse from './helpers/formatApiErrorResponse';
 
 defineApi(
   {
@@ -37,12 +42,8 @@ defineApi(
                 type: 'object',
                 required: ['data'],
                 properties: {
-                  data: {
-                    anyOf: [
-                      { type: 'null' },
-                      SchemaConstants.pojo,
-                    ],
-                  },
+                  _name: { type: 'string' },
+                  data: SchemaConstants.pojo.orNull(),
                 },
                 additionalProperties: false,
               },
@@ -50,6 +51,7 @@ defineApi(
                 type: 'object',
                 required: ['status', 'error'],
                 properties: {
+                  _name: { type: 'string' },
                   status: SchemaConstants.nonNegInt,
                   error: SchemaConstants.pojo,
                 },
@@ -63,50 +65,87 @@ defineApi(
     },
   },
   async function batchedApi({ apis, currentUserId }: ApiHandlerParams<'batched'>, res) {
-    const rc = getRC();
-    const typedApis = apis as { name: ApiName, params: ApiNameToParams[ApiName] }[];
-    const results = await Promise.all<ApiRouteRet<any> | ApiErrorResponse>(typedApis.map(
-      // Must be async for RequestContextLocalStorage.enterWith
-      async <Name extends ApiName>({ name, params }: {
-        name: Name,
-        params: ApiNameToParams[Name],
-      }) => {
-        try {
-          const api = nameToApi[name] as ApiDefinition<Name>;
+    if ((!process.env.PRODUCTION && apis.length > 25) || apis.length > 50) {
+      throw new Error('batchedApi: too many batched requests');
+    }
 
+    const rc = getRC();
+    const typedApis = apis as { name: ApiName, params: ApiParams<ApiName> }[];
+    const results = await Promise.all<ApiRouteRet<ApiName> | ApiErrorResponse>(typedApis.map(
+      // Must be async for RequestContextLocalStorage.enterWith
+      async <Name extends ApiName>({ name, params: fullParams }: {
+        name: Name,
+        params: ApiParams<Name>,
+      }) => {
+        const startTime = performance.now();
+        let result: ApiRouteRet<ApiName> | ApiErrorResponse;
+        try {
           if (rc) {
             RequestContextLocalStorage.enterWith({
               ...rc,
               path: `/batched.${name}`,
             });
           }
-          const ret = await apiHandlerWrap(
+
+          const api = nameToApi[name] as ApiDefinition<Name>;
+          const { relations } = fullParams;
+          const params = omit(fullParams, 'relations') as ApiNameToParams[Name];
+          validateApiParams({
+            api,
+            params,
+            relations,
+            currentUserId,
+          });
+
+          const handlerParams = formatApiHandlerParams({
             api,
             params,
             currentUserId,
-            res,
-          );
-          return ret;
-        } catch (err) {
-          ErrorLogger.error(err, `batchedApi: ${name}`);
+          });
+          let ret = api.handler(handlerParams, res);
+          if (ret instanceof Promise) {
+            ret = await ret;
+          }
 
-          const { status, errorData } = handleApiError(err, name);
-          return {
-            status,
-            error: errorData,
-          };
+          validateApiRet({ api, ret });
+          if (relations) {
+            includeRelatedEntities(ret, relations);
+          }
+          result = ret;
+        } catch (err) {
+          ErrorLogger.error(ErrorLogger.castError(err), `batchedApi: ${name}`);
+
+          result = formatApiErrorResponse(err, name);
         }
+
+        if (performance.now() - startTime > 100) {
+          printDebug(
+            `Handler took ${Math.round(performance.now() - startTime)}ms`,
+            performance.now() - startTime > 500 ? 'error' : 'warn',
+            `batchedApi(${name})`,
+          );
+        }
+        return result;
       },
     ));
 
-    // todo: high/hard stream batched results as they become available
+    // todo: mid/hard stream batched results as they become available
     return {
       data: {
-        results: results.map(r => (
-          TS.hasProp(r, 'data')
-            ? { data: r.data }
-            : r
-        )),
+        results: results.map((r, idx) => {
+          if (process.env.PRODUCTION) {
+            return TS.hasProp(r, 'data') ? { data: r.data } : r;
+          }
+          return TS.hasProp(r, 'data')
+            ? {
+              _name: apis[idx].name,
+              data: r.data,
+            }
+            : {
+              _name: apis[idx].name,
+              ...r,
+            };
+        }),
       },
       entities: results.flatMap(r => (TS.hasProp(r, 'entities') ? r.entities : [])),
       createdEntities: results.flatMap(r => (TS.hasProp(r, 'createdEntities') ? r.createdEntities : [])),

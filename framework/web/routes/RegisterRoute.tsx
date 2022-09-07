@@ -51,7 +51,7 @@ function RegisterRoute() {
         : null}
       <form
         onSubmit={handleSubmit(data => {
-          void registerUser({
+          registerUser({
             email: data.email,
             password: data.password,
             name: data.name,
@@ -127,7 +127,7 @@ function RegisterRoute() {
           * Only age will be displayed.
         </p>
 
-        <p>
+        <p className={styles.tos}>
           By signing up, you agree to the
           {' '}
           <Link href="/tos/terms">Terms of Service</Link>

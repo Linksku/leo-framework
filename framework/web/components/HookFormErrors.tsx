@@ -1,9 +1,9 @@
-import type { FieldErrors, FieldError } from 'react-hook-form';
+import type { FieldError } from 'react-hook-form';
 
 import styles from './HookFormErrorsStyles.scss';
 
 type Props = {
-  errors: FieldErrors,
+  errors: ObjectOf<FieldError>,
   additionalError?: Error | string | null,
 };
 
@@ -11,7 +11,7 @@ export default function HookFormErrors({
   errors,
   additionalError,
 }: Props) {
-  const errorValues: FieldError[] = Object.values(errors);
+  const errorValues: FieldError[] = TS.objValues(errors);
   if ((!errors || !errorValues.length) && !additionalError) {
     return null;
   }

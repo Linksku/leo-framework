@@ -2,25 +2,36 @@ import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
 import modelsCache from 'services/cache/modelsCache';
 import modelIdsCache from 'services/cache/modelIdsCache';
 import knexBT from 'services/knex/knexBT';
+import { updateLastWriteTime } from 'services/model/helpers/lastWriteTimeHelpers';
+import waitForRRUpdate from 'utils/models/waitForRRUpdate';
 
 const MAX_BULK_INSERTS = 100;
 
 function insertBulk<T extends EntityClass>(
   this: T,
   objs: ModelPartial<T>[],
-  onDuplicate?: 'error' | 'update',
+  opts?: {
+    onDuplicate?: 'update' | 'ignore',
+    waitForRR?: boolean,
+  },
 ): Promise<EntityInstance<T>[]>;
 
 function insertBulk<T extends EntityClass>(
   this: T,
   objs: ModelPartial<T>[],
-  onDuplicate: 'ignore',
+  opts: {
+    onDuplicate: 'ignore',
+    waitForRR?: boolean,
+  },
 ): Promise<(EntityInstance<T> | null)[]>;
 
 async function insertBulk<T extends EntityClass>(
   this: T,
   objs: ModelPartial<T>[],
-  onDuplicate: 'error' | 'update' | 'ignore' = 'error',
+  { onDuplicate = 'error', waitForRR }: {
+    onDuplicate?: 'error' | 'update' | 'ignore',
+    waitForRR?: boolean,
+  } = {},
 ): Promise<(EntityInstance<T> | null)[]> {
   const firstObj = objs[0];
   if (!firstObj) {
@@ -70,6 +81,11 @@ async function insertBulk<T extends EntityClass>(
       }
       throw new Error(`${this.name}.bulkInsert: failed to insert row.`);
     });
+    if (!process.env.PRODUCTION) {
+      for (const row of rows) {
+        row.$validate();
+      }
+    }
     allInserted = [...allInserted, ...inserted];
 
     // eslint-disable-next-line no-await-in-loop
@@ -88,6 +104,15 @@ async function insertBulk<T extends EntityClass>(
         modelIdsCache.handleUpdate(this, ent),
       ];
     }));
+  }
+
+  const allInsertedNonNull = TS.filterNulls(allInserted);
+  if (allInsertedNonNull.length) {
+    await updateLastWriteTime(this.type);
+    if (waitForRR) {
+      const last = allInsertedNonNull[allInsertedNonNull.length - 1];
+      await waitForRRUpdate(this, last.id, last.version);
+    }
   }
 
   return allInserted;

@@ -4,7 +4,7 @@ import QuickLRU from 'quick-lru';
 import redis from 'services/redis';
 import { MAX_CACHE_TTL } from 'serverSettings';
 import createDataLoader from 'utils/createDataLoader';
-import RedisDataLoader from './utils/RedisDataLoader';
+import RedisDataLoader from 'services/RedisDataLoader';
 
 export type ConstructorProps<T> = {
   redisNamespace: string,
@@ -20,7 +20,7 @@ export default class BaseRedisCache<T> {
 
   private getDataLoader: DataLoader<string, T | undefined>;
 
-  private setDataLoader: RedisDataLoader<'setex', [string, T], void>;
+  private setDataLoader: RedisDataLoader<'psetex', [string, T], void>;
 
   private delDataLoader: RedisDataLoader<'del', string, void>;
 
@@ -49,10 +49,10 @@ export default class BaseRedisCache<T> {
     );
 
     this.setDataLoader = new RedisDataLoader(
-      'setex',
+      'psetex',
       (kv: [string, T]) => [
         `${redisNamespace}:${kv[0]}`,
-        redisTtl / 1000,
+        redisTtl,
         serialize(kv[1]),
       ],
     );
@@ -70,7 +70,8 @@ export default class BaseRedisCache<T> {
     });
   }
 
-  async get(key: string): Promise<T | undefined> {
+  // todo: low/mid prevent thundering herd
+  async get(key: string, onlyLocal = false): Promise<T | undefined> {
     const rc = getRC();
     const cachedFromRc = rc?.cache.get(
       `${this.redisNamespace}:${key}`,
@@ -83,6 +84,9 @@ export default class BaseRedisCache<T> {
     if (cachedFromLru !== undefined) {
       rc?.cache.set(key, cachedFromLru);
       return cachedFromLru;
+    }
+    if (onlyLocal) {
+      return undefined;
     }
 
     const promise = this.getDataLoader.load(key);
@@ -100,38 +104,50 @@ export default class BaseRedisCache<T> {
     return val;
   }
 
-  async getOrSet(key: string, fetchValue: () => Promise<T>): Promise<T> {
-    const cached = await this.get(key);
+  async getOrSet(
+    key: string,
+    fetchValue: () => Promise<T>,
+    onlyLocal = false,
+  ): Promise<T> {
+    const cached = await this.get(key, onlyLocal);
     if (cached !== undefined) {
       return cached;
     }
 
-    return this.setPromise(key, fetchValue());
+    return this.setPromise(key, fetchValue(), onlyLocal);
   }
 
-  async set(key: string, val: T): Promise<void> {
+  async set(key: string, val: T, onlyLocal = false): Promise<void> {
     const rc = getRC();
     rc?.cache.set(`${this.redisNamespace}:${key}`, val);
     this.lru.set(key, val);
+    if (onlyLocal) {
+      return;
+    }
+
     await this.setDataLoader.load([key, val]);
     this.lru.set(key, val);
     rc?.cache.set(`${this.redisNamespace}:${key}`, val);
   }
 
-  async setPromise(key: string, promise: Promise<T>): Promise<T> {
+  async setPromise(key: string, promise: Promise<T>, onlyLocal = false): Promise<T> {
     const rc = getRC();
     rc?.cache.set(`${this.redisNamespace}:${key}`, promise);
     this.lru.set(key, promise);
 
     const val = await promise;
-    await this.set(key, val);
+    await this.set(key, val, onlyLocal);
     return val;
   }
 
-  async del(key: string): Promise<void> {
+  async del(key: string, onlyLocal = false): Promise<void> {
     const rc = getRC();
     rc?.cache.delete(`${this.redisNamespace}:${key}`);
     this.lru.delete(key);
+    if (onlyLocal) {
+      return;
+    }
+
     await this.delDataLoader.load(key);
     this.lru.delete(key);
     rc?.cache.delete(`${this.redisNamespace}:${key}`);

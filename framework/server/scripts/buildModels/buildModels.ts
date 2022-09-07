@@ -47,7 +47,7 @@ export { frameworkModels, appModels };
 }
 
 export default async function buildModels() {
-  await mkdirp(path.resolve('./app/server/config/__generated__'));
+  await mkdirp(path.resolve('./framework/server/config/__generated__'));
   await fs.writeFile(
     path.resolve('./framework/server/config/__generated__/allModels.ts'),
     `export const frameworkModels = [];

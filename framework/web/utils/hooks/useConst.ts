@@ -1,4 +1,4 @@
-import equal from 'fast-deep-equal';
+import equal from 'fast-deep-equal/es6/react';
 
 export default function useConst<T>(
   defaultVal: T | (() => T),

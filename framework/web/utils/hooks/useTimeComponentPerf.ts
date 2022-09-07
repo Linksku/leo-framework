@@ -1,20 +1,17 @@
-const timed = new Set();
+const started = new Set();
+const ended = new Set();
+
 export default !process.env.PRODUCTION
   ? function useTimeComponentPerf(name: string) {
-    const ref = useRef({
-      hasStarted: timed.has(name),
-      hasEnded: timed.has(name),
-    });
-    if (!ref.current.hasStarted) {
+    if (!started.has(name)) {
       console.time(name);
-      timed.add(name);
-      ref.current.hasStarted = true;
+      started.add(name);
     }
 
     useEffect(() => {
-      if (!ref.current.hasEnded) {
+      if (!ended.has(name)) {
         console.timeEnd(name);
-        ref.current.hasEnded = true;
+        ended.add(name);
       }
     }, [name]);
   }

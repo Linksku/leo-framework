@@ -21,7 +21,7 @@ export default async function fetchKafkaConnectors(prefix?: string) {
   const connectors = TS.assertType<{ data: string[] }>(
     val => val && Array.isArray(val.data) && val.data.every((v: any) => typeof v === 'string'),
     response,
-    new Error('fetchKafkaConnectors: invalid response from GET /connectors'),
+    new Error(`fetchKafkaConnectors: invalid response from GET /connectors: ${response?.data}`),
   );
 
   return prefix

@@ -1,16 +1,9 @@
+// For VS Code
 {
-  "extends": "../../tsconfig-base.json",
-  "compilerOptions": {
-    "paths": {
-      "baseUrl": ["."],
-      "*": [
-        "framework/shared/*",
-        "framework/server/*",
-      ],
-    },
-    "rootDir": "../..",
-  },
+  "extends": "./tsconfig-build.json",
   "include": [
+    "../../app/server/types/__generated__",
+    "../../app/shared/types/__generated__",
     ".",
     "../shared",
   ],

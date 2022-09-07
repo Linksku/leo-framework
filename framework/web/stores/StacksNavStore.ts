@@ -16,6 +16,7 @@ export const [
       didRefresh,
     } = useHistoryStore();
     const { isHome, wasHome } = useHomeNavStore();
+    const pushPath = usePushPath();
 
     if (didRefresh) {
       stackBot = curState;
@@ -42,24 +43,27 @@ export const [
       stackBot = curState;
     }
 
-    const backStack = useCallback(() => {
-      if (!isHome) {
+    const goBackStack = useCallback(() => {
+      if (!prevState) {
+        pushPath('/');
+      } else if (!isHome) {
+        // todo: low/mid prevent exiting app by going back
         window.history.back();
       }
-    }, [isHome]);
+    }, [prevState, pushPath, isHome]);
 
-    const forwardStack = useCallback(() => {
-      if (!wasHome) {
+    const goForwardStack = useCallback(() => {
+      if (!isHome) {
         window.history.forward();
       }
-    }, [wasHome]);
+    }, [isHome]);
 
     return useDeepMemoObj({
       stackBot,
       stackTop,
       stackActive: stackActive ?? stackBot,
-      backStack,
-      forwardStack,
+      goBackStack,
+      goForwardStack,
     });
   },
 );

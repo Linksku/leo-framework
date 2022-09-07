@@ -44,7 +44,7 @@ export function serializeDateProps(
   forDb: boolean,
 ): ObjectOf<any> {
   if (!fullSchema.properties) {
-    throw new Error(`serializeDateProps: invalid schema`);
+    throw new Error('serializeDateProps: invalid schema');
   }
 
   for (const [k, schema] of Object.entries(fullSchema.properties)) {
@@ -67,7 +67,7 @@ export function unserializeDateProps(
   obj: ObjectOf<any>,
 ): ObjectOf<any> {
   if (!fullSchema.properties) {
-    throw new Error(`unserializeDateProps: invalid schema`);
+    throw new Error('unserializeDateProps: invalid schema');
   }
 
   for (const [k, schema] of Object.entries(fullSchema.properties)) {

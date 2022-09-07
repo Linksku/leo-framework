@@ -2,7 +2,7 @@ import path from 'path';
 import mapValues from 'lodash/mapValues';
 import webpack from 'webpack';
 
-import mergeReplaceArrays from './scripts/utils/mergeReplaceArrays';
+import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
 import globals from './framework/web/config/globals.cjs';
 import globalsSrc from './app/web/config/globals.cjs';
 import sharedGlobals from './framework/shared/config/globals.cjs';
@@ -81,7 +81,7 @@ export default mergeReplaceArrays(baseConfig, {
   output: {
     publicPath: `${ASSETS_URL}/`,
     filename: 'js/[name].js',
-    chunkFilename: `js/chunks/[name].js`,
+    chunkFilename: 'js/chunks/[name].js',
   },
   plugins: [
     ...baseConfig.plugins,
@@ -102,4 +102,12 @@ export default mergeReplaceArrays(baseConfig, {
       }),
     ),
   ],
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        default: false,
+        defaultVendors: false,
+      },
+    },
+  },
 });

@@ -1,17 +1,23 @@
 import { SplashScreen } from '@capacitor/splash-screen';
 
-import Alerts from 'components/frame/Alerts';
-import Toasts from 'components/frame/Toasts';
-import SlideUpWrap from 'components/frame/SlideUpWrap';
 import StackWrapOuter from 'components/frame/StackWrapOuter';
+import HomeWrapOuter from 'components/frame/homeWrap/HomeWrapOuter';
+import SlideUpsDeferred from 'components/frame/SlideUpsDeferred';
+import AlertsDeferred from 'components/frame/AlertsDeferred';
+import ToastsDeferred from 'components/frame/ToastsDeferred';
 import pathToRoute from 'utils/pathToRoute';
-import HomeRouteWrap from 'routes/HomeRouteWrap';
 import LoadingRoute from 'routes/LoadingRoute';
 import useEffectIfReady from 'utils/hooks/useEffectIfReady';
 import useTimeComponentPerf from 'utils/hooks/useTimeComponentPerf';
 import { loadErrorLogger } from 'services/ErrorLogger';
 import ErrorBoundary from 'components/ErrorBoundary';
 import { RouteProvider } from 'stores/RouteStore';
+import HomeRouteProvider from 'config/HomeRouteProvider';
+
+// Include in main bundle.
+import 'components/frame/StackWrapInner';
+
+import styles from './RouterStyles.scss';
 
 export default function Router() {
   const { lastHomeHistoryState } = useHomeNavStore();
@@ -24,7 +30,6 @@ export default function Router() {
   const replacePath = useReplacePath();
 
   // Home state might be same as bot.
-  // todo: low/mid clean up home/bot stack logic
   const {
     routeConfig: homeRouteConfig,
     matches: homeMatches,
@@ -43,7 +48,7 @@ export default function Router() {
   const isBotAuth = !botRouteConfig?.auth || currentUserId;
   const isTopAuth = !topRouteConfig?.auth || currentUserId;
 
-  useTimeComponentPerf(`Router:${stackActive?.path}`);
+  useTimeComponentPerf(`Render Router:${stackActive?.path}`);
 
   useEffectIfReady(() => {
     if (!isBotAuth || !isTopAuth) {
@@ -53,9 +58,9 @@ export default function Router() {
 
     setTimeout(() => {
       // todo: mid/mid android appears to show splashscreen as background when expanding keyboard
-      void SplashScreen.hide();
+      wrapPromise(SplashScreen.hide(), 'warn', 'SplashScreen.hide');
     }, 0);
-  }, [isBotAuth, isTopAuth, replacePath], authState !== 'unknown');
+  }, [isBotAuth, isTopAuth, replacePath], authState !== 'fetching');
 
   if ((authState !== 'in' || isReloadingAfterAuth)
     && (botRouteConfig?.auth || topRouteConfig?.auth)) {
@@ -68,28 +73,30 @@ export default function Router() {
   return (
     <>
       {lastHomeHistoryState && HomeComponent ? (
-        <RouteProvider
-          historyState={lastHomeHistoryState}
-          routeConfig={homeRouteConfig}
-          matches={homeMatches}
-        >
-          <HomeRouteWrap>
-            <ErrorBoundary>
-              <React.Suspense fallback={<LoadingRoute />}>
-                <HomeComponent
-                  key={`${lastHomeHistoryState.path}?${lastHomeHistoryState.queryStr ?? ''}`}
-                />
-              </React.Suspense>
-            </ErrorBoundary>
-          </HomeRouteWrap>
-        </RouteProvider>
+        <div className={styles.homeWrap}>
+          <RouteProvider
+            key={lastHomeHistoryState.key}
+            routeConfig={homeRouteConfig}
+            matches={homeMatches}
+            initialHistoryState={lastHomeHistoryState}
+          >
+            <HomeRouteProvider>
+              <ErrorBoundary>
+                <React.Suspense fallback={<LoadingRoute />}>
+                  <HomeComponent />
+                </React.Suspense>
+              </ErrorBoundary>
+            </HomeRouteProvider>
+          </RouteProvider>
+          <HomeWrapOuter />
+        </div>
       ) : null}
       {stackBot && botRouteConfig?.type !== 'home' && BotComponent && isBotAuth ? (
         <RouteProvider
-          key={`${stackBot.id}|${stackBot.path}?${stackBot.queryStr ?? ''}#${stackBot.hash ?? ''}`}
-          historyState={stackBot}
+          key={stackBot.key}
           routeConfig={botRouteConfig}
           matches={botMatches}
+          initialHistoryState={stackBot}
         >
           <StackWrapOuter>
             <ErrorBoundary>
@@ -102,10 +109,10 @@ export default function Router() {
       ) : null}
       {stackTop && topRouteConfig?.type !== 'home' && TopComponent && isTopAuth ? (
         <RouteProvider
-          key={`${stackTop.id}|${stackTop.path}?${stackTop.queryStr ?? ''}#${stackTop.hash ?? ''}`}
-          historyState={stackTop}
+          key={stackTop.key}
           routeConfig={topRouteConfig}
           matches={topMatches}
+          initialHistoryState={stackTop}
         >
           <StackWrapOuter>
             <ErrorBoundary>
@@ -116,9 +123,9 @@ export default function Router() {
           </StackWrapOuter>
         </RouteProvider>
       ) : null}
-      <SlideUpWrap />
-      <Alerts />
-      <Toasts />
+      <SlideUpsDeferred />
+      <AlertsDeferred />
+      <ToastsDeferred />
     </>
   );
 }

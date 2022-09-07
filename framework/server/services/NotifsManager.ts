@@ -51,7 +51,7 @@ export function registerNotifType<Params, T extends string = string>(
     render,
     // todo: mid/hard dedupe/batch to handle high load
     queue(params: Params, currentUserId: EntityId) {
-      void wrapPromise(
+      wrapPromise(
         queue.add({
           type,
           params,
@@ -60,6 +60,8 @@ export function registerNotifType<Params, T extends string = string>(
         }, {
           removeOnComplete: true,
           removeOnFail: true,
+          attempts: 2,
+          backoff: 1000,
         }),
         'fatal',
         `Register notif type ${type}`,
@@ -71,7 +73,7 @@ export function registerNotifType<Params, T extends string = string>(
   return notifType;
 }
 
-void wrapPromise(
+wrapPromise(
   queue.process(wrapProcessJob(async job => {
     const { type, params, currentUserId } = job.data;
 
@@ -89,7 +91,7 @@ void wrapPromise(
       }));
       const insertedNotifs = await Notif.insertBulk(
         notifObjs,
-        'update',
+        { onDuplicate: 'update' },
       );
 
       for (const notif of insertedNotifs) {

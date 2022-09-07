@@ -10,6 +10,7 @@ import {
 } from 'consts/coreUsers';
 import tokenizeString from 'utils/nlp/tokenizeString';
 import isNameInappropriate from 'helpers/isNameInappropriate';
+import isPasswordCommon from './isPasswordCommon';
 
 export function getBirthdayInvalidReason(birthday: string): string | null {
   const diffYears = dayjs().diff(birthday, 'year', true);
@@ -48,9 +49,8 @@ export function getPasswordInvalidReason(password: string): string | null {
   if (password.length > MAX_PASSWORD_LENGTH) {
     return 'Password too long.';
   }
-  // todo: mid/mid disallow more common passwords
-  if (['12345678', 'password', 'qwertyui'].includes(password)) {
-    return 'Password is too common.';
+  if (isPasswordCommon(password)) {
+    return 'Password is in the most common 500 passwords.';
   }
   return null;
 }

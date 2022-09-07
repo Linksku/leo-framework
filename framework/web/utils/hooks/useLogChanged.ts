@@ -3,9 +3,10 @@ import usePrevious from 'utils/hooks/usePrevious';
 
 export default function useLogChanged<T>(val: T) {
   const prev = usePrevious(val);
+  const firstVal = useRef(val);
 
   useEffect(() => {
-    if (val === prev) {
+    if (val === prev || (prev === undefined && val === firstVal.current)) {
       return;
     }
 

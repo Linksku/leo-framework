@@ -8,9 +8,11 @@ import hasOwnProp from './hasOwnProp';
 import hasProp from './hasProp';
 import inArray from './inArray';
 import instanceOf from './instanceOf';
+import isType from './isType';
 import last from './last';
 import literal from './literal';
 import notNull from './notNull';
+import notNullish from './notNullish';
 import objEntries from './objEntries';
 import objKeys from './objKeys';
 import objValues from './objValues';
@@ -29,9 +31,11 @@ export default {
   hasProp,
   inArray,
   instanceOf,
+  isType,
   last,
   literal,
   notNull,
+  notNullish,
   objEntries,
   objKeys,
   objValues,

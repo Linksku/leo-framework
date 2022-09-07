@@ -2,7 +2,8 @@
   width: 100%;
 }
 
-// todo: mid/mid add component to show full text in tooltip when holding text
+// todo: low/mid add component to show full text in tooltip when holding text
+// todo: low/mid maybe make ellipsis smaller or use gradient mask
 %oneLine {
   text-overflow: ellipsis;
   overflow: hidden;
@@ -17,6 +18,7 @@
 %maxWidthContainer {
   width: 100%;
   max-width: $containerMaxWidth;
+  min-width: $bodyMinWidth;
   margin-left: auto;
   margin-right: auto;
 }

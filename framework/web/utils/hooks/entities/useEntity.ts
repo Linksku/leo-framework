@@ -1,8 +1,43 @@
 import useHandleEntityEvents from 'utils/hooks/entities/useHandleEntityEvents';
 import useUpdate from 'utils/hooks/useUpdate';
+import { HTTP_TIMEOUT } from 'settings';
+import useEffectIfReady from 'utils/hooks/useEffectIfReady';
 
-// todo: high/hard this might be triggering multiple times per new entity
-// todo: high/mid detect missing entities in dev
+function useCheckEntityExists(
+  entityType: EntityType,
+  id: Nullish<EntityId>,
+  entity: Entity | null,
+) {
+  const [waited, setWaited] = useState(false);
+
+  useApi(
+    'checkEntityExists',
+    {
+      entityType,
+      entityId: id ?? '',
+    },
+    {
+      shouldFetch: waited && id != null && !entity,
+      onFetch({ exists }) {
+        if (exists && !entity) {
+          ErrorLogger.warn(new Error(`checkEntityExists: ${entityType}.${id} exists, but not available in client`));
+        }
+      },
+    },
+  );
+
+  // todo: low/easy add useTimeout/useInterval
+  useEffectIfReady(() => {
+    const timer = setTimeout(() => {
+      setWaited(true);
+    }, HTTP_TIMEOUT);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [], !waited && id != null && !entity);
+}
+
 export default function useEntity<T extends EntityType>(
   entityType: T,
   _id: Nullish<EntityId | (string | number)[]>,
@@ -25,7 +60,18 @@ export default function useEntity<T extends EntityType>(
     update,
   );
 
-  return id
+  const entity = id
     ? (entitiesRef.current[entityType]?.[id] ?? null) as unknown as Memoed<TypeToEntity<T>> | null
     : null;
+
+  if (!process.env.PRODUCTION) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useCheckEntityExists(
+      entityType,
+      id,
+      entity,
+    );
+  }
+
+  return entity;
 }

@@ -10,7 +10,7 @@ function objValues<Obj extends ObjectOf<any>>(
 }>[];
 
 function objValues<
-  Obj extends ObjectOf<any>
+  Obj extends ObjectOf<any>,
 >(
   obj: Obj,
   keepUndefined: true,

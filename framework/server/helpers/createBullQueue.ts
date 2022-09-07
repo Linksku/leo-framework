@@ -6,6 +6,7 @@ import BullQueueContextLocalStorage, { createBullQueueContext } from 'services/B
 export function wrapProcessJob<T extends Job<any>>(
   processJob: (job: T) => Promise<void>,
 ) {
+  // If returned fn has second arg, resolving promise won't complete job without calling done()
   return (job: T) => BullQueueContextLocalStorage.run(
     createBullQueueContext(job),
     () => processJob(job),
@@ -20,7 +21,7 @@ export default function createBullQueue<T>(name: string, opts?: QueueOptions) {
   });
 
   queue.on('error', err => {
-    ErrorLogger.error(err, `${name} Bull queue: queue error.`);
+    ErrorLogger.error(err, `${name} Bull queue: error.`);
   });
 
   queue.on('stalled', job => {

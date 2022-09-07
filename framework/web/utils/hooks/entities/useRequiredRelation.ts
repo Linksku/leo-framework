@@ -1,11 +1,11 @@
 export default function useRequiredRelation<
   T extends EntityType,
   RelationName extends string & keyof {
-    [K in keyof ModelRelationsTypes<T>]: ModelRelationsTypes<T>[K] extends any[]
+    [K in keyof EntityRelationTypes<T>]: EntityRelationTypes<T>[K] extends any[]
       ? never
-      : ModelRelationsTypes<T>[K];
+      : EntityRelationTypes<T>[K];
   },
-  RelationType extends Defined<ModelRelationsTypes<T>[RelationName]>
+  RelationType extends Defined<EntityRelationTypes<T>[RelationName]>,
 >(
   entityType: T,
   entityId: Nullish<EntityId | (string | number)[]>,

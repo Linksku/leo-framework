@@ -1,0 +1,12 @@
+.container {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.inner {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

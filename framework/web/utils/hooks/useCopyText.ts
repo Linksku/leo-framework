@@ -2,12 +2,18 @@ import { Clipboard } from '@capacitor/clipboard';
 
 export default function useCopyText() {
   const showToast = useShowToast();
-  return useCallback(async (str: string) => {
+  return useCallback((str: string) => {
     try {
-      await Clipboard.write({ string: str });
-      showToast({ msg: 'Copied' });
+      Clipboard.write({ string: str })
+        .then(() => {
+          showToast({ msg: 'Copied' });
+        })
+        .catch(err => {
+          ErrorLogger.warn(err, 'useCopyText');
+          showToast({ msg: 'Failed to copy' });
+        });
     } catch {
-      showToast({ msg: 'Fail to copy text' });
+      showToast({ msg: 'Failed to copy' });
     }
   }, [showToast]);
 }

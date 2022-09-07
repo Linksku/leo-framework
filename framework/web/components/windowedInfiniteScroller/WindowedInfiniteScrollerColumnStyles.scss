@@ -5,6 +5,12 @@
   overflow: hidden;
 }
 
+.listItemInner {
+  @include fadeIn;
+
+  animation-duration: 0.1s;
+}
+
 .spinner {
   padding: 50px 0;
   flex-shrink: 0;

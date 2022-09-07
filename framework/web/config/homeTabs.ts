@@ -1,1 +1,3 @@
-export default {} as ObjectOf<string>;
+export default {
+  FEED: 'feed',
+} as const;

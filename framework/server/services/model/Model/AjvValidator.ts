@@ -6,18 +6,25 @@ import trim from 'lodash/trim';
 
 import ajv from 'services/ajv';
 
-// todo: mid/mid combine with validateApiData and log failures
-function formatError(error: ErrorObject, Model: ModelClass): string {
-  const dataPath = error.instancePath.replace(/^[^A-Za-z]/, '');
-  const field = dataPath ? `${Model.name}'s ${dataPath}` : `${Model.name}`;
-  if (error.message) {
-    let msg = `${field} ${error.message.toLowerCase()}`;
-    if (error.keyword === 'additionalProperties' && error.params.additionalProperty) {
-      msg += ` "${error.params.additionalProperty}"`;
-    }
-    return msg;
+function formatError(error: ErrorObject | undefined, Model: ModelClass): string {
+  const errorPath = error?.instancePath
+    ?.replace(/^[^/A-Za-z]/, '')
+    .split('/')
+    .filter(Boolean);
+  const debugErrParts: string[] = [];
+  if (errorPath?.length) {
+    debugErrParts.push(`${errorPath.join('.')}`);
   }
-  return `Invalid value for ${field}`;
+  if (error?.message) {
+    debugErrParts.push(`${error.message.toLowerCase()}`);
+  }
+  if (error?.keyword === 'additionalProperties' && error?.params.additionalProperty) {
+    debugErrParts.push(`"${error.params.additionalProperty}"`);
+  }
+  if (!debugErrParts.length) {
+    debugErrParts.push('invalid value');
+  }
+  return `${Model.name}: ${debugErrParts.join(' ')}.`;
 }
 
 export default class AjvValidator extends Validator {
@@ -39,9 +46,9 @@ export default class AjvValidator extends Validator {
     if (!validator(json)) {
       const rc = getRC();
       const error = validator.errors?.[0];
-      if (error) {
-        // todo: low/mid add context for Bull queues
-        if (rc?.debug || !rc) {
+      // todo: low/mid add context for Bull queues
+      if (rc?.debug || (!process.env.PRODUCTION && !rc)) {
+        if (error) {
           printDebug(error, 'error');
           if (error.instancePath) {
             const instancePath = trim(error.instancePath, '/').replaceAll('/', '.');
@@ -49,19 +56,17 @@ export default class AjvValidator extends Validator {
             // eslint-disable-next-line no-console
             console.log(json);
             printDebug(
-              `Instance value`,
+              'Instance value',
               'error',
               `${pathVal} (${typeof pathVal})`,
             );
           }
+        } else {
+          printDebug(validator.errors, 'error');
         }
-        throw new Error(formatError(error, this.Model));
       }
 
-      if (rc?.debug || !rc) {
-        printDebug(validator.errors, 'error');
-      }
-      throw new Error(`Unknown error when validating ${this.Model.name}`);
+      throw new Error(formatError(error, this.Model));
     }
 
     return json;

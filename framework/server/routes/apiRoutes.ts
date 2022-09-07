@@ -10,15 +10,22 @@ import { fetchUserIdByJwt } from 'helpers/auth/jwt';
 import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
 import rateLimitMiddleware from 'routes/api/helpers/rateLimitMiddleware';
 import requestContextMiddleware from 'routes/api/helpers/requestContextMiddleware';
+import formatApiErrorResponse from 'routes/api/helpers/formatApiErrorResponse';
 
 import './api/authApis';
 import './api/batchedApi';
+import './api/debugApi';
 import './api/notifsApi';
-import './api/reportsApis';
 import './api/sseApis';
 import 'config/apis';
 
-const upload = multer({ dest: '/tmp' });
+const upload = multer({
+  dest: '/tmp',
+  limits: {
+    // 25 MB
+    fileSize: 25 * 1024 * 1024,
+  },
+});
 
 async function addUserMiddleware(
   req: ExpressRequest,
@@ -64,7 +71,7 @@ const router = express.Router();
 const apis = getApis();
 if (!process.env.PRODUCTION) {
   router.use((req, res, next) => {
-    if (req.query?.DEBUG) {
+    if (req.query?.DEBUG && req.path !== '/sseSubscribe' && req.path !== '/sseUnsubscribe') {
       printDebug(`${req.method} ${req.path} start`, 'highlight');
 
       res.on('finish', () => {
@@ -127,5 +134,19 @@ for (const api of apis) {
 }
 
 router.use('/', apiNotFound);
+
+// Express checks number of args
+router.use((err: Error, req: ExpressRequest, res: ExpressResponse, _next: NextFunction) => {
+  ErrorLogger.error(err, 'apiRoutes');
+  const result = formatApiErrorResponse(err, 'apiRoutes');
+  res.status(result.status)
+    .set('Content-Type', 'application/json; charset=utf-8')
+    .set('Access-Control-Allow-Origin', HOME_URL)
+    .send(JSON.stringify(
+      result,
+      null,
+      process.env.PRODUCTION ? 0 : 2,
+    ));
+});
 
 export default router;

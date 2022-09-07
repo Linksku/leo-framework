@@ -20,39 +20,39 @@ export type OptsWithSet<T extends EntityType> = {
 
 type RetArr<
   T extends EntityType,
-  Fields extends readonly any[]
+  Fields extends readonly any[],
 > = Fields extends readonly [any, ...infer R]
   ? Memoed<ObjectOf<RetArr<T, R>>>
   : Memoed<TypeToEntity<T>[]>;
 
 type RetSet<
   T extends EntityType,
-  Fields extends readonly any[]
+  Fields extends readonly any[],
 > = Fields extends readonly [any, ...infer R]
   ? Memoed<ObjectOf<RetSet<T, R>>>
   : Memoed<Set<any>>;
 
 function useEntitiesByFields<T extends EntityType, Fields extends readonly string[]>(
-  type: T,
-  fields: Memoed<Fields>,
+  type: T | null,
+  fields: Fields,
   opts?: OptsWithoutSet<T>,
 ): RetArr<T, Fields>;
 
 function useEntitiesByFields<T extends EntityType, Fields extends readonly string[]>(
-  type: T,
-  fields: Memoed<Fields>,
+  type: T | null,
+  fields: Fields,
   opts?: OptsWithSet<T>,
 ): RetSet<T, Fields>;
 
 function useEntitiesByFields<
   T extends EntityType,
-  Fields extends readonly (keyof TypeToEntity<T>)[]
+  Fields extends readonly (keyof TypeToEntity<T>)[],
 >(
-  type: T,
-  fields: Memoed<Fields>,
+  type: T | null,
+  fields: Fields,
   { sortField, sortDirection, fieldForSet }: OptsWithoutSet<T> | OptsWithSet<T> = {},
 ) {
-  const entities = useEntities(type);
+  const entities = useAllEntities(type);
   const entitiesByFields = useGlobalMemo(
     `useEntitiesByFields:${type},${fields.join(', ')}`,
     () => {
@@ -108,7 +108,7 @@ function useEntitiesByFields<
 
       return obj as RetArr<T, Fields> | RetSet<T, Fields>;
     },
-    [entities, fields],
+    [entities, fields.join(',')],
   );
 
   return entitiesByFields;

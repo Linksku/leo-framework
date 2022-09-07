@@ -7,9 +7,9 @@ import childProcess from 'child_process';
 import {
   APP_NAME,
   SITE_TITLE,
-  DOMAIN_NAME,
   BASE_PATH,
   HOME_URL,
+  ASSETS_URL,
 } from 'settings';
 import recursiveReaddir from 'utils/recursiveReaddir';
 
@@ -30,9 +30,7 @@ export default async function buildTemplates() {
         name: APP_NAME,
         title: SITE_TITLE,
         basePath: BASE_PATH,
-        assetsUrl: process.env.SERVER === 'production'
-          ? `https://assets.${DOMAIN_NAME}`
-          : '',
+        assetsUrl: ASSETS_URL,
         homeUrl: HOME_URL,
         description: process.env.DESCRIPTION,
         content: '<div id="react"></div>',

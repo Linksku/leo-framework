@@ -1,7 +1,7 @@
 module.exports = {
   name: '%APP_NAME_LOWER%',
   script: 'build/production/server/main.js',
-  node_args: '--es-module-specifier-resolution=node',
+  node_args: '--experimental-specifier-resolution=node',
   env: {
     NODE_ENV: 'production',
   },

@@ -30,6 +30,14 @@ const _queueError = (level: SeverityLevel, err: Error, ctx: string) => {
   }
 };
 
+function _isErrorDoubleInvoked(err: Error) {
+  if (process.env.PRODUCTION || !err.stack) {
+    return false;
+  }
+
+  return err.stack?.includes('DoubleInvokeEffects');
+}
+
 export const setErrorLoggerUserId = (userId: Nullish<IUser['id']>) => {
   latestUserId = userId ?? null;
 
@@ -42,7 +50,7 @@ export const setErrorLoggerUserId = (userId: Nullish<IUser['id']>) => {
 
 const ErrorLogger = {
   warn(err: Error, ctx = '', consoleLog = true) {
-    if (consoleLog) {
+    if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
       console.warn(`${ctx} ${err.stack || err}`);
     }
@@ -50,7 +58,7 @@ const ErrorLogger = {
   },
 
   error(err: Error, ctx = '', consoleLog = true) {
-    if (consoleLog) {
+    if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
       console.error(`${ctx} ${err.stack || err}`);
     }
@@ -58,7 +66,7 @@ const ErrorLogger = {
   },
 
   fatal(err: Error, ctx = '', consoleLog = true) {
-    if (consoleLog) {
+    if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
       console.error(`${ctx} ${err.stack || err}`);
     }

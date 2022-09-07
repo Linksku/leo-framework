@@ -1,6 +1,7 @@
 import { URLSearchParams } from 'url';
 import promiseTimeout from 'utils/promiseTimeout';
 import { MAX_HTTP_TIMEOUT } from 'settings';
+import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 
 export default async function fetchJson(
   url: string,
@@ -40,7 +41,7 @@ export default async function fetchJson(
   let data: any = null;
   const text = await res.text();
   try {
-    data = JSON.parse(text);
+    data = deepFreezeIfDev(JSON.parse(text));
   } catch {
     const err = new Error(`fetchJson(${url}): unable to parse JSON`);
     ErrorLogger.warn(err, text.slice(0, 200));

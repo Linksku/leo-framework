@@ -17,7 +17,7 @@ export const [
     const [{
       toast,
       isHiding,
-    }, setState] = useState({
+    }, setState] = useStateStable({
       toast: null as Toast | null,
       isHiding: false,
     });
@@ -27,21 +27,15 @@ export const [
     });
 
     const hideToast = useCallback(() => {
-      setState(s => ({
-        ...s,
-        isHiding: true,
-      }));
+      setState({ isHiding: true });
 
       if (ref.current.removeToastTimer !== null) {
         clearTimeout(ref.current.removeToastTimer);
       }
       ref.current.removeToastTimer = window.setTimeout(() => {
-        setState({
-          toast: null,
-          isHiding: false,
-        });
+        setState({ toast: null, isHiding: false });
       }, 200);
-    }, []);
+    }, [setState]);
 
     const showToast = useCallback(({
       msg = '',
@@ -66,7 +60,7 @@ export const [
         hideToast,
         closeAfter ?? DEFAULT_CLOSE_AFTER,
       );
-    }, [hideToast]);
+    }, [hideToast, setState]);
 
     return useDeepMemoObj({
       toast,

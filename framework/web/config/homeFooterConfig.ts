@@ -1,7 +1,12 @@
-export const ICON_COMPONENTS = {} as ObjectOf<React.SVGFactory>;
+import type HOME_TABS from 'config/homeTabs';
 
-export const SMALL_ICONS = new Set<keyof typeof ICON_COMPONENTS>();
+export const ICONS_CONFIG = [] as {
+  key: ValueOf<typeof HOME_TABS>,
+  RegularIcon: React.SVGFactory,
+  FilledIcon: React.SVGFactory,
+  isSmall?: boolean,
+}[];
 
-export function useShowHomeFooter() {
+export function useHomeFooterShown() {
   return true;
 }

@@ -5,10 +5,9 @@ import styles from './SlideUpListStyles.scss';
 type Props = {
   items: {
     key: string,
-    hidden?: boolean,
     disabled?: boolean,
     content: ReactNode,
-    onClick: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void | Promise<void>,
+    onClick?: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void,
   }[],
   context: string,
 };
@@ -18,7 +17,7 @@ export default function SlideUpList({
   context,
 }: Props) {
   const hideSlideUp = useHideSlideUp();
-  const itemsShown = items.filter(item => !item.hidden);
+  const itemsShown = items.filter(item => item.content);
 
   useEffectOncePerDeps(() => {
     if (!itemsShown.length) {
@@ -39,7 +38,7 @@ export default function SlideUpList({
             }
 
             hideSlideUp();
-            void item.onClick(e);
+            item.onClick?.(e);
           }}
           role="button"
           tabIndex={-1}

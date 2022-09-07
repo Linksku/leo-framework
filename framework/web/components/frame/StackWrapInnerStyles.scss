@@ -1,8 +1,8 @@
 .container {
   height: 100vh;
   height: var(--vh100, 100vh);
+  min-height: $bodyMinHeight;
   width: 100vw;
-  min-width: $bodyMinWidth;
   display: flex;
   flex-direction: column;
 }
@@ -22,7 +22,6 @@
 
   flex-grow: 1;
   overflow-y: scroll;
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features
   touch-action: pan-y;
 }
 
@@ -42,6 +41,5 @@
   position: relative;
   display: flex;
   align-items: center;
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features
   touch-action: none;
 }

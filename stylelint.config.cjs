@@ -17,13 +17,19 @@ module.exports = {
     'no-empty-source': null,
     'plugin/no-unsupported-browser-features': [true, {
       browsers: [
-        'last 2 versions',
-        'last 2 years',
+        'last 3 years',
+        'last 1 version and last 10 years',
         'not < 0.1%',
         'not ie > 0',
         'not op_mini all',
+        'not and_qq > 0',
+        'not and_uc > 0',
       ],
-      ignore: ['css3-cursors-newer'],
+      ignore: [
+        'css3-cursors-newer',
+        'css-touch-action',
+        'pointer',
+      ],
     }],
     'at-rule-empty-line-before': null,
     'value-keyword-case': null,
@@ -41,5 +47,6 @@ module.exports = {
     'scss/double-slash-comment-empty-line-before': null,
     'shorthand-property-no-redundant-values': null,
     'selector-attribute-quotes': null,
+    'declaration-colon-newline-after': null,
   },
 };

@@ -6,7 +6,7 @@ import SseConnectionsManager from 'services/SseConnectionsManager';
 import serializeEvent from 'utils/serializeEvent';
 import generateUuid from 'utils/generateUuid';
 import SseBroadcastManager from 'services/SseBroadcastManager';
-import handleApiError from 'routes/api/helpers/handleApiError';
+import formatApiErrorResponse from 'routes/api/helpers/formatApiErrorResponse';
 import rateLimitMiddleware from 'routes/api/helpers/rateLimitMiddleware';
 import requestContextMiddleware from 'routes/api/helpers/requestContextMiddleware';
 import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
@@ -64,7 +64,7 @@ router.get('/', async (req, res) => {
       });
 
       if (!currentUserId) {
-        throw new HandledError('Failed to verify OTP.', 401);
+        throw new UserFacingError('Failed to verify OTP.', 401);
       }
     }
 
@@ -106,10 +106,10 @@ router.get('/', async (req, res) => {
     };
     SseConnectionsManager.sendMessage(sessionId, JSON.stringify(response));
   } catch (err) {
-    ErrorLogger.error(err, 'sseRoute');
+    ErrorLogger.error(ErrorLogger.castError(err), 'sseRoute');
 
-    const { status, errorData } = handleApiError(err, 'sseRoute');
-    res.status(status).json(errorData);
+    const { status, error } = formatApiErrorResponse(err, 'sseRoute');
+    res.status(status).json(error);
   }
 });
 

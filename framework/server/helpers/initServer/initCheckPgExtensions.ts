@@ -13,11 +13,11 @@ export default async function initCheckPgExtensions() {
     return;
   }
 
-  const rows = await knexRR.raw(
-    'select extname, extversion from pg_extension',
-  );
+  const rows = await knexRR
+    .select(['extname', 'extversion'])
+    .from('pg_extension');
   const missing = new Set(Object.keys(PG_EXTENSIONS));
-  for (const row of rows.rows) {
+  for (const row of rows) {
     if (!missing.has(row.extname)) {
       continue;
     }

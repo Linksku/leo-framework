@@ -7,18 +7,6 @@ if (!process.env.PG_BT_USER) {
   throw new Error('PG_BT_USER env var not set.');
 }
 
-/*
-Postgres config:
-listen_addresses = '*'
-wal_level = logical
-wal_writer_delay = 10ms
-max_wal_senders = 100
-max_replication_slots = 100
-
-pg_hba:
-host  all  all  0.0.0.0/0  scram-sha-256
-*/
-
 // BT = base table, aka master
 const knexBT = Knex<any, any[]>({
   client: 'pg',
@@ -57,7 +45,6 @@ const knexBT = Knex<any, any[]>({
         || process.env.IS_SERVER_SCRIPT
         || !sql
         || sql.startsWith('explain ')
-        || !sql.startsWith('select ')
         || rc?.profiling) {
         return;
       }

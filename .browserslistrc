@@ -1,5 +1,7 @@
-last 2 versions
-last 2 years
+last 3 years
+last 1 version and last 10 years
 not < 0.1%
 not ie > 0
 not op_mini all
+not and_qq > 0
+not and_uc > 0

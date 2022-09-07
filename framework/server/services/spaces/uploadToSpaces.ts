@@ -40,9 +40,9 @@ export default async function uploadToSpaces({
       new Error('Uploading file timed out.'),
     );
 
-    return uploaded.Location;
+    return `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_REGION}.cdn.digitaloceanspaces.com/${uploaded.Key}`;
   } catch (err) {
-    ErrorLogger.warn(err, 'Failed to upload file to Spaces');
-    throw new HandledError('Failed to upload file.', 500);
+    ErrorLogger.warn(ErrorLogger.castError(err), 'Failed to upload file to Spaces');
+    throw new UserFacingError('Failed to upload file.', 500);
   }
 }

@@ -71,18 +71,18 @@ defineApi(
   }: ApiHandlerParams<'registerUser'>, res) {
     const invalidBirthdayReason = getBirthdayInvalidReason(birthday);
     if (invalidBirthdayReason) {
-      throw new HandledError(invalidBirthdayReason, 400);
+      throw new UserFacingError(invalidBirthdayReason, 400);
     }
 
     const invalidPasswordReason = getPasswordInvalidReason(password);
     if (invalidPasswordReason) {
-      throw new HandledError(invalidPasswordReason, 400);
+      throw new UserFacingError(invalidPasswordReason, 400);
     }
 
     name = name.trim();
     const nameInvalidReason = getNameInvalidReason(name);
     if (nameInvalidReason) {
-      throw new HandledError(nameInvalidReason, 400);
+      throw new UserFacingError(nameInvalidReason, 400);
     }
 
     let userId: EntityId;
@@ -92,12 +92,12 @@ defineApi(
         password: await getPasswordHash(password),
         name,
         birthday,
-      });
+      }, { waitForRR: true });
       userId = user.id;
     } catch (err) {
       if (err instanceof UniqueViolationError
         && (err.constraint === 'email' || err.constraint === User.cols.email)) {
-        throw new HandledError('That email address is already taken, please try a different one.', 400);
+        throw new UserFacingError('That email address is already taken, please try a different one.', 400);
       }
       throw err;
     }
@@ -122,13 +122,12 @@ defineApi(
     dataSchema,
   },
   async function loginUserApi({ email, password }: ApiHandlerParams<'loginUser'>, res) {
-    if (!email || !password) {
-      throw new HandledError('Email or password is incorrect.', 400);
-    }
-
     const user = await User.selectOne({ email: email.toLowerCase() });
-    if (!user || !await isPasswordValid(user.password, password)) {
-      throw new HandledError('Email or password is incorrect.', 400);
+    if (!user) {
+      throw new UserFacingError('Can\'t find an account with that email.', 400);
+    }
+    if (!await isPasswordValid(user.password, password)) {
+      throw new UserFacingError('Email or password is incorrect.', 400);
     }
 
     return _sendAuthToken(user.id, res);
@@ -149,13 +148,9 @@ defineApi(
     },
   },
   async function resetPasswordApi({ email }: ApiHandlerParams<'resetPassword'>) {
-    if (!email) {
-      throw new HandledError('Email or password is incorrect.', 400);
-    }
-
     const user = await User.selectOne({ email: email.toLowerCase() });
     if (!user) {
-      throw new HandledError('Can\'t find email.', 400);
+      throw new UserFacingError('Can\'t find an account with that email.', 400);
     }
 
     const randToken = await new Promise<string>((succ, fail) => {
@@ -169,7 +164,7 @@ defineApi(
     });
 
     const hash = crypto.createHash('sha256').update(randToken).digest('base64');
-    // todo: mid/mid use redis instead of UserMeta
+    // todo: low/easy use redis instead of UserMeta
     await UserMeta.delete({
       userId: user.id,
       metaKey: RESET_PASSWORD_HASH,
@@ -196,7 +191,7 @@ defineApi(
         `,
       );
     } catch (err) {
-      throw new HandledError('Sending email failed', 500, err);
+      throw new UserFacingError('Failed to send email', 500, ErrorLogger.castError(err).message);
     }
 
     return {
@@ -227,15 +222,15 @@ defineApi(
     password,
   }: ApiHandlerParams<'verifyResetPassword'>, res) {
     if (!userId) {
-      throw new HandledError('Invalid user.', 400);
+      throw new UserFacingError('Invalid user.', 400);
     }
     if (!token) {
-      throw new HandledError('Invalid token', 400);
+      throw new UserFacingError('Invalid token', 400);
     }
 
     const user = await User.selectOne({ id: userId });
     if (!user) {
-      throw new HandledError('Invalid user.', 400);
+      throw new UserFacingError('Invalid user.', 400);
     }
 
     let data;
@@ -252,14 +247,14 @@ defineApi(
       }
     } catch {}
     if (!data || !data.expires || data.expires < Date.now()) {
-      throw new HandledError('Password reset request has expired.', 400);
+      throw new UserFacingError('Password reset request has expired.', 400);
     }
 
     const submittedHash = crypto.createHash('sha256')
       .update(token)
       .digest('base64');
     if (submittedHash !== data.hash) {
-      throw new HandledError('Invalid token', 400);
+      throw new UserFacingError('Invalid token', 400);
     }
 
     await User.update(

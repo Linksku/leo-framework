@@ -4,9 +4,9 @@ import { setErrorLoggerUserId } from 'services/ErrorLogger';
 /*
 in -> current user is set
 out -> current user is null
-unknown -> fetching user for first time
+fetching -> fetching user right after loading page
 */
-type AuthStateType = 'unknown' | 'in' | 'out';
+type AuthStateType = 'in' | 'out' | 'fetching';
 
 const [
   AuthProvider,
@@ -16,12 +16,12 @@ const [
 ] = constate(
   function AuthStore() {
     const [authToken, setAuthToken, removeAuthToken] = useAuthTokenLS();
-    const [state, setState] = useState<{
+    const [state, setState] = useStateStable<{
       currentUserId: IUser['id'] | null,
       authState: AuthStateType,
     }>({
       currentUserId: null,
-      authState: authToken ? 'unknown' : 'out',
+      authState: authToken ? 'fetching' : 'out',
     });
     const [isReloadingAfterAuth, setIsReloadingAfterAuth] = useState(false);
 
@@ -32,7 +32,7 @@ const [
     }: {
       authToken: string | null,
       userId: IUser['id'] | null,
-      // todo: mid/mid redirect to previous path
+      // todo: low/mid redirect to previous path
       redirectPath: string,
     }) => {
       batchedUpdates(() => {
@@ -47,7 +47,7 @@ const [
         setIsReloadingAfterAuth(true);
         window.location.href = redirectPath;
       });
-    }, [setAuthToken, removeAuthToken]);
+    }, [setAuthToken, removeAuthToken, setState]);
 
     const fetchedCurrentUser = useCallback((currentUserId: IUser['id'] | null) => {
       setErrorLoggerUserId(currentUserId);
@@ -55,7 +55,11 @@ const [
         currentUserId,
         authState: currentUserId ? 'in' : 'out',
       });
-    }, []);
+    }, [setState]);
+
+    if (!process.env.PRODUCTION && !!state.currentUserId !== (state.authState === 'in')) {
+      throw new Error('AuthStore: invalid authState');
+    }
 
     return useDeepMemoObj({
       currentUserId: state.currentUserId,

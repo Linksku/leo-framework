@@ -11,15 +11,15 @@ const sharedSrcGlobals = require('./app/shared/config/globals.cjs');
 const config = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
+    // All .js and .cjs files are handled by scripts/tsconfig
+    // .ts and .tsx files are handled by [web,server,shared]/tsconfig
+    project: 'scripts/tsconfig.json',
     ecmaVersion: 2020,
     sourceType: 'module',
     ecmaFeatures: {
       jsx: true,
       impliedStrict: true,
     },
-    // All .js and .cjs files are handled by scripts/tsconfig
-    // .ts and .tsx files are handled by [web,server,shared]/tsconfig
-    project: 'scripts/tsconfig.json',
     extraFileExtensions: [
       '.cjs',
     ],
@@ -27,17 +27,15 @@ const config = {
   extends: [
     'airbnb',
     'airbnb/hooks',
-    'plugin:@typescript-eslint/recommended',
     'plugin:unicorn/recommended',
   ],
   plugins: [
-    '@typescript-eslint',
     'css-modules',
     'unicorn',
   ],
   env: {
     node: true,
-    browser: false,
+    browser: true,
     commonjs: true,
     es6: true,
   },
@@ -106,7 +104,6 @@ const config = {
       hoist: 'functions',
       allow: ['_'],
     }],
-    'no-undef': 0, // Typescript doesn't work well with this yet.
     'array-bracket-spacing': 2,
     'brace-style': [2, '1tbs', { allowSingleLine: true }],
     'comma-spacing': [2, { before: false, after: true }],
@@ -124,7 +121,6 @@ const config = {
       'single',
       {
         avoidEscape: true,
-        allowTemplateLiterals: true,
       },
     ],
     'semi-spacing': [2, { before: false, after: true }],
@@ -140,7 +136,7 @@ const config = {
         ['+', '-', '*', '/', '%', '**'],
         ['&', '|', '^', '~', '<<', '>>', '>>>'],
         ['==', '!=', '===', '!==', '>', '>=', '<', '<='],
-        ['&&', '||'],
+        ['&&', '||', '??'],
         ['in', 'instanceof'],
       ],
       allowSamePrecedence: true,
@@ -152,9 +148,7 @@ const config = {
     'no-empty': [2, {
       allowEmptyCatch: true,
     }],
-    'no-unused-vars': 0,
     'max-statements-per-line': [2, { max: 1 }],
-    'no-void': [2, { allowAsStatement: true }],
     'max-classes-per-file': 0,
     'no-use-before-define': 0,
     'no-loop-func': 0,
@@ -173,49 +167,6 @@ const config = {
     'import/no-unresolved': 0,
     'import/no-named-as-default-member': 0,
     'import/no-duplicates': 0,
-    '@typescript-eslint/no-unused-vars': [2, {
-      args: 'after-used',
-      varsIgnorePattern: '^(_|styles$)',
-      argsIgnorePattern: '^_',
-      ignoreRestSiblings: true,
-    }],
-    '@typescript-eslint/no-var-requires': 0,
-    '@typescript-eslint/ban-ts-comment': [2, {
-      'ts-expect-error': true,
-      'ts-ignore': 'allow-with-description',
-      'ts-nocheck': true,
-      'ts-check': false,
-      minimumDescriptionLength: 3,
-    }],
-    '@typescript-eslint/explicit-module-boundary-types': 0,
-    // Too slow.
-    '@typescript-eslint/no-floating-promises': [1, {
-      ignoreVoid: true,
-      ignoreIIFE: false,
-    }],
-    // Too slow.
-    '@typescript-eslint/await-thenable': 1,
-    // Too slow.
-    '@typescript-eslint/unbound-method': 1,
-    '@typescript-eslint/promise-function-async': 0,
-    // Too slow.
-    '@typescript-eslint/no-misused-promises': [1, {
-      checksVoidReturn: false,
-    }],
-    // Too slow.
-    '@typescript-eslint/return-await': 1,
-    // Too slow.
-    '@typescript-eslint/require-await': 1,
-    '@typescript-eslint/no-explicit-any': 0,
-    // Use TS.defined
-    '@typescript-eslint/no-non-null-assertion': 2,
-    '@typescript-eslint/no-empty-function': 0,
-    '@typescript-eslint/no-use-before-define': 2,
-    '@typescript-eslint/space-before-function-paren': [2, {
-      anonymous: 'never',
-      named: 'never',
-      asyncArrow: 'always',
-    }],
     'react/jsx-filename-extension': [2, { extensions: ['.tsx'] }],
     'react/no-unknown-property': [2, { ignore: ['class', 'for'] }],
     'react/prop-types': 0,
@@ -261,7 +212,7 @@ const config = {
     'react/void-dom-elements-no-children': 0,
     'jsx-a11y/media-has-caption': 1,
     'jsx-a11y/label-has-associated-control': [1, { assert: 'either' }],
-    'jsx-a11y/click-events-have-key-events': 0,
+    'jsx-a11y/click-events-have-key-events': 1,
     'jsx-a11y/no-noninteractive-element-interactions': 0,
     'jsx-a11y/accessible-emoji': 0,
     'jsx-a11y/aria-role': 2,
@@ -288,10 +239,8 @@ const config = {
     'jsx-a11y/no-noninteractive-element-to-interactive-role': [
       2,
       {
-        ul: ['listbox', 'menu', 'menubar',
-             'radiogroup', 'tablist', 'tree', 'treegrid'],
-        ol: ['listbox', 'menu', 'menubar',
-             'radiogroup', 'tablist', 'tree', 'treegrid'],
+        ul: ['listbox', 'menu', 'menubar', 'radiogroup', 'tablist', 'tree', 'treegrid'],
+        ol: ['listbox', 'menu', 'menubar', 'radiogroup', 'tablist', 'tree', 'treegrid'],
         li: ['menuitem', 'option', 'row', 'tab', 'treeitem'],
         table: ['grid'],
         td: ['gridcell'],
@@ -327,8 +276,107 @@ const config = {
     'unicorn/text-encoding-identifier-case': 0,
     'unicorn/prefer-array-flat-map': 1,
     'unicorn/template-indent': 0,
+    // EventEmitter is ~10x faster
+    'unicorn/prefer-event-target': 0,
+    'unicorn/prefer-spread': 0,
   },
   overrides: [
+    {
+      files: ['*.ts', '*.tsx'],
+      extends: [
+        'plugin:@typescript-eslint/recommended',
+      ],
+      plugins: [
+        '@typescript-eslint',
+      ],
+      rules: {
+        'no-unused-vars': 0,
+        '@typescript-eslint/no-unused-vars': [2, {
+          args: 'after-used',
+          varsIgnorePattern: '^(_|styles$)',
+          argsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        }],
+        '@typescript-eslint/indent': 0,
+        'comma-dangle': 0,
+        '@typescript-eslint/comma-dangle': [2, 'always-multiline'],
+        camelcase: 0,
+        '@typescript-eslint/naming-convention': [
+          2,
+          {
+            selector: 'variable',
+            format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
+            leadingUnderscore: 'allow',
+          },
+          {
+            selector: 'function',
+            format: ['camelCase', 'PascalCase'],
+            leadingUnderscore: 'allow',
+          },
+          {
+            selector: 'typeLike',
+            format: ['PascalCase'],
+            leadingUnderscore: 'allow',
+          },
+        ],
+        'no-shadow': 0,
+        '@typescript-eslint/no-shadow': [2, {
+          builtinGlobals: false,
+          hoist: 'functions',
+          allow: ['_'],
+        }],
+        semi: 0,
+        '@typescript-eslint/semi': [2, 'always'],
+        quotes: 0,
+        '@typescript-eslint/quotes': [
+          2,
+          'single',
+          {
+            avoidEscape: true,
+          },
+        ],
+        '@typescript-eslint/no-var-requires': 0,
+        '@typescript-eslint/ban-ts-comment': [2, {
+          'ts-expect-error': true,
+          'ts-ignore': 'allow-with-description',
+          'ts-nocheck': true,
+          'ts-check': false,
+          minimumDescriptionLength: 3,
+        }],
+        // todo: low/mid enable explicit-module-boundary-types
+        '@typescript-eslint/explicit-module-boundary-types': 0,
+        // Too slow.
+        '@typescript-eslint/no-floating-promises': [2, {
+          ignoreVoid: false,
+          ignoreIIFE: false,
+        }],
+        // Too slow.
+        '@typescript-eslint/await-thenable': 1,
+        // Too slow.
+        '@typescript-eslint/unbound-method': 1,
+        '@typescript-eslint/promise-function-async': 0,
+        // Too slow.
+        '@typescript-eslint/no-misused-promises': [2, {
+          checksVoidReturn: false,
+        }],
+        // Too slow.
+        '@typescript-eslint/return-await': 1,
+        // Too slow.
+        '@typescript-eslint/require-await': 1,
+        // todo: low/mid enable no-explicit-any
+        '@typescript-eslint/no-explicit-any': 0,
+        // Use TS.defined
+        '@typescript-eslint/no-non-null-assertion': 2,
+        '@typescript-eslint/no-empty-function': 2,
+        '@typescript-eslint/no-use-before-define': 2,
+        '@typescript-eslint/space-before-function-paren': [2, {
+          anonymous: 'never',
+          named: 'never',
+          asyncArrow: 'always',
+        }],
+        '@typescript-eslint/no-meaningless-void-operator': 2,
+      },
+    },
     {
       files: [
         'framework/web/**/*.ts',
@@ -338,10 +386,6 @@ const config = {
       ],
       parserOptions: {
         project: 'app/web/tsconfig.json',
-      },
-      env: {
-        browser: true,
-        node: false,
       },
       settings: {
         'import/resolver': {
@@ -529,6 +573,18 @@ if ('quiet' in argv && argv.quiet) {
       config.rules[k] = 0;
     } else if (Array.isArray(v) && v[0] === 1) {
       v[0] = 0;
+    }
+  }
+
+  for (const override of config.overrides) {
+    if (override.rules) {
+      for (const [k, v] of Object.entries(override.rules)) {
+        if (v === 1) {
+          override.rules[k] = 0;
+        } else if (Array.isArray(v) && v[0] === 1) {
+          v[0] = 0;
+        }
+      }
     }
   }
 }

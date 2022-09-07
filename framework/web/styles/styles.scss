@@ -1,10 +1,17 @@
 // Vendors
 @import 'normalize.css/normalize.css';
 
+@import './imports/cssVariables';
+@import './imports/keyframes';
 @import './vendors/fonts';
 @import './imports/elements';
-@import './imports/cssVariables';
 
 :global(.oneLine) {
   @extend %oneLine;
+}
+
+body,
+:global(#react) {
+  min-height: 100vh;
+  min-width: 100vw;
 }

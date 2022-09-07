@@ -20,7 +20,7 @@ import { UIFrameProvider } from 'stores/UIFrameStore';
 import providers from 'config/storeProviders';
 
 export default function App() {
-  useTimeComponentPerf('App');
+  useTimeComponentPerf('Render App');
 
   let router = <Router />;
   for (const Component of [
@@ -53,6 +53,12 @@ export default function App() {
   ].reverse()) {
     router = <Component>{router}</Component>;
   }
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      document.body.style.display = 'block';
+    });
+  }, []);
 
   return (
     <ErrorBoundary>

@@ -44,6 +44,8 @@
   border-radius: $inputBorderRadius;
   outline: none;
   transition: border-color 0.2s;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  appearance: none;
 
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button {

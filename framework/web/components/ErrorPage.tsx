@@ -27,7 +27,7 @@ export default function ErrorPage({
       {showReload
         ? (
           <p>
-            {'Please try '}
+            {'You can try to '}
             <span
               onClick={e => {
                 e.preventDefault();
@@ -44,9 +44,12 @@ export default function ErrorPage({
               tabIndex={-1}
               className={styles.link}
             >
-              reloading
+              reload
             </span>
-            {' the page or restarting the app.'}
+            {' the page, go back to '}
+            <a href="/">home</a>
+            {/* eslint-disable-next-line react/jsx-child-element-spacing */}
+            , or restart the app.
           </p>
         )
         : null}

@@ -10,7 +10,7 @@ function objEntries<Obj extends ObjectOf<any>>(
 }>[];
 
 function objEntries<
-  Obj extends ObjectOf<any>
+  Obj extends ObjectOf<any>,
 >(
   obj: Obj,
   keepUndefined: true,

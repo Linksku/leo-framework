@@ -5,8 +5,9 @@ services:
     image: confluentinc/cp-zookeeper:7.0.1
     container_name: zookeeper
     ports:
-      - "2181:2181"
-    restart: on-failure:3
+      # Note: 127.0.0.1 won't work with Swarm: https://github.com/moby/moby/issues/32299
+      - 127.0.0.1:2181:2181
+    restart: always
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -17,9 +18,9 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
-      - "9101:9101"
-    restart: on-failure:3
+      - 127.0.0.1:9092:9092
+      - 127.0.0.1:9101:9101
+    restart: always
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -40,6 +41,12 @@ services:
       CONFLUENT_METRICS_ENABLE: 'false'
       CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
       CONFLUENT_REPORTERS_TELEMETRY_AUTO_ENABLE: 'false'
+    healthcheck:
+      test:
+        ["CMD", "kafka-topics", "--bootstrap-server", "broker:29092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.0.1
@@ -47,8 +54,8 @@ services:
     depends_on:
       - broker
     ports:
-      - "8081:8081"
-    restart: on-failure:3
+      - 127.0.0.1:8081:8081
+    restart: always
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
@@ -64,8 +71,8 @@ services:
       - broker
       - schema-registry
     ports:
-      - "8083:8083"
-    restart: on-failure:3
+      - 127.0.0.1:8083:8083
+    restart: always
     environment:
       CONNECT_BOOTSTRAP_SERVERS: 'broker:29092'
       CONNECT_REST_ADVERTISED_HOST_NAME: connect
@@ -99,14 +106,11 @@ services:
       - broker
       - schema-registry
       - connect
-      - ksqldb-server
     ports:
-      - "9021:9021"
+      - 127.0.0.1:9021:9021
     environment:
       CONTROL_CENTER_BOOTSTRAP_SERVERS: 'broker:29092'
       CONTROL_CENTER_CONNECT_CONNECT-DEFAULT_CLUSTER: 'connect:8083'
-      CONTROL_CENTER_KSQL_KSQLDB1_URL: "http://ksqldb-server:8088"
-      CONTROL_CENTER_KSQL_KSQLDB1_ADVERTISED_URL: "http://localhost:8088"
       CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
       CONTROL_CENTER_REPLICATION_FACTOR: 1
       CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
@@ -116,48 +120,14 @@ services:
     profiles:
       - monitoring
 
-  ksqldb-server:
-    image: confluentinc/cp-ksqldb-server:7.0.1
-    container_name: ksqldb-server
-    depends_on:
-      - broker
-      - connect
-    ports:
-      - "8088:8088"
-    restart: on-failure:3
-    environment:
-      KSQL_CONFIG_DIR: "/etc/ksql"
-      KSQL_BOOTSTRAP_SERVERS: "broker:29092"
-      KSQL_HOST_NAME: ksqldb-server
-      KSQL_LISTENERS: "http://0.0.0.0:8088"
-      KSQL_CACHE_MAX_BYTES_BUFFERING: 0
-      KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
-      KSQL_PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
-      KSQL_CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
-      KSQL_KSQL_CONNECT_URL: "http://connect:8083"
-      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_REPLICATION_FACTOR: 1
-      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: 'true'
-      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: 'true'
-
-  ksqldb-cli:
-    image: confluentinc/cp-ksqldb-cli:7.0.1
-    container_name: ksqldb-cli
-    depends_on:
-      - broker
-      - connect
-      - ksqldb-server
-    entrypoint: /bin/sh
-    tty: true
-    restart: on-failure:3
-
   rest-proxy:
     image: confluentinc/cp-kafka-rest:7.0.1
     depends_on:
       - broker
       - schema-registry
     ports:
-      - 8082:8082
-    restart: on-failure:3
+      - 127.0.0.1:8082:8082
+    restart: always
     container_name: rest-proxy
     environment:
       KAFKA_REST_HOST_NAME: rest-proxy
@@ -166,32 +136,39 @@ services:
       KAFKA_REST_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081'
 
   materialize:
-    image: materialize/materialized:v0.26.1
+    image: materialize/materialized:v0.26.4
     container_name: materialize
     depends_on:
       - broker
       - schema-registry
       - connect
     ports:
-      - 6875:6875
-    restart: on-failure:3
-    command: -D /var/lib/mzdata --log-file /var/lib/mzdata/materialized.log -w 1 --disable-telemetry --introspection-frequency 10s --logical-compaction-window 1s --differential-idle-merge-effort 1000
+      - 127.0.0.1:6875:6875
+    restart: always
+    command: >
+      -D /var/lib/mzdata
+      --log-file /var/log/mz/materialized.log
+      -w 1
+      --disable-telemetry
+      --introspection-frequency 10s
+      --logical-compaction-window 1s
+      --differential-idle-merge-effort 1000
+      --log-filter WARN
     volumes:
-      - /var/lib/mzdata
+      - /var/log/mz:/var/log/mz
     healthcheck:
       test: ["CMD", "curl", "http://localhost:6875/status"]
-      start_period: 10s
-      interval: 1m
+      interval: 10s
       timeout: 10s
-      retries: 3
+      retries: 12
 
-  materialize_dashboard:
-    image: materialize/dashboard:v0.26.1
-    container_name: materialize_dashboard
+  materialize-dashboard:
+    image: materialize/dashboard:v0.26.4
+    container_name: materialize-dashboard
     depends_on:
       - materialize
     ports:
-      - 3000:3000
+      - 127.0.0.1:3000:3000
     environment:
       MATERIALIZED_URL: materialize:6875
     profiles:
@@ -201,13 +178,13 @@ services:
     image: redis:6.2-alpine
     container_name: redis
     ports:
-      - 6379:6379
-    restart: on-failure:3
+      - 127.0.0.1:6379:6379
+    restart: always
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      interval: 1m
+      interval: 10s
       timeout: 10s
-      retries: 3
+      retries: 12
 
   autoheal:
     restart: always

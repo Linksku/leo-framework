@@ -1,9 +1,11 @@
 import knexRR from 'services/knex/knexRR';
+import { getApiId } from 'utils/models/apiModelId';
 import Model from '../Model';
 
 class MaterializedView extends Model {
   static override isMV = true;
 
+  // Set true if MAX_CACHE_TTL staleness is ok
   static override cacheable = false;
 
   static replicaTable: Nullish<string>;
@@ -19,15 +21,7 @@ class MaterializedView extends Model {
   static extendMVQuery?: ((query: QueryBuilder<Model>) => QueryBuilder<Model>)[];
 
   override getId(): ApiEntityId {
-    const index = (this.constructor as MaterializedViewClass).getIdColumn();
-    if (!Array.isArray(index)) {
-      // @ts-ignore wontfix key error
-      return this[index];
-    }
-    return index
-      // @ts-ignore wontfix key error
-      .map(i => this[i])
-      .join(',');
+    return getApiId(this);
   }
 }
 

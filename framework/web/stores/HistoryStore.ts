@@ -5,6 +5,7 @@ import { App as Capacitor } from '@capacitor/app';
 
 import useUpdate from 'utils/hooks/useUpdate';
 import useEffectInitialMount from 'utils/hooks/useEffectInitialMount';
+import useWindowEvent from 'utils/hooks/useWindowEvent';
 
 type Direction = 'none' | 'back' | 'forward';
 
@@ -20,6 +21,8 @@ type NativeHistoryState = {
   direction: Direction,
 };
 
+export const FIRST_ID = 1;
+
 function queryToStrVals(query: Partial<ParsedQuery<string | number>>) {
   const newQuery: ObjectOf<string | string[]> = {};
   for (const [k, v] of TS.objEntries(query)) {
@@ -32,6 +35,15 @@ function queryToStrVals(query: Partial<ParsedQuery<string | number>>) {
     }
   }
   return newQuery;
+}
+
+function historyStateToKey(
+  id: number,
+  path: string,
+  queryStr: string | null,
+  hash: string | null,
+) {
+  return `${id}|${path}?${queryStr ?? ''}#${hash ?? ''}`;
 }
 
 // Reduce rerenders.
@@ -53,6 +65,7 @@ function getHistoryState(
     query,
     queryStr: queryStr || null,
     hash,
+    key: historyStateToKey(id, path, queryStr, hash),
   });
 }
 
@@ -153,11 +166,12 @@ export const [
             nativeHistoryState.queryStr,
             nativeHistoryState.hash,
           )
-          : getHistoryStateFromLocation(0),
+          : getHistoryStateFromLocation(FIRST_ID),
         direction: nativeHistoryState?.direction ?? 'none',
         isReplaced: !!nativeHistoryState,
         didRefresh: !!nativeHistoryState,
         popHandlers: [] as (() => boolean)[],
+        lastPopStateTime: Number.MIN_SAFE_INTEGER,
       };
     }));
     const update = useUpdate();
@@ -205,11 +219,12 @@ export const [
         ...ref.current,
         prevState: ref.current.curState,
         curState: markMemoed({
+          id: ref.current.curState.id + 1,
           path,
           query: query ? markMemoed(query) : EMPTY_OBJ,
           queryStr,
           hash,
-          id: ref.current.curState.id + 1,
+          key: historyStateToKey(ref.current.curState.id + 1, path, queryStr, hash),
         }),
         direction: 'forward',
         isReplaced: false,
@@ -247,11 +262,12 @@ export const [
       ref.current = markMemoed({
         ...ref.current,
         curState: markMemoed({
+          id: ref.current.curState.id,
           path,
           query: query ? markMemoed(query) : EMPTY_OBJ,
           queryStr,
           hash,
-          id: ref.current.curState.id,
+          key: historyStateToKey(ref.current.curState.id, path, queryStr, hash),
         }),
         isReplaced: true,
         didRefresh: false,
@@ -271,18 +287,62 @@ export const [
       update();
     }, [update]);
 
-    // Called for both back and forward.
-    const handlePopState = useCallback((event: PopStateEvent) => {
-      const poppedStateId: number = typeof event.state?.id === 'number' ? event.state.id : 0;
+    const _addPopHandler = useCallback((popHandler: () => boolean) => {
+      ref.current.popHandlers.push(popHandler);
+    }, []);
+
+    // Called for both back and forward. event.state is current state.
+    useWindowEvent('popstate', useCallback((event: PopStateEvent) => {
+      const newStateId = typeof event.state?.id === 'number' ? event.state.id as number : FIRST_ID;
+      if (event.state) {
+        const _pushLastState = () => {
+          window.history.pushState(
+            getNativeHistoryState(
+              ref.current.curState,
+              ref.current.prevState,
+              ref.current.direction,
+            ),
+            '',
+            getFullPath(
+              ref.current.curState.path,
+              ref.current.curState.queryStr,
+              ref.current.curState.hash,
+            ),
+          );
+          update();
+        };
+
+        // Popped twice too quickly, for fixing swipe back gesture.
+        // todo: mid/mid rapidly going back and forth breaks history
+        if (performance.now() - ref.current.lastPopStateTime < 100) {
+          _pushLastState();
+        }
+
+        while (ref.current.popHandlers.length) {
+          const handler = ref.current.popHandlers.shift();
+          if (handler?.()) {
+            _pushLastState();
+            return;
+          }
+        }
+      } else {
+        // Clear all pop handlers.
+        while (ref.current.popHandlers.length) {
+          const handler = ref.current.popHandlers.shift();
+          handler?.();
+        }
+      }
+
       ref.current = markMemoed({
         ...ref.current,
         prevState: ref.current.curState,
-        curState: poppedStateId === ref.current.prevState?.id
+        curState: newStateId === ref.current.prevState?.id
           ? ref.current.prevState
-          : getHistoryStateFromLocation(poppedStateId),
-        direction: poppedStateId >= ref.current.curState.id ? 'forward' : 'back',
+          : getHistoryStateFromLocation(newStateId),
+        direction: newStateId >= ref.current.curState.id ? 'forward' : 'back',
         isReplaced: false,
         didRefresh: false,
+        lastPopStateTime: performance.now(),
       });
 
       const newCurState = ref.current.curState;
@@ -297,16 +357,10 @@ export const [
         getFullPath(newCurState.path, newCurState.queryStr, newCurState.hash),
       );
 
-      // Can't cancel pop event, so clear all pop handlers.
-      while (ref.current.popHandlers.length) {
-        const lastHandler = ref.current.popHandlers.shift();
-        lastHandler?.();
-      }
-
       update();
-    }, [update]);
+    }, [update]));
 
-    const handleClick = useCallback((event: MouseEvent) => {
+    useWindowEvent('click', useCallback((event: MouseEvent) => {
       const el = (event.target as HTMLElement).closest('a');
       const href = el?.getAttribute('href');
 
@@ -319,22 +373,14 @@ export const [
 
         _pushPath(href);
       }
-    }, [_pushPath]);
-
-    const _addPopHandler = useCallback((popHandler: () => boolean) => {
-      ref.current.popHandlers.push(popHandler);
-    }, []);
+    }, [_pushPath]));
 
     useEffect(() => {
-      window.addEventListener('popstate', handlePopState);
-      window.addEventListener('click', handleClick);
-
       // Capacitor Android.
       const backButtonListener = Capacitor.addListener('backButton', (event: BackButtonListenerEvent) => {
         while (ref.current.popHandlers.length) {
-          const lastHandler = ref.current.popHandlers.shift();
-          const handled = lastHandler?.();
-          if (handled) {
+          const handler = ref.current.popHandlers.shift();
+          if (handler?.()) {
             return;
           }
         }
@@ -342,16 +388,16 @@ export const [
         if (event.canGoBack) {
           window.history.back();
         } else {
-          Capacitor.exitApp();
+          wrapPromise(Capacitor.exitApp(), 'warn', 'Capacitor.exitApp');
         }
       });
 
       return () => {
-        window.removeEventListener('popstate', handlePopState);
-        window.removeEventListener('click', handleClick);
-        void backButtonListener.remove().catch(() => {});
+        // Error if remove() is called before Capacitor loads
+        backButtonListener.remove()
+          .catch(NOOP);
       };
-    }, [handlePopState, handleClick, _replacePath, _pushPath]);
+    }, [_replacePath, _pushPath]);
 
     // todo: low/mid scroll to hash in homewrap and stackwrap
     useEffectInitialMount(() => {
@@ -359,18 +405,6 @@ export const [
         document.getElementById(ref.current.curState.hash)?.scrollIntoView(true);
       }
     }, [ref.current.curState.hash]);
-
-    // Add home to history.
-    // todo: low/mid don't animate slidein after pushing path
-    useEffect(() => {
-      const { path, query, hash } = ref.current.curState;
-      if (!ref.current.didRefresh && path !== '/') {
-        batchedUpdates(() => {
-          _replacePath('/', null);
-          _pushPath(path, query, hash);
-        });
-      }
-    }, [_replacePath, _pushPath]);
 
     return useDeepMemoObj({
       prevState: ref.current.prevState,

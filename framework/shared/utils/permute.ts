@@ -1,6 +1,6 @@
 // https://stackoverflow.com/a/37580979/599184
 export default function permute<T>(arr: T[]): T[][] {
-  const result = [[...arr]];
+  const result = [arr.slice()];
   const c = Array.from({ length: arr.length }, () => 0);
   let i = 1;
   let k;
@@ -14,7 +14,7 @@ export default function permute<T>(arr: T[]): T[][] {
       arr[k] = p;
       ++c[i];
       i = 1;
-      result.push([...arr]);
+      result.push(arr.slice());
     } else {
       c[i] = 0;
       ++i;

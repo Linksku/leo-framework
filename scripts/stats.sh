@@ -7,7 +7,7 @@ export NODE_ENV=production
 
 mkdir -p build/production/web/js
 ANALYZER=1 node \
-  --max_old_space_size=4096 --es-module-specifier-resolution=node \
+  --experimental-specifier-resolution=node \
   node_modules/webpack/bin/webpack.js --config webpack.web.production.js \
   --profile --json \
   > build/production/web/stats.json

@@ -25,16 +25,14 @@ export default function rateLimitMiddleware(reqsPerMin: number) {
       return;
     }
 
+    const batchedMultiplier = req.path === '/batched' ? 3 : 1;
     try {
-      await Promise.all([
-        // todo: low/mid count batched requests as multiple requests for rate limiting
-        rateLimiter.consume(req.ip, POINTS_PER_REQ / PER_IP_MULTIPLIER),
-        ...(
-          req.currentUserId
-            ? [rateLimiter.consume(req.currentUserId, POINTS_PER_REQ)]
-            : []
-        ),
-      ]);
+      await promiseObj({
+        perId: rateLimiter.consume(req.ip, POINTS_PER_REQ / PER_IP_MULTIPLIER * batchedMultiplier),
+        perUser: req.currentUserId
+          ? rateLimiter.consume(req.currentUserId, POINTS_PER_REQ * batchedMultiplier)
+          : null,
+      });
       next();
     } catch {
       res.status(429).send('Too many requests');

@@ -1,7 +1,6 @@
 import type { Knex } from 'knex';
 
 import arrFirstDuplicate from 'utils/arrFirstDuplicate';
-import shouldIndexDesc from './shouldIndexDesc';
 
 export type OrderByColumns = (
   {
@@ -23,7 +22,7 @@ export type OrderByColumns = (
 export type PaginatedResponse<T extends Model> = {
   entities: T[],
   data: {
-    entityIds: (Model['$modelClass']['idColumn'] extends any[] ? ApiEntityId : EntityId)[],
+    entityIds: (T['cls']['primaryIndex'] extends any[] ? ApiEntityId : EntityId)[],
     cursor?: string,
     hasCompleted: boolean,
   },
@@ -46,9 +45,11 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
   {
     limit = MAX_PER_PAGE,
     cursor,
+    keepCursorVals = false,
   }: {
     limit?: number,
     cursor: Nullish<string>,
+    keepCursorVals?: boolean,
   },
 ): Promise<PaginatedResponse<T['ModelType']>> {
   if (!process.env.PRODUCTION) {
@@ -62,15 +63,6 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
     }
     if (!operations.some(op => op.name === 'select')) {
       throw new Error(`paginateQuery(${tableName}): select is required.`);
-    }
-
-    const nonDesc = orderByColumns.find(
-      v => v.order !== 'desc'
-        && ((v.columnWithoutTransforms && shouldIndexDesc(v.columnWithoutTransforms))
-          || (typeof v.column === 'string' && shouldIndexDesc(v.column))),
-    );
-    if (nonDesc) {
-      throw new Error(`paginateQuery(${tableName}): column ${nonDesc.columnWithoutTransforms ?? nonDesc.column} should be descending`);
     }
   }
 
@@ -109,7 +101,7 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
   for (let [idx, { column, columnWithoutTransforms, order, nulls }] of orderByColumns.entries()) {
     query = query
       .select({
-        [`__cursorKey${idx}`]: column,
+        [`__cursorVal${idx}`]: column,
       });
     if (order === 'desc' && nulls === undefined) {
       nulls = 'last';
@@ -121,20 +113,18 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
   query = query.limit(limit);
 
   const entities = await query;
-  const entityIds = entities.map(e => e.getId() as Model['$modelClass']['idColumn'] extends any[] ? ApiEntityId : EntityId);
+  const entityIds = entities.map(e => e.getId() as T['ModelType']['cls']['primaryIndex'] extends any[] ? ApiEntityId : EntityId);
   const lastRowCursorVals = entities.length
     ? orderByColumns.map((_, idx) => {
-      const lastRow = TS.last(entities);
-      return lastRow
-        // @ts-ignore key hack
-        ? lastRow[`__cursorKey${idx}`] ?? null
-        : null;
+      const lastRow = entities[entities.length - 1];
+      // @ts-ignore wontfix key hack
+      return lastRow[`__cursorVal${idx}`] ?? null;
     })
     : null;
 
   if (!process.env.PRODUCTION) {
     if (lastRowCursorVals && lastRowCursorVals.some(val => typeof val !== 'number')) {
-      throw new Error(`paginateQuery: orderBy columns (${orderByColumns.map(col => col.columnWithoutTransforms ?? col.column).join(',')}) must all be numbers: ${JSON.stringify(lastRowCursorVals)}`);
+      throw new ErrorWithCtx(`paginateQuery: orderBy columns (${orderByColumns.map(col => col.columnWithoutTransforms ?? col.column).join(',')}) must all be numbers`, JSON.stringify(lastRowCursorVals).slice(0, 100));
     }
 
     if ((new Set(entityIds)).size !== entityIds.length) {
@@ -143,8 +133,8 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
 
     const cursorCols = entities.map(
       e => Array.from({ length: orderByColumns.length }).map(
-        // @ts-ignore wontfix key error
-        (_, idx) => e[`__cursorKey${idx}`],
+        // @ts-ignore wontfix key hack
+        (_, idx) => e[`__cursorVal${idx}`],
       ).join(','),
     );
     const firstDuplicate = arrFirstDuplicate(cursorCols);
@@ -153,10 +143,12 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
     }
   }
 
-  for (const e of entities) {
-    for (let i = 0; i < orderByColumns.length; i++) {
-      // @ts-ignore wontfix key error
-      delete e[`__cursorKey${i}`];
+  if (!keepCursorVals) {
+    for (const e of entities) {
+      for (let i = 0; i < orderByColumns.length; i++) {
+        // @ts-ignore wontfix key hack
+        delete e[`__cursorVal${i}`];
+      }
     }
   }
   return {

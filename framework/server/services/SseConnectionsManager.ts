@@ -1,5 +1,3 @@
-import { performance } from 'perf_hooks';
-
 type Conn = {
   userId: EntityId | null,
   res: ExpressResponse,

@@ -1,4 +1,4 @@
-export type RelationConfig = {
+export type ModelRelationSpec = {
   name?: string,
   through?: {
     model: ModelType,
@@ -8,21 +8,25 @@ export type RelationConfig = {
   modify?: any,
 };
 
-export type RelationsConfig = ObjectOf<ObjectOf<RelationConfig>>;
+export type ModelRelationsSpecs = ObjectOf<ObjectOf<ModelRelationSpec>>;
 
-export type RelationsMap = ObjectOf<{
+export type ModelRelationThrough = {
+  model: ModelClass,
+  from: string,
+  to: string,
+};
+
+export type ModelRelation = {
   name: string,
   relationType: ModelRelationType,
   fromModel: ModelClass,
   fromCol: string,
   toModel: ModelClass,
   toCol: string,
-  through?: {
-    model: ModelClass,
-    from: string,
-    to: string,
-  },
-}>;
+  through?: ModelRelationThrough,
+};
+
+export type ModelRelationsMap = ObjectOf<ModelRelation>;
 
 function getRelationType({
   fromModel,
@@ -98,10 +102,10 @@ function getRelationType({
 
 export function getRelationsMap(
   Model: ModelClass,
-  relationConfig: RelationsConfig,
-): RelationsMap {
-  const relationsMap: RelationsMap = Object.create(null);
-  for (const [fromCol, colRelations] of TS.objEntries(relationConfig)) {
+  relationsSpecs: ModelRelationsSpecs,
+): ModelRelationsMap {
+  const relationsMap: ModelRelationsMap = Object.create(null);
+  for (const [fromCol, colRelations] of TS.objEntries(relationsSpecs)) {
     for (const [toModelCol, config] of TS.objEntries(colRelations)) {
       const toModelColParts = toModelCol.split('.');
       if (toModelColParts.length !== 2) {

@@ -1,6 +1,4 @@
-import childProcess from 'child_process';
-import { promisify } from 'util';
-
+import exec from 'utils/exec';
 import promiseTimeout from 'utils/promiseTimeout';
 
 export default async function deleteKafkaTopic(name: string) {
@@ -10,7 +8,7 @@ export default async function deleteKafkaTopic(name: string) {
 
   try {
     await promiseTimeout(
-      promisify(childProcess.exec)(
+      exec(
         `docker exec broker kafka-topics --bootstrap-server broker:${process.env.KAFKA_BROKER_INTERNAL_PORT} --delete --topic '${name}'`,
       ),
       10_000,

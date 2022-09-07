@@ -1,13 +1,13 @@
 function getProp<
   Obj extends Partial<Record<PropertyKey, any>>,
-  Prop extends PropertyKey
+  Prop extends PropertyKey,
 >(
   obj: Obj,
   prop: Prop & (IsNarrowKey<Prop> extends true ? any : never),
-): Prop extends keyof Obj ? Obj[Prop] : unknown
+): Prop extends keyof Obj ? Obj[Prop] : unknown;
 
 function getProp<
-  Obj extends Partial<Record<PropertyKey, any>>
+  Obj extends Partial<Record<PropertyKey, any>>,
 >(
   obj: Obj,
   prop: PropertyKey,
@@ -19,7 +19,7 @@ function getProp(
 ) {
   if (obj === null || typeof obj !== 'object') {
     if (!process.env.PRODUCTION) {
-      throw new Error(`getProp: obj isn't an object.`);
+      throw new Error('getProp: obj isn\'t an object.');
     }
 
     return undefined;

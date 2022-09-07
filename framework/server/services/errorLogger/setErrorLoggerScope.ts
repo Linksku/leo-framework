@@ -75,6 +75,6 @@ export default function setErrorLoggerScope(scope: Scope) {
   }
 
   if (!process.env.PRODUCTION) {
-    printDebug(new Error('Error logger doesn\'t have any context'));
+    printDebug('Error logger doesn\'t have any context', 'warn');
   }
 }

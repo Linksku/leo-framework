@@ -7,6 +7,5 @@
   z-index: $zIndexStack;
   background: #fff;
   transform: translateZ(0) translateX(0%);
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features
   touch-action: none;
 }

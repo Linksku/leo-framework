@@ -2,7 +2,7 @@ import throttle from 'utils/throttle';
 
 // todo: low/easy make useWindowSize share state/effect across components
 export default function useWindowSize() {
-  const [state, setState] = useState({
+  const [state, setState] = useStateStable({
     width: window.innerWidth,
     height: window.innerHeight,
   });
@@ -29,7 +29,7 @@ export default function useWindowSize() {
       }
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [setState]);
 
   return state;
 }

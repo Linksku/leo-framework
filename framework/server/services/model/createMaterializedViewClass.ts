@@ -18,7 +18,7 @@ export type MaterializedViewConfig<
   // eslint-disable-next-line @typescript-eslint/ban-types
   StaticProps extends ObjectOf<any> = {},
   // eslint-disable-next-line @typescript-eslint/ban-types
-  Props extends ObjectOf<any> = {}
+  Props extends ObjectOf<any> = {},
 > = ModelConfig<Type, StaticProps, Props>
   & MaterializedViewConfigStaticProps;
 
@@ -28,8 +28,16 @@ export function processMaterializedViewConfig<Config extends MaterializedViewCon
   if (!config.type.endsWith('MV')) {
     throw new Error(`processMaterializedViewConfig(${config.type}): type must end in "MV".`);
   }
-  if (config.replicaTable === null && config.normalIndexes) {
-    throw new Error(`processMaterializedViewConfig(${config.type}): normal indexes not needed if there's no replica table.`);
+  if (config.replicaTable === null) {
+    if (config.normalIndexes) {
+      throw new Error(`processMaterializedViewConfig(${config.type}): normal indexes not needed if there's no replica table.`);
+    }
+    if (config.uniqueIndexes && config.uniqueIndexes.length > 1) {
+      throw new Error(`processMaterializedViewConfig(${config.type}): multiple unique indexes not needed if there's no replica table.`);
+    }
+    if (config.cacheable) {
+      throw new Error(`processMaterializedViewConfig(${config.type}): cache not needed if there's no replica table.`);
+    }
   }
 
   return {

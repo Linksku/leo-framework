@@ -45,7 +45,7 @@ export const [
       'notifCreated',
       { userId: currentUserId },
       {
-        isReady: authState !== 'out',
+        isReady: !!currentUserId && authState !== 'out',
       },
     );
 
@@ -58,7 +58,7 @@ export const [
     }, []));
 
     const seenNotifs = useCallback(() => {
-      void updateSeenNotifs({
+      updateSeenNotifs({
         notifType: 'notifs',
       });
       setUnseenNotifIds(s => (s.chatReplyCreated
@@ -67,7 +67,7 @@ export const [
     }, [updateSeenNotifs]);
 
     const seenChats = useCallback(() => {
-      void updateSeenNotifs({
+      updateSeenNotifs({
         notifType: 'chats',
       });
       setUnseenNotifIds(s => (s.chatReplyCreated

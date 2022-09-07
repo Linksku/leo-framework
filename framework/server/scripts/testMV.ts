@@ -1,11 +1,11 @@
 import Chance from 'chance';
-import { performance } from 'perf_hooks';
 import round from 'lodash/round';
 
 import knexBT from 'services/knex/knexBT';
 import knexMZ from 'services/knex/knexMZ';
 import knexRR from 'services/knex/knexRR';
 import waitForQueryReady from 'utils/models/waitForQueryReady';
+import fetchKafkaConnectors from 'utils/infra/fetchKafkaConnectors';
 import deleteKafkaConnector from 'utils/infra/deleteKafkaConnector';
 import deleteKafkaTopic from 'utils/infra/deleteKafkaTopic';
 import deleteBTReplicationSlot from 'utils/infra/deleteBTReplicationSlot';
@@ -22,8 +22,8 @@ import {
   MZ_SINK_TOPIC_PREFIX,
   RR_SUB_PREFIX,
 } from 'consts/mz';
-import createMZSink from './mz/helpers/createMZSink';
-import createMZSinkConnector from './mz/helpers/createMZSinkConnector';
+import createMZSink from './mv/helpers/createMZSink';
+import createMZSinkConnector from './mv/helpers/createMZSinkConnector';
 
 const chance = new Chance();
 
@@ -32,16 +32,29 @@ const MIN_ROWS = 100_000;
 async function destroyTestInfra() {
   await Promise.all([
     (async () => {
-      await deleteKafkaConnector(`${MZ_SINK_CONNECTOR_PREFIX}__testMV__`);
-      await knexMZ.raw(`DROP SINK IF EXISTS "${MZ_SINK_PREFIX}__testMV__"`);
-      await deleteKafkaTopic(`${MZ_SINK_TOPIC_PREFIX}__testMV__.*`);
-      await knexMZ.raw(`DROP SOURCE IF EXISTS ${MZ_SOURCE_PG_PREFIX}test CASCADE`);
-      await deleteBTReplicationSlot(`${BT_SLOT_MZ_PREFIX}test`);
+      try {
+        const connectors = await fetchKafkaConnectors(MZ_SINK_CONNECTOR_PREFIX);
+        for (const connector of connectors) {
+          if (connector.startsWith(`${MZ_SINK_CONNECTOR_PREFIX}__testMV___`)) {
+            await deleteKafkaConnector(connector);
+          }
+        }
+        await knexMZ.raw(`DROP SINK IF EXISTS "${MZ_SINK_PREFIX}__testMV__"`);
+        await deleteKafkaTopic(`${MZ_SINK_TOPIC_PREFIX}__testMV__.*`);
+        await knexMZ.raw(`DROP SOURCE IF EXISTS ${MZ_SOURCE_PG_PREFIX}test CASCADE`);
+        await deleteBTReplicationSlot(`${BT_SLOT_MZ_PREFIX}test`);
+      } catch (err: any) {
+        printDebug(err?.message, 'warn');
+      }
     })(),
     (async () => {
-      await deleteRRSubscription(`${RR_SUB_PREFIX}test`);
-      await deleteBTReplicationSlot(`${BT_SLOT_RR_PREFIX}test`);
-      await knexRR.raw(`TRUNCATE __test__`);
+      try {
+        await deleteRRSubscription(`${RR_SUB_PREFIX}test`);
+        await deleteBTReplicationSlot(`${BT_SLOT_RR_PREFIX}test`);
+        await knexRR.raw('TRUNCATE __test__');
+      } catch (err: any) {
+        printDebug(err?.message, 'warn');
+      }
     })(),
   ]);
   await knexBT.raw(`DROP PUBLICATION IF EXISTS ${BT_PUB_PREFIX}test`);
@@ -115,7 +128,7 @@ export default async function testMV() {
       await knexMZ.raw(`CREATE VIEWS FROM SOURCE "${MZ_SOURCE_PG_PREFIX}test" (__test__)`);
       // await knexMZ.raw(`CREATE INDEX "__test___pkey" ON "__test__" (id)`);
       await knexMZ.raw(
-        `CREATE MATERIALIZED VIEW "__testMV__" AS select id, unindexed from __test__;`,
+        'CREATE MATERIALIZED VIEW "__testMV__" AS select id, unindexed from __test__;',
       );
 
       console.log('Initializing Kafka sinks');

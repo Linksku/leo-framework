@@ -1,6 +1,7 @@
 type Props = {
   height: number,
   width: number,
+  orientation?: number,
   maxDim: number,
   maxRatio?: number,
 };

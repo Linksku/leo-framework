@@ -1,19 +1,15 @@
-import type { Revalidator, SWRConfiguration, SWRResponse } from 'swr';
-import useSWR from 'swr';
-import useMountedState from 'utils/hooks/useMountedState';
-
-import type { EntityEvents } from 'utils/hooks/entities/useHandleEntityEvents';
+import type { UseApiState } from 'stores/ApiStore';
 import useDeepMemoObj from 'utils/hooks/useDeepMemoObj';
-import { HTTP_TIMEOUT } from 'settings';
 import useDynamicCallback from 'utils/hooks/useDynamicCallback';
-import useHandleEntityEvents from 'utils/hooks/entities/useHandleEntityEvents';
+import useUpdate from 'utils/hooks/useUpdate';
 
 type Opts<Name extends ApiName> = {
   shouldFetch?: boolean,
-  onFetch?: OnApiFetch<Name>,
-  onError?: OnApiError,
-  swrConfig?: SWRConfiguration<ApiData<Name> | null>,
-  revalidateOnEvents?: EntityEvents,
+  onFetch?: (results: ApiData<Name>) => void,
+  onError?: (err: Error) => void,
+  key?: string,
+  refetchOnFocus?: boolean,
+  refetchOnMount?: boolean,
 };
 
 type Return<Name extends ApiName> = {
@@ -21,134 +17,88 @@ type Return<Name extends ApiName> = {
   fetching: boolean,
   fetchingFirstTime: boolean,
   error: any,
-  mutate: Memoed<SWRResponse<ApiData<Name> | null, any>['mutate']>,
-  refetch: Memoed<() => void>,
 };
 
-// todo: mid/mid show more error UIs when APIs fail
 function useApi<Name extends ApiName>(
   name: Name,
   params: ApiParams<Name>,
   {
-    // If this is true once, changing to false doesn't do anything.
     shouldFetch = true,
     onFetch,
     onError,
-    swrConfig,
-    revalidateOnEvents,
+    key,
+    refetchOnFocus,
+    refetchOnMount,
   }: Opts<Name> = {},
 ): Return<Name> {
   useDebugValue(name);
 
   const paramsMemo = useDeepMemoObj(params) as Memoed<ApiParams<Name>>;
-  const paramsStr = useMemo(() => JSON.stringify(paramsMemo), [paramsMemo]);
-  const { queueBatchedRequest, clearCache, clearCacheOnEvents } = useApiStore();
+  const {
+    getApiState,
+    subscribeApiHandlers,
+    clearCache,
+  } = useApiStore();
+  const stateRef = useRef<UseApiState<Name>>(
+    getApiState(name, params, shouldFetch),
+  );
+  const update = useUpdate();
   const ref = useRef({
-    hasFetched: false,
-    fetchingFirstTime: true,
+    ranFirstEffect: false,
+    isFirstTime: true,
   });
-  const isMounted = useMountedState();
-  const cacheKey = useMemo(() => `${name},${JSON.stringify(paramsMemo)}`, [name, paramsMemo]);
-  const [revalidateCount, setRevalidateCount] = useState(0);
-
-  const onFetchWrap: OnApiFetch<Name> = useDynamicCallback((
-    results: ApiData<Name>,
-    params2: ApiParams<Name>,
-  ) => {
-    ref.current.fetchingFirstTime = false;
-    clearCacheOnEvents(cacheKey, revalidateOnEvents);
-    if (isMounted()) {
-      onFetch?.(results, params2);
-    }
+  const onFetchWrap = useDynamicCallback((results: ApiData<Name>) => {
+    ref.current.isFirstTime = false;
+    onFetch?.(results);
   });
-
   const onErrorWrap = useDynamicCallback((err: Error) => {
-    ref.current.fetchingFirstTime = false;
-    clearCacheOnEvents(cacheKey, revalidateOnEvents);
-    if (isMounted()) {
-      onError?.(err);
-    }
+    ref.current.isFirstTime = false;
+    onError?.(err);
   });
-
-  const swrRet = (
-    // For filtering useSWR from why-did-you-render.
-    function useSWRHack() {
-      return useSWR<ApiData<Name> | null>(
-        shouldFetch || ref.current.hasFetched ? [name, paramsStr, revalidateCount] : null,
-        () => {
-          ref.current.hasFetched = true;
-          return queueBatchedRequest<Name>({
-            name,
-            params: paramsMemo,
-            onFetch: onFetchWrap,
-            onError: onErrorWrap,
-          });
-        },
-        {
-          // todo: low/mid fix refetching if refocusing right after load
-          focusThrottleInterval: 60 * 1000,
-          loadingTimeout: HTTP_TIMEOUT,
-          onErrorRetry: (
-            err: Error,
-            _,
-            config: SWRConfiguration,
-            retry: Revalidator,
-            { retryCount },
-          ) => {
-            if (!config.isVisible?.()) {
-              return;
-            }
-
-            if (TS.getProp(err, 'status') !== 503) {
-              return;
-            }
-
-            setTimeout(
-              async () => retry({ retryCount: retryCount + 1 }),
-              5000 * (2 ** Math.min(10, retryCount)),
-            );
-          },
-          // Temp: https://github.com/vercel/swr/issues/1580
-          dedupingInterval: 0,
-          ...swrConfig,
-        },
-      );
-    }()
-  );
-
-  // Mutate doesn't dedupe, refetch dedupes.
-  const mutate = markMemoed(swrRet.mutate);
-  const refetch = useCallback(() => {
-    clearCache(`${name},${paramsStr}`);
-    setRevalidateCount(s => s + 1);
-  }, [clearCache, name, paramsStr]);
-
-  // todo: mid/mid check if this revalidates immediately, don't revalidate if screen is hidden
-  useHandleEntityEvents(
-    revalidateOnEvents ?? EMPTY_ARR,
-    refetch,
-  );
 
   useEffect(() => {
-    clearCacheOnEvents(cacheKey, revalidateOnEvents);
-  }, [clearCacheOnEvents, cacheKey, revalidateOnEvents]);
+    if (!shouldFetch) {
+      return NOOP;
+    }
 
-  // swrRet has getters that trigger rerender.
+    if (!ref.current.ranFirstEffect) {
+      ref.current.ranFirstEffect = true;
+      if (refetchOnMount) {
+        clearCache(name, paramsMemo);
+      }
+    }
+
+    // todo: low/mid fetch before render
+    const unsub = subscribeApiHandlers({
+      name,
+      params: paramsMemo,
+      key,
+      state: stateRef.current,
+      update,
+      onFetch: onFetchWrap,
+      onError: onErrorWrap,
+      refetchOnFocus,
+    });
+    return unsub;
+  }, [
+    clearCache,
+    refetchOnMount,
+    subscribeApiHandlers,
+    name,
+    paramsMemo,
+    key,
+    update,
+    onFetchWrap,
+    onErrorWrap,
+    shouldFetch,
+    refetchOnFocus,
+  ]);
+
   return {
-    get data() {
-      return (swrRet.data ?? null) as MemoDeep<ApiNameToData[Name]> | null;
-    },
-    get fetching() {
-      return swrRet.isValidating;
-    },
-    get fetchingFirstTime() {
-      return ref.current.fetchingFirstTime && swrRet.isValidating;
-    },
-    get error() {
-      return swrRet.error;
-    },
-    mutate,
-    refetch,
+    data: stateRef.current.data,
+    fetching: stateRef.current.fetching,
+    fetchingFirstTime: stateRef.current.isFirstTime && stateRef.current.fetching,
+    error: stateRef.current.error,
   };
 }
 

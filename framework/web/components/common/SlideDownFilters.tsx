@@ -32,7 +32,7 @@ export default function SlideDownFilters<
   filterClassName,
   optionsClassName,
 }: Props<FilterKey, OptionsKey>) {
-  const [{ openedKey, latestOpenedKey }, setState] = useState({
+  const [{ openedKey, latestOpenedKey }, setState] = useStateStable({
     openedKey: null as FilterKey | null,
     latestOpenedKey: null as FilterKey | null,
   });
@@ -64,7 +64,6 @@ export default function SlideDownFilters<
                   animatedHeight.setVal(0);
                 }
                 setState(s => ({
-                  ...s,
                   openedKey: s.openedKey === filter.key ? null : filter.key,
                   latestOpenedKey: filter.key,
                 }));
@@ -105,7 +104,7 @@ export default function SlideDownFilters<
                   [styles.optionActive]: o.key === selectedOptions[latestOpenedKey],
                 })}
                 onClick={() => {
-                  setState(s => ({ ...s, openedKey: null }));
+                  setState({ openedKey: null });
                   onChange(latestOpenedKey, o.key);
                 }}
                 role="button"

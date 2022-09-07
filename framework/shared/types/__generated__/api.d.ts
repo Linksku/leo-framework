@@ -1,7 +1,7 @@
 interface BatchedApiParams {
   apis: {
     name: string;
-    params: Pojo;
+    params: JsonObj;
   }[];
 }
 
@@ -18,6 +18,11 @@ interface ChatsApiParams {
   cursor?: string;
 }
 
+interface CheckEntityExistsApiParams {
+  entityType: string;
+  entityId: number | string;
+}
+
 interface CityApiParams {
   lat: number;
   lng: number;
@@ -32,6 +37,8 @@ interface ClubsApiParams {
   clubNames?: string[];
   search?: string;
   parentClubId?: number | null;
+  parentClubName?: string | null;
+  siblingClubId?: number | null;
   onlyJoined?: boolean;
   includeParents?: boolean;
   showAdult?: boolean;
@@ -59,6 +66,7 @@ interface CreatePostApiParams {
   clubName: string;
   content?: string | null;
   media?: Express.Multer.File;
+  location?: 'city' | 'global';
 }
 
 interface CreateReactionApiParams {
@@ -75,7 +83,7 @@ interface CreateReplyApiParams {
 }
 
 interface CreateReportApiParams {
-  entityType: 'post';
+  entityType: 'post' | 'postReply' | 'roomReply' | 'user';
   entityId: number;
 }
 
@@ -146,7 +154,8 @@ interface PostReplyThreadsApiParams {
 }
 
 interface PostsApiParams {
-  clubNames: string[];
+  clubName: string;
+  unauthClubs: string[];
   location: 'city' | 'global';
   authorId?: number;
   limit?: number;
@@ -155,7 +164,8 @@ interface PostsApiParams {
 }
 
 interface RandomUsersApiParams {
-
+  location: 'city' | 'global';
+  limit?: number;
 }
 
 interface ReadChatApiParams {
@@ -174,6 +184,9 @@ interface RegisterUserApiParams {
 }
 
 interface RelatedUsersApiParams {
+  unauthClubs: string[];
+  location: 'city' | 'global';
+  lowQualityUsers?: boolean;
   cursor?: string;
   limit?: number;
 }
@@ -182,6 +195,7 @@ interface RepliesApiParams {
   replyType: 'postReply' | 'roomReply' | 'chatReply';
   parentEntityId: number;
   parentReplyId?: number;
+  oldestFirst?: boolean;
   initialId?: number;
   limit?: number;
   cursor?: string;
@@ -201,7 +215,8 @@ interface RoomApiParams {
 }
 
 interface RoomsApiParams {
-  clubNames: string[];
+  clubName: string;
+  unauthClubs: string[];
   location: 'city' | 'global';
   limit?: number;
   cursor?: string;
@@ -226,7 +241,7 @@ interface SseSubscribeApiParams {
   sessionId: string;
   events: {
     name: string;
-    params: Pojo;
+    params: JsonObj;
   }[];
 }
 
@@ -234,18 +249,24 @@ interface SseUnsubscribeApiParams {
   sessionId: string;
   events: {
     name: string;
-    params: Pojo;
+    params: JsonObj;
   }[];
 }
 
 interface TopLevelClubsApiParams {
   showAdult?: boolean;
-  randomizeOrder?: boolean;
+  order?: 'members' | 'name' | 'membersWithJitter';
 }
 
 interface TopPostRepliesApiParams {
   postId: number;
   numReplies: number;
+}
+
+interface TopUsersApiParams {
+  unauthClubs: string[];
+  cursor?: string;
+  limit?: number;
 }
 
 interface UnblockUserApiParams {
@@ -302,6 +323,7 @@ interface UserApiParams {
 
 interface UserClubsWithPostsApiParams {
   userId: number;
+  unauthClubs: string[];
   cursor?: string;
   limit?: number;
 }
@@ -313,10 +335,18 @@ interface UserFollowsApiParams {
   limit?: number;
 }
 
+interface UserFriendsApiParams {
+  userId: number;
+  cursor?: string;
+  limit?: number;
+}
+
 interface UsersApiParams {
-  clubNames: string[];
+  clubName: string;
+  unauthClubs: string[];
   name?: string;
   includeTopPosts?: boolean;
+  location: 'city' | 'global';
   cursor?: string;
   limit?: number;
 }
@@ -334,11 +364,13 @@ interface VerifyResetPasswordApiParams {
 interface BatchedApiData {
   results: (
     | {
-        data: null | Pojo;
+        _name?: string;
+        data: JsonObj | null;
       }
     | {
+        _name?: string;
         status: number;
-        error: Pojo;
+        error: JsonObj;
       }
   )[];
 }
@@ -347,6 +379,10 @@ interface ChatsApiData {
   entityIds: number[];
   cursor?: string;
   hasCompleted: boolean;
+}
+
+interface CheckEntityExistsApiData {
+  exists: boolean;
 }
 
 interface CityApiData {
@@ -475,6 +511,12 @@ interface TopPostRepliesApiData {
   topReplyIds?: number[];
 }
 
+interface TopUsersApiData {
+  entityIds: number[];
+  cursor?: string;
+  hasCompleted: boolean;
+}
+
 interface UnreadChatsCountApiData {
   count: number;
 }
@@ -487,10 +529,6 @@ interface UpdateAccountSettingsApiData {
 
 }
 
-interface UpdateCurrentUserApiData {
-  clubIdsOrder: number[];
-}
-
 interface UserClubsWithPostsApiData {
   entityIds: number[];
   cursor?: string;
@@ -498,6 +536,12 @@ interface UserClubsWithPostsApiData {
 }
 
 interface UserFollowsApiData {
+  entityIds: number[];
+  cursor?: string;
+  hasCompleted: boolean;
+}
+
+interface UserFriendsApiData {
   entityIds: number[];
   cursor?: string;
   hasCompleted: boolean;
@@ -519,6 +563,7 @@ type ApiNameToParams = {
   'blockUser': BlockUserApiParams,
   'chat': ChatApiParams,
   'chats': ChatsApiParams,
+  'checkEntityExists': CheckEntityExistsApiParams,
   'city': CityApiParams,
   'club': ClubApiParams,
   'clubs': ClubsApiParams,
@@ -562,6 +607,7 @@ type ApiNameToParams = {
   'sseUnsubscribe': SseUnsubscribeApiParams,
   'topLevelClubs': TopLevelClubsApiParams,
   'topPostReplies': TopPostRepliesApiParams,
+  'topUsers': TopUsersApiParams,
   'unblockUser': UnblockUserApiParams,
   'unfollowUser': UnfollowUserApiParams,
   'unreadChatsCount': UnreadChatsCountApiParams,
@@ -572,6 +618,7 @@ type ApiNameToParams = {
   'user': UserApiParams,
   'userClubsWithPosts': UserClubsWithPostsApiParams,
   'userFollows': UserFollowsApiParams,
+  'userFriends': UserFriendsApiParams,
   'users': UsersApiParams,
   'userView': UserViewApiParams,
   'verifyResetPassword': VerifyResetPasswordApiParams,
@@ -582,6 +629,7 @@ type ApiNameToData = {
   'blockUser': null,
   'chat': null,
   'chats': ChatsApiData,
+  'checkEntityExists': CheckEntityExistsApiData,
   'city': CityApiData,
   'club': null,
   'clubs': ClubsApiData,
@@ -625,16 +673,18 @@ type ApiNameToData = {
   'sseUnsubscribe': null,
   'topLevelClubs': TopLevelClubsApiData,
   'topPostReplies': TopPostRepliesApiData,
+  'topUsers': TopUsersApiData,
   'unblockUser': null,
   'unfollowUser': null,
   'unreadChatsCount': UnreadChatsCountApiData,
   'unseenNotifIds': UnseenNotifIdsApiData,
   'updateAccountSettings': UpdateAccountSettingsApiData,
-  'updateCurrentUser': UpdateCurrentUserApiData,
+  'updateCurrentUser': null,
   'updateUserCity': null,
   'user': null,
   'userClubsWithPosts': UserClubsWithPostsApiData,
   'userFollows': UserFollowsApiData,
+  'userFriends': UserFriendsApiData,
   'users': UsersApiData,
   'userView': null,
   'verifyResetPassword': VerifyResetPasswordApiData,
@@ -644,6 +694,7 @@ type ApiName = 'batched'
   | 'blockUser'
   | 'chat'
   | 'chats'
+  | 'checkEntityExists'
   | 'city'
   | 'club'
   | 'clubs'
@@ -687,6 +738,7 @@ type ApiName = 'batched'
   | 'sseUnsubscribe'
   | 'topLevelClubs'
   | 'topPostReplies'
+  | 'topUsers'
   | 'unblockUser'
   | 'unfollowUser'
   | 'unreadChatsCount'
@@ -697,6 +749,7 @@ type ApiName = 'batched'
   | 'user'
   | 'userClubsWithPosts'
   | 'userFollows'
+  | 'userFriends'
   | 'users'
   | 'userView'
   | 'verifyResetPassword';
@@ -723,7 +776,6 @@ type AuthApiName = 'blockUser'
 | 'postReplyThreads'
 | 'readChat'
 | 'readNotif'
-| 'relatedUsers'
 | 'seenNotifs'
 | 'unblockUser'
 | 'unfollowUser'

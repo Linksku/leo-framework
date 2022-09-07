@@ -4,7 +4,7 @@ import shallowEqual from 'utils/shallowEqual';
 // Mostly for reducing rerenders.
 export default function useMemoedCallback<
   Args extends (string | number)[],
-  Ret
+  Ret,
 >(
   cb: (...args: Args) => Ret,
   deps: MemoDependencyList,
@@ -35,10 +35,9 @@ export default function useMemoedCallback<
   const fn = (...args: Args) => {
     if (!args.length) {
       if (state.noArgMemoed === undefined) {
-        // @ts-ignore no args expected
-        state.noArgMemoed = cb();
+        state.noArgMemoed = (cb as () => Memoed<Ret>)();
       }
-      return state.noArgMemoed as Memoed<Ret>;
+      return state.noArgMemoed;
     }
 
     let curObj = state.memoed;

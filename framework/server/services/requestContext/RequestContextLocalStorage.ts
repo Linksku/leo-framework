@@ -50,8 +50,8 @@ export function createRequestContext(req: ExpressRequest): RequestContext {
     ? req.query
     : req.body;
   const apiParams = params?.params;
-  const debug = !process.env.PRODUCTION && !!params?.DEBUG;
-  const profiling = !process.env.PRODUCTION && !!params?.PROFILING;
+  const debug = !process.env.PRODUCTION && !!req.query?.DEBUG;
+  const profiling = !process.env.PRODUCTION && !!req.query?.PROFILING;
 
   const userAgent = req.headers['user-agent'];
   return {

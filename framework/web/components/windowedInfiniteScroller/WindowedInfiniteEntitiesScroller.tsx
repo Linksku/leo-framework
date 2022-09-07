@@ -1,7 +1,6 @@
 import type { PaginatedApiName, ShouldAddCreatedEntity } from 'utils/hooks/useApi/usePaginatedApi';
 import type { EntityEvents } from 'utils/hooks/entities/useHandleEntityEvents';
 import usePaginatedApi from 'utils/hooks/useApi/usePaginatedApi';
-import useTimeComponentPerf from 'utils/hooks/useTimeComponentPerf';
 
 import type { ItemRendererProps } from './WindowedInfiniteScrollerColumn';
 import WindowedInfiniteScroller from './WindowedInfiniteScroller';
@@ -10,14 +9,16 @@ import styles from './WindowedInfiniteEntitiesScrollerStyles.scss';
 
 type Props<
   Type extends EntityType,
-  Name extends PaginatedApiName
+  Name extends PaginatedApiName,
 > = {
   apiName: Name,
   apiParams: ApiParams<Name>,
-  apiRevalidateOnEvents?: EntityEvents,
+  apiKey?: string,
+  refetchApiOnEvents?: EntityEvents,
   entityType: Type,
   initialId?: EntityId,
   reverse?: boolean,
+  addToEnd?: boolean,
   throttleTimeout?: number,
   shouldAddCreatedEntity?: ShouldAddCreatedEntity<Type>,
   loadingComponent?: Memoed<ReactNode>,
@@ -31,29 +32,31 @@ type Props<
 
 function WindowedInfiniteEntitiesScroller<
   Type extends EntityType,
-  Name extends PaginatedApiName
+  Name extends PaginatedApiName,
 >(props: Props<Type, Name> & ItemRendererProps & { otherItemProps?: undefined }): ReactElement;
 
 function WindowedInfiniteEntitiesScroller<
   Type extends EntityType,
   Name extends PaginatedApiName,
-  OtherProps extends ObjectOf<any>
+  OtherProps extends ObjectOf<any>,
 >(props: Props<Type, Name>
   & ItemRendererProps<OtherProps>
   & { otherItemProps: Memoed<OtherProps> }): ReactElement;
 
 function WindowedInfiniteEntitiesScroller<
   Type extends EntityType,
-  Name extends PaginatedApiName
+  Name extends PaginatedApiName,
 >({
   apiName,
   apiParams,
-  apiRevalidateOnEvents,
+  apiKey,
+  refetchApiOnEvents,
   entityType,
   initialId,
   otherItemProps,
   ItemRenderer,
   reverse = false,
+  addToEnd = false,
   throttleTimeout = 1000,
   shouldAddCreatedEntity,
   loadingComponent,
@@ -64,8 +67,6 @@ function WindowedInfiniteEntitiesScroller<
   className,
   columnClassName,
 }: Props<Type, Name> & ItemRendererProps) {
-  useTimeComponentPerf(`WindowedScroller:${apiName}`);
-
   const {
     fetchingFirstTime,
     entityIds,
@@ -75,9 +76,11 @@ function WindowedInfiniteEntitiesScroller<
     fetchNext,
     hasCompleted,
   } = usePaginatedApi(entityType, apiName, apiParams, {
+    apiKey,
     throttleTimeout,
     shouldAddCreatedEntity,
-    apiRevalidateOnEvents,
+    refetchApiOnEvents,
+    addToEnd,
   });
 
   if (fetchingFirstTime && !entityIds.length && loadingComponent) {
@@ -91,11 +94,11 @@ function WindowedInfiniteEntitiesScroller<
         addedItemIds={addedEntityIds}
         deletedItemIds={deletedEntityIds}
         initialId={initialId}
-        // @ts-ignore no idea
         ItemRenderer={ItemRenderer}
         otherItemProps={otherItemProps}
         onReachedEnd={fetchNext}
         reverse={reverse}
+        addToEnd={addToEnd}
         hasCompleted={hasCompleted}
         completedMsg={completedMsg}
         columns={columns}

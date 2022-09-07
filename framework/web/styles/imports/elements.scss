@@ -3,15 +3,22 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html,
+body {
+  overscroll-behavior-y: none;
+  // Disable iOS overscroll, may not work https://bugs.webkit.org/show_bug.cgi?id=176454
+  position: fixed;
+  overflow: hidden;
+}
+
 html {
   // stylelint-disable-next-line declaration-property-unit-allowed-list
   font-size: 9px;
-  min-height: 100vh;
-  position: relative;
+  min-width: $bodyMinWidth;
+  min-height: $bodyMinHeight;
   background-color: #fff;
   color: $textColor;
   font-family: $fontFamily;
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features
   user-select: none;
 
   @include gtXs {
@@ -26,15 +33,13 @@ html {
 
   @include gtLg {
     // stylelint-disable-next-line declaration-property-unit-allowed-list
-    font-size: 13px;
+    font-size: 12px;
   }
 }
 
 body {
   font-size: 1.6rem;
   line-height: 1.2;
-  overflow: hidden;
-  display: block !important;
 }
 
 h1,
@@ -71,9 +76,7 @@ h4 {
 
 p {
   margin-top: 0;
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features
   overflow-wrap: break-word;
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features
   word-break: break-word;
   line-height: 1.4;
 }
@@ -168,6 +171,8 @@ ol {
 
 svg {
   fill: currentColor;
+  height: 1.2rem;
+  width: 1.2rem;
 }
 
 p svg {

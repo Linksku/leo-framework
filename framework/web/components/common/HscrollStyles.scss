@@ -2,6 +2,7 @@
   @extend %hideScrollbar;
 
   overflow-x: auto;
+  touch-action: pan-x;
   transform: translateZ(0);
 }
 

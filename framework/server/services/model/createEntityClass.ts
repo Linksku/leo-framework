@@ -16,7 +16,7 @@ export type EntityClassConfig<
   // eslint-disable-next-line @typescript-eslint/ban-types
   StaticProps extends ObjectOf<any> = {},
   // eslint-disable-next-line @typescript-eslint/ban-types
-  Props extends ObjectOf<any> = {}
+  Props extends ObjectOf<any> = {},
 > = ModelConfig<Type, StaticProps, Props>
   & EntityClassConfigStaticProps;
 

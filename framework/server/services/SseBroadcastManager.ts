@@ -1,7 +1,7 @@
 import SseConnectionsManager from 'services/SseConnectionsManager';
 import PubSubManager from 'services/PubSubManager';
 import serializeEvent from 'utils/serializeEvent';
-import processApiRet from 'routes/api/helpers/processApiRet';
+import formatApiSuccessResponse from 'routes/api/helpers/formatApiSuccessResponse';
 
 export type SseData = {
   // temp
@@ -24,7 +24,7 @@ const sessionIdToEventTypes = Object.create(null) as ObjectOf<Set<string>>;
 const eventTypesToSessionIds = Object.create(null) as ObjectOf<Set<string>>;
 
 const SseBroadcastManager = {
-  subscribe(sessionId: string, eventName: string, eventParams: Pojo) {
+  subscribe(sessionId: string, eventName: string, eventParams: JsonObj) {
     if ((!eventName || !eventParams) && !process.env.PRODUCTION) {
       throw new Error('SseBroadcastManager.subscribe: invalid params.');
     }
@@ -54,7 +54,7 @@ const SseBroadcastManager = {
     sessionIds.add(sessionId);
   },
 
-  unsubscribe(sessionId: string, eventName: string, eventParams: Pojo) {
+  unsubscribe(sessionId: string, eventName: string, eventParams: JsonObj) {
     const eventType = serializeEvent(eventName, eventParams);
     SseBroadcastManager.unsubscribeRaw(sessionId, eventType);
   },
@@ -107,16 +107,17 @@ const SseBroadcastManager = {
     delete sessionIdToEventTypes[sessionId];
   },
 
-  broadcastData(
+  async broadcastDataImpl(
     eventName: string,
-    eventParams: Pojo,
+    eventParams: JsonObj,
     data: SseData,
   ) {
     const eventType = serializeEvent(eventName, eventParams);
+    const successResponse = await formatApiSuccessResponse<any>(data);
     // todo: mid/mid validate SSE data
     const processedData: SseResponse = {
       eventType,
-      ...processApiRet<any>(data),
+      ...successResponse,
     };
     const dataStr = JSON.stringify(processedData);
 
@@ -124,6 +125,18 @@ const SseBroadcastManager = {
     PubSubManager.publish(
       eventType,
       dataStr,
+    );
+  },
+
+  broadcastData(
+    eventName: string,
+    eventParams: JsonObj,
+    data: SseData,
+  ) {
+    wrapPromise(
+      this.broadcastDataImpl(eventName, eventParams, data),
+      'error',
+      eventName,
     );
   },
 
@@ -145,6 +158,7 @@ PubSubManager.subscribe(SUBSCRIBE_EVENT_NAME, (msg: string) => {
   try {
     data = JSON.parse(msg);
   } catch {
+    ErrorLogger.error(new Error(`${SUBSCRIBE_EVENT_NAME}: msg isn't JSON`), msg.slice(0, 100));
     return;
   }
 
@@ -158,6 +172,7 @@ PubSubManager.subscribe(UNSUBSCRIBE_EVENT_NAME, (msg: string) => {
   try {
     data = JSON.parse(msg);
   } catch {
+    ErrorLogger.error(new Error(`${UNSUBSCRIBE_EVENT_NAME}: msg isn't JSON`), msg.slice(0, 100));
     return;
   }
 

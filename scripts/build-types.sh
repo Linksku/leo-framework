@@ -3,14 +3,8 @@
 start_time=$(date -d "1 minute ago" +"%Y-%m-%d %T")
 
 yarn ss buildModels || { echo 'buildModels failed' ; exit 1; }
-yarn ss buildGlobalTypes || { echo 'buildGlobalTypes failed' ; exit 1; }
-npx concurrently \
-  "yarn ss buildServerModelsTypes" \
-  "yarn ss buildServerModelClasses" \
-  "yarn ss buildWebModelsTypes" \
-  "yarn ss buildSharedModelsTypes" \
-  || { echo 'buildModelsTypes failed' ; exit 1; }
-yarn ss buildApiTypes || { echo 'buildApiTypes failed' ; exit 1; }
+# todo: low/mid don't rebuild all types
+yarn ss buildTypes || { echo 'buildTypes failed' ; exit 1; }
 
 find \
   framework/web/types/__generated__ \

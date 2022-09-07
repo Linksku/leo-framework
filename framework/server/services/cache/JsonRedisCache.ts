@@ -25,7 +25,9 @@ export default class JsonRedisCache<T extends Json, T2 extends Json = T> extends
         try {
           const parsed = JSON.parse(json) as T2;
           return unserialize ? unserialize(parsed, key) : parsed as unknown as T;
-        } catch {}
+        } catch {
+          ErrorLogger.error(new Error(`JsonRedisCache(${key}): data isn't JSON`), json.slice(0, 100));
+        }
         return undefined;
       },
     });

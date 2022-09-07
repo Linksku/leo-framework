@@ -1,9 +1,9 @@
 import CopyPlugin from 'copy-webpack-plugin';
 import path from 'path';
 
-import mergeReplaceArrays from './scripts/utils/mergeReplaceArrays';
+import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
 import baseConfig from './webpack.server';
-import transformWebpackCopied from './scripts/utils/transformWebpackCopied';
+import transformWebpackCopied from './scripts/helpers/transformWebpackCopied';
 
 export default mergeReplaceArrays(baseConfig, {
   mode: 'development',

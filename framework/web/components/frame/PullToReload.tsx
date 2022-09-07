@@ -13,7 +13,6 @@ export type Props = {
 const MAX_DEG = 270;
 const MAX_TOP_PX = 130;
 
-// todo: mid/mid create hook to animate spinner and reload
 export default function PullToReload({
   children,
   className,
@@ -23,10 +22,10 @@ export default function PullToReload({
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
 
   const { ref, bindSwipe } = useSwipeNavigation<HTMLDivElement>({
-    onNavigate: () => {
+    onNavigate: useCallback(() => {
       reloadPage();
-    },
-    setPercent: p => reloadSpinnerDeg.setVal(p / 100 * MAX_DEG),
+    }, [reloadPage]),
+    setPercent: (p, quick) => reloadSpinnerDeg.setVal(p / 100 * MAX_DEG, quick ? 50 : undefined),
     direction: 'down',
   });
 

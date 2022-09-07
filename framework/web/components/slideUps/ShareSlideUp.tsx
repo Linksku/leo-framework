@@ -54,6 +54,7 @@ export default function ShareSlideUp({ path }: Props) {
   const copyText = useCopyText();
   const url = `${HOME_URL}${path}`;
 
+  // todo: mid/mid native fb etc sharing
   return (
     <div className={styles.container}>
       <Input
@@ -64,12 +65,13 @@ export default function ShareSlideUp({ path }: Props) {
         onClick={() => {
           if (inputRef.current) {
             (inputRef.current as any).select?.();
+            copyText(url);
           }
         }}
       />
       <div
         onClick={() => {
-          void copyText(url);
+          copyText(url);
         }}
         className={styles.listItem}
         role="button"

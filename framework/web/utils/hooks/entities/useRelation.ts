@@ -1,27 +1,41 @@
 import useEntityByField from 'utils/hooks/entities/useEntityByField';
+import { HTTP_TIMEOUT } from 'settings';
+
+const warnedRelations = new Set<string>();
 
 export default function useRelation<
   T extends EntityType,
-  RelationName extends string & keyof ModelRelationsTypes<T>,
-  RelationType extends Defined<ModelRelationsTypes<T>[RelationName]>
+  RelationName extends string & keyof EntityRelationTypes<T>,
+  RelationType extends Defined<EntityRelationTypes<T>[RelationName]>,
 >(
   entityType: T,
   entityId: Nullish<EntityId | (string | number)[]>,
   relationName: RelationName,
 ): Nullish<Memoed<RelationType>> {
   const entity = useEntity(entityType, entityId);
-  if (!process.env.PRODUCTION && entity && !entity.devRelations?.includes(relationName)) {
-    throw new Error(`useRelation(${entityType}, ${entityId}, ${relationName}): relation not included`);
-  }
+  const { relationConfigs } = useApiStore();
+  const relationConfig = relationConfigs[entityType]?.[relationName];
 
-  const { relationsConfigs } = useApiStore();
-  const relationConfig = relationsConfigs[entityType]?.[relationName];
-  if (entity && !relationConfig) {
-    throw new Error(`useRelation(${entityType}, ${entityId}, ${relationName}): missing relation config`);
+  const { entitiesRef } = useEntitiesStore();
+  if (!process.env.PRODUCTION
+    && entityId
+    && entity
+    && !entity.includedRelations?.some(r => r === relationName || r.startsWith(`${relationName}.`))) {
+    setTimeout(() => {
+      const id = Array.isArray(entityId) ? entityId.join(',') : entityId;
+      const newEntity = entitiesRef.current[entityType]?.[id];
+      const key = `${entityType}, ${entityId}, ${relationName}`;
+      if (!warnedRelations.has(key)) {
+        if (newEntity && !newEntity.includedRelations?.includes(relationName)) {
+          ErrorLogger.warn(new Error(`useRelation(${key}): missing relation`));
+        }
+        warnedRelations.add(key);
+      }
+    }, HTTP_TIMEOUT);
   }
 
   const throughEntities = useEntityByField(
-    relationConfig?.through?.model ?? ('ENTITY_TYPE_HACK' as EntityType),
+    relationConfig?.through?.model ?? null,
     relationConfig?.through?.from ?? 'ENTITY_FIELD_HACK',
   );
   const throughEntity = entity && relationConfig
@@ -33,7 +47,7 @@ export default function useRelation<
     ]
     : undefined;
   const relatedEntities = useEntityByField(
-    relationConfig?.toModel ?? ('ENTITY_TYPE_HACK' as EntityType),
+    relationConfig?.toModel ?? null,
     relationConfig?.toCol ?? 'ENTITY_FIELD_HACK',
   );
 

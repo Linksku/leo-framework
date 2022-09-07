@@ -9,6 +9,7 @@ import apiRoutes from 'routes/apiRoutes';
 import sseRoute from 'routes/sseRoute';
 import { DOMAIN_NAME } from 'settings';
 
+// todo: low/hard switch to Fastify
 const app = express();
 
 if (process.env.PRODUCTION) {
@@ -44,8 +45,8 @@ if (process.env.SERVER !== 'production') {
   });
 } else {
   app.all('*', (req, res, next) => {
-    if (req.hostname !== DOMAIN_NAME && !req.hostname.endsWith(`.${DOMAIN_NAME}`)) {
-      res.status(403);
+    if (req.hostname !== DOMAIN_NAME && !req.hostname?.endsWith(`.${DOMAIN_NAME}`)) {
+      res.status(403).end();
     } else if (!req.secure) {
       res.redirect(`https://${req.hostname}${req.url}`);
     } else {
@@ -75,7 +76,7 @@ if (process.env.SERVER !== 'production') {
     || '<p>Temporarily unavailable.</p>';
   app.get('*', (req, res) => {
     if (req.subdomains.length) {
-      res.status(404);
+      res.status(404).end();
       return;
     }
 

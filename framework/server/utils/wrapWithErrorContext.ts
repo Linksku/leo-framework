@@ -1,10 +1,13 @@
 import rethrowWithContext from 'utils/rethrowWithContext';
 
-export default function wrapWithErrorContext<T extends AnyFunction>(
+export default function wrapWithErrorContext<
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  T extends Function,
+>(
   fn: T,
   context: string,
 ) {
-  return ((...args) => {
+  return ((...args: any[]) => {
     try {
       const ret = fn(...args);
       if (ret instanceof Promise) {
@@ -16,5 +19,5 @@ export default function wrapWithErrorContext<T extends AnyFunction>(
     }
     // Never reaches here.
     return null;
-  }) as T;
+  }) as unknown as T;
 }

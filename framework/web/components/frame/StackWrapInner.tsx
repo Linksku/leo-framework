@@ -1,6 +1,6 @@
 import ChevronLeftSvg from 'fontawesome5/svgs/solid/chevron-left.svg';
 
-import PullToReload from 'components/frame/PullToReload';
+import PullToReloadDeferred from 'components/frame/PullToReloadDeferred';
 import TitleBar from 'components/frame/TitleBar';
 import LoadingRoute from 'routes/LoadingRoute';
 import ErrorBoundary from 'components/ErrorBoundary';
@@ -9,24 +9,25 @@ import styles from './StackWrapInnerStyles.scss';
 
 type TitleBarProps = Parameters<typeof TitleBar>[0];
 
-type TopBarProps = ObjRequiredKeys<TitleBarProps, 'title'>;
+type TopBarProps = SetRequired<TitleBarProps, 'title'>;
 
 const StackWrapInnerTopBar = React.memo(
-  function StackWrapInnerTopBar({ title, ...props }: TopBarProps) {
-    const { backStack } = useStacksNavStore();
+  function StackWrapInnerTopBar({ title, LeftSvg, ...props }: TopBarProps) {
+    const { goBackStack } = useStacksNavStore();
+
     return (
       <div className={styles.topBarWrap}>
-        <PullToReload>
+        <PullToReloadDeferred>
           <TitleBar
             title={title}
             onLeftBtnClick={useCallback((e: React.MouseEvent) => {
               e.stopPropagation();
-              backStack();
-            }, [backStack])}
-            LeftSvg={ChevronLeftSvg}
+              goBackStack();
+            }, [goBackStack])}
+            LeftSvg={LeftSvg ?? ChevronLeftSvg}
             {...props}
           />
-        </PullToReload>
+        </PullToReloadDeferred>
       </div>
     );
   },
@@ -45,8 +46,13 @@ export default function StackWrapInner({
   bottomBar,
   ...props
 }: React.PropsWithChildren<Props>) {
+  const { innerContainerRef } = useRouteStore();
+
   return (
-    <div className={cn(styles.container, className)}>
+    <div
+      ref={innerContainerRef}
+      className={cn(styles.container, className)}
+    >
       <StackWrapInnerTopBar {...props} />
 
       <div className={cn(styles.body, bodyClassName)}>
