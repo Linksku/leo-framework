@@ -1,39 +1,40 @@
-// todo: low/mid convert some scripts to google/zx
+// todo: low/mid build shared lib bundle for server scripts
 import yargs from 'yargs';
 
-import 'helpers/initServer/initDotenv';
+import 'helpers/initDotenv';
 import 'services/knex/knexBT';
 
-if (!process.env.SCRIPT_PATH) {
-  throw new Error('Script not found.');
+if (!process.env.SERVER_SCRIPT_PATH) {
+  throw new Error('serverScript: script not found.');
 }
 
 if (!process.env.SERVER || !process.env.NODE_ENV) {
-  throw new Error('Env vars not set.');
+  throw new Error('serverScript: env vars not set.');
 }
 
-const { default: fn } = await import(`../../${process.env.SCRIPT_PATH}`);
+const { default: fn } = await import(`../../${process.env.SERVER_SCRIPT_PATH}`);
 
 let promise: any;
 try {
+  // todo: low/mid args validation and typing
+  // Note: yargs built-in validation allows non-numbers and converts them to NaN
   promise = fn(yargs(process.argv).argv);
 } catch (err) {
-  printDebug(err, 'error');
-  // eslint-disable-next-line unicorn/no-process-exit
-  process.exit(1);
+  printDebug(getErr(err, { ctx: 'serverScript' }), 'error');
+  await ErrorLogger.flushAndExit(1);
 }
 
 if (promise && promise.then) {
+  // Node bug: prevent exiting while promises are running
+  setTimeout(NOOP, 24 * 60 * 60 * 1000);
+
   try {
     await promise;
-    // eslint-disable-next-line unicorn/no-process-exit
-    process.exit(0);
+    await ErrorLogger.flushAndExit(0);
   } catch (err) {
-    printDebug(err, 'error');
-    // eslint-disable-next-line unicorn/no-process-exit
-    process.exit(1);
+    printDebug(getErr(err, { ctx: 'serverScript' }), 'error');
+    await ErrorLogger.flushAndExit(1);
   }
-} else {
-  // eslint-disable-next-line unicorn/no-process-exit
-  process.exit(0);
 }
+
+await ErrorLogger.flushAndExit(0);

@@ -1,11 +1,11 @@
 .container {
   position: relative;
   flex-shrink: 0;
-  overflow: hidden;
 }
 
 .inner {
   position: absolute;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;

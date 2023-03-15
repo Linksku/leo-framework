@@ -62,8 +62,8 @@ function useEntitiesByFields<
         for (const field of fields.slice(0, -1)) {
           // Maybe change to use a symbol for null.
           const val = TS.assertType<string | number>(
-            v => typeof v === 'string' || typeof v === 'number',
             e[field] === null ? 'null' : e[field],
+            v => typeof v === 'string' || typeof v === 'number',
           );
           if (!obj2[val]) {
             obj2[val] = Object.create(null);
@@ -73,8 +73,8 @@ function useEntitiesByFields<
 
         const lastField = fields[fields.length - 1];
         const lastVal = TS.assertType<string | number>(
-          v => typeof v === 'string' || typeof v === 'number',
           (e as any)[lastField] === null ? 'null' : (e as any)[lastField],
+          v => typeof v === 'string' || typeof v === 'number',
         );
         if (fieldForSet) {
           const tempSet = (obj2[lastVal] ?? new Set()) as Memoed<Set<Memoed<any>>>;
@@ -99,8 +99,8 @@ function useEntitiesByFields<
                 : -1 * multiplier
             ));
           } else if (obj2) {
-            for (const k of Object.keys(obj2)) {
-              stack.push(obj2[k] as ObjArr<T>);
+            for (const val of Object.values(obj2)) {
+              stack.push(val as ObjArr<T>);
             }
           }
         }

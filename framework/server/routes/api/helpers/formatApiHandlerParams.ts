@@ -10,7 +10,10 @@ export default function formatApiHandlerParams<Name extends ApiName>({
   currentUserId: EntityId | undefined,
 }): ApiHandlerParams<Name> {
   if (api.config.paramsSchema) {
-    params = unserializeDateProps(api.config.paramsSchema, params) as ApiNameToParams[Name];
+    params = unserializeDateProps(
+      api.config.paramsSchema.properties,
+      params,
+    ) as ApiNameToParams[Name];
   }
 
   return {

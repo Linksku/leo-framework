@@ -1,21 +1,26 @@
-import SearchSvg from 'fontawesome5/svgs/solid/search.svg';
+import SearchSvg from 'fa5/svg/search-regular.svg';
 
 import { useThrottle } from 'utils/throttle';
 
 import styles from './SearchFormStyles.scss';
 
-export type OnSubmitSearchForm = Memoed<(query: string) => void>;
-
 type Props = {
-  onSubmit: OnSubmitSearchForm,
+  onSubmit: Memoed<(query: string) => void>,
   throttleTimeout?: number,
+  defaultValue?: string,
+  placeholder?: string,
 };
 
-export default function SearchForm({ onSubmit, throttleTimeout = 1000 }: Props) {
+export default React.memo(function SearchForm({
+  onSubmit,
+  throttleTimeout = 1000,
+  defaultValue,
+  placeholder,
+}: Props) {
   const { register, handleSubmit } = useForm({
     reValidateMode: 'onBlur',
     defaultValues: {
-      query: '',
+      query: defaultValue ?? '',
     },
   });
 
@@ -25,7 +30,6 @@ export default function SearchForm({ onSubmit, throttleTimeout = 1000 }: Props) 
     },
     useDeepMemoObj({
       timeout: throttleTimeout,
-      allowSchedulingDuringDelay: true,
     }),
     [onSubmit],
   ));
@@ -36,7 +40,7 @@ export default function SearchForm({ onSubmit, throttleTimeout = 1000 }: Props) 
     >
       <Input
         name="query"
-        placeholder="Search..."
+        placeholder={placeholder ?? 'Search...'}
         suffix={(
           <SearchSvg
             className={styles.icon}
@@ -50,4 +54,4 @@ export default function SearchForm({ onSubmit, throttleTimeout = 1000 }: Props) 
       />
     </form>
   );
-}
+});

@@ -1,4 +1,4 @@
-import SyncSvg from 'fontawesome5/svgs/solid/sync-alt.svg';
+import SyncSvg from 'fa5/svg/sync-alt-solid.svg';
 
 import useSwipeNavigation from 'utils/hooks/useSwipeNavigation';
 import { useAnimation } from 'utils/hooks/useAnimation';
@@ -10,8 +10,8 @@ export type Props = {
   className?: string,
 } & React.HTMLAttributes<HTMLDivElement>;
 
+const ELEM_DIM = 36;
 const MAX_DEG = 270;
-const MAX_TOP_PX = 130;
 
 export default function PullToReload({
   children,
@@ -22,27 +22,37 @@ export default function PullToReload({
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
 
   const { ref, bindSwipe } = useSwipeNavigation<HTMLDivElement>({
+    elementDim: ELEM_DIM * 3,
     onNavigate: useCallback(() => {
       reloadPage();
     }, [reloadPage]),
-    setPercent: (p, quick) => reloadSpinnerDeg.setVal(p / 100 * MAX_DEG, quick ? 50 : undefined),
+    setPercent: (p, durationPercent) => reloadSpinnerDeg.setVal(
+      p / 100 * MAX_DEG,
+      durationPercent * 500,
+    ),
     direction: 'down',
   });
 
   return (
     <div
-      className={cn(styles.container, className)}
+      className={cx(styles.container, className)}
       {...props}
       {...bindSwipe()}
     >
       {children}
-
       <div
         ref={mergeRefs(ref, animationRef)}
-        style={animationStyle(reloadSpinnerDeg, {
-          top: x => `${Math.min(1, x / MAX_DEG) * MAX_TOP_PX}px`,
-          transform: x => `translateX(-50%) translateY(-100%) rotate(${x + 90}deg)`,
-        })}
+        style={animationStyle(
+          reloadSpinnerDeg,
+          {
+            transform(x) {
+              const remainingPercent = 1 - (x / MAX_DEG);
+              const temp = 1 - Math.max(0, remainingPercent ** 2);
+              return `translateX(-50%) translateY(${(temp * 300) - 100}%) rotate(${x + 90}deg)`;
+            },
+          },
+          { easing: 'linear' },
+        )}
         className={styles.reloadSpinner}
       >
         <div className={styles.reloadSpinnerInner}>

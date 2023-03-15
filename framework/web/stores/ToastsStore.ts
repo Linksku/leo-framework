@@ -62,12 +62,12 @@ export const [
       );
     }, [hideToast, setState]);
 
-    return useDeepMemoObj({
+    return useMemo(() => ({
       toast,
       showToast,
       hideToast,
       isHidingToast: isHiding,
-    });
+    }), [toast, showToast, hideToast, isHiding]);
   },
   function ToastsStore(val) {
     return val;

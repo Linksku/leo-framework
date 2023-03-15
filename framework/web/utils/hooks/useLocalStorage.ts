@@ -1,10 +1,20 @@
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
+import { DEFAULT_COOKIES_TTL } from 'settings';
 
-function setItem(key: string, val: any, raw?: boolean) {
+function setItem(
+  key: string,
+  val: any,
+  opts?: Memoed<{
+    ttl?: number,
+  }>,
+) {
   try {
     window.localStorage.setItem(
       key,
-      raw ? (val as unknown as string) : JSON.stringify(val),
+      JSON.stringify({
+        val,
+        exp: Date.now() + (opts?.ttl ?? DEFAULT_COOKIES_TTL),
+      }),
     );
   } catch {}
 }
@@ -13,33 +23,37 @@ export default function useLocalStorage<T>(
   key: string,
   initialVal: Memoed<T>,
   validator: Memoed<(val: unknown) => boolean>,
-  opts?: { raw: boolean },
+  opts?: Memoed<{
+    ttl?: number,
+  }>,
 ) {
-  if (!process.env.PRODUCTION) {
-    if (opts?.raw && typeof initialVal !== 'string') {
-      throw new Error('useLocalStorage: raw initialVal must be string.');
-    }
-    if (!validator(initialVal)) {
-      throw new Error('useLocalStorage: initialVal failed validator.');
-    }
+  if (!process.env.PRODUCTION && !validator(initialVal)) {
+    throw new Error('useLocalStorage: initialVal failed validator.');
   }
 
   const [state, setState] = useGlobalState<T>(`useLocalStorage:${key}`, () => {
     let val: string | null = null;
-    let parsed: T | null = null;
+    let parsed: {
+      val: T,
+      exp: number,
+     } | null = null;
     try {
       val = window.localStorage.getItem(key);
-      parsed = deepFreezeIfDev(opts?.raw || !val ? val : JSON.parse(val));
+      parsed = val ? deepFreezeIfDev(JSON.parse(val)) : null;
     } catch {}
 
-    if (parsed && validator(parsed)) {
-      return parsed;
+    if (parsed && typeof parsed === 'object' && parsed.exp > Date.now()) {
+      if (validator(parsed.val)) {
+        return parsed.val;
+      }
+
+      if (!process.env.PRODUCTION) {
+        setItem(key, initialVal, opts);
+        throw new Error(`useLocalStorage: ${key} failed validator: ${parsed.val}`);
+      }
     }
 
-    setItem(key, initialVal, opts?.raw);
-    if (!process.env.PRODUCTION && parsed) {
-      throw new Error(`useLocalStorage: ${key} failed validator: ${val}`);
-    }
+    setItem(key, initialVal, opts);
     return initialVal;
   });
 
@@ -50,15 +64,15 @@ export default function useLocalStorage<T>(
         throw new Error(`useLocalStorage.setValue: "${newState}" failed validator.`);
       }
 
-      setItem(key, newState, opts?.raw);
+      setItem(key, newState, opts);
       return newState;
     });
-  }, [key, opts?.raw, setState, validator]);
+  }, [key, opts, setState, validator]);
 
   const resetValue = useCallback(() => {
-    setItem(key, initialVal, opts?.raw);
+    setItem(key, initialVal, opts);
     setState(initialVal);
-  }, [key, setState, initialVal, opts?.raw]);
+  }, [key, setState, initialVal, opts]);
 
   return [state, setValue, resetValue] as const;
 }

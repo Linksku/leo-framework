@@ -7,6 +7,5 @@ export default function useAuthTokenLS() {
     'authToken',
     '',
     validator,
-    { raw: true },
   );
 }

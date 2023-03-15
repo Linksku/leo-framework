@@ -30,19 +30,15 @@ function Textarea({
     : null;
   return (
     <WrapperComponent
-      className={cn(styles.inputWrap, {
+      className={cx(styles.inputWrap, {
         [styles.labelWrap]: label,
       }, className)}
     >
-      {label
-        ? (
-          <span className={styles.label}>{label}</span>
-        )
-        : null}
+      {label && <span className={styles.label}>{label}</span>}
       <textarea
         {...registerProps}
         ref={mergeRefs(ref, registerProps?.ref)}
-        className={cn(styles.textarea, textareaClassName)}
+        className={cx(styles.textarea, textareaClassName)}
         {...props}
       >
         {children}

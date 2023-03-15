@@ -12,7 +12,7 @@ export default function Card({
 }: React.PropsWithChildren<Props>) {
   return (
     <div
-      className={cn(styles.card, className)}
+      className={cx(styles.card, className)}
       style={style ?? undefined}
     >
       <div className={styles.topMargin} />

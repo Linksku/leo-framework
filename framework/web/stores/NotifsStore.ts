@@ -1,5 +1,5 @@
-import omitSingle from 'utils/omitSingle';
-import useHandleEntityEvent from 'utils/hooks/entities/useHandleEntityEvent';
+import useHandleEntityEvents from 'utils/hooks/entities/useHandleEntityEvents';
+import useUpdate from 'utils/hooks/useUpdate';
 
 export const [
   NotifsProvider,
@@ -8,7 +8,8 @@ export const [
   function NotifsStore() {
     const authState = useAuthState();
     const currentUserId = useCurrentUserId();
-    const [unseenNotifIds, setUnseenNotifIds] = useState<ObjectOf<Set<INotif['id']>>>({});
+    const unseenNotifIds = useRef<Memoed<ObjectOf<Set<INotif['id']>>>>(EMPTY_OBJ);
+    const update = useUpdate();
 
     useApi(
       'unseenNotifIds',
@@ -16,69 +17,88 @@ export const [
       {
         shouldFetch: authState !== 'out',
         onFetch({ notifIds }) {
-          setUnseenNotifIds(s => {
-            const newState = { ...s };
-            let hasChanged = false;
-            for (const [notifType, idsArr] of TS.objEntries(notifIds)) {
-              const newSet = new Set(newState[notifType] ?? []);
-              for (const id of idsArr) {
-                newSet.add(id);
-              }
-              if (newSet.size !== newState[notifType]?.size) {
-                hasChanged = true;
-                newState[notifType] = newSet;
-              }
+          const newState = { ...unseenNotifIds.current };
+          let hasChanged = false;
+          for (const [notifType, idsArr] of TS.objEntries(notifIds)) {
+            const newSet = new Set(newState[notifType] ?? []);
+            for (const id of idsArr) {
+              newSet.add(id);
             }
-            return hasChanged ? newState : s;
-          });
+            if (newSet.size !== (newState[notifType]?.size ?? 0)) {
+              hasChanged = true;
+              newState[notifType] = newSet;
+            }
+          }
+
+          if (hasChanged) {
+            unseenNotifIds.current = markMemoed(newState);
+            update();
+          }
         },
       },
     );
 
-    const { fetchApi: updateSeenNotifs } = useDeferredApi('seenNotifs', {}, {
-      type: 'update',
-      noReturnState: true,
-      showToastOnError: false,
-    });
+    const { fetchApi: updateSeenNotifs } = useDeferredApi(
+      'seenNotifs',
+      EMPTY_OBJ,
+      {
+        type: 'update',
+      },
+    );
 
     useSse(
       'notifCreated',
       { userId: currentUserId },
-      {
-        isReady: !!currentUserId && authState !== 'out',
-      },
+      { isReady: !!currentUserId },
     );
 
-    useHandleEntityEvent('create', 'notif', useCallback(notif => {
-      setUnseenNotifIds(s => {
-        const set = s[notif.notifType] ?? new Set();
-        set.add(notif.id);
-        return { ...s, [notif.notifType]: set };
-      });
-    }, []));
+    useHandleEntityEvents(
+      useConst([
+        { actionType: 'create', entityType: 'notif' },
+        { actionType: 'update', entityType: 'notif' },
+      ]),
+      useCallback(notif => {
+        if (!unseenNotifIds.current[notif.notifType]?.has(notif.id)) {
+          const set = unseenNotifIds.current[notif.notifType] ?? new Set();
+          set.add(notif.id);
+          unseenNotifIds.current[notif.notifType] = set;
+          update();
+        }
+      }, [update]),
+    );
 
     const seenNotifs = useCallback(() => {
-      updateSeenNotifs({
-        notifType: 'notifs',
-      });
-      setUnseenNotifIds(s => (s.chatReplyCreated
-        ? { chatReplyCreated: s.chatReplyCreated }
-        : {}));
-    }, [updateSeenNotifs]);
+      const numUnseenNotifs = Object.keys(unseenNotifIds.current).length;
+      if (!numUnseenNotifs
+        || (numUnseenNotifs === 1 && unseenNotifIds.current.chatReplyCreated?.size)) {
+        updateSeenNotifs({
+          notifType: 'notifs',
+        });
+
+        unseenNotifIds.current = unseenNotifIds.current.chatReplyCreated?.size
+          ? markMemoed({
+            chatReplyCreated: unseenNotifIds.current.chatReplyCreated,
+          } as ObjectOf<Set<INotif['id']>>)
+          : EMPTY_OBJ;
+        update();
+      }
+    }, [updateSeenNotifs, update]);
 
     const seenChats = useCallback(() => {
-      updateSeenNotifs({
-        notifType: 'chats',
-      });
-      setUnseenNotifIds(s => (s.chatReplyCreated
-        ? omitSingle('chatReplyCreated', s)
-        : s));
-    }, [updateSeenNotifs]);
+      if (unseenNotifIds.current.chatReplyCreated?.size) {
+        updateSeenNotifs({
+          notifType: 'chats',
+        });
 
-    return useDeepMemoObj({
-      unseenNotifIds,
+        delete unseenNotifIds.current.chatReplyCreated;
+        update();
+      }
+    }, [updateSeenNotifs, update]);
+
+    return useMemo(() => ({
+      unseenNotifIds: unseenNotifIds.current,
       seenNotifs,
       seenChats,
-    });
+    }), [unseenNotifIds, seenNotifs, seenChats]);
   },
 );

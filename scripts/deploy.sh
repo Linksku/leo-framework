@@ -2,23 +2,39 @@
 # Exit if anything fails
 set -e
 
-set -o allexport; source app/env; set +o allexport
+set -o allexport; source ./env; set +o allexport
+export $(grep -v '^#' .env | xargs)
 
-export NODE_ENV=production
-export SERVER=production
+if [[ -n $(git status --porcelain) ]]; then
+  echo "Commit changes before deploying"
+  exit 1
+fi
 
 if [[ -n $(git log --oneline origin/master..HEAD) ]]; then
   echo "Push commits before deploying"
   exit 1
 fi
 
-SERVER=production scripts/build.sh
+eval `ssh-agent -t 600`
+ssh-add
 
-rm build.zip -f
-zip -r build.zip build -x 'build/development*' -x 'build/production/server-script' -q
+rm -rf build/production/*
+BUILD_SERVER=production scripts/build.sh
+NODE_ENV=production SERVER=production scripts/build-server-script.sh monitorInfra
 
-for i in {1..2}; do scp -r build.zip "root@$REMOTE_IP:$REMOTE_ROOT_DIR" && break; done
+docker build -t server -f framework/infra/server-dockerfile .
+docker save -o build.tar server
+
+scp build.tar "root@$REMOTE_IP:$REMOTE_ROOT_DIR"
 GIT_REVS=$(git rev-list --count master)
-ssh "root@$REMOTE_IP" "source ~/.profile; cd $REMOTE_ROOT_DIR; scripts/post-deploy.sh $GIT_REVS"
+ssh -tt "root@$REMOTE_IP" "source ~/.profile; cd $REMOTE_ROOT_DIR; git fetch origin; git reset --hard origin/master; scripts/post-deploy.sh $GIT_REVS"
 
-rm build.zip
+curl -s -S --output /dev/null \
+  -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \
+  -H "X-Auth-Email: $CF_USERNAME" \
+  -H "X-Auth-Key: $CF_API_KEY" \
+  -H "Content-Type: application/json" \
+  --data '{"purge_everything":true}' \
+  && echo 'Purged Cloudflare cache'
+
+rm build.tar

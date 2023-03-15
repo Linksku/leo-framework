@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig-base.json",
+  "compilerOptions": {
+    "lib": ["es2021", "dom", "dom.iterable"],
+    "isolatedModules": false,
+    "paths": {
+      "*": [
+        "framework/tests/*",
+        "framework/shared/*",
+      ],
+    },
+    "rootDirs": [
+      ".",
+      "../shared",
+    ],
+    "types": [
+      "webpack-env",
+      "cypress",
+    ],
+  },
+  "include": [
+    ".",
+    "../shared/types",
+  ],
+}

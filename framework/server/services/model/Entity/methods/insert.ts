@@ -1,34 +1,39 @@
+import type { Knex } from 'knex';
+
 import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
 import modelsCache from 'services/cache/modelsCache';
 import modelIdsCache from 'services/cache/modelIdsCache';
 import knexBT from 'services/knex/knexBT';
 import { updateLastWriteTime } from 'services/model/helpers/lastWriteTimeHelpers';
-import waitForRRUpdate from 'utils/models/waitForRRUpdate';
+import RequestContextLocalStorage from 'services/requestContext/RequestContextLocalStorage';
 
-function insert<T extends EntityClass>(
+function insert<T extends EntityClass, Obj extends ModelPartialExact<T, Obj>>(
   this: T,
-  obj: EntityPartial<T>,
+  obj: Obj,
   opts?: {
     onDuplicate?: 'update' | 'ignore',
-    waitForRR?: boolean,
+    trx?: Knex.Transaction,
   },
 ): Promise<EntityInstance<T>>;
 
-function insert<T extends EntityClass>(
+function insert<T extends EntityClass, Obj extends ModelPartialExact<T, Obj>>(
   this: T,
-  obj: EntityPartial<T>,
+  obj: Obj,
   opts: {
     onDuplicate: 'ignore',
-    waitForRR?: boolean,
+    trx?: Knex.Transaction,
   },
 ): Promise<EntityInstance<T> | null>;
 
-async function insert<T extends EntityClass>(
+async function insert<T extends EntityClass, Obj extends ModelPartialExact<T, Obj>>(
   this: T,
-  obj: EntityPartial<T>,
-  { onDuplicate = 'error', waitForRR }: {
+  obj: Obj,
+  {
+    onDuplicate = 'error' as 'error' | 'update' | 'ignore',
+    trx,
+  }: {
     onDuplicate?: 'error' | 'update' | 'ignore',
-    waitForRR?: boolean,
+    trx?: Knex.Transaction
   } = {},
 ): Promise<EntityInstance<T> | null> {
   const uniqueIndex = getPartialUniqueIndex(this, obj);
@@ -36,24 +41,31 @@ async function insert<T extends EntityClass>(
     throw new Error(`${this.name}.insert: don't use onDuplicate without a unique index`);
   }
 
-  let query = entityQuery(this, knexBT)
+  let query = entityQuery(this, trx ?? knexBT)
     .insert(
       obj,
     )
-    .returning('*') as unknown as QueryBuilder<EntityInstance<T>>['SingleQueryBuilderType'];
-  if (onDuplicate === 'update' && uniqueIndex) {
+    .returning([
+      '*',
+      ...(onDuplicate === 'update' ? [raw('(xmax = 0) as "__didInsert"')] : []),
+    ]) as unknown as QueryBuilder<EntityInstance<T>>['SingleQueryBuilderType'];
+  if (onDuplicate === 'update') {
     query = query
-      .onConflict(uniqueIndex)
+      .onConflict(TS.notNull(uniqueIndex))
       .merge();
-  } else if (onDuplicate === 'ignore' && uniqueIndex) {
+  } else if (onDuplicate === 'ignore') {
     query = query
-      .onConflict(uniqueIndex)
+      .onConflict(TS.notNull(uniqueIndex))
       .ignore();
   }
 
   // If there's an UniqueViolationError, don't try to fetch using unique key.
   // E.g. if 2 users create accounts using the same email, it'll fetch the other user's account.
   const row = await query;
+  // @ts-ignore wontfix custom col
+  const didInsert = row.__didInsert;
+  // @ts-ignore wontfix custom col
+  delete row.__didInsert;
   if (!process.env.PRODUCTION) {
     row.$validate();
   }
@@ -68,22 +80,23 @@ async function insert<T extends EntityClass>(
   }
 
   if (inserted) {
-    await Promise.all(
-      inserted.isInitialVersion()
-        ? [
-          modelsCache.handleInsert(this, inserted),
-          modelIdsCache.handleInsert(this, inserted),
-          updateLastWriteTime(this.type),
-        ]
-        : [
-          modelsCache.handleUpdate(this, inserted),
-          modelIdsCache.handleUpdate(this, inserted),
-          updateLastWriteTime(this.type),
-        ]);
-
-    if (waitForRR) {
-      await waitForRRUpdate(this, inserted.id, inserted.version);
-    }
+    const insertedDefined = inserted;
+    const rc = getRC();
+    await RequestContextLocalStorage.exit(
+      () => Promise.all(
+        onDuplicate === 'update' && !didInsert
+          ? [
+            modelsCache.handleUpdate(rc, this, insertedDefined),
+            modelIdsCache.handleUpdate(rc, this, insertedDefined),
+            updateLastWriteTime(this.type),
+          ]
+          : [
+            modelsCache.handleInsert(rc, this, insertedDefined),
+            modelIdsCache.handleInsert(rc, this, insertedDefined),
+            updateLastWriteTime(this.type),
+          ],
+      ),
+    );
   }
 
   return inserted;

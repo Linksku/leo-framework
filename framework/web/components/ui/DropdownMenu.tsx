@@ -1,9 +1,12 @@
 import styles from './DropdownMenuStyles.scss';
 
-export type Options = Memoed<{ key: string | null, name: string }[]>;
+export type Options = Memoed<{
+  key: string | null,
+  name: string,
+}[]>;
 
 export type RenderOption = Memoed<
-  (key: string | null, name: string) => ReactElement | null
+  (key: string | null, name: string) => ReactElement | string | null
 >;
 
 export type Props = {
@@ -59,7 +62,7 @@ export default React.memo(function DropdownMenu({
           if (nullState) {
             return (
               <div
-                className={cn(styles.option, styles.nullState)}
+                className={cx(styles.option, styles.nullState)}
                 onMouseDown={onNullStateMouseDown}
               >
                 {nullState}
@@ -69,19 +72,17 @@ export default React.memo(function DropdownMenu({
           return null;
         })()}
 
-        {lastElement
-          ? (
-            <div className={styles.option} onMouseDown={onLastElementMouseDown}>
-              {lastElement}
-            </div>
-          )
-          : null}
+        {lastElement && (
+          <div className={styles.option} onMouseDown={onLastElementMouseDown}>
+            {lastElement}
+          </div>
+        )}
       </>
     );
   }
 
   return (
-    <div className={cn(styles.dropdown, className)} {...props}>
+    <div className={cx(styles.dropdown, className)} {...props}>
       <div className={styles.dropdownInner}>
         {fetching
           ? (

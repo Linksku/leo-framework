@@ -22,13 +22,13 @@ pg.types.setTypeParser(1016, val => pgArray.parse(val, str => {
   return int;
 }));
 
-Knex.QueryBuilder.extend('lateralJoin', function lateralJoin(table: any) {
+Knex.QueryBuilder.extend('joinLateral', function joinLateral(table: any) {
   // @ts-ignore Knex is missing type
   this._joinType('lateral').join(table, raw('true'));
   return this;
 });
 
-Knex.QueryBuilder.extend('lateralLeftJoin', function lateralLeftJoin(table: any) {
+Knex.QueryBuilder.extend('leftJoinLateral', function leftJoinLateral(table: any) {
   // @ts-ignore Knex is missing type
   this._joinType('left lateral').join(table, raw('true'));
   return this;

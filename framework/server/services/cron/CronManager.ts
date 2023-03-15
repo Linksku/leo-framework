@@ -1,19 +1,26 @@
-import type Bull from 'bull';
+import type { CronRepeatOptions, EveryRepeatOptions, Job } from 'bull';
+import pLimit from 'p-limit';
+
 import createBullQueue, { wrapProcessJob } from 'helpers/createBullQueue';
 
-const cronDefinitions: ObjectOf<{
-  handler: () => void | Promise<void>,
-  repeat: string,
-}> = Object.create(null);
+const limiter = pLimit(10);
 
-let queue: Bull.Queue<null> | undefined;
+type CronConfig = {
+  handler: (job: Job) => void | Promise<void>,
+  repeat: CronRepeatOptions | EveryRepeatOptions,
+  timeout: number,
+};
 
-function startCronJob(name: string, handler: () => void | Promise<void>, repeat: string) {
+const cronConfigs: ObjectOf<CronConfig> = Object.create(null);
+let started = false;
+const queue = createBullQueue('CronManager');
+
+async function startCronJob(name: string, { handler, repeat, timeout }: CronConfig) {
   wrapPromise(
-    TS.defined(queue).process(
+    queue.process(
       name,
-      wrapProcessJob(async () => {
-        const ret = handler();
+      wrapProcessJob(async job => {
+        const ret = handler(job);
         if (ret instanceof Promise) {
           await ret;
         }
@@ -23,50 +30,74 @@ function startCronJob(name: string, handler: () => void | Promise<void>, repeat:
     `Define cron job ${name}`,
   );
 
-  wrapPromise(
-    TS.defined(queue).add(name, null, {
-      repeat: {
-        cron: repeat,
-      },
-      timeout: 10 * 60 * 1000,
-      removeOnComplete: true,
-      removeOnFail: true,
-    }),
-    'fatal',
-    `Add cron job ${name}`,
-  );
+  await queue.add(name, null, {
+    repeat,
+    timeout,
+    removeOnComplete: true,
+    removeOnFail: true,
+  });
 }
 
 export function defineCronJob(
   name: string,
-  handler: () => void | Promise<void>,
-  repeat: string,
+  config: CronConfig,
 ) {
-  if (Object.hasOwnProperty.call(cronDefinitions, name)) {
-    throw new Error(`addCronJob: ${name} already exists`);
+  if (!process.env.PRODUCTION && name.includes(':')) {
+    throw new Error(`defineCronJob: "${name}" shouldn't contain colon`);
+  }
+  if (Object.hasOwnProperty.call(cronConfigs, name)) {
+    throw new Error(`defineCronJob: "${name}" already exists`);
   }
 
-  if (queue) {
-    startCronJob(name, handler, repeat);
+  if (started) {
+    wrapPromise(startCronJob(name, config), 'fatal', `startCronJob(${name})`);
   } else {
-    cronDefinitions[name] = {
-      handler,
-      repeat,
-    };
+    cronConfigs[name] = config;
   }
 }
 
-export async function startCronJobs() {
-  if (queue) {
-    throw new Error('Cron already started');
-  }
+export async function getExistingJobs() {
+  const jobs = await queue.getRepeatableJobs();
+  return jobs.map(job => job.name).filter(name => cronConfigs[name]);
+}
 
-  queue = createBullQueue('CronManager');
+export function getCronConfigs() {
+  return cronConfigs;
+}
+
+export async function startCronJobs() {
+  if (started) {
+    throw new Error('CronManager: Cron already started');
+  }
+  started = true;
 
   const existingJobs = await queue.getRepeatableJobs();
-  await Promise.all(existingJobs.map(job => queue?.removeRepeatableByKey(job.key)));
+  await Promise.all(
+    existingJobs
+      .filter(job => !cronConfigs[job.name])
+      .map(job => limiter(
+        () => queue.removeRepeatableByKey(job.key),
+      )),
+  );
 
-  for (const [name, { handler, repeat }] of TS.objEntries(cronDefinitions)) {
-    startCronJob(name, handler, repeat);
-  }
+  await Promise.all(TS.objEntries(cronConfigs).map(
+    ([name, config]) => limiter(() => startCronJob(name, config)),
+  ));
+}
+
+export async function restartMissingCronJobs() {
+  const existingJobs = await queue.getRepeatableJobs();
+  const existingJobNames = new Set(existingJobs.map(job => job.name));
+  await Promise.all(
+    TS.objEntries(cronConfigs)
+      .filter(pair => !existingJobNames.has(pair[0]))
+      .map(([name, config]) => limiter(
+        () => queue.add(name, null, {
+          repeat: config.repeat,
+          timeout: config.timeout,
+          removeOnComplete: true,
+          removeOnFail: true,
+        }),
+      )),
+  );
 }

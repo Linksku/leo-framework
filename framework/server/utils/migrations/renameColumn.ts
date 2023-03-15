@@ -1,7 +1,12 @@
 import knexBT from 'services/knex/knexBT';
 import knexRR from 'services/knex/knexRR';
 
-export default async function renameColumn({ isMV, table, oldCol, newCol }: {
+export default async function renameColumn({
+  isMV,
+  table,
+  oldCol,
+  newCol,
+}: {
   isMV: boolean,
   table: string,
   oldCol: string,

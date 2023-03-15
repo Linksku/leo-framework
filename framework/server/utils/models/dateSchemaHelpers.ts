@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 
 import { toDbDateTime } from 'utils/db/dbDate';
 
-export function isPropDate(schema: JSONSchema): boolean {
+export function isPropDate(schema: JsonSchema): boolean {
   if (TS.getProp(schema, 'instanceof') === 'Date') {
     return true;
   }
@@ -19,67 +19,75 @@ export function isPropDate(schema: JSONSchema): boolean {
   return false;
 }
 
+const memo: Map<JsonSchemaProperties, Set<string>> = new Map();
+export function getDateProps(schema: JsonSchemaProperties): Set<string> {
+  if (!memo.has(schema)) {
+    memo.set(
+      schema,
+      new Set(
+        Object.entries(schema)
+          .filter(entry => entry[1] && isPropDate(entry[1]))
+          .map(entry => entry[0]),
+      ),
+    );
+  }
+  return memo.get(schema) as Set<string>;
+}
+
 // Must mutate input obj for $beforeValidate.
 export function serializeDateProp(
-  schema: JSONSchema,
-  _val: any,
+  schema: JsonSchemaProperties,
+  key: string,
+  val: any,
   forDb: boolean,
 ): any {
-  if (_val != null
-    && (_val instanceof Date || _val instanceof dayjs)
-    && isPropDate(schema)) {
-    const val = _val as Date | Dayjs;
-
-    if (forDb) {
-      return toDbDateTime(val);
-    }
-    return val.toISOString();
+  if (val != null
+    && (val instanceof Date || val instanceof dayjs)
+    && getDateProps(schema).has(key)) {
+    const val2 = val as Date | Dayjs;
+    return forDb
+      ? toDbDateTime(val2)
+      : val2.toISOString();
   }
-  return _val;
+  return val;
 }
 
 export function serializeDateProps(
-  fullSchema: JSONSchema,
+  schema: JsonSchemaProperties,
   obj: ObjectOf<any>,
   forDb: boolean,
 ): ObjectOf<any> {
-  if (!fullSchema.properties) {
-    throw new Error('serializeDateProps: invalid schema');
-  }
-
-  for (const [k, schema] of Object.entries(fullSchema.properties)) {
-    if (typeof schema !== 'boolean') {
-      obj[k] = serializeDateProp(schema, obj[k], forDb);
+  const dateProps = getDateProps(schema);
+  for (const key of dateProps) {
+    const val = obj[key] as Date | Dayjs | undefined;
+    if (val) {
+      obj[key] = forDb
+        ? toDbDateTime(val)
+        : val.toISOString();
     }
   }
   return obj;
 }
 
-export function unserializeDateProp(schema: JSONSchema, val: any): any {
-  if (val != null && isPropDate(schema)) {
+export function unserializeDateProp(
+  schema: JsonSchemaProperties,
+  key: string,
+  val: any,
+): any {
+  if (val != null && getDateProps(schema).has(key)) {
     return dayjs(val).toDate();
   }
   return val;
 }
 
 export function unserializeDateProps(
-  fullSchema: JSONSchema,
+  schema: JsonSchemaProperties,
   obj: ObjectOf<any>,
 ): ObjectOf<any> {
-  if (!fullSchema.properties) {
-    throw new Error('unserializeDateProps: invalid schema');
-  }
-
-  for (const [k, schema] of Object.entries(fullSchema.properties)) {
-    if (typeof schema !== 'boolean') {
-      obj[k] = unserializeDateProp(schema, obj[k]);
-    }
+  const dateProps = getDateProps(schema);
+  for (const key of dateProps) {
+    const val = obj[key] as Date | Dayjs;
+    obj[key] = dayjs(val).toDate();
   }
   return obj;
-}
-
-export function getDateProps(fullSchema: ObjectOf<JSONSchema>) {
-  return Object.entries(fullSchema)
-    .filter(entry => entry[1] && isPropDate(entry[1]))
-    .map(entry => entry[0]);
 }

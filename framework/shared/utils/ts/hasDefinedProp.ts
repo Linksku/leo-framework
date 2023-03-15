@@ -1,28 +1,15 @@
-function hasDefinedProp<
+export default function hasDefinedProp<
   Obj extends Partial<Record<PropertyKey, any>>,
   Prop extends PropertyKey,
-  UnionKeys extends AllKeys<Obj>,
+  AllObjs extends UnionToIntersection<Obj>,
 >(
   obj: Obj,
-  prop: Prop & (IsNarrowKey<Prop> extends true ? any : never),
-): obj is Obj & (Obj extends any
-  ? {
-    [K in Prop]: K extends keyof Obj ? Exclude<Obj[K], undefined>
-      : K extends UnionKeys ? never
-      : unknown
-  }
-  : never);
-
-function hasDefinedProp(
-  obj: Partial<Record<PropertyKey, any>>,
-  prop: PropertyKey,
-): boolean;
-
-function hasDefinedProp(
-  obj: Partial<Record<PropertyKey, any>>,
-  prop: PropertyKey,
-) {
+  prop: Prop,
+): obj is Obj & (IsNarrowKey<Prop> extends true
+  ? Record<
+    Prop,
+    Prop extends keyof AllObjs ? Exclude<AllObjs[Prop], undefined> : unknown
+  >
+  : any) {
   return obj[prop] !== undefined;
 }
-
-export default hasDefinedProp;

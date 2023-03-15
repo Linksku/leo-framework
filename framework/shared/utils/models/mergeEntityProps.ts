@@ -60,6 +60,7 @@ export function mergeEntityIncludedRelations(
   if (!newRelations) {
     return oldRelations ?? undefined;
   }
+
   return [...new Set([
     ...oldRelations,
     ...newRelations,

@@ -17,13 +17,13 @@ declare global {
     paramsSchema: {
       type: 'object',
       required?: string[],
-      properties: Record<string, JSONSchema>,
+      properties: Record<string, JsonSchema>,
       additionalProperties: false,
     },
     dataSchema?: {
       type: 'object',
       required?: string[],
-      properties: Record<string, JSONSchema>,
+      properties: Record<string, JsonSchema>,
       additionalProperties: false,
     },
     fileFields?: { name: (keyof ApiNameToParams[Name]) & string, maxCount: number }[],

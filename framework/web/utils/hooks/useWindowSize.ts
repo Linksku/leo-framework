@@ -1,4 +1,5 @@
-import throttle from 'utils/throttle';
+import { useThrottle } from 'utils/throttle';
+import useWindowEvent from 'utils/hooks/useWindowEvent';
 
 // todo: low/easy make useWindowSize share state/effect across components
 export default function useWindowSize() {
@@ -6,30 +7,28 @@ export default function useWindowSize() {
     width: window.innerWidth,
     height: window.innerHeight,
   });
+  const rafRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    let raf: number | null = null;
-    const handleResize = throttle(
-      () => {
-        raf = requestAnimationFrame(() => {
-          setState({
-            width: window.innerWidth,
-            height: window.innerHeight,
-          });
+  const throttledCb = useThrottle(
+    () => {
+      rafRef.current = requestAnimationFrame(() => {
+        setState({
+          width: window.innerWidth,
+          height: window.innerHeight,
         });
-      },
-      { timeout: 100 },
-    );
+      });
+    },
+    useConst({
+      timeout: 100,
+    }),
+  );
+  useWindowEvent('resize', throttledCb);
 
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      if (raf) {
-        cancelAnimationFrame(raf);
-      }
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [setState]);
+  useEffect(() => () => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
+  }, []);
 
   return state;
 }

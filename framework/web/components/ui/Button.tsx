@@ -44,6 +44,7 @@ function Button(
     active = false,
     small = false,
     children,
+    style,
     ...props
   }: Props,
   ref?: React.ForwardedRef<HTMLElement>,
@@ -62,7 +63,7 @@ function Button(
       <>
         {LeftSvg && (
           <LeftSvg
-            className={cn(styles.leftSvg, {
+            className={cx(styles.leftSvg, {
               [styles.leftSvgWithLabel]: label,
             }, leftSvgClassName)}
             style={{
@@ -79,7 +80,7 @@ function Button(
           : label}
         {RightSvg && (
           <RightSvg
-            className={cn(styles.rightSvg, {
+            className={cx(styles.rightSvg, {
               [styles.rightSvgWithLabel]: label,
             }, rightSvgClassName)}
             style={{
@@ -96,7 +97,7 @@ function Button(
       <Component
         // @ts-ignore ref type
         ref={ref}
-        className={cn(styles.btn, className, {
+        className={cx(styles.btn, className, {
           [styles.outline]: outline,
           [styles.borderless]: borderless,
           [styles.fullWidth]: fullWidth,
@@ -107,10 +108,22 @@ function Button(
         style={{
           color,
           borderColor: outline ? color : undefined,
+          ...style,
         }}
         role="button"
         tabIndex={0}
-        onClick={!disabled && onClick ? onClick : undefined}
+        onClick={
+          onClick
+            ? (event: React.MouseEvent) => {
+              if (!disabled && onClick) {
+                onClick(event);
+              }
+
+              event.stopPropagation();
+              event.preventDefault();
+            }
+            : undefined
+        }
         {...props}
       >
         {inner}
@@ -123,8 +136,9 @@ function Button(
       // @ts-ignore ref type
       ref={ref}
       href={href}
-      className={cn(styles.btn, className, {
+      className={cx(styles.btn, className, {
         [styles.outline]: outline,
+        [styles.borderless]: borderless,
         [styles.fullWidth]: fullWidth,
         [styles.active]: active,
         [styles.disabled]: disabled,
@@ -133,6 +147,7 @@ function Button(
       style={{
         color,
         borderColor: outline ? color : undefined,
+        ...style,
       }}
       onClick={!disabled && onClick ? onClick : undefined}
       {...props}

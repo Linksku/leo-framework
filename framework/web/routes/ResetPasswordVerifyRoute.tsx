@@ -1,10 +1,13 @@
-import StackWrapInner from 'components/frame/StackWrapInner';
+import StackWrapInner from 'components/frame/stack/StackWrapInner';
 import HookFormErrors from 'components/HookFormErrors';
 
 import styles from './ResetPasswordVerifyRouteStyles.scss';
 
-function ResetPasswordVerifyRoute() {
-  const { token, userId } = useRouteQuery();
+export default React.memo(function ResetPasswordVerifyRoute() {
+  const { token: _token, userId: _userId } = useRouteQuery();
+  const token = typeof _token === 'string' ? _token : undefined;
+  const userId = TS.parseIntOrNull(_userId) ?? 0;
+
   const { register, handleSubmit, control } = useForm({
     reValidateMode: 'onBlur',
     defaultValues: {
@@ -16,13 +19,14 @@ function ResetPasswordVerifyRoute() {
 
   const { fetching, fetchApi: verifyResetPassword, error: apiError } = useDeferredApi(
     'verifyResetPassword',
-    {
-      userId: TS.parseIntOrNull(userId) ?? 0,
-      token: typeof token === 'string' ? token : undefined,
-    },
+    useMemo(() => ({
+      userId,
+      token,
+    }), [userId, token]),
     {
       type: 'load',
       method: 'post',
+      returnState: true,
       successMsg: 'Reset password successfully',
       onFetch(data) {
         setAuth({ authToken: data.authToken, userId: data.currentUserId, redirectPath: '/' });
@@ -51,6 +55,7 @@ function ResetPasswordVerifyRoute() {
             }}
             disabled={fetching}
             required
+            placeholder="••••••••"
           />
 
           <Button
@@ -65,6 +70,4 @@ function ResetPasswordVerifyRoute() {
       </div>
     </StackWrapInner>
   );
-}
-
-export default React.memo(ResetPasswordVerifyRoute);
+});

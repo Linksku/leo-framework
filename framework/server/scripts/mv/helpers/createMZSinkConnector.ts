@@ -4,22 +4,28 @@ import ucFirst from 'utils/ucFirst';
 import fetchJson from 'utils/fetchJson';
 import generateUuid from 'utils/generateUuid';
 import { MZ_SINK_CONNECTOR_PREFIX, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
+import {
+  SCHEMA_REGISTRY_PORT,
+  INTERNAL_DOCKER_HOST,
+  PG_RR_PORT,
+  KAFKA_CONNECT_HOST,
+  KAFKA_CONNECT_PORT,
+} from 'consts/infra';
 
 const BASE_KAFKA_CONNECT_CONFIG = {
   'connector.class': 'io.confluent.connect.jdbc.JdbcSinkConnector',
   'dialect.name': 'PostgreSqlDatabaseDialect',
   'key.converter': 'io.confluent.connect.avro.AvroConverter',
-  'key.converter.schema.registry.url': `http://schema-registry:${process.env.SCHEMA_REGISTRY_PORT}`,
+  'key.converter.schema.registry.url': `http://schema-registry:${SCHEMA_REGISTRY_PORT}`,
   'value.converter': 'io.confluent.connect.avro.AvroConverter',
-  'value.converter.schema.registry.url': `http://schema-registry:${process.env.SCHEMA_REGISTRY_PORT}`,
+  'value.converter.schema.registry.url': `http://schema-registry:${SCHEMA_REGISTRY_PORT}`,
   'insert.mode': 'upsert',
   'delete.enabled': 'true',
   'auto.create': 'true',
   'auto.evolve': 'false',
   'errors.retry.timeout': -1,
-  // 'max.retries': 2,
-  // 'retry.backoff.ms': 5000,
-  'connection.url': `jdbc:postgresql://${process.env.INTERNAL_DOCKER_HOST}:${process.env.PG_RR_PORT}/${process.env.PG_RR_DB}`,
+  'max.retries': 100, // 5min
+  'connection.url': `jdbc:postgresql://${INTERNAL_DOCKER_HOST}:${PG_RR_PORT}/${process.env.PG_RR_DB}`,
   'connection.user': process.env.PG_RR_USER,
   'connection.password': process.env.PG_RR_PASS,
   'pk.mode': 'record_key',
@@ -36,16 +42,19 @@ export default async function createMZSinkConnector({
   primaryKey: string | string[],
   timestampProps?: string[],
 }) {
-  const transforms = timestampProps.map(prop => `TimestampConverter${ucFirst(prop)}`).join(',');
+  const transforms = [
+    ...timestampProps.map(prop => `TimestampConverter${ucFirst(prop)}`),
+    'ReplaceField',
+  ];
   const res = await fetchJson(
-    `http://${process.env.KAFKA_CONNECT_HOST}:${process.env.KAFKA_CONNECT_PORT}/connectors/${MZ_SINK_CONNECTOR_PREFIX}${name}_${generateUuid('hex')}/config`,
+    `http://${KAFKA_CONNECT_HOST}:${KAFKA_CONNECT_PORT}/connectors/${MZ_SINK_CONNECTOR_PREFIX}${name}_${generateUuid('hex')}/config`,
     'PUT',
     {
       ...BASE_KAFKA_CONNECT_CONFIG,
-      'topics.regex': `^${MZ_SINK_TOPIC_PREFIX}${name}-.+`,
+      'topics.regex': `^${MZ_SINK_TOPIC_PREFIX}${name}$`,
       'table.name.format': replicaTable,
       'pk.fields': Array.isArray(primaryKey) ? primaryKey.join(',') : primaryKey,
-      transforms,
+      transforms: transforms.join(','),
       ...merge({}, ...timestampProps.map(prop => {
         const transformName = `TimestampConverter${ucFirst(prop)}`;
         return {
@@ -56,9 +65,14 @@ export default async function createMZSinkConnector({
           [`transforms.${transformName}.field`]: prop,
         };
       })),
+      'transforms.ReplaceField.type': 'org.apache.kafka.connect.transforms.ReplaceField$Value',
+      'transforms.ReplaceField.blacklist': 'transaction',
     },
   );
   if (res.status >= 400) {
-    throw new ErrorWithCtx(`createMZSinkConnector: failed to create connector (${res.status})`, JSON.stringify(res.data).slice(0, 100));
+    throw getErr(
+      `createMZSinkConnector: failed to create connector (${res.status})`,
+      { data: res.data },
+    );
   }
 }

@@ -1,6 +1,4 @@
-import omit from 'lodash/omit';
-
-import { HOME_URL } from 'settings';
+import { API_TIMEOUT, API_POST_TIMEOUT } from 'settings';
 import rand from 'utils/rand';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 import validateApiParams from './validateApiParams';
@@ -8,7 +6,7 @@ import formatApiHandlerParams from './formatApiHandlerParams';
 import validateApiRet from './validateApiRet';
 import includeRelatedEntities from './includeRelatedEntities';
 import formatApiSuccessResponse from './formatApiSuccessResponse';
-import formatApiErrorResponse from './formatApiErrorResponse';
+import formatAndLogApiErrorResponse from './formatAndLogApiErrorResponse';
 
 function getFullParamsFromReq<Name extends ApiName>(
   api: ApiDefinition<Name>,
@@ -18,29 +16,30 @@ function getFullParamsFromReq<Name extends ApiName>(
     ? req.query
     : req.body;
 
-  const ver = TS.parseIntOrNull(paramsObj.ver);
-  // todo: low/mid restart webpack watch after creating git commit
-  if (process.env.PRODUCTION && ver && ver < Number.parseInt(process.env.JS_VERSION, 10)) {
+  const ver = TS.parseIntOrNull(paramsObj.ver) ?? 0;
+  if (process.env.PRODUCTION && ver < Number.parseInt(process.env.JS_VERSION, 10)) {
     throw new UserFacingError('Client is outdated.', 469);
   }
 
   let fullParams: ApiParams<Name>;
-  try {
-    fullParams = JSON.parse(paramsObj?.params);
-  } catch {
-    throw new UserFacingError('Unknown error when handling request.', 400);
+  if (paramsObj?.params) {
+    try {
+      fullParams = JSON.parse(paramsObj?.params);
+    } catch {
+      throw new UserFacingError('Unknown error when handling request.', 400);
+    }
+  } else {
+    fullParams = {} as ApiParams<Name>;
   }
+
   const { files } = req;
   if (api.config.fileFields && files && !Array.isArray(files)) {
     for (const { name, maxCount } of api.config.fileFields) {
       if (TS.hasProp(files, name)) {
-        if (maxCount === 1) {
-          // @ts-ignore wontfix key error
-          fullParams[name] = files[name][0];
-        } else {
-          // @ts-ignore wontfix key error
-          fullParams[name] = files[name];
-        }
+        // @ts-ignore wontfix key error
+        fullParams[name] = maxCount === 1
+          ? files[name][0]
+          : files[name];
       }
     }
   }
@@ -59,8 +58,8 @@ export default function apiWrap<Name extends ApiName>(
     try {
       const fullParams = getFullParamsFromReq(api, req);
 
-      const { relations } = fullParams;
-      const params = omit(fullParams, 'relations') as ApiNameToParams[Name];
+      const { relations, ..._params } = fullParams;
+      const params = _params as ApiNameToParams[Name];
       validateApiParams({
         api,
         params,
@@ -78,6 +77,11 @@ export default function apiWrap<Name extends ApiName>(
         ret = await ret;
       }
 
+      if (performance.now() - startTime
+        > (req.method === 'GET' ? API_TIMEOUT : API_POST_TIMEOUT)) {
+        throw new UserFacingError('Request timed out', 504);
+      }
+
       validateApiRet({ api, ret });
       if (relations) {
         includeRelatedEntities(ret, relations);
@@ -88,43 +92,27 @@ export default function apiWrap<Name extends ApiName>(
       res = res
         .set(
           'Cache-Control',
-          process.env.PRODUCTION ? 'public,max-age=60' : 'public,max-age=0',
+          'public,max-age=0',
         );
     } catch (err) {
-      if (err instanceof UserFacingError) {
-        const method = err.status < 500 ? 'warn' : 'error';
-        ErrorLogger[method](
-          ErrorLogger.castError(err),
-          `apiWrap(${api.config.name})${err.debugCtx ? `: ${err.debugCtx}` : ''}`,
-        );
-      } else if (err instanceof ErrorWithCtx) {
-        ErrorLogger.error(
-          ErrorLogger.castError(err),
-          `apiWrap(${api.config.name})${err.debugCtx ? `: ${err.debugCtx}` : ''}`,
-        );
-      } else {
-        ErrorLogger.error(ErrorLogger.castError(err), `apiWrap(${api.config.name})`);
-      }
-
-      result = formatApiErrorResponse(err, api.config.name);
-      ({ status } = result);
-    }
-
-    if (performance.now() - startTime > 100) {
-      printDebug(
-        `Handler took ${Math.round(performance.now() - startTime)}ms`,
-        performance.now() - startTime > 500 ? 'error' : 'warn',
-        `${api.config.name}`,
-      );
+      result = formatAndLogApiErrorResponse(err, 'apiWrap', api.config.name);
+      status = result.status;
     }
 
     if (!process.env.PRODUCTION) {
+      if (performance.now() - startTime > 100) {
+        const rc = getRC();
+        printDebug(
+          `Handler took ${Math.round(performance.now() - startTime)}ms (${rc?.numDbQueries ?? 0} DB requests)`,
+          performance.now() - startTime > 500 ? 'error' : 'warn',
+          `${api.config.name}`,
+        );
+      }
+
       await pause(rand(50, 200));
     }
-
     res.status(status)
       .set('Content-Type', 'application/json; charset=utf-8')
-      .set('Access-Control-Allow-Origin', HOME_URL)
       .send(JSON.stringify(
         result,
         null,

@@ -1,28 +1,3 @@
-declare namespace NodeJS {
-  export interface ProcessEnv {
-    NODE_ENV: 'production' | 'development';
-    PRODUCTION: boolean;
-    SERVER: 'production' | 'development';
-    JS_VERSION: string,
-  }
-}
-
-declare module '*.txt' {
-  const content: string;
-  export default content;
-}
-
-declare module '*.json' {
-  const content: unknown;
-  export default content;
-}
-
-interface ObjectConstructor {
-  keys(o: any[]): never;
-  keys<T>(o: T & (T extends any[] ? never : object)): string[];
-  create(o: null): ObjectOf<any>;
-}
-
 type ObjectOf<T> = Partial<Record<string, T>>;
 
 type ValueOf<T extends ObjectOf<any>> = T[(keyof T) & string];
@@ -64,15 +39,17 @@ type BuiltInObjects =
   | Error
   | RegExp
   | ArrayBuffer
-  | HTMLElement
   | EventTarget;
 
 type JsonPrimitive = string | number | boolean | null;
 
 // Not perfect because TS can't check object prototype.
-type JsonObj = ObjectOf<Json>;
+interface JsonObj {
+  [k: string]: Json;
+}
 
-type JsonArr = Json[];
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface JsonArr extends Array<Json> {}
 
 type Json = JsonPrimitive | JsonObj | JsonArr;
 
@@ -127,3 +104,5 @@ type IsNarrowKey<K extends PropertyKey> =
   : true;
 
 type Merge<First, Second> = Omit<First, Extract<keyof First, keyof Second>> & Second;
+
+type Exact<A, B> = A & Record<Exclude<keyof B, keyof A>, never>;

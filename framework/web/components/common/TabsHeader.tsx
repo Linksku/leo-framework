@@ -18,7 +18,7 @@ export default function TabsHeader({
       {tabs.map(tab => (
         <div
           key={tab.key}
-          className={cn(styles.tab, {
+          className={cx(styles.tab, {
             [styles.tabActive]: tab.key === activeTab,
           })}
           onClick={tab.onClick}

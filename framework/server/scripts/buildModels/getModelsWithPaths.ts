@@ -1,6 +1,7 @@
 import path from 'path';
 
 import readdirRecursive from 'utils/readdirRecursive';
+import BaseModel from 'services/model/Model';
 
 export type ModelsArr = {
   path: string;
@@ -8,8 +9,6 @@ export type ModelsArr = {
 }[];
 
 function filterModels(models: ModelsArr) {
-  // eslint-disable-next-line global-require
-  const BaseModel = require('services/model/Model').default;
   const seen: ObjectOf<string> = Object.create(null);
   return models.filter(({ Model, path: filepath }) => {
     if (!Model) {
@@ -57,13 +56,13 @@ export default async function getAllModels(): Promise<{
       .map(p => ({
         path: p,
         // "server/models" needed for Webpack dynamic import
-        // eslint-disable-next-line import/no-dynamic-require, global-require
+        // eslint-disable-next-line import/no-dynamic-require, unicorn/prefer-module
         Model: require(`../../../../app/server/models/${p}`).default,
       }))),
     frameworkModels: filterModels(frameworkModelPaths
       .map(p => ({
         path: p,
-        // eslint-disable-next-line import/no-dynamic-require, global-require
+        // eslint-disable-next-line import/no-dynamic-require, unicorn/prefer-module
         Model: require(`../../../../framework/server/models/${p}`).default,
       }))),
   };

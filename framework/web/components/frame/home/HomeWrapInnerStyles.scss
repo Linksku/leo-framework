@@ -1,0 +1,21 @@
+.container {
+  padding-top: $headerHeight;
+  padding-bottom: $footerHeight;
+  height: var(--vh100, 100vh);
+  min-height: $bodyMinHeight;
+  display: flex;
+  flex-direction: column;
+}
+
+.swipeable {
+  touch-action: pan-y;
+  // Note: scroll instead of auto to prevent width from changing
+  overflow-y: scroll;
+  flex-grow: 1;
+}
+
+.inner {
+  @extend %maxWidthContainer;
+
+  transform: translateZ(0);
+}

@@ -1,16 +1,44 @@
-import { FetchError } from 'node-fetch';
-
 import fetchJson from 'utils/fetchJson';
+import { KAFKA_CONNECT_HOST, KAFKA_CONNECT_PORT } from 'consts/infra';
 
-export default async function fetchKafkaConnectors(prefix?: string) {
+export type ConnectorStatus = {
+  name: string,
+  status: {
+    connector: { state: string },
+    tasks: { state: string, trace: string }[],
+  },
+};
+
+export type ConnectorInfo = {
+  name: string,
+  info: {
+    config: ObjectOf<string>,
+    tasks: { task: number }[],
+  },
+};
+
+function fetchKafkaConnectors(prefix: string, expand?: never): Promise<string[]>;
+
+function fetchKafkaConnectors(prefix: string, expand: 'status'): Promise<ConnectorStatus[]>;
+
+function fetchKafkaConnectors(prefix: string, expand: 'info'): Promise<ConnectorInfo[]>;
+
+async function fetchKafkaConnectors(
+  prefix: string,
+  expand?: 'status' | 'info',
+) {
   let response: {
     data?: unknown;
     status: number;
   } | undefined;
   try {
-    response = await fetchJson(`http://${process.env.KAFKA_CONNECT_HOST}:${process.env.KAFKA_CONNECT_PORT}/connectors`);
+    response = await fetchJson(`http://${KAFKA_CONNECT_HOST}:${KAFKA_CONNECT_PORT}/connectors${expand ? `?expand=${expand}` : ''}`);
   } catch (err) {
-    if (!(err instanceof FetchError)) {
+    if (err instanceof Error && err.message.includes('fetch failed')) {
+      // pass
+    } else if (err instanceof Error) {
+      throw getErr(err, { ctx: `fetchKafkaConnectors(${prefix})` });
+    } else {
       throw err;
     }
   }
@@ -18,13 +46,37 @@ export default async function fetchKafkaConnectors(prefix?: string) {
     throw new Error(`fetchKafkaConnectors: status ${response.status}`);
   }
 
-  const connectors = TS.assertType<{ data: string[] }>(
-    val => val && Array.isArray(val.data) && val.data.every((v: any) => typeof v === 'string'),
-    response,
-    new Error(`fetchKafkaConnectors: invalid response from GET /connectors: ${response?.data}`),
-  );
+  let connectors = response?.data;
+  if (!expand && Array.isArray(connectors) && connectors.every((v: unknown) => typeof v === 'string')) {
+    return connectors.filter(c => c.startsWith(prefix)) as string[];
+  }
 
-  return prefix
-    ? connectors.data.filter(name => name.startsWith(prefix))
-    : connectors.data;
+  if (connectors && typeof connectors === 'object') {
+    connectors = Object.entries(connectors)
+      .filter(pair => pair[0].startsWith(prefix))
+      .map(pair => ({
+        name: pair[0],
+        ...pair[1],
+      }));
+  }
+  if (expand === 'status' && Array.isArray(connectors)
+    && connectors.every((v: unknown) => v && typeof v === 'object'
+      && TS.hasProp(v, 'status') && v.status && typeof v.status === 'object'
+      && TS.hasProp(v.status, 'connector')
+      && TS.hasProp(v.status, 'tasks'))) {
+    return connectors as ConnectorStatus[];
+  }
+  if (expand === 'info' && Array.isArray(connectors)
+    && connectors.every((v: unknown) => v && typeof v === 'object'
+      && TS.hasProp(v, 'info') && v.info && typeof v.info === 'object'
+      && TS.hasProp(v.info, 'config')
+      && TS.hasProp(v.info, 'tasks'))) {
+    return connectors as ConnectorInfo[];
+  }
+  throw getErr(
+    'fetchKafkaConnectors: invalid response from GET /connectors',
+    { connectors },
+  );
 }
+
+export default fetchKafkaConnectors;

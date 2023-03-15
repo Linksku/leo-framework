@@ -1,9 +1,10 @@
+// todo: low/mid combine .env and settings to overwriteable configs
 if (!process.env.APP_NAME || !process.env.PORT || !process.env.DOMAIN_NAME) {
   throw new Error('Env vars not set.');
 }
 
 // Don't export these because Webpack can't optimize.
-const PROD_BUILD = process.env.PRODUCTION;
+// const PROD_BUILD = process.env.PRODUCTION;
 const PROD_SERVER = process.env.SERVER === 'production';
 
 // eslint-disable-next-line prefer-destructuring
@@ -20,8 +21,9 @@ export const HOME_URL = PORT === 80
   ? `${PROTOCOL}${DOMAIN_NAME}`
   : `${PROTOCOL}${DOMAIN_NAME}:${PORT}`;
 export const ASSETS_URL = PROD_SERVER ? `${PROTOCOL}assets.${DOMAIN_NAME}` : '';
-export const API_URL = PROD_SERVER ? `${PROTOCOL}api.${DOMAIN_NAME}` : '';
-export const HTTP_TIMEOUT = PROD_BUILD ? 5000 : 15 * 1000;
-export const MAX_HTTP_TIMEOUT = 30 * 1000;
+export const API_URL = '';
+export const API_TIMEOUT = 10 * 1000;
+export const API_POST_TIMEOUT = 20 * 1000;
+export const DEFAULT_COOKIES_TTL = 90 * 24 * 60 * 60 * 1000;
 export const NOREPLY_EMAIL = `noreply@${process.env.DOMAIN_NAME}`;
 export const SUPPORT_EMAIL = `support@${process.env.DOMAIN_NAME}`;

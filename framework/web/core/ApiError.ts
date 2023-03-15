@@ -1,24 +1,12 @@
-export default class ApiError<Name extends ApiName> extends Error {
-  apiName: string;
+export default class ApiError extends Error {
   status: number;
-  apiStack?: string[];
-  debugCtx?: any;
 
   constructor(
-    apiName: Name,
-    status?: number,
-    errorData?: ApiErrorData,
+    msg: string,
+    status: number,
   ) {
-    const msg = errorData?.msg
-      ?? (status === 503 ? 'Server temporarily unavailable' : 'Unknown error occurred while fetching data');
-
     super(msg);
 
-    this.apiName = apiName;
     this.status = status ?? 503;
-    if (errorData) {
-      this.apiStack = errorData.stack;
-      this.debugCtx = errorData.debugCtx;
-    }
   }
 }

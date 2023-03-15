@@ -2,10 +2,15 @@ import SES from 'aws-sdk/clients/ses';
 
 import { NOREPLY_EMAIL } from 'settings';
 
+if (!process.env.AWS_ACCESS_ID) {
+  throw new Error('sendEmail: AWS_ACCESS_ID env var not set.');
+}
+
 // SES is the cheapest, may need a separate service for promotional emails for more features.
 const client = new SES({
   accessKeyId: process.env.AWS_ACCESS_ID,
   secretAccessKey: process.env.AWS_SECRET_KEY,
+  region: process.env.AWS_REGION,
 });
 
 export default async function sendEmail(

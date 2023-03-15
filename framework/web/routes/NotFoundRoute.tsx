@@ -1,7 +1,7 @@
-import StackWrapInner from 'components/frame/StackWrapInner';
+import StackWrapInner from 'components/frame/stack/StackWrapInner';
 import ErrorPage from 'components/ErrorPage';
 
-function NotFoundRoute() {
+export default React.memo(function NotFoundRoute() {
   return (
     <StackWrapInner title="Not Found">
       <ErrorPage
@@ -11,6 +11,4 @@ function NotFoundRoute() {
       />
     </StackWrapInner>
   );
-}
-
-export default React.memo(NotFoundRoute);
+});

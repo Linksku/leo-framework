@@ -6,24 +6,10 @@ import allModels, { ModelsArr, frameworkModels } from 'services/model/allModels'
 import Entity from 'services/model/Entity';
 
 function getOutput(models: ModelsArr) {
-  return `${
-  models
-    .filter(m => m.Model.getReplicaTable() === null)
-    .map(m => `type ${m.Model.name} = ${m.Model.name}Class['instanceType'];`)
-    .join('\n')
-}
-
-declare global {
+  return `declare global {
   type EntityType =
     | '${models.filter(m => m.Model.prototype instanceof Entity).map(m => m.Model.type).join(`'
     | '`)}';
-
-${
-  models
-    .filter(m => m.Model.getReplicaTable() !== null)
-    .map(m => `  type ${m.Model.name} = ${m.Model.name}Class['instanceType'];`)
-    .join('\n')
-}
 
   // Use ModelTypeToInstance, ModelInstancesMap[ModelType] creates a union of all models
   type ModelInstancesMap = {

@@ -9,9 +9,11 @@ class BaseEntity extends BaseModel implements IBaseEntity {
 
   static override instanceType: Entity;
 
-  static override isMV = false;
+  // Note: the base table is still updateable,
+  //   but updates aren't sent to MZ to save memory
+  static useInsertOnlyPublication = false;
 
-  static withInsertOnlyPublication = false;
+  static skipColumnsForMZ: string[] = [];
 
   static override cacheable = true;
 
@@ -38,7 +40,6 @@ class BaseEntity extends BaseModel implements IBaseEntity {
   */
 
   static override virtualAttributes = [
-    'version',
     'extras',
     'relations',
   ];
@@ -57,14 +58,8 @@ class BaseEntity extends BaseModel implements IBaseEntity {
 
   id!: EntityId;
 
-  declare version: number;
-
   override getId() {
     return this.id;
-  }
-
-  isInitialVersion() {
-    return this.version === 0;
   }
 }
 

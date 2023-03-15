@@ -1,0 +1,57 @@
+.bg,
+.croppedPreview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.corner {
+  position: absolute;
+  height: 32px;
+  width: 32px;
+  touch-action: none;
+
+  &::after {
+    content: '';
+    height: 8px;
+    width: 8px;
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background-color: color.scale($primaryColor, $alpha: -30%);
+    box-shadow: 0 0 1px $primaryColor;
+  }
+}
+
+.topLeft {
+  transform: translate(-50%, -50%);
+}
+
+.topRight {
+  transform: translate(50%, -50%);
+}
+
+.botLeft {
+  transform: translate(-50%, 50%);
+}
+
+.botRight {
+  transform: translate(50%, 50%);
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgb(0 0 0 / 50%);
+}
+
+.cropped {
+  position: absolute;
+  overflow: hidden;
+}

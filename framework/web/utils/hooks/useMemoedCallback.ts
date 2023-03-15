@@ -9,9 +9,10 @@ export default function useMemoedCallback<
   cb: (...args: Args) => Ret,
   deps: MemoDependencyList,
 ): Memoed<(...args: Args) => Memoed<Ret>> {
-  interface MemoMap {
-    [k: string]: ObjectOf<Memoed<Ret> | MemoMap> | undefined;
+  interface _MemoMap {
+    [k: string]: Memoed<Ret> | Partial<_MemoMap>;
   }
+  type MemoMap = Partial<_MemoMap>;
 
   const state = useUpdatedState(
     () => ({
@@ -42,11 +43,11 @@ export default function useMemoedCallback<
 
     let curObj = state.memoed;
     for (const arg of args.slice(0, -1)) {
-      curObj = TS.objValOrSetDefault(curObj, arg, Object.create(null));
+      curObj = TS.objValOrSetDefault(curObj, arg, Object.create(null)) as MemoMap;
     }
     const lastKey = args[args.length - 1];
     if (!Object.prototype.hasOwnProperty.call(curObj, lastKey)) {
-      curObj[lastKey] = cb(...args);
+      curObj[lastKey] = markMemoed(cb(...args));
     }
     return curObj[lastKey] as Memoed<Ret>;
   };

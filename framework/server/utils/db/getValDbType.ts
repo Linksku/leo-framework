@@ -41,5 +41,5 @@ export default function getValDbType<T extends ModelClass>(
     return 'timestamp';
   }
 
-  throw new ErrorWithCtx(`getValDbType(${Model.name}, ${col}): unknown type`, `val = ${val}`);
+  throw getErr(`getValDbType(${Model.name}, ${col}): unknown type`, { val });
 }

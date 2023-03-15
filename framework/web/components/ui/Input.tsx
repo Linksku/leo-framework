@@ -28,7 +28,7 @@ function Input({
 }: React.PropsWithChildren<Props>, ref?: React.ForwardedRef<HTMLInputElement>) {
   if (!process.env.PRODUCTION && props.disabled && onBlur) {
     // https://github.com/facebook/react/issues/9142
-    ErrorLogger.warn(new Error('Input won\'t trigger onBlur when disabled.'));
+    ErrorLogger.warn(new Error('Input: React won\'t trigger onBlur when disabled'));
   }
 
   const WrapperComponent = (label || prefix || suffix)
@@ -39,29 +39,17 @@ function Input({
     : null;
   return (
     <WrapperComponent
-      className={cn(styles.inputGroup, className, {
+      className={cx(styles.inputGroup, className, {
         [styles.labelWrap]: label,
       })}
     >
-      {label
-        ? (
-          <span className={styles.label}>{label}</span>
-        )
-        : null}
-      {prefix
-        ? (
-          <span className={styles.prefix}>{prefix}</span>
-        )
-        : null}
-      {suffix
-        ? (
-          <span className={styles.suffix}>{suffix}</span>
-        )
-        : null}
+      {label && <span className={styles.label}>{label}</span>}
+      {prefix && <span className={styles.prefix}>{prefix}</span>}
+      {suffix && <span className={styles.suffix}>{suffix}</span>}
       <span className={styles.inputWrap}>
         <input
           {...registerProps}
-          className={cn(styles.input, {
+          className={cx(styles.input, {
             [styles.error]: error,
             [styles.hasPrefix]: prefix,
             [styles.hasSuffix]: suffix,

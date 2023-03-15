@@ -14,7 +14,14 @@ export default function includeRelatedEntities<Name extends ApiName>(
       continue;
     }
 
-    TS.objValOrSetDefault(ent, 'includedRelations', [])
-      .push(...relationNames);
+    const includedRelations = TS.objValOrSetDefault(ent, 'includedRelations', []);
+    const relationsSet = new Set<string>(relationNames);
+    for (const relation of relationsSet) {
+      const parts = relation.split('.');
+      if (parts.length >= 2 && relationsSet.has(parts[0])) {
+        relationsSet.delete(parts[0]);
+      }
+    }
+    includedRelations.push(...relationsSet);
   }
 }

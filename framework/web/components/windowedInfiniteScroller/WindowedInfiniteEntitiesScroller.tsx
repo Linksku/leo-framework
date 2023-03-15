@@ -1,119 +1,81 @@
-import type { PaginatedApiName, ShouldAddCreatedEntity } from 'utils/hooks/useApi/usePaginatedApi';
-import type { EntityEvents } from 'utils/hooks/entities/useHandleEntityEvents';
-import usePaginatedApi from 'utils/hooks/useApi/usePaginatedApi';
+import type { PaginatedEntitiesApiName, ShouldAddCreatedEntity } from 'utils/hooks/useApi/useEntitiesPaginationApi';
+import useEntitiesPaginationApi from 'utils/hooks/useApi/useEntitiesPaginationApi';
 
-import type { ItemRendererProps } from './WindowedInfiniteScrollerColumn';
-import WindowedInfiniteScroller from './WindowedInfiniteScroller';
-
-import styles from './WindowedInfiniteEntitiesScrollerStyles.scss';
+import type { ListItemRendererProps } from './WindowedInfiniteScrollerColumn';
+import WindowedInfiniteScrollerInner, { Props as InnerProps } from './WindowedInfiniteScrollerInner';
 
 type Props<
   Type extends EntityType,
-  Name extends PaginatedApiName,
+  Name extends PaginatedEntitiesApiName,
 > = {
   apiName: Name,
-  apiParams: ApiParams<Name>,
+  apiParams: Memoed<ApiParams<Name>>,
   apiKey?: string,
-  refetchApiOnEvents?: EntityEvents,
   entityType: Type,
-  initialId?: EntityId,
-  reverse?: boolean,
-  addToEnd?: boolean,
   throttleTimeout?: number,
-  shouldAddCreatedEntity?: ShouldAddCreatedEntity<Type>,
-  loadingComponent?: Memoed<ReactNode>,
-  notFoundMsg?: Memoed<ReactNode>,
-  completedMsg?: Memoed<ReactNode>,
+  shouldAddCreatedEntity?: ShouldAddCreatedEntity<Type> | true,
   columns?: number,
-  columnMargin?: number,
-  className?: string,
-  columnClassName?: string,
-};
+} & Omit<
+  InnerProps,
+  'origItems' | 'addedItems' | 'deletedItems'
+    | 'cursor' | 'hasCompleted' | 'fetchingFirstTime' | 'fetchNext'
+    | keyof ListItemRendererProps
+>;
 
 function WindowedInfiniteEntitiesScroller<
   Type extends EntityType,
-  Name extends PaginatedApiName,
->(props: Props<Type, Name> & ItemRendererProps & { otherItemProps?: undefined }): ReactElement;
+  Name extends PaginatedEntitiesApiName,
+>(props: Props<Type, Name> & ListItemRendererProps & { otherItemProps?: undefined }): ReactElement;
 
 function WindowedInfiniteEntitiesScroller<
   Type extends EntityType,
-  Name extends PaginatedApiName,
+  Name extends PaginatedEntitiesApiName,
   OtherProps extends ObjectOf<any>,
 >(props: Props<Type, Name>
-  & ItemRendererProps<OtherProps>
+  & ListItemRendererProps<OtherProps>
   & { otherItemProps: Memoed<OtherProps> }): ReactElement;
 
 function WindowedInfiniteEntitiesScroller<
   Type extends EntityType,
-  Name extends PaginatedApiName,
+  Name extends PaginatedEntitiesApiName,
 >({
   apiName,
   apiParams,
   apiKey,
-  refetchApiOnEvents,
   entityType,
-  initialId,
-  otherItemProps,
-  ItemRenderer,
-  reverse = false,
-  addToEnd = false,
   throttleTimeout = 1000,
   shouldAddCreatedEntity,
-  loadingComponent,
-  notFoundMsg = 'Nothing found',
-  completedMsg = null,
   columns = 1,
-  columnMargin = 0,
-  className,
-  columnClassName,
-}: Props<Type, Name> & ItemRendererProps) {
+  ...props
+}: Props<Type, Name> & ListItemRendererProps) {
   const {
     fetchingFirstTime,
-    entityIds,
-    fetchedEntityIds,
+    items,
     addedEntityIds,
     deletedEntityIds,
     fetchNext,
     hasCompleted,
-  } = usePaginatedApi(entityType, apiName, apiParams, {
+    cursor,
+  } = useEntitiesPaginationApi(entityType, apiName, apiParams, {
     apiKey,
     throttleTimeout,
     shouldAddCreatedEntity,
-    refetchApiOnEvents,
-    addToEnd,
   });
 
-  if (fetchingFirstTime && !entityIds.length && loadingComponent) {
-    return loadingComponent;
-  }
-  if (fetchingFirstTime || entityIds.length) {
-    return (
-      <WindowedInfiniteScroller
-        key={columns}
-        origItemIds={fetchedEntityIds}
-        addedItemIds={addedEntityIds}
-        deletedItemIds={deletedEntityIds}
-        initialId={initialId}
-        ItemRenderer={ItemRenderer}
-        otherItemProps={otherItemProps}
-        onReachedEnd={fetchNext}
-        reverse={reverse}
-        addToEnd={addToEnd}
-        hasCompleted={hasCompleted}
-        completedMsg={completedMsg}
-        columns={columns}
-        columnMargin={columnMargin}
-        className={className}
-        columnClassName={columnClassName}
-      />
-    );
-  }
-  if (typeof notFoundMsg === 'string') {
-    return (
-      <div className={styles.msg}>{notFoundMsg}</div>
-    );
-  }
-  return <>{notFoundMsg}</>;
+  return (
+    <WindowedInfiniteScrollerInner
+      key={columns}
+      origItems={items}
+      addedItems={addedEntityIds}
+      deletedItems={deletedEntityIds}
+      fetchNext={fetchNext}
+      hasCompleted={hasCompleted}
+      cursor={cursor}
+      fetchingFirstTime={fetchingFirstTime}
+      columns={columns}
+      {...props}
+    />
+  );
 }
 
 export default WindowedInfiniteEntitiesScroller;

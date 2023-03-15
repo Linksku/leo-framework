@@ -1,7 +1,8 @@
 import styleDeclarationToCss from 'utils/styleDeclarationToCss';
 import getFrameDuration from 'utils/getFrameDuration';
+import easings from 'utils/easings';
 
-const DEFAULT_DURATION = 200;
+export const DEFAULT_DURATION = 300;
 const MIN_TIMEOUT = 10;
 
 export type ValToStyle = Partial<{
@@ -10,19 +11,23 @@ export type ValToStyle = Partial<{
 
 export type Style = Partial<React.CSSProperties>;
 
-export type AnimationStyle = (
+export type AnimationStyle = Memoed<(
   animatedVal: AnimatedValue,
   valToStyle: ValToStyle,
-  keyframeVals?: number[],
-) => Style;
+  opts?: {
+    easing?: keyof typeof easings,
+    keyframes?: number[],
+  },
+) => Style>;
 
 export class AnimatedValue {
-  lastSetValTime = performance.now();
+  lastSetValTime = 0;
   lastDuration = 0;
   startVal: number;
   finalVal: number;
   debugName: string;
   listeners: Set<() => void>;
+  didRender = false;
 
   constructor(defaultVal: number, debugName?: string) {
     this.startVal = defaultVal;
@@ -31,13 +36,20 @@ export class AnimatedValue {
     this.listeners = new Set();
   }
 
-  getCurVal() {
+  getCurPercent() {
+    if (!this.lastSetValTime || !this.didRender) {
+      return 0;
+    }
     const elapsed = performance.now() - this.lastSetValTime;
     if (elapsed >= this.lastDuration) {
-      return this.finalVal;
+      return 1;
     }
+    return elapsed / this.lastDuration;
+  }
+
+  getCurVal() {
     return this.startVal
-      + ((this.finalVal - this.startVal) * (elapsed / this.lastDuration));
+      + ((this.finalVal - this.startVal) * this.getCurPercent());
   }
 
   setVal(finalVal: number, duration = DEFAULT_DURATION) {
@@ -49,29 +61,30 @@ export class AnimatedValue {
     }
 
     const curVal = this.getCurVal();
-    const isAnimating = curVal !== this.finalVal;
     this.startVal = curVal;
     this.finalVal = finalVal;
     this.lastSetValTime = performance.now();
     this.lastDuration = duration;
+    this.didRender = false;
 
-    if (isAnimating || finalVal !== curVal) {
-      for (const fn of this.listeners) {
-        fn();
-      }
+    for (const fn of this.listeners) {
+      fn();
     }
   }
 
+  // todo: low/mid animation easing
   getNextKeyframe(keyframeVals: number[], lastKeyframeVal: number) {
     const increasing = this.finalVal >= this.startVal;
     const curVal = increasing
       ? Math.min(lastKeyframeVal, this.getCurVal())
       : Math.max(lastKeyframeVal, this.getCurVal());
     let nextKeyframeVal = this.finalVal;
-    for (const val of keyframeVals) {
-      if ((increasing && val > curVal && val < nextKeyframeVal)
-        || (!increasing && val < curVal && val > nextKeyframeVal)) {
-        nextKeyframeVal = val;
+    if (this.isAnimating()) {
+      for (const val of keyframeVals) {
+        if ((increasing && val > curVal && val < nextKeyframeVal)
+          || (!increasing && val < curVal && val > nextKeyframeVal)) {
+          nextKeyframeVal = val;
+        }
       }
     }
 
@@ -90,18 +103,37 @@ export class AnimatedValue {
   }
 
   isAnimating() {
+    if (!this.lastSetValTime) {
+      return false;
+    }
+    if (!this.didRender) {
+      return true;
+    }
     const elapsed = performance.now() - this.lastSetValTime;
-    return elapsed >= this.lastDuration;
+    return elapsed < this.lastDuration;
   }
 }
 
-function getStyle(valToStyle: ValToStyle, val: number, duration: number) {
+function getStyle(
+  valToStyle: ValToStyle,
+  easing: keyof typeof easings | null,
+  val: number,
+  duration: number,
+  animatedVal: AnimatedValue,
+): Style {
   const keys = TS.objKeys(valToStyle);
-  const style = {} as Style;
+  const style = {} as ObjectOf<any>;
 
   for (const [k, v] of TS.objEntries(valToStyle, true)) {
+    const easedVal = animatedVal.finalVal !== animatedVal.startVal
+      ? animatedVal.startVal
+        + (easings[easing ?? 'easeOutCubic'].fn(
+          Math.abs(val - animatedVal.startVal)
+            / Math.abs(animatedVal.finalVal - animatedVal.startVal),
+        ) * (animatedVal.finalVal - animatedVal.startVal))
+      : val;
     // @ts-ignore union type that is too complex to represent
-    style[k] = v?.(val);
+    style[k] = v?.(easedVal);
   }
 
   if (style.transform) {
@@ -110,10 +142,15 @@ function getStyle(valToStyle: ValToStyle, val: number, duration: number) {
     keys.push('transform');
     style.transform = 'translateZ(0)';
   }
-  if (keys.length) {
+
+  if (keys.length && duration) {
     style.transitionProperty = keys.map(k => styleDeclarationToCss(k)).join(',');
     style.transitionDuration = `${Math.round(duration)}ms`;
-    style.transitionTimingFunction = 'ease-out';
+    style.transitionTimingFunction = easings[easing ?? 'easeOutCubic'].css;
+  } else {
+    style.transitionProperty = '';
+    style.transitionDuration = '';
+    style.transitionTimingFunction = '';
   }
 
   return style;
@@ -129,6 +166,7 @@ export function useAnimation<T extends HTMLElement>() {
     hasInit: false,
     animatedVal: null as AnimatedValue | null,
     valToStyle: null as ValToStyle | null,
+    easing: null as keyof typeof easings | null,
     keyframeVals: [] as number[],
     lastKeyframeVal: 0,
     hadFirstTransition: false,
@@ -146,7 +184,10 @@ export function useAnimation<T extends HTMLElement>() {
       ref.current.nextKeyframeRaf = null;
     }
 
-    if (!animationRef.current || !ref.current.valToStyle || !ref.current.animatedVal) {
+    if (!animationRef.current
+      || !ref.current.valToStyle
+      || !ref.current.animatedVal
+      || ref.current.animatedVal.getCurPercent() >= 1) {
       return;
     }
 
@@ -165,8 +206,10 @@ export function useAnimation<T extends HTMLElement>() {
 
     const style = getStyle(
       ref.current.valToStyle,
+      ref.current.easing,
       nextKeyframe.val,
       nextKeyframe.duration,
+      ref.current.animatedVal,
     );
     for (const [k, v] of TS.objEntries(style)) {
       animationRef.current.style.setProperty(
@@ -174,6 +217,7 @@ export function useAnimation<T extends HTMLElement>() {
         v.toString(),
       );
     }
+    ref.current.animatedVal.didRender = true;
 
     if (!nextKeyframe.isFinal) {
       ref.current.nextKeyframeTimer = nextKeyframe.duration < MIN_TIMEOUT
@@ -198,10 +242,10 @@ export function useAnimation<T extends HTMLElement>() {
     duration: 0,
     isFinal: true,
   };
-  const animationStyle: AnimationStyle = (
+  const animationStyle: AnimationStyle = useCallback((
     animatedVal,
     valToStyle,
-    keyframeVals = [],
+    opts,
   ) => {
     if (!ref.current.hasInit) {
       ref.current.hasInit = true;
@@ -209,23 +253,28 @@ export function useAnimation<T extends HTMLElement>() {
 
       ref.current.animatedVal = animatedVal;
       ref.current.valToStyle = valToStyle;
-      ref.current.keyframeVals = keyframeVals;
+      ref.current.easing = opts?.easing ?? null;
+      ref.current.keyframeVals = opts?.keyframes ?? [];
       ref.current.lastKeyframeVal = animatedVal.startVal;
 
-      nextKeyframe = ref.current.animatedVal.getNextKeyframe(
-        ref.current.keyframeVals,
-        ref.current.lastKeyframeVal,
-      );
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      nextKeyframe = ref.current.animatedVal
+        .getNextKeyframe(
+          ref.current.keyframeVals,
+          ref.current.lastKeyframeVal,
+        );
     } else if (!process.env.PRODUCTION && ref.current.animatedVal !== animatedVal) {
       throw new Error('animationStyle: animatedVal changed after init');
     }
 
     return getStyle(
       valToStyle,
+      ref.current.easing,
       nextKeyframe.val,
       nextKeyframe.duration,
-    ) as Partial<React.CSSProperties>;
-  };
+      animatedVal,
+    ) as Style;
+  }, []);
 
   useEffect(() => {
     ref.current.lastKeyframeVal = nextKeyframe.val;

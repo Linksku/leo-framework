@@ -101,12 +101,12 @@ export const [
       shownRef.current = !!alerts.length;
     }, [alerts.length]);
 
-    return useDeepMemoObj({
+    return useMemo(() => ({
       alerts,
       showAlert,
       showConfirm,
       hideFirstAlert,
-    });
+    }), [alerts, showAlert, showConfirm, hideFirstAlert]);
   },
   function AlertsStore(val) {
     return val;

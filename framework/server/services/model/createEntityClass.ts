@@ -7,7 +7,8 @@ import { processModelConfig } from './createModelClass';
 import buildClass from './buildClass';
 
 type EntityClassConfigStaticProps = {
-  withInsertOnlyPublication?: boolean,
+  useInsertOnlyPublication?: boolean,
+  skipColumnsForMZ?: string[],
   indexesNotInRR?: (string | string[])[],
 };
 
@@ -23,22 +24,24 @@ export type EntityClassConfig<
 export function processEntityClassConfig<Config extends EntityClassConfig<EntityType>>(
   config: Config,
 ): Pick<Config, keyof ModelConfig<any>> {
-  if (config.uniqueIndexes && !config.uniqueIndexes.includes('id')) {
-    throw new Error(`processEntityClassConfig(${config.type}): id required in uniqueIndexes.`);
+  if (config.uniqueIndexes && config.uniqueIndexes[0] !== 'id') {
+    throw new Error(`processEntityClassConfig(${config.type}): primary index isn't id.`);
   }
-  if (config.schema.version?.type !== 'integer') {
-    throw new Error(`processEntityClassConfig(${config.type}): missing schema for "version".`);
+  if (config.schema.id?.type !== 'integer') {
+    throw new Error(`processEntityClassConfig(${config.type}): missing schema for "id".`);
   }
 
   return {
     ...omit(config, [
       'indexesNotInRR',
-      'withInsertOnlyPublication',
+      'skipColumnsForMZ',
+      'useInsertOnlyPublication',
     ]),
     uniqueIndexes: config.uniqueIndexes ?? ['id'],
     staticProps: {
       indexesNotInRR: config.indexesNotInRR ?? [],
-      withInsertOnlyPublication: config.withInsertOnlyPublication,
+      skipColumnsForMZ: config.skipColumnsForMZ ?? [],
+      useInsertOnlyPublication: config.useInsertOnlyPublication,
       ...config.staticProps,
     },
   };

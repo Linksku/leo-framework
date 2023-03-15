@@ -1,3 +1,5 @@
+import getNonNullSchema from 'utils/models/getNonNullSchema';
+
 export type ModelRelationSpec = {
   name?: string,
   through?: {
@@ -5,7 +7,6 @@ export type ModelRelationSpec = {
     from: string,
     to: string,
   },
-  modify?: any,
 };
 
 export type ModelRelationsSpecs = ObjectOf<ObjectOf<ModelRelationSpec>>;
@@ -45,12 +46,22 @@ function getRelationType({
     to: string,
   },
 }) {
-  const isFromUnique = fromModel.getUniqueIndexes()
-    .some(idx => idx.length === 1 && idx[0] === fromCol);
-  const isToUnique = toModel.getUniqueIndexes()
-    .some(idx => idx.length === 1 && idx[0] === toCol);
+  const isFromUnique = fromModel.getUniqueColumnsSet().has(fromCol as ModelKey<ModelClass>);
+  const isFromArray = getNonNullSchema(
+    fromModel.getSchema()[fromCol as ModelKey<ModelClass>],
+  ).nonNullType === 'array';
+  const isToUnique = toModel.getUniqueColumnsSet().has(toCol as ModelKey<ModelClass>);
+  const isToArray = getNonNullSchema(
+    toModel.getSchema()[toCol as ModelKey<ModelClass>],
+  ).nonNullType === 'array';
+  if (isToArray) {
+    throw new Error(`getRelationType(${fromModel.name}): to column can't be array`);
+  }
 
   if (!through) {
+    if (isFromArray) {
+      return 'manyToMany';
+    }
     if (isFromUnique && isToUnique) {
       if (fromCol === 'id' && toCol === 'id') {
         throw new Error(`getRelationType(${fromModel.name}): unknown relation from "id" to "id".`);
@@ -74,8 +85,20 @@ function getRelationType({
 
   const isThroughFromUnique = through.model.getUniqueIndexes()
     .some(idx => idx.length === 1 && idx[0] === through.from);
+  const isThroughFromArray = getNonNullSchema(
+    through.model.getSchema()[through.from as ModelKey<ModelClass>],
+  ).nonNullType === 'array';
   const isThroughToUnique = through.model.getUniqueIndexes()
     .some(idx => idx.length === 1 && idx[0] === through.to);
+  const isThroughToArray = getNonNullSchema(
+    through.model.getSchema()[through.to as ModelKey<ModelClass>],
+  ).nonNullType === 'array';
+  if (isThroughFromArray) {
+    throw new Error(`getRelationType(${fromModel.name}): through from column can't be array`);
+  }
+  if (isThroughToArray) {
+    return 'manyToMany';
+  }
   if (isThroughFromUnique !== isThroughToUnique) {
     throw new Error(`getRelationType(${fromModel.name}): invalid through ${through.from} <=> ${through.to}`);
   }
@@ -116,7 +139,7 @@ export function getRelationsMap(
       if (!TS.hasProp(Model.getSchema(), fromCol)) {
         throw new Error(`getRelationsMap(${Model.name}): from ${Model.type}.${fromCol} doesn't exist.`);
       }
-      const toModel = getModelClass<ModelType>(toModelType);
+      const toModel = getModelClass(toModelType);
       if (!TS.hasProp(toModel.getSchema(), toCol)) {
         throw new Error(`getRelationsMap(${Model.name}): to ${toModel.type}.${toCol} doesn't exist.`);
       }
@@ -127,7 +150,7 @@ export function getRelationsMap(
       }
 
       if (config.through) {
-        const throughModel = getModelClass<ModelType>(config.through.model);
+        const throughModel = getModelClass(config.through.model);
         if (!TS.hasProp(throughModel.getSchema(), config.through.from)) {
           throw new Error(`getRelationsMap(${Model.name}): through.from "${throughModel.type}.${config.through.from}" doesn't exist.`);
         }
@@ -136,7 +159,7 @@ export function getRelationsMap(
         }
       }
 
-      const throughModel = config.through ? getModelClass<ModelType>(config.through.model) : null;
+      const throughModel = config.through ? getModelClass(config.through.model) : null;
       const relationType = getRelationType({
         fromModel: Model,
         fromCol,
@@ -157,7 +180,7 @@ export function getRelationsMap(
         relationType,
         through: config.through
           ? {
-            model: getModelClass<ModelType>(config.through.model),
+            model: getModelClass(config.through.model),
             from: config.through.from,
             to: config.through.to,
           } : undefined,

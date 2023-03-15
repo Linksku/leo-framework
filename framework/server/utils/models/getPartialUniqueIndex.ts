@@ -2,15 +2,22 @@ export default function getPartialUniqueIndex<T extends ModelClass>(
   Model: T,
   partial: ModelPartial<T>,
 ): ModelIndex<T> | null {
-  for (const index of Model.getUniqueIndexes()) {
-    for (let i = 0; i < index.length; i++) {
-      if (!TS.hasProp(partial, index[i])) {
-        break;
-      }
-      if (i === index.length - 1) {
-        return index;
+  const keys = Object.keys(partial);
+  if (keys.length === 1) {
+    const key = keys[0] as ModelKey<T>;
+    return Model.getUniqueColumnsSet().has(key)
+      ? [key]
+      : null;
+  }
+
+  const keysSet = new Set(keys);
+  outer: for (const index of Model.getUniqueIndexes()) {
+    for (const col of index) {
+      if (!keysSet.has(col)) {
+        continue outer;
       }
     }
+    return index;
   }
 
   return null;

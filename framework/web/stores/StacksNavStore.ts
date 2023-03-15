@@ -1,8 +1,11 @@
+import type { AnimatedValue } from 'utils/hooks/useAnimation';
 import { useHomeNavStore } from './HomeNavStore';
 
+// todo: mid/hard when going back twice by swiping, the bottom stack isn't shown
 export const [
   StacksNavProvider,
   useStacksNavStore,
+  useGoBackStack,
 ] = constate(
   function StacksNavStore() {
     let stackBot: HistoryState | null = null;
@@ -17,6 +20,7 @@ export const [
     } = useHistoryStore();
     const { isHome, wasHome } = useHomeNavStore();
     const pushPath = usePushPath();
+    const lastStackAnimatedVal = useRef<AnimatedValue | null>(null);
 
     if (didRefresh) {
       stackBot = curState;
@@ -43,27 +47,42 @@ export const [
       stackBot = curState;
     }
 
+    const hasPrevState = !!prevState;
     const goBackStack = useCallback(() => {
-      if (!prevState) {
+      if (!hasPrevState) {
         pushPath('/');
       } else if (!isHome) {
         // todo: low/mid prevent exiting app by going back
         window.history.back();
       }
-    }, [prevState, pushPath, isHome]);
+    }, [hasPrevState, pushPath, isHome]);
 
     const goForwardStack = useCallback(() => {
-      if (!isHome) {
+      if (!isHome && (direction === 'forward' || !wasHome)) {
         window.history.forward();
       }
-    }, [isHome]);
+    }, [isHome, direction, wasHome]);
 
-    return useDeepMemoObj({
+    return useMemo(() => ({
       stackBot,
       stackTop,
       stackActive: stackActive ?? stackBot,
       goBackStack,
       goForwardStack,
-    });
+      lastStackAnimatedVal,
+    }), [
+      stackBot,
+      stackTop,
+      stackActive,
+      goBackStack,
+      goForwardStack,
+      lastStackAnimatedVal,
+    ]);
+  },
+  function StacksNavStore(val) {
+    return val;
+  },
+  function GoBackStack(val) {
+    return val.goBackStack;
   },
 );

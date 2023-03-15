@@ -34,16 +34,19 @@ interface ClubApiParams {
 }
 
 interface ClubsApiParams {
-  clubNames?: string[];
-  search?: string;
   parentClubId?: number | null;
   parentClubName?: string | null;
   siblingClubId?: number | null;
-  onlyJoined?: boolean;
-  includeParents?: boolean;
+  search?: string;
+  joinType?: 'joinedFirst' | 'onlyJoined';
   showAdult?: boolean;
+  minMembers?: number;
   limit?: number;
   cursor?: string;
+}
+
+interface ClubsByNameApiParams {
+  names: string[];
 }
 
 interface ClubViewApiParams {
@@ -66,6 +69,12 @@ interface CreatePostApiParams {
   clubName: string;
   content?: string | null;
   media?: Express.Multer.File;
+  mediaCrop?: {
+    top: number;
+    left: number;
+    right: number;
+    bot: number;
+  };
   location?: 'city' | 'global';
 }
 
@@ -77,13 +86,13 @@ interface CreateReactionApiParams {
 
 interface CreateReplyApiParams {
   replyType: 'postReply' | 'roomReply' | 'chatReply';
-  parentEntityId: number;
+  parentEntityId?: number;
   parentReplyId?: number;
   content: string;
 }
 
 interface CreateReportApiParams {
-  entityType: 'post' | 'postReply' | 'roomReply' | 'user';
+  entityType: 'club' | 'post' | 'postReply' | 'roomReply' | 'user';
   entityId: number;
 }
 
@@ -135,6 +144,10 @@ interface LoginUserApiParams {
   password: string;
 }
 
+interface MyClubsRoomsViewApiParams {
+  unauthClubs: string[];
+}
+
 interface NotifsApiParams {
   limit?: number;
   cursor?: string;
@@ -156,15 +169,18 @@ interface PostReplyThreadsApiParams {
 interface PostsApiParams {
   clubName: string;
   unauthClubs: string[];
-  location: 'city' | 'global';
+  location: 'city' | 'global' | 'globalOnly';
   authorId?: number;
+  includeLowQuality?: boolean;
   limit?: number;
   sort?: 'hot' | 'lastReply' | 'new';
   cursor?: string;
 }
 
 interface RandomUsersApiParams {
-  location: 'city' | 'global';
+  unauthClubs: string[];
+  location?: 'city' | 'global';
+  ctxUserId?: number;
   limit?: number;
 }
 
@@ -176,6 +192,14 @@ interface ReadNotifApiParams {
   notifId: number;
 }
 
+interface RecentFollowingPostsApiParams {
+  unauthClubs: string[];
+  minPosts: number;
+  limit?: number;
+  sort?: 'hot' | 'lastReply' | 'new';
+  cursor?: string;
+}
+
 interface RegisterUserApiParams {
   email: string;
   password: string;
@@ -185,15 +209,16 @@ interface RegisterUserApiParams {
 
 interface RelatedUsersApiParams {
   unauthClubs: string[];
-  location: 'city' | 'global';
+  location?: 'city' | 'global';
   lowQualityUsers?: boolean;
+  excludeFollowing?: boolean;
   cursor?: string;
   limit?: number;
 }
 
 interface RepliesApiParams {
   replyType: 'postReply' | 'roomReply' | 'chatReply';
-  parentEntityId: number;
+  parentEntityId?: number;
   parentReplyId?: number;
   oldestFirst?: boolean;
   initialId?: number;
@@ -217,9 +242,14 @@ interface RoomApiParams {
 interface RoomsApiParams {
   clubName: string;
   unauthClubs: string[];
-  location: 'city' | 'global';
+  cityId: number | null;
+  subclubs?: boolean;
   limit?: number;
   cursor?: string;
+}
+
+interface RoomsInClubApiParams {
+  clubName: string;
 }
 
 interface SearchCitiesApiParams {
@@ -251,6 +281,10 @@ interface SseUnsubscribeApiParams {
     name: string;
     params: JsonObj;
   }[];
+}
+
+interface StatusApiParams {
+
 }
 
 interface TopLevelClubsApiParams {
@@ -343,10 +377,12 @@ interface UserFriendsApiParams {
 
 interface UsersApiParams {
   clubName: string;
+  followingType?: 'onlyFollowing' | 'excludeFollowing' | 'followingFirst';
   unauthClubs: string[];
   name?: string;
+  location?: 'city' | 'global' | 'globalOnly';
+  excludeFollowing?: boolean;
   includeTopPosts?: boolean;
-  location: 'city' | 'global';
   cursor?: string;
   limit?: number;
 }
@@ -376,7 +412,7 @@ interface BatchedApiData {
 }
 
 interface ChatsApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
@@ -390,9 +426,13 @@ interface CityApiData {
 }
 
 interface ClubsApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
+}
+
+interface ClubsByNameApiData {
+  entityIds: number[];
 }
 
 interface ClubViewApiData {
@@ -428,11 +468,7 @@ interface ExistingChatWithUserApiData {
 }
 
 interface FavoriteClubsApiData {
-  topClubs: {
-    id: number;
-    globalReplies: number;
-    cityReplies: number;
-  }[];
+  topClubIds: number[];
   type: 'favorite' | 'top';
 }
 
@@ -441,8 +477,17 @@ interface LoginUserApiData {
   authToken: string;
 }
 
+interface MyClubsRoomsViewApiData {
+  cityRooms: string[];
+  cityHasCompleted?: boolean;
+  globalRooms: string[];
+  globalHasCompleted?: boolean;
+  subclubsRooms: string[];
+  subclubsHasCompleted?: boolean;
+}
+
 interface NotifsApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
@@ -456,13 +501,13 @@ interface OnboardCompleteProfileApiData {
 }
 
 interface PostReplyThreadsApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
 
 interface PostsApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
@@ -471,28 +516,33 @@ interface RandomUsersApiData {
   userIds: number[];
 }
 
+interface RecentFollowingPostsApiData {
+  items: number[];
+  cursor?: string;
+  hasCompleted: boolean;
+}
+
 interface RegisterUserApiData {
   currentUserId: number;
   authToken: string;
 }
 
 interface RelatedUsersApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
 
 interface RepliesApiData {
-  entityIds: (number | string)[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
 
 interface RoomsApiData {
-  clubIds?: number[];
-  entityIds?: number[];
+  items: (number | string)[];
   cursor?: string;
-  hasCompleted?: boolean;
+  hasCompleted: boolean;
 }
 
 interface SearchCitiesApiData {
@@ -503,8 +553,16 @@ interface SseOtpApiData {
   otp: string | null;
 }
 
+interface StatusApiData {
+  serverId: number;
+  failingHealthchecks: string[];
+  isInitInfra?: boolean;
+}
+
 interface TopLevelClubsApiData {
-  clubIds: number[];
+  items: number[];
+  cursor?: string;
+  hasCompleted: boolean;
 }
 
 interface TopPostRepliesApiData {
@@ -512,7 +570,7 @@ interface TopPostRepliesApiData {
 }
 
 interface TopUsersApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
@@ -530,25 +588,25 @@ interface UpdateAccountSettingsApiData {
 }
 
 interface UserClubsWithPostsApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
 
 interface UserFollowsApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
 
 interface UserFriendsApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
 
 interface UsersApiData {
-  entityIds: number[];
+  items: number[];
   cursor?: string;
   hasCompleted: boolean;
 }
@@ -567,6 +625,7 @@ type ApiNameToParams = {
   'city': CityApiParams,
   'club': ClubApiParams,
   'clubs': ClubsApiParams,
+  'clubsByName': ClubsByNameApiParams,
   'clubView': ClubViewApiParams,
   'createChat': CreateChatApiParams,
   'createClub': CreateClubApiParams,
@@ -585,6 +644,7 @@ type ApiNameToParams = {
   'joinClubs': JoinClubsApiParams,
   'leaveClub': LeaveClubApiParams,
   'loginUser': LoginUserApiParams,
+  'myClubsRoomsView': MyClubsRoomsViewApiParams,
   'notifs': NotifsApiParams,
   'onboardCompleteProfile': OnboardCompleteProfileApiParams,
   'post': PostApiParams,
@@ -593,6 +653,7 @@ type ApiNameToParams = {
   'randomUsers': RandomUsersApiParams,
   'readChat': ReadChatApiParams,
   'readNotif': ReadNotifApiParams,
+  'recentFollowingPosts': RecentFollowingPostsApiParams,
   'registerUser': RegisterUserApiParams,
   'relatedUsers': RelatedUsersApiParams,
   'replies': RepliesApiParams,
@@ -600,11 +661,13 @@ type ApiNameToParams = {
   'resetPassword': ResetPasswordApiParams,
   'room': RoomApiParams,
   'rooms': RoomsApiParams,
+  'roomsInClub': RoomsInClubApiParams,
   'searchCities': SearchCitiesApiParams,
   'seenNotifs': SeenNotifsApiParams,
   'sseOtp': SseOtpApiParams,
   'sseSubscribe': SseSubscribeApiParams,
   'sseUnsubscribe': SseUnsubscribeApiParams,
+  'status': StatusApiParams,
   'topLevelClubs': TopLevelClubsApiParams,
   'topPostReplies': TopPostRepliesApiParams,
   'topUsers': TopUsersApiParams,
@@ -633,6 +696,7 @@ type ApiNameToData = {
   'city': CityApiData,
   'club': null,
   'clubs': ClubsApiData,
+  'clubsByName': ClubsByNameApiData,
   'clubView': ClubViewApiData,
   'createChat': CreateChatApiData,
   'createClub': CreateClubApiData,
@@ -651,6 +715,7 @@ type ApiNameToData = {
   'joinClubs': null,
   'leaveClub': null,
   'loginUser': LoginUserApiData,
+  'myClubsRoomsView': MyClubsRoomsViewApiData,
   'notifs': NotifsApiData,
   'onboardCompleteProfile': OnboardCompleteProfileApiData,
   'post': null,
@@ -659,6 +724,7 @@ type ApiNameToData = {
   'randomUsers': RandomUsersApiData,
   'readChat': null,
   'readNotif': null,
+  'recentFollowingPosts': RecentFollowingPostsApiData,
   'registerUser': RegisterUserApiData,
   'relatedUsers': RelatedUsersApiData,
   'replies': RepliesApiData,
@@ -666,11 +732,13 @@ type ApiNameToData = {
   'resetPassword': null,
   'room': null,
   'rooms': RoomsApiData,
+  'roomsInClub': null,
   'searchCities': SearchCitiesApiData,
   'seenNotifs': null,
   'sseOtp': SseOtpApiData,
   'sseSubscribe': null,
   'sseUnsubscribe': null,
+  'status': StatusApiData,
   'topLevelClubs': TopLevelClubsApiData,
   'topPostReplies': TopPostRepliesApiData,
   'topUsers': TopUsersApiData,
@@ -698,6 +766,7 @@ type ApiName = 'batched'
   | 'city'
   | 'club'
   | 'clubs'
+  | 'clubsByName'
   | 'clubView'
   | 'createChat'
   | 'createClub'
@@ -716,6 +785,7 @@ type ApiName = 'batched'
   | 'joinClubs'
   | 'leaveClub'
   | 'loginUser'
+  | 'myClubsRoomsView'
   | 'notifs'
   | 'onboardCompleteProfile'
   | 'post'
@@ -724,6 +794,7 @@ type ApiName = 'batched'
   | 'randomUsers'
   | 'readChat'
   | 'readNotif'
+  | 'recentFollowingPosts'
   | 'registerUser'
   | 'relatedUsers'
   | 'replies'
@@ -731,11 +802,13 @@ type ApiName = 'batched'
   | 'resetPassword'
   | 'room'
   | 'rooms'
+  | 'roomsInClub'
   | 'searchCities'
   | 'seenNotifs'
   | 'sseOtp'
   | 'sseSubscribe'
   | 'sseUnsubscribe'
+  | 'status'
   | 'topLevelClubs'
   | 'topPostReplies'
   | 'topUsers'

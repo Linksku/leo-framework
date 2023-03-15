@@ -21,7 +21,7 @@ export default function createDataLoader<K, V>(
     {
       ...options,
       batchScheduleFn: cb => setTimeout(cb, options.batchInterval ?? 10),
-      cacheKeyFn: options.objKeys ? key => JSON.stringify(key) : undefined,
+      cacheKeyFn: options.objKeys ? key => JSON.stringify(key) ?? '' : undefined,
     },
   );
   return dataLoader;

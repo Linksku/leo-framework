@@ -5,24 +5,25 @@ $screenMd: 768px;
 $screenLg: 1200px;
 
 // Basics.
+$primaryColor: #2196f3;
+
 $textColor: #333;
 $lightTextColor: #666;
 $fadedTextColor: #999;
-
-$primaryColor: #2196f3;
-$fadedPrimaryColorBg: color.scale($primaryColor, $saturation: -10%, $lightness: 50%);
-$fadedPrimaryColorText: color.scale(
-  color.mix($primaryColor, $lightTextColor, $weight: 30%),
-  $lightness: 15%
-);
 $linkColor: $primaryColor;
-
 $fontFamily: roboto, helvetica, sans-serif;
 $headingFontFamily: roboto, helvetica, sans-serif;
 
 $separatorColor: #eaeaea;
 $greyBackgroundColor: #f8f8f8;
+$activeBackgroundColor: #fafafa;
 
+$fadedPrimaryColorBg: color.scale($primaryColor, $saturation: -10%, $lightness: 50%);
+$fadedPrimaryColorText: color.mix($primaryColor, $fadedTextColor, $weight: 30%);
+$activePrimaryColorBg: color.scale($primaryColor, $lightness: -25%);
+$activePrimaryColorBorder: color.scale($primaryColor, $lightness: -25%);
+
+// Z-Index.
 $zIndexDropdown: 100;
 $zIndexSticky: 200;
 $zIndexFixed: 300;
@@ -36,17 +37,27 @@ $zIndexToast: 800;
 $inputHeight: 4.2rem;
 $inputPadding: 1rem;
 $inputBorderColor: #ccc;
-$inputBorder: 1px solid $inputBorderColor;
+$inputBorder: 0.5px solid $inputBorderColor;
 $inputBorderRadius: 4px;
 $inputColor: $lightTextColor;
 $inputPlaceholderColor: $fadedTextColor;
 
 // Layout.
+// iOS insets leave too much space
+$insetMultiplier: 0.75;
+$insetTop: calc(env(safe-area-inset-top, 0) * $insetMultiplier);
+$insetBottom: var(
+  --safe-area-inset-bottom,
+  calc(env(safe-area-inset-bottom, 0) * $insetMultiplier)
+);
+$insetLeft: calc(env(safe-area-inset-left, 0) * $insetMultiplier);
+$insetRight: calc(env(safe-area-inset-right, 0) * $insetMultiplier);
+
 $bodyMinWidth: 280px;
 $bodyMinHeight: 300px;
 $containerMaxWidth: $screenLg;
-$containerPadLeftRight: 1rem;
+$containerPadding: 1rem; // Horizontal padding
 $sidebarMinWidth: 250px;
 $sidebarMaxWidth: 500px;
-$headerHeight: 4.5rem;
-$footerHeight: 4.5rem;
+$headerHeight: calc(4.5rem + $insetTop);
+$footerHeight: calc(5rem + $insetBottom);

@@ -1,16 +1,23 @@
 .container {
-  padding: $containerPadLeftRight * 3 $containerPadLeftRight;
+  padding: 5rem $containerPadding 7rem $containerPadding;
   overflow: hidden;
   text-align: center;
   width: 100%;
-  min-height: 100vh;
   background-color: #fff;
+
+  @include gtLg {
+    min-height: auto;
+  }
 }
 
 .title {
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
 }
 
 .link {
   color: $primaryColor;
+}
+
+.btns {
+  margin-top: 2.5rem;
 }

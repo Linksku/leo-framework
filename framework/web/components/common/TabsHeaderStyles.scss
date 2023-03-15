@@ -9,6 +9,10 @@
   padding: 1rem 0;
   border-bottom: 1px solid #aaa;
   color: $fadedTextColor;
+
+  &:active {
+    background-color: $activeBackgroundColor;
+  }
 }
 
 .tabActive {

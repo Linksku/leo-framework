@@ -1,11 +1,11 @@
 .container {
-  padding: 5px $containerPadLeftRight;
+  padding: 0.5rem $containerPadding;
 }
 
-$listItemPadding: 8px;
+$listItemPadding: 0.8rem;
 
 .input {
-  margin-bottom: 5px !important;
+  margin-bottom: 0.5rem !important;
 }
 
 .listItem {
@@ -14,7 +14,7 @@ $listItemPadding: 8px;
   align-items: center;
 
   svg {
-    margin-right: 10px;
+    margin-right: 1rem;
     height: 2.8rem;
     width: 2.8rem;
     fill: $lightTextColor;

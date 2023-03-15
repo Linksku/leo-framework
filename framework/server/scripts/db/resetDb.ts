@@ -1,19 +1,20 @@
 import prompt from 'utils/prompt';
 import knexBT from 'services/knex/knexBT';
 import knexRR from 'services/knex/knexRR';
+import { PG_BT_SCHEMA, PG_RR_SCHEMA } from 'consts/infra';
 
 export default async function resetDb() {
   const ans = await prompt('Delete BT and RR databases?');
   if (ans.toLowerCase() !== 'y') {
-    process.exit(0);
+    await ErrorLogger.flushAndExit(0);
   }
 
   await Promise.all([
-    knexRR.raw(`drop schema ${process.env.PG_RR_SCHEMA} cascade`),
-    knexBT.raw(`drop schema ${process.env.PG_BT_SCHEMA} cascade`),
+    knexRR.raw(`DROP SCHEMA ${PG_RR_SCHEMA} CASCADE`),
+    knexBT.raw(`DROP SCHEMA ${PG_BT_SCHEMA} CASCADE`),
   ]);
   await Promise.all([
-    knexRR.raw(`create schema ${process.env.PG_RR_SCHEMA}`),
-    knexBT.raw(`create schema ${process.env.PG_BT_SCHEMA}`),
+    knexRR.raw(`CREATE SCHEMA ${PG_RR_SCHEMA}`),
+    knexBT.raw(`CREATE SCHEMA ${PG_BT_SCHEMA}`),
   ]);
 }

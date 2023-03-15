@@ -1,9 +1,9 @@
-import StackWrapInner from 'components/frame/StackWrapInner';
+import StackWrapInner from 'components/frame/stack/StackWrapInner';
 import HookFormErrors from 'components/HookFormErrors';
 
 import styles from './ResetPasswordRouteStyles.scss';
 
-function ResetPasswordRoute() {
+export default React.memo(function ResetPasswordRoute() {
   const { register, handleSubmit, control } = useForm({
     reValidateMode: 'onBlur',
     defaultValues: {
@@ -15,10 +15,11 @@ function ResetPasswordRoute() {
 
   const { fetching, fetchApi: resetPassword, error: apiError } = useDeferredApi(
     'resetPassword',
-    {},
+    EMPTY_OBJ,
     {
       type: 'load',
       method: 'post',
+      returnState: true,
       onFetch() {
         showAlert({
           msg: 'A password reset email was sent',
@@ -63,6 +64,4 @@ function ResetPasswordRoute() {
       </div>
     </StackWrapInner>
   );
-}
-
-export default React.memo(ResetPasswordRoute);
+});

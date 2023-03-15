@@ -44,19 +44,27 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
           if (Array.isArray(primaryIndex)) {
             return matchedRows.map(row => primaryIndex.map(col => {
               if (!process.env.PRODUCTION && typeof row[col] !== 'number' && typeof row[col] !== 'string') {
-                throw new ErrorWithCtx(
+                throw getErr(
                   `getModelIdsDataLoader(${Model.type}): ${col} isn't a number or string`,
-                  `"${row[col]}" (${typeof row[col]})`,
+                  {
+                    val: row[col],
+                    valType: typeof row[col],
+                  },
                 );
               }
               return row[col] as unknown as number | string;
             }));
           }
           return matchedRows.map(row => {
-            if (!process.env.PRODUCTION && typeof row[primaryIndex] !== 'number' && typeof row[primaryIndex] !== 'string') {
-              throw new ErrorWithCtx(
+            if (!process.env.PRODUCTION
+              && typeof row[primaryIndex] !== 'number'
+              && typeof row[primaryIndex] !== 'string') {
+              throw getErr(
                 `getModelIdsDataLoader(${Model.type}): ${primaryIndex} isn't a number or string`,
-                `"${row[primaryIndex]}" (${typeof row[primaryIndex]})`,
+                {
+                  val: row[primaryIndex],
+                  valType: typeof row[primaryIndex],
+                },
               );
             }
             return row[primaryIndex] as unknown as number | string;

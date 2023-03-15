@@ -1,6 +1,6 @@
 import styles from './ToastsStyles.scss';
 
-function Toasts() {
+export default React.memo(function Toasts() {
   const { toast, hideToast, isHidingToast } = useToastsStore();
 
   if (!toast) {
@@ -11,16 +11,16 @@ function Toasts() {
   } = toast;
 
   return (
-    <div
-      onClick={hideToast}
-      className={cn(styles.toast, {
-        [styles.visible]: !isHidingToast,
-      })}
-      role="dialog"
-    >
-      {msg}
+    <div className={styles.toastWrap}>
+      <div
+        onClick={hideToast}
+        className={cx(styles.toast, {
+          [styles.visible]: !isHidingToast,
+        })}
+        role="dialog"
+      >
+        {msg}
+      </div>
     </div>
   );
-}
-
-export default React.memo(Toasts);
+});

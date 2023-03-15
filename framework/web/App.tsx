@@ -12,6 +12,7 @@ import { GlobalStateProvider } from 'stores/GlobalStateStore';
 import { HistoryProvider } from 'stores/HistoryStore';
 import { HomeNavProvider } from 'stores/HomeNavStore';
 import { NotifsProvider } from 'stores/NotifsStore';
+import { RelationsProvider } from 'stores/RelationsStore';
 import { SseProvider } from 'stores/SseStore';
 import { SlideUpProvider } from 'stores/SlideUpStore';
 import { StacksNavProvider } from 'stores/StacksNavStore';
@@ -37,6 +38,7 @@ export default function App() {
 
     // Core data
     EntitiesProvider,
+    RelationsProvider,
     AuthProvider,
     ApiProvider,
 
@@ -53,12 +55,6 @@ export default function App() {
   ].reverse()) {
     router = <Component>{router}</Component>;
   }
-
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      document.body.style.display = 'block';
-    });
-  }, []);
 
   return (
     <ErrorBoundary>

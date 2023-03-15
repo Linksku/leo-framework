@@ -1,9 +1,15 @@
 import shuffle from 'lodash/shuffle';
+import pLimit from 'p-limit';
 
 import knexMZ from 'services/knex/knexMZ';
 import EntityModels from 'services/model/allEntityModels';
 import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import showMzSystemRows from 'utils/db/showMzSystemRows';
+import getIndexName from 'utils/db/getIndexName';
 import verifyCreatedTables from '../helpers/verifyCreatedTables';
+
+// To see actual time per model, change this to 1.
+const limiter = pLimit(5);
 
 function validateQuery(query: QueryBuilder<Model>, model: ModelClass) {
   const statements: {
@@ -65,28 +71,45 @@ function validateQuery(query: QueryBuilder<Model>, model: ModelClass) {
   }
 }
 
-// todo: mid/mid potentially reduce MZ memory usage by adding indexes
 export default async function createMZMaterializedViews() {
-  const createdViews = new Set<string>(EntityModels.map(model => model.tableName));
+  const startTime = performance.now();
+  const existingViews = await showMzSystemRows('SHOW VIEWS');
+  const mvTypes = new Set<string>(MaterializedViewModels.map(mv => mv.type));
+  const allViews = new Set([
+    ...EntityModels.map(model => model.tableName),
+    ...existingViews.filter(view => mvTypes.has(view)),
+  ]);
+  if (allViews.size === MaterializedViewModels.length + EntityModels.length) {
+    printDebug('All MVs already created', 'info');
+    return;
+  }
 
-  let remainingModels = MaterializedViewModels.filter(
-    model => !createdViews.has(model.tableName),
-  );
-  while (remainingModels.length) {
-    remainingModels = shuffle(remainingModels);
-    const startingLength = remainingModels.length;
-    outer: for (let i = 0; i < remainingModels.length; i++) {
-      const model = remainingModels[i];
-
-      if (!createdViews.has(model.tableName)) {
-        for (const dep of model.MVQueryDeps) {
-          if (!createdViews.has(dep.tableName)) {
-            continue outer;
+  const createdViews = new Set<ModelType>();
+  while (allViews.size < MaterializedViewModels.length + EntityModels.length) {
+    const startingNumCreatedViews = createdViews.size;
+    await Promise.all(shuffle(MaterializedViewModels.slice())
+      .filter(
+        model => !allViews.has(model.tableName)
+          && model.MVQueryDeps.every(dep => allViews.has(dep.tableName)),
+      )
+      .map(model => limiter(async () => {
+        printDebug(`Creating ${model.type}`, 'info');
+        const numDependents = MaterializedViewModels
+          .filter(mv => mv.MVQueryDeps.includes(model)).length;
+        if (!model.getReplicaTable()) {
+          if (!numDependents) {
+            printDebug(`createMZMaterializedView: ${model.type} has no replica table and no dependents`);
+          } else if (numDependents === 1 && model.mzIndexes?.length) {
+            printDebug(`createMZMaterializedView: ${model.type} has unnecessary index`);
+          } else if (numDependents >= 3 && !model.mzIndexes?.length) {
+            printDebug(`createMZMaterializedView: ${model.type} has ${numDependents} dependents and no index`);
+          } else if (model.mzIndexes && model.mzIndexes.length > numDependents) {
+            printDebug(`createMZMaterializedView: ${model.type} has too many indexes`);
           }
         }
 
-        printDebug(`Creating MV ${model.tableName}`, 'highlight');
-        let query = model.MVQuery;
+        const modelStartTime = performance.now();
+        let query = model.getMVQuery();
         if (model.extendMVQuery) {
           for (const fn of model.extendMVQuery) {
             query = fn(query);
@@ -94,41 +117,107 @@ export default async function createMZMaterializedViews() {
         }
 
         validateQuery(query, model);
-        await knexMZ.raw(`
-          CREATE VIEW "${model.tableName}"
-          AS ${query.toKnexQuery().toString()}
-        `);
-        await knexMZ.raw(`
-          CREATE INDEX "${model.tableName}_primary_idx"
-          ON "${model.tableName}"
-          (${
-            Array.isArray(model.primaryIndex)
-              ? model.primaryIndex.map(col => `"${col}"`).join(', ')
-              : `"${model.primaryIndex}"`
-          })
-        `);
+        try {
+          await knexMZ.raw(`
+            CREATE VIEW "${model.tableName}"
+            AS ${query.toKnexQuery().toString()}
+          `);
+          if (model.getReplicaTable()) {
+            await knexMZ.raw(`
+              CREATE INDEX "${model.tableName}_primary_idx"
+              ON "${model.tableName}"
+              (${
+                Array.isArray(model.primaryIndex)
+                  ? model.primaryIndex.map(col => `"${col}"`).join(', ')
+                  : `"${model.primaryIndex}"`
+              })
+            `);
+          }
+          if (model.mzIndexes?.length) {
+            for (const index of model.mzIndexes) {
+              await knexMZ.raw(`
+                CREATE INDEX "${getIndexName(model.tableName, index)}"
+                ON "${model.tableName}"
+                  (${
+                    Array.isArray(index)
+                      ? index.map(col => `"${col}"`).join(', ')
+                      : `"${index}"`
+                  })
+                `);
+            }
+          }
+        } catch (err) {
+          if (err instanceof Error && err.message.includes('already exists')) {
+            createdViews.add(model.type);
+            allViews.add(model.tableName);
+            return;
+          }
+          throw err instanceof Error
+            ? getErr(err, { ctx: 'createMZMaterializedViews', model: model.type })
+            : err;
+        }
 
-        createdViews.add(model.tableName);
-      }
+        /*
+        Note: mz_materialization_frontiers requires --introspection-frequency,
+          but --introspection-frequency may cause "negative accumulation" errors
 
-      remainingModels.splice(i, 1);
-      i--;
-    }
+        if (model.getReplicaTable() || model.mzIndexes?.length) {
+          await retry(
+            async () => {
+              const indexName = model.mzIndexes?.length
+                ? getIndexName(model.tableName, model.mzIndexes[0])
+                : `${model.tableName}_primary_idx`;
+              // Note: no idea why a join hangs here
+              const indexId = await knexMZ.raw(`
+                SELECT id
+                FROM mz_indexes
+                WHERE name = '${indexName}';
+              `);
 
-    if (remainingModels.length === startingLength) {
-      throw new Error('createMZMaterializedViews: circular or unknown dependency.');
+              if (!indexId.rows.length) {
+                throw new Error('No index row');
+              }
+
+              const frontierTime = await knexMZ.raw(`
+                SELECT time
+                FROM mz_materialization_frontiers
+                WHERE global_id = ?
+                AS OF now()
+              `, [indexId.rows[0].id]);
+
+              if (!frontierTime.rows.length) {
+                throw new Error('No frontiers row');
+              }
+              if (Date.now() - frontierTime.rows[0].time > 60 * 1000) {
+                throw new Error(`Frontier for ${model.tableName} is behind`);
+              }
+            },
+            {
+              timeout: 5 * 60 * 1000,
+              interval: 1000,
+              ctx: 'createMZMaterializedViews',
+            },
+          );
+        }
+        */
+
+        createdViews.add(model.type);
+        allViews.add(model.tableName);
+        printDebug(`Created ${model.type} after ${Math.round((performance.now() - modelStartTime) / 100) / 10}s`, 'success');
+      })),
+    );
+
+    if (createdViews.size === startingNumCreatedViews) {
+      throw new Error('createMZMaterializedViews: circular or unknown dependency');
     }
   }
 
+  printDebug(`Created MZ materialized views after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+
   await verifyCreatedTables(
-    {
-      host: process.env.MZ_HOST,
-      port: TS.parseIntOrNull(process.env.MZ_PORT) ?? undefined,
-      user: process.env.MZ_USER,
-      password: process.env.MZ_PASS,
-      database: process.env.MZ_DB,
-    },
+    'mz',
     knexMZ,
-    MaterializedViewModels.filter(model => model.getReplicaTable() !== null),
+    MaterializedViewModels
+      .filter(model => model.getReplicaTable() && createdViews.has(model.type)),
   );
 }

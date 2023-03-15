@@ -1,6 +1,4 @@
-import type { default as _fetch } from 'node-fetch';
 import type { performance as _performance } from 'perf_hooks';
-import type { default as _ErrorWithCtx } from '../../utils/ErrorWithCtx';
 import type { default as _EMPTY_ARR } from '../../utils/emptyArr';
 import type { default as _EMPTY_OBJ } from '../../utils/emptyObj';
 import type { default as _ErrorLogger } from '../../services/errorLogger/ErrorLogger';
@@ -11,14 +9,13 @@ import type { default as _printDebug } from '../../utils/printDebug';
 import type { default as _entityQuery } from '../../services/model/entityQuery';
 import type { default as _modelQuery } from '../../services/model/modelQuery';
 import type { raw as _raw } from '../../services/knex/knexRR';
+import type { default as _rawSelect } from '../../utils/db/rawSelect';
 import type { default as _SchemaConstants } from '../../consts/schema';
 import type { default as _UserFacingError } from '../../utils/UserFacingError';
 import type { default as _wrapPromise } from '../../utils/wrapPromise';
 
 declare global {
-  const fetch: typeof _fetch;
   const performance: typeof _performance;
-  const ErrorWithCtx: typeof _ErrorWithCtx;
   const EMPTY_ARR: typeof _EMPTY_ARR;
   const EMPTY_OBJ: typeof _EMPTY_OBJ;
   const ErrorLogger: typeof _ErrorLogger;
@@ -29,6 +26,7 @@ declare global {
   const entityQuery: typeof _entityQuery;
   const modelQuery: typeof _modelQuery;
   const raw: typeof _raw;
+  const rawSelect: typeof _rawSelect;
   const SchemaConstants: typeof _SchemaConstants;
   const UserFacingError: typeof _UserFacingError;
   const wrapPromise: typeof _wrapPromise;

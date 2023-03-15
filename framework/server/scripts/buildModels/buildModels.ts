@@ -20,7 +20,7 @@ ${frameworkModels.map(model => `  {
     type: '${model.Model.type}',
     path: 'framework/server/models/${model.path}',
     ${isCjs ? '// ' : ''}Model: require('../../${forFramework ? '' : '../../framework/server/'}models/${model.path.slice(0, -3)}').default,
-    replicaTable: ${model.Model.getReplicaTable() === null ? 'null' : `'${model.Model.getReplicaTable()}'`},
+    replicaTable: ${model.Model.getReplicaTable() ? `'${model.Model.getReplicaTable()}'` : 'null'},
   },
 `).join('')}];
 
@@ -29,7 +29,7 @@ ${appModels.map(model => `  {
     type: '${model.Model.type}',
     path: 'app/server/models/${model.path}',
     ${isCjs ? '// ' : ''}Model: require('../../models/${model.path.slice(0, -3)}').default,
-    replicaTable: ${model.Model.getReplicaTable() === null ? 'null' : `'${model.Model.getReplicaTable()}'`},
+    replicaTable: ${model.Model.getReplicaTable() ? `'${model.Model.getReplicaTable()}'` : 'null'},
   },
 `).join('')}];
 `;
@@ -47,60 +47,48 @@ export { frameworkModels, appModels };
 }
 
 export default async function buildModels() {
-  await mkdirp(path.resolve('./framework/server/config/__generated__'));
-  await fs.writeFile(
-    path.resolve('./framework/server/config/__generated__/allModels.ts'),
-    `export const frameworkModels = [];
+  const { models: { appModels, frameworkModels } } = await promiseObj({
+    models: getModelsWithPaths(),
+    framework: mkdirp(path.resolve('./framework/server/config/__generated__')),
+    app: mkdirp(path.resolve('./app/server/config/__generated__')),
+  });
 
-export const appModels = [];
-`,
-  );
-  await mkdirp(path.resolve('./app/server/config/__generated__'));
-  await fs.writeFile(
-    path.resolve('./app/server/config/__generated__/allModels.ts'),
-    `export const frameworkModels = [];
-
-export const appModels = [];
-`,
-  );
-
-  const { appModels, frameworkModels } = await getModelsWithPaths();
-
-  await fs.writeFile(
-    path.resolve('./framework/server/config/__generated__/allModels.ts'),
-    getOutput({
-      frameworkModels,
-      appModels: [],
-      forFramework: true,
-      isCjs: false,
-    }),
-  );
-  await fs.writeFile(
-    path.resolve('./framework/server/config/__generated__/allModels.cjs'),
-    getOutput({
-      frameworkModels,
-      appModels: [],
-      forFramework: true,
-      isCjs: true,
-    }),
-  );
-
-  await fs.writeFile(
-    path.resolve('./app/server/config/__generated__/allModels.ts'),
-    getOutput({
-      frameworkModels,
-      appModels,
-      forFramework: false,
-      isCjs: false,
-    }),
-  );
-  await fs.writeFile(
-    path.resolve('./app/server/config/__generated__/allModels.cjs'),
-    getOutput({
-      frameworkModels,
-      appModels,
-      forFramework: false,
-      isCjs: true,
-    }),
-  );
+  await Promise.all([
+    fs.writeFile(
+      path.resolve('./framework/server/config/__generated__/allModels.ts'),
+      getOutput({
+        frameworkModels,
+        appModels: [],
+        forFramework: true,
+        isCjs: false,
+      }),
+    ),
+    fs.writeFile(
+      path.resolve('./framework/server/config/__generated__/allModels.cjs'),
+      getOutput({
+        frameworkModels,
+        appModels: [],
+        forFramework: true,
+        isCjs: true,
+      }),
+    ),
+    fs.writeFile(
+      path.resolve('./app/server/config/__generated__/allModels.ts'),
+      getOutput({
+        frameworkModels,
+        appModels,
+        forFramework: false,
+        isCjs: false,
+      }),
+    ),
+    fs.writeFile(
+      path.resolve('./app/server/config/__generated__/allModels.cjs'),
+      getOutput({
+        frameworkModels,
+        appModels,
+        forFramework: false,
+        isCjs: true,
+      }),
+    ),
+  ]);
 }

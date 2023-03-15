@@ -1,28 +1,25 @@
-import redisFlushAll from 'utils/infra/redisFlushAll';
+import withErrCtx from 'utils/withErrCtx';
+import initInfraWrap from 'utils/infra/initInfraWrap';
 import destroyMZ from './destroyMZ';
 import destroyRR from './destroyRR';
 import deleteBTPublications from './steps/deleteBTPublications';
 import deleteDBZReplicationSlots from './steps/deleteDBZReplicationSlots';
-import deleteSchemaRegistry from './steps/deleteSchemaRegistry';
 
-export default async function destroyMVInfra() {
-  await Promise.all([
-    (async () => {
-      await destroyMZ();
-      printDebug('Done destroying MZ and DBZ', 'success');
-    })(),
-    (async () => {
-      await destroyRR();
-      printDebug('Done destroying RR', 'success');
-    })(),
-  ]);
+// Note: may leave behind dangling topics, connectors, slots, etc.
+export default function destroyMVInfra() {
+  return initInfraWrap(async () => {
+    await Promise.all([
+      (async () => {
+        await destroyMZ({ forceDeleteDBZConnectors: true, deleteMZSinkConnectors: true });
+        printDebug('Done destroying MZ and DBZ', 'success');
+      })(),
+      (async () => {
+        await destroyRR();
+        printDebug('Done destroying RR', 'success');
+      })(),
+    ]);
 
-  await Promise.all([
-    redisFlushAll(),
-    deleteSchemaRegistry(),
-    (async () => {
-      await deleteDBZReplicationSlots();
-      await deleteBTPublications();
-    })(),
-  ]);
+    await withErrCtx(deleteDBZReplicationSlots(), 'destroyMVInfra: deleteDBZReplicationSlots');
+    await withErrCtx(deleteBTPublications(), 'destroyMVInfra: deleteBTPublications');
+  });
 }

@@ -4,10 +4,9 @@ import { QueryBuilder as BaseQueryBuilder } from 'objection';
 // @ts-ignore Objection is missing type
 import { KnexOperation } from 'objection/lib/queryBuilder/operations/KnexOperation';
 
-import randArrItem from 'utils/randArrItem';
-import rand from 'utils/rand';
 import formatTsquery from 'utils/db/formatTsquery';
 import { AGGREGATE_FUNCTIONS } from 'consts/pg';
+import isSchemaNullable from 'utils/models/isSchemaNullable';
 
 const AGGREGATE_FUNCTIONS_SET = new Set(AGGREGATE_FUNCTIONS);
 
@@ -18,7 +17,8 @@ export interface CustomQueryBuilderMethods {
     defaultVal: string | number | boolean | Knex.Raw,
     alias?: string,
   ): this;
-  orderByRandom(): this;
+  whereDistinctFrom(col: string, val: any): this;
+  whereNotDistinctFrom(col: string, val: any): this;
   tsquery(
     col: string,
     query: string,
@@ -31,19 +31,25 @@ export interface CustomQueryBuilderMethods {
   ): this;
   withinDist(latCol: string, lngCol: string, lat: number, lng: number, dist: number): this;
   orderByDist(latCol: string, lngCol: string, lat: number, lng: number): this;
-  fromValues(cols: string[], rows: ObjectOf<any>, alias: string): this;
-  fromValues(col: string, rows: any[], alias: string): this;
-  lateralJoin(table: Knex.Raw | BaseQueryBuilder<any>): this;
-  lateralLeftJoin(table: Knex.Raw | BaseQueryBuilder<any>): this;
+  fromValues(
+    data: {
+      col: string,
+      rows: any[],
+      dataType: string,
+    }[],
+    alias: string,
+  ): this;
+  joinLateral(table: Knex.Raw | BaseQueryBuilder<any>): this;
+  leftJoinLateral(table: Knex.Raw | BaseQueryBuilder<any>): this;
   tableSample(type: 'bernoulli' | 'system' | 'system_rows', arg: number): this;
 }
 
 function validateLateral(
   joinType: 'left' | 'inner',
-  entityType: EntityType,
+  modelType: ModelType,
   table: Knex.Raw | BaseQueryBuilder<any>,
 ) {
-  const lateralEntityType = TS.getAs<EntityClass>(table, '_modelClass').type;
+  const lateralModelType = TS.getAs<ModelClass>(table, '_modelClass').type;
   if (TS.hasProp(table, '_operations')) {
     const operations = TS.getAs<{ name: string, args: any[] }[]>(table, '_operations');
     for (const op of operations) {
@@ -56,17 +62,18 @@ function validateLateral(
         : [TS.last(op.args)];
       const stringCol = rightVals.find(val => typeof val === 'string' && /^"?\w+"?\."?\w+"?$/.test(val));
       if (stringCol) {
-        throw new Error(`lateralJoin(${entityType}, ${lateralEntityType}): maybe "${stringCol}" should be raw column instead of string`);
+        throw new Error(`joinLateral(${modelType}, ${lateralModelType}): maybe "${stringCol}" should be raw column instead of string`);
       }
     }
 
     const agg = operations.find(op => AGGREGATE_FUNCTIONS_SET.has(op.name));
     if (agg && joinType !== 'left') {
-      throw new Error(`lateralJoin(${entityType}, ${lateralEntityType}): aggregates should use lateral left joins`);
+      throw new Error(`joinLateral(${modelType}, ${lateralModelType}): aggregates should use lateral left joins`);
     }
   }
 }
 
+// Note: Materialize doesn't support random() yet
 export default class CustomQueryBuilder<M extends Model, R = M[]>
   extends BaseQueryBuilder<M, R>
   implements CustomQueryBuilderMethods {
@@ -105,14 +112,35 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     return this.select(raw('coalesce(??, ?) ??', [col, defaultVal, alias ?? col]));
   }
 
-  // Materialize doesn't support random() yet.
-  orderByRandom(): this {
-    // Prime that's not close to power of 2
-    const m = randArrItem([
-      11, 13, 19, 23, 29, 37, 41, 43, 47,
-      53, 59, 61, 67, 71, 73, 79, 83, 89, 97,
-    ]);
-    return this.orderByRaw(`(id * ${rand(1, 10)}) % ${m}`);
+  override whereNot = (...args: any[]): this => {
+    if (!process.env.PRODUCTION && typeof args[0] === 'string') {
+      let Model: ModelClass;
+      let col = args[0];
+      const parts = col.split('.');
+      if (parts.length === 2) {
+        Model = getModelClass(parts[0] as ModelType);
+        col = parts[1];
+      } else {
+        Model = TS.getAs<ModelClass>(this, '_modelClass');
+      }
+      const schema = Model.getSchema()[col as ModelKey<ModelClass>];
+
+      if (schema && isSchemaNullable(schema)) {
+        printDebug(`whereNot(${Model.type}.${col}): unsafe condition, use whereDistinctFrom`, 'warn');
+      }
+    }
+    return super.whereNot(
+      // @ts-ignore wontfix spread arr
+      ...args,
+    );
+  };
+
+  whereDistinctFrom(col: string, val: any): this {
+    return super.where(col, 'IS DISTINCT FROM', val);
+  }
+
+  whereNotDistinctFrom(col: string, val: any): this {
+    return super.where(col, 'IS NOT DISTINCT FROM', val);
   }
 
   tsquery(
@@ -154,72 +182,80 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     );
   }
 
-  fromValues(cols: string | string[], rows: any[], alias: string): this {
-    if (!rows.length) {
+  fromValues(
+    data: {
+      col: string,
+      rows: any[],
+      dataType: string,
+    }[],
+    alias: string,
+  ): this {
+    if (!data.length) {
+      throw new Error('CustomQueryBuilder.fromValues: missing data');
+    }
+    const numRows = data[0].rows.length;
+    if (!data.every(d => d.rows.length === numRows)) {
+      throw new Error('CustomQueryBuilder.fromValues: rows have different lengths');
+    }
+
+    if (!numRows) {
       return this.from(raw(
         `
           (select ${
-            typeof cols === 'string'
-              ? 'null ??'
-              : cols.map(_ => 'null ??').join(',')
+            data.map(d => `null ??::${d.dataType}`).join(',')
           } from generate_series(0, -1)) ??
         `,
         [
-          ...(typeof cols === 'string' ? [cols] : cols),
+          ...data.map(d => d.col),
           alias,
-        ],
-      ));
-    }
-
-    if (typeof cols === 'string') {
-      return this.from(raw(
-        `
-          (values ${rows.map(_ => '(?)').join(',')})
-          ??(??)
-        `,
-        [
-          ...rows,
-          alias,
-          cols,
         ],
       ));
     }
 
     return this.from(raw(
       `
-        (values ${rows.map(_ => `(${cols.map(_ => '?').join(',')})`).join(',')})
-        ??(${cols.map(_ => '??')})
+        (values ${
+          Array.from({ length: numRows })
+            .map((_, idx) => (
+              idx === 0
+                ? `(${data.map(d => `?::${d.dataType}`).join(',')})`
+                : `(${data.map(_ => '?').join(',')})`
+            ))
+            .join(',')
+        })
+        ??(${data.map(_ => '??')})
       `,
       [
-        ...rows.flatMap(row => cols.map(col => row[col])),
+        ...data.flatMap(d => d.rows),
         alias,
-        ...cols,
+        ...data.map(d => d.col),
       ],
     ));
   }
 
   // Note: useful in MZ for top per group.
-  lateralJoin(table: Knex.Raw | BaseQueryBuilder<any>): this {
-    validateLateral('inner', TS.getAs<EntityClass>(this, '_modelClass').type, table);
+  joinLateral(table: Knex.Raw | BaseQueryBuilder<any>): this {
+    validateLateral('inner', TS.getAs<ModelClass>(this, '_modelClass').type, table);
 
     // @ts-ignore Objection is missing type
     return this.addOperation(
-      new KnexOperation('lateralJoin'),
+      new KnexOperation('joinLateral'),
       [table],
     );
   }
 
-  lateralLeftJoin(table: Knex.Raw | BaseQueryBuilder<any>): this {
-    validateLateral('left', TS.getAs<EntityClass>(this, '_modelClass').type, table);
+  leftJoinLateral(table: Knex.Raw | BaseQueryBuilder<any>): this {
+    validateLateral('left', TS.getAs<ModelClass>(this, '_modelClass').type, table);
 
     // @ts-ignore Objection is missing type
     return this.addOperation(
-      new KnexOperation('lateralLeftJoin'),
+      new KnexOperation('leftJoinLateral'),
       [table],
     );
   }
 
   // Can't use "where" with system_rows
+  // Note: system_rows isn't completely random, some rows will be returned together
   tableSample(type: 'bernoulli' | 'system' | 'system_rows', numRows: number): this {
     return this.from(raw(`?? tablesample ${type}(?)`, [this.modelClass().tableName, numRows]));
   }

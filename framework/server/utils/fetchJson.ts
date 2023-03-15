@@ -1,12 +1,14 @@
+import type { HeadersInit, RequestInit, Response } from 'undici';
+
 import { URLSearchParams } from 'url';
 import promiseTimeout from 'utils/promiseTimeout';
-import { MAX_HTTP_TIMEOUT } from 'settings';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 
 export default async function fetchJson(
   url: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
   params: Nullish<ObjectOf<any>> = null,
+  timeout = 15 * 1000,
 ): Promise<{
   data?: unknown,
   status: number,
@@ -29,8 +31,8 @@ export default async function fetchJson(
 
   const res: Response = await promiseTimeout(
     fetch(url, opts),
-    MAX_HTTP_TIMEOUT,
-    new Error(`fetchJson(${url}) timed out`),
+    timeout,
+    new Error(`fetchJson(${url}): timed out`),
   );
   if (res.status === 204) {
     return {
@@ -43,9 +45,7 @@ export default async function fetchJson(
   try {
     data = deepFreezeIfDev(JSON.parse(text));
   } catch {
-    const err = new Error(`fetchJson(${url}): unable to parse JSON`);
-    ErrorLogger.warn(err, text.slice(0, 200));
-    throw err;
+    throw getErr(`fetchJson(${url}): unable to parse JSON`, { text });
   }
 
   return {

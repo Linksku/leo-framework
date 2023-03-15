@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken';
 
 import { defineApi } from 'services/ApiManager';
-import SseBroadcastManager from 'services/SseBroadcastManager';
-import { DEFAULT_AUTH_EXPIRATION } from 'serverSettings';
+import SseBroadcastManager from 'services/sse/SseBroadcastManager';
+import { DEFAULT_COOKIES_TTL } from 'settings';
+import { SSE_JWT_KEY } from 'helpers/auth/jwt';
 
 defineApi(
   {
@@ -35,9 +36,9 @@ defineApi(
     const otp = await new Promise<Nullish<string>>(succ => {
       jwt.sign(
         { id: currentUserId },
-        TS.defined(process.env.SSE_JWT_KEY),
+        SSE_JWT_KEY,
         {
-          expiresIn: DEFAULT_AUTH_EXPIRATION / 1000,
+          expiresIn: DEFAULT_COOKIES_TTL / 1000,
         },
         (err, otpJwt) => {
           if (err) {
@@ -81,12 +82,17 @@ defineApi(
       additionalProperties: false,
     },
   },
-  function sseSubscribeApi({ sessionId, events }: ApiHandlerParams<'sseSubscribe'>) {
+  async function sseSubscribeApi({ sessionId, events, currentUserId }: ApiHandlerParams<'sseSubscribe'>) {
     // todo: high/hard validate event permissions
 
-    for (const event of events) {
-      SseBroadcastManager.subscribe(sessionId, event.name, event.params);
-    }
+    await Promise.all(events.map(
+      async event => SseBroadcastManager.subscribe(
+        sessionId,
+        event.name,
+        event.params,
+        currentUserId,
+      ),
+    ));
 
     return {
       data: null,

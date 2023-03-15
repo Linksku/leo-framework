@@ -1,4 +1,10 @@
-import seedDb from 'scripts/seedDb';
+import redlock from 'services/redlock';
+import { INIT_INFRA_LOCK_NAME, INIT_INFRA_REDIS_KEY } from 'consts/infra';
+import exec from 'utils/exec';
+import seedDb from 'config/seedDb';
+import { APP_NAME_LOWER } from 'settings';
+import { redisMaster } from 'services/redis';
+import initInfraWrap from 'utils/infra/initInfraWrap';
 import destroyDockerCompose from './mv/steps/destroyDockerCompose';
 import startDockerCompose from './mv/steps/startDockerCompose';
 import destroyMVInfra from './mv/destroyMVInfra';
@@ -31,14 +37,26 @@ import initMVInfra from './mv/initMVInfra';
 - Create MZ sinks
 */
 
-// todo: mid/mid add script to recreate single table
+// todo: low/mid create pg db and user
+// todo: mid/mid use superuser for infra scripts and limit pg user permissions
 export default async function recreateInfra() {
-  await destroyDockerCompose();
-  await startDockerCompose();
-  await destroyMVInfra();
-  await resetDb();
-  await restorePgdump();
-  await initRR();
-  await seedDb();
-  await initMVInfra();
+  const lock = await redlock.acquire([INIT_INFRA_LOCK_NAME], 60 * 1000);
+  await redisMaster.setex(INIT_INFRA_REDIS_KEY, 60, '1');
+  try {
+    await destroyDockerCompose();
+  } catch (err) {
+    await lock.release();
+    throw err;
+  }
+
+  await exec(`yarn dc -p ${APP_NAME_LOWER} --compatibility up -d redis`);
+  return initInfraWrap(async () => {
+    await startDockerCompose();
+    await destroyMVInfra();
+    await resetDb();
+    await restorePgdump();
+    await initRR();
+    await seedDb();
+    await initMVInfra();
+  });
 }

@@ -14,4 +14,4 @@ export const appModels: ModelsArr = _appModels;
 export default [
   ...frameworkModels.filter(model => !appModels.some(m => m.type === model.type)),
   ...appModels,
-];
+] as ModelsArr;

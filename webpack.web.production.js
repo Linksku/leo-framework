@@ -1,6 +1,5 @@
 import path from 'path';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
-import TerserPlugin from 'terser-webpack-plugin';
 import childProcess from 'child_process';
 import CopyPlugin from 'copy-webpack-plugin';
 
@@ -8,9 +7,10 @@ import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
 import transformWebpackCopied from './scripts/helpers/transformWebpackCopied';
 import baseConfig from './webpack.web';
 import shortenCssClass from './scripts/helpers/shortenCssClass';
+import getTerserPlugin from './scripts/helpers/getTerserPlugin';
 
-if (!process.env.SERVER || !process.env.NODE_ENV) {
-  throw new Error('Env vars not set.');
+if (process.env.NODE_ENV !== 'production') {
+  throw new Error('NODE_ENV isn\'t production');
 }
 
 const jsVersion = Number.parseInt(
@@ -89,24 +89,8 @@ export default mergeReplaceArrays(baseConfig, {
     }),
   ],
   optimization: {
-    minimize: true,
     minimizer: [
-      new TerserPlugin({
-        terserOptions: {
-          ecma: 2017,
-          module: true,
-          compress: {
-            passes: 2,
-            // According to Vercel, these can cause bugs.
-            comparisons: false,
-            inline: 2,
-          },
-          output: {
-            comments: false,
-          },
-        },
-        extractComments: false,
-      }),
+      getTerserPlugin(),
     ],
   },
   stats: {

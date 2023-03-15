@@ -1,7 +1,6 @@
 import ajv from 'services/ajv';
 
-let apis = [] as ApiDefinition<any>[];
-let isSorted = true;
+const apis = [] as ApiDefinition<any>[];
 export const nameToApi = {} as ObjectOf<ApiDefinition<any>>;
 
 export function defineApi<Name extends ApiName>(
@@ -16,13 +15,9 @@ export function defineApi<Name extends ApiName>(
     handler,
   };
   apis.push(api);
-  isSorted = false;
   nameToApi[config.name] = api;
 }
 
 export function getApis(): Readonly<ApiDefinition<any>[]> {
-  if (!isSorted) {
-    apis = apis.sort((a, b) => a.config.name.localeCompare(b.config.name));
-  }
-  return apis;
+  return apis.sort((a, b) => a.config.name.localeCompare(b.config.name));
 }

@@ -4,9 +4,10 @@ import path from 'path';
 import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
 import baseConfig from './webpack.server';
 import transformWebpackCopied from './scripts/helpers/transformWebpackCopied';
+import getTerserPlugin from './scripts/helpers/getTerserPlugin';
 
-if (!process.env.SERVER || !process.env.NODE_ENV) {
-  throw new Error('Env vars not set.');
+if (process.env.NODE_ENV !== 'production') {
+  throw new Error('NODE_ENV isn\'t production');
 }
 
 export default mergeReplaceArrays(baseConfig, {
@@ -32,6 +33,8 @@ export default mergeReplaceArrays(baseConfig, {
     }),
   ],
   optimization: {
-    minimize: true,
+    minimizer: [
+      getTerserPlugin(),
+    ],
   },
 });

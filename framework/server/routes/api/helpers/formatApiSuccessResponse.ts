@@ -6,7 +6,7 @@ import { isPropDate } from 'utils/models/dateSchemaHelpers';
 import Model from 'services/model/Model';
 import { mergeEntityExtras, mergeEntityIncludedRelations } from 'utils/models/mergeEntityProps';
 import getRelation from 'utils/models/getRelation';
-import selectRelatedWithAssocs from 'utils/models/selectRelatedWithAssocs';
+import selectRelatedWithAssocs, { RelatedResults } from 'utils/models/selectRelatedWithAssocs';
 
 function _filterDuplicates(seen: ObjectOf<Model>, entities: Model[]) {
   for (let i = 0; i < entities.length; i++) {
@@ -14,17 +14,21 @@ function _filterDuplicates(seen: ObjectOf<Model>, entities: Model[]) {
     const key = `${(ent.constructor as ModelClass).type},${ent.getId()}`;
     const seenEnt = seen[key];
     if (seenEnt) {
-      seenEnt.extras = mergeEntityExtras(seenEnt.extras, ent.extras);
-      seenEnt.includedRelations = mergeEntityIncludedRelations(
-        seenEnt.includedRelations,
-        ent.includedRelations,
-      );
+      if (seenEnt.extras || ent.extras) {
+        seenEnt.extras = mergeEntityExtras(seenEnt.extras, ent.extras);
+      }
+      if (seenEnt.includedRelations || ent.includedRelations) {
+        seenEnt.includedRelations = mergeEntityIncludedRelations(
+          seenEnt.includedRelations,
+          ent.includedRelations,
+        );
+      }
 
       entities.splice(i, 1);
       i--;
-      continue;
+    } else {
+      seen[key] = ent;
     }
-    seen[key] = ent;
   }
 }
 
@@ -94,32 +98,44 @@ function _getRelationConfigs(entities: Model[]): ApiRelationConfigs {
 }
 
 async function _fetchIncludedRelatedEntities(entities: Model[]): Promise<Model[]> {
-  const relatedEntities: Model[] = [];
-  await Promise.all(entities.map(async <T extends ModelClass>(ent: ModelInstance<T>) => {
+  const promises: RelatedResults[] = [];
+  for (const ent of entities) {
     if (!ent.includedRelations) {
-      return;
+      continue;
     }
 
-    await Promise.all(ent.includedRelations.map(async relationName => {
-      const { related, assocs } = await selectRelatedWithAssocs(
-        ent.constructor as T,
-        ent,
-        relationName as keyof ModelRelationTypes<T['type']> & string,
-      );
-      if (Array.isArray(related)) {
-        relatedEntities.push(...related, ...assocs);
-      } else if (related) {
-        // @ts-ignore wontfix relation name
-        relatedEntities.push(related, ...assocs);
+    const relationsSet = new Set(ent.includedRelations);
+    for (const relation of relationsSet) {
+      const parts = relation.split('.');
+      if (parts.length >= 2 && relationsSet.has(parts[0])) {
+        relationsSet.delete(parts[0]);
       }
-    }));
+    }
 
     if (process.env.PRODUCTION) {
       delete ent.includedRelations;
     }
-  }));
 
-  return relatedEntities;
+    for (const relation of relationsSet) {
+      promises.push(selectRelatedWithAssocs(
+        ent.constructor as ModelClass,
+        ent,
+        relation,
+      ));
+    }
+  }
+
+  const results = await Promise.all(promises);
+
+  return results.flatMap(result => {
+    if (Array.isArray(result.related)) {
+      return [...result.related, ...result.assocs];
+    }
+    if (result.related) {
+      return [result.related, ...result.assocs];
+    }
+    return [];
+  });
 }
 
 export default async function formatApiSuccessResponse<Path extends ApiName>({
@@ -131,7 +147,11 @@ export default async function formatApiSuccessResponse<Path extends ApiName>({
   ...others
 }: ApiRouteRet<Path>): Promise<ApiSuccessResponse<Path>> {
   if (Object.keys(others).length) {
-    throw new UserFacingError('Invalid properties in route response.', 500, JSON.stringify(others).slice(0, 100));
+    throw new UserFacingError(
+      'Invalid properties in route response.',
+      500,
+      { additionalProperities: others },
+    );
   }
 
   const entitiesFiltered = TS.filterNulls(entities ?? []);

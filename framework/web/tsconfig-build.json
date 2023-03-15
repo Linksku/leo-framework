@@ -1,19 +1,25 @@
 {
   "extends": "../../tsconfig-base.json",
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable"],
+    "lib": ["es2021", "dom", "dom.iterable"],
     "jsx": "react",
     "paths": {
-      "baseUrl": ["."],
+      /* "config/*": [
+        "app/web/config/*",
+        "app/shared/config/*",
+      ], */
       "*": [
-        "framework/shared/*",
         "framework/web/*",
+        "framework/shared/*",
       ],
     },
-    "rootDir": "../..",
+    "rootDirs": [
+      ".",
+      "../shared",
+    ],
   },
   "include": [
     ".",
-    "../shared",
+    "../shared/types",
   ],
 }

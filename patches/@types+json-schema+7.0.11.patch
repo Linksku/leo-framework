@@ -1,0 +1,21 @@
+diff --git a/node_modules/@types/json-schema/index.d.ts b/node_modules/@types/json-schema/index.d.ts
+index 7a92dec..312dbc6 100755
+--- a/node_modules/@types/json-schema/index.d.ts
++++ b/node_modules/@types/json-schema/index.d.ts
+@@ -173,6 +173,7 @@ export interface JSONSchema4 {
+      */
+     properties?: {
+         [k: string]: JSONSchema4;
++        __propertiesHack?: never;
+     } | undefined;
+ 
+     /**
+@@ -238,6 +239,8 @@ export interface JSONSchema4 {
+     [k: string]: any;
+ 
+     format?: string | undefined;
++
++    __propertiesHack?: false;
+ }
+ 
+ //==================================================================================================

@@ -1,5 +1,6 @@
 import cloneDeep from 'lodash/cloneDeep';
 import dayjs from 'dayjs';
+import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 
 function invalidClassName(val: any): string | null {
   if (val == null || typeof val !== 'object') {
@@ -36,6 +37,7 @@ function invalidClassName(val: any): string | null {
 
 export default function modelInstanceToPojo<T extends ModelClass>(
   instance: ModelInstance<T>,
+  cloneProps = true,
 ): ModelPartial<T> {
   const Model = instance.constructor as T;
   const fullSchema = Model.getSchema();
@@ -51,20 +53,23 @@ export default function modelInstanceToPojo<T extends ModelClass>(
       val = val.toString('utf8').replace(/\0/g, '');
     }
 
-    const name = invalidClassName(val);
-    if (name) {
-      if (Array.isArray(val)) {
-        throw new TypeError(`modelInstanceToPojo(${Model.type}): "${k}" array contains "${name}"`);
-      } else if (val == null || typeof val !== 'object') {
-        throw new TypeError(`modelInstanceToPojo(${Model.type}): ${k} object contains "${name}"`);
-      } else {
-        throw new TypeError(`modelInstanceToPojo(${Model.type}): ${k} is "${name}"`);
+    if (!process.env.PRODUCTION) {
+      const name = invalidClassName(val);
+      if (name) {
+        if (Array.isArray(val)) {
+          throw new TypeError(`modelInstanceToPojo(${Model.type}): "${k}" array contains "${name}"`);
+        } else if (val == null || typeof val !== 'object') {
+          throw new TypeError(`modelInstanceToPojo(${Model.type}): ${k} object contains "${name}"`);
+        } else {
+          throw new TypeError(`modelInstanceToPojo(${Model.type}): ${k} is "${name}"`);
+        }
       }
     }
 
-    obj[k] = val && typeof val === 'object' && !(val instanceof Date) && !(val instanceof dayjs)
+    obj[k] = cloneProps && val && typeof val === 'object'
+      && !(val instanceof Date) && !(val instanceof dayjs)
       ? cloneDeep(val)
-      : val;
+      : deepFreezeIfDev(val);
   }
 
   return obj;

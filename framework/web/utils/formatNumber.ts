@@ -1,4 +1,11 @@
-export default function formatNumber(n: number): string {
+export default function formatNumber(
+  n: number,
+  minFormat = 1000,
+): string {
+  if (n < minFormat) {
+    return `${n}`;
+  }
+
   if (n >= 10_000_000) {
     return `${Math.round(n / 1_000_000)}M`;
   }

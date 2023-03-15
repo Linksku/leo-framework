@@ -2,8 +2,20 @@
 
 start_time=$(date -d "1 minute ago" +"%Y-%m-%d %T")
 
+if [ -e ./framework/server/config/__generated__/allModels.ts ]; then
+  echo "export const frameworkModels = [];
+
+export const appModels = [];
+" > ./framework/server/config/__generated__/allModels.ts
+fi
+if [ -e ./app/server/config/__generated__/allModels.ts ]; then
+  echo "export const frameworkModels = [];
+
+export const appModels = [];
+" > ./app/server/config/__generated__/allModels.ts
+fi
+
 yarn ss buildModels || { echo 'buildModels failed' ; exit 1; }
-# todo: low/mid don't rebuild all types
 yarn ss buildTypes || { echo 'buildTypes failed' ; exit 1; }
 
 find \

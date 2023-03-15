@@ -1,4 +1,3 @@
-import HOME_TABS from 'config/homeTabs';
 import useUpdatedState from 'utils/hooks/useUpdatedState';
 import shallowEqual from 'utils/shallowEqual';
 import { useAddPopHandler } from './HistoryStore';
@@ -8,6 +7,7 @@ type TabType = ValueOf<typeof HOME_TABS>;
 export const [
   HomeNavProvider,
   useHomeNavStore,
+  useHomeTab,
 ] = constate(
   function HomeNavStore() {
     const ref = useRef<{
@@ -19,7 +19,12 @@ export const [
       doneFirstRender: false,
     });
 
-    const { prevState, curState, didRefresh } = useHistoryStore();
+    const {
+      prevState,
+      curState,
+      didRefresh,
+      navCountHack,
+    } = useHistoryStore();
     const addPopHandler = useAddPopHandler();
     const showToast = useShowToast();
     const pushPath = usePushPath();
@@ -41,7 +46,12 @@ export const [
       [prevPathParts],
     );
 
-    const { homeTab, homeParts, prevHomeTab, prevHomeParts } = useUpdatedState<{
+    const {
+      homeTab,
+      homeParts,
+      prevHomeTab,
+      prevHomeParts,
+    } = useUpdatedState<{
       homeTab: TabType,
       homeParts: Memoed<string[]>,
       prevHomeTab: TabType,
@@ -88,20 +98,6 @@ export const [
         return s;
       },
     );
-    const lastHomeHistoryState = useUpdatedState(
-      isHome
-        ? curState
-        : (wasHome ? prevState : null),
-      s => {
-        if (isHome) {
-          return curState;
-        }
-        if (wasHome) {
-          return prevState;
-        }
-        return s;
-      },
-    );
 
     useEffect(() => {
       if (ref.current.hasAttemptedExit
@@ -121,30 +117,39 @@ export const [
     }, [addPopHandler, showToast, curState, isHome, homeTab]);
 
     // Add home to history.
-    // todo: mid/mid prevent forcing route rerender in homenavstore
-    useEffect(() => {
+    // todo: low/mid prevent forcing route rerender in homenavstore
+    useLayoutEffect(() => {
       const { path, query, hash } = curState;
       if (!ref.current.doneFirstRender && isHome && !didRefresh && path !== '/') {
-        batchedUpdates(() => {
-          replacePath('/', null);
-          pushPath(path, query, hash);
-        });
+        replacePath('/', null);
+        pushPath(path, query, hash);
         ref.current.doneFirstRender = true;
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    return useDeepMemoObj({
+    return useMemo(() => ({
       homeTab,
       prevHomeTab,
       homeParts,
       prevHomeParts,
       isHome,
       wasHome,
-      lastHomeHistoryState,
-    });
+      navCountHack,
+    }), [
+      homeTab,
+      prevHomeTab,
+      homeParts,
+      prevHomeParts,
+      isHome,
+      wasHome,
+      navCountHack,
+    ]);
   },
   function HomeNavStore(val) {
     return val;
+  },
+  function HomeTab(val) {
+    return val.homeTab;
   },
 );

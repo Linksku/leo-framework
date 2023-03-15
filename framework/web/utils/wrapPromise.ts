@@ -4,6 +4,6 @@ export default function wrapPromise<T extends Promise<any>>(
   ctx?: string,
 ): void {
   promise.catch(err => {
-    ErrorLogger[severity](err, ctx);
+    ErrorLogger[severity](err, { ctx });
   });
 }

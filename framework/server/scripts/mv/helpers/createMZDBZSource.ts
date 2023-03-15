@@ -1,34 +1,69 @@
+import pLimit from 'p-limit';
+
 import knexMZ from 'services/knex/knexMZ';
 import {
-  DBZ_TOPIC_PREFIX,
+  DBZ_TOPIC_UPDATEABLE_PREFIX,
   DBZ_TOPIC_INSERT_ONLY_PREFIX,
   MZ_TIMESTAMP_FREQUENCY,
-  MV_INSERT_ONLY_SUFFIX,
 } from 'consts/mz';
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
-import getModelRecursiveDeps from 'utils/models/getModelRecursiveDeps';
+import { KAFKA_BROKER_INTERNAL_PORT, SCHEMA_REGISTRY_PORT } from 'consts/infra';
+import retry from 'utils/retry';
+import showMzSystemRows from 'utils/db/showMzSystemRows';
+import getEntitiesWithMZSources from './getEntitiesWithMZSources';
+import waitForMZSourcesCatchUp from '../steps/waitForMZSourcesCatchUp';
 
-export default async function createMZDBZSource(Models: EntityClass[], insertOnly: boolean) {
-  const allDeps = new Set([
-    ...MaterializedViewModels.map(Model => Model.type),
-    ...MaterializedViewModels.flatMap(Model => getModelRecursiveDeps(Model).map(dep => dep.type)),
-  ]);
+const limiter = pLimit(5);
 
-  for (const Model of Models) {
-    if (!allDeps.has(Model.type)) {
-      continue;
-    }
+export default async function createMZDBZSource(models: EntityClass[], insertOnly: boolean) {
+  const startTime = performance.now();
 
-    printDebug(`Creating source ${Model.tableName}${insertOnly ? MV_INSERT_ONLY_SUFFIX : ''}`, 'info');
-    await knexMZ.raw(`
-      CREATE SOURCE "${Model.tableName}${insertOnly ? MV_INSERT_ONLY_SUFFIX : ''}"
-      FROM KAFKA BROKER 'broker:${process.env.KAFKA_BROKER_INTERNAL_PORT}'
-      TOPIC '${insertOnly ? DBZ_TOPIC_INSERT_ONLY_PREFIX : DBZ_TOPIC_PREFIX}${Model.tableName}'
-      WITH (
-        timestamp_frequency_ms = ${MZ_TIMESTAMP_FREQUENCY}
-      )
-      FORMAT AVRO USING CONFLUENT SCHEMA REGISTRY 'http://schema-registry:8081'
-      ENVELOPE ${insertOnly ? 'NONE' : 'DEBEZIUM'}
-    `);
+  const existingSources = new Set(await showMzSystemRows('SHOW SOURCES'));
+  const allDeps = new Set(getEntitiesWithMZSources());
+  const sourcesToCreate = models
+    .filter(model => allDeps.has(model.type)
+      && !existingSources.has(model.tableName));
+  if (!sourcesToCreate.length) {
+    printDebug('All DBZ sources already created', 'info');
+    return;
   }
+  printDebug(`Creating DBZ ${insertOnly ? 'insert-only ' : ''}sources`, 'highlight');
+
+  await Promise.all(sourcesToCreate.map(model => limiter(async () => {
+    printDebug(`Creating source for ${model.type}`, 'info');
+    await retry(
+      async () => {
+        try {
+          /*
+          Note: DBZ can produce duplicate message, "UPSERT" is needed for deduping:
+          https://github.com/MaterializeInc/materialize/issues/14211
+          */
+          await knexMZ.raw(`
+            CREATE SOURCE "${model.tableName}"
+            FROM KAFKA BROKER 'broker:${KAFKA_BROKER_INTERNAL_PORT}'
+            TOPIC '${insertOnly ? DBZ_TOPIC_INSERT_ONLY_PREFIX : DBZ_TOPIC_UPDATEABLE_PREFIX}${model.tableName}'
+            WITH (
+              timestamp_frequency_ms = ${MZ_TIMESTAMP_FREQUENCY}
+            )
+            FORMAT AVRO USING CONFLUENT SCHEMA REGISTRY 'http://schema-registry:${SCHEMA_REGISTRY_PORT}'
+            ENVELOPE ${insertOnly ? 'NONE' : 'DEBEZIUM UPSERT'}
+          `);
+        } catch (err) {
+          if (!(err instanceof Error && err.message.includes('already exists'))) {
+            throw err instanceof Error
+              ? getErr(err, { ctx: `createMZDBZSource(${model.type})` })
+              : err;
+          }
+        }
+      },
+      {
+        timeout: 5 * 60 * 1000,
+        interval: 1000,
+        ctx: 'createMZDBZSource',
+      },
+    );
+  })));
+
+  await waitForMZSourcesCatchUp(sourcesToCreate);
+
+  printDebug(`Created MZ ${insertOnly ? 'insert-only' : 'updateable'} sources after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
 }

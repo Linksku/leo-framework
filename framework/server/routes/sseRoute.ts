@@ -2,17 +2,19 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
 
-import SseConnectionsManager from 'services/SseConnectionsManager';
-import serializeEvent from 'utils/serializeEvent';
+import SseConnectionsManager from 'services/sse/SseConnectionsManager';
+import serializeSseEvent from 'utils/serializeSseEvent';
 import generateUuid from 'utils/generateUuid';
-import SseBroadcastManager from 'services/SseBroadcastManager';
-import formatApiErrorResponse from 'routes/api/helpers/formatApiErrorResponse';
+import SseBroadcastManager from 'services/sse/SseBroadcastManager';
+import formatAndLogApiErrorResponse from 'routes/api/helpers/formatAndLogApiErrorResponse';
 import rateLimitMiddleware from 'routes/api/helpers/rateLimitMiddleware';
 import requestContextMiddleware from 'routes/api/helpers/requestContextMiddleware';
+import RequestContextLocalStorage from 'services/requestContext/RequestContextLocalStorage';
 import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
+import { SSE_JWT_KEY } from 'helpers/auth/jwt';
 
 const router = express.Router();
-router.use(rateLimitMiddleware(60));
+router.use(rateLimitMiddleware(100));
 
 router.use(cors({
   origin: [
@@ -51,7 +53,7 @@ router.get('/', async (req, res) => {
       currentUserId = await new Promise(succ => {
         jwt.verify(
           otp,
-          TS.defined(process.env.SSE_JWT_KEY),
+          SSE_JWT_KEY,
           {},
           (err, obj: any) => {
             if (err) {
@@ -76,10 +78,12 @@ router.get('/', async (req, res) => {
 
     req.on('close', () => {
       SseConnectionsManager.removeConn(sessionId);
+      RequestContextLocalStorage.disable();
     });
 
     req.on('end', () => {
       SseConnectionsManager.removeConn(sessionId);
+      RequestContextLocalStorage.disable();
     });
 
     res.status(200).set({
@@ -90,14 +94,19 @@ router.get('/', async (req, res) => {
     });
 
     if (events) {
-      for (const event of events) {
-        SseBroadcastManager.subscribe(sessionId, event.name, event.params);
-      }
+      await Promise.all(events.map(
+        event => SseBroadcastManager.subscribe(
+          sessionId,
+          event.name,
+          event.params,
+          currentUserId,
+        ),
+      ));
     }
 
     // todo: low/mid move types into shared constants
     const response: SseResponse = {
-      eventType: serializeEvent('sseConnected'),
+      eventType: serializeSseEvent('sseConnected'),
       status: 200,
       data: {
         sessionId,
@@ -106,9 +115,7 @@ router.get('/', async (req, res) => {
     };
     SseConnectionsManager.sendMessage(sessionId, JSON.stringify(response));
   } catch (err) {
-    ErrorLogger.error(ErrorLogger.castError(err), 'sseRoute');
-
-    const { status, error } = formatApiErrorResponse(err, 'sseRoute');
+    const { status, error } = formatAndLogApiErrorResponse(err, 'sseRoute', 'default');
     res.status(status).json(error);
   }
 });

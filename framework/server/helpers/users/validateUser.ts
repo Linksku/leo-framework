@@ -9,7 +9,7 @@ import {
   MAX_PASSWORD_LENGTH,
 } from 'consts/coreUsers';
 import tokenizeString from 'utils/nlp/tokenizeString';
-import isNameInappropriate from 'helpers/isNameInappropriate';
+import isNameUnsafe from 'helpers/isNameUnsafe';
 import isPasswordCommon from './isPasswordCommon';
 
 export function getBirthdayInvalidReason(birthday: string): string | null {
@@ -35,7 +35,7 @@ export function getNameInvalidReason(name: string): string | null {
     return 'Name contains invalid characters.';
   }
   const words = tokenizeString(name);
-  if (isNameInappropriate(words)) {
+  if (isNameUnsafe(words)) {
     return 'Name isn\'t allowed.';
   }
 

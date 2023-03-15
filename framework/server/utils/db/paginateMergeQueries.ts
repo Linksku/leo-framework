@@ -77,7 +77,11 @@ export default async function paginateMergeQueries<T extends QueryBuilder<Model>
   return {
     entities: mergedEntities,
     data: {
-      entityIds: mergedEntities.map(e => e.getId() as T['ModelType']['cls']['primaryIndex'] extends any[] ? ApiEntityId : EntityId),
+      items: mergedEntities.map(
+        e => e.getId() as T['ModelType']['cls']['primaryIndex'] extends any[]
+          ? ApiEntityId
+          : EntityId,
+      ),
       cursor: lastRowCursorVals
         ? lastRowCursorVals.join(',')
         : undefined,

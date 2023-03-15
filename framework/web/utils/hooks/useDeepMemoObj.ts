@@ -2,10 +2,36 @@ import equal from 'fast-deep-equal';
 
 import useUpdatedState from 'utils/hooks/useUpdatedState';
 
-export default function useDeepMemoObj<T extends ObjectOf<any>>(obj: T) {
-  // todo: low/mid in dev mode, check deep memo obj size and how often this updates
-  return useUpdatedState(
-    obj,
-    s => (equal(obj, s) ? s : obj),
-  ) as MemoDeep<T>;
-}
+export default process.env.PRODUCTION
+  ? function useDeepMemoObj<T>(obj: T) {
+    return useUpdatedState(
+      obj,
+      s => (equal(s, obj) ? s : obj),
+    ) as MemoDeep<T>;
+  }
+  : function useDeepMemoObj<T>(obj: T) {
+    const ref = useRef({
+      numRenders: 0,
+      numUpdates: 0,
+      prevObj: obj,
+    });
+
+    useEffect(() => {
+      ref.current.numRenders++;
+      if (!equal(obj, ref.current.prevObj)) {
+        ref.current.numUpdates++;
+
+        if (ref.current.numUpdates > 3 && ref.current.numUpdates === ref.current.numRenders) {
+          // eslint-disable-next-line no-console
+          console.warn('useDeepMemoObj: updated for every render', obj);
+        }
+      }
+
+      ref.current.prevObj = obj;
+    });
+
+    return useUpdatedState(
+      obj,
+      s => (equal(s, obj) ? s : obj),
+    ) as MemoDeep<T>;
+  };

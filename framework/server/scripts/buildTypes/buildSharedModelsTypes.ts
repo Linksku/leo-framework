@@ -6,7 +6,7 @@ import { compile } from 'json-schema-to-typescript';
 import allModels, { ModelsArr, frameworkModels } from 'services/model/allModels';
 import isSchemaNullable from 'utils/models/isSchemaNullable';
 
-function isValidValSchema(val: JSONSchema): boolean {
+function isValidValSchema(val: JsonSchema): boolean {
   if (typeof val === 'boolean') {
     return false;
   }
@@ -36,23 +36,22 @@ async function getOutput(models: ModelsArr) {
   }>>;
 
   for (const { Model } of models) {
-    const { schema, jsonSchema } = Model;
-    for (const [prop, val] of Object.entries(schema)) {
+    for (const [prop, val] of Object.entries(Model.schema)) {
       if (prop === 'id') {
         continue;
       }
-      if (jsonSchema.required.includes(prop)) {
+      if (Model.jsonSchema.required.includes(prop)) {
         continue;
       }
       if (isValidValSchema(val)) {
         continue;
       }
 
-      throw new Error(`${Model.name}.${prop} must be auto-incremented (id), required, nullable or have default.`);
+      throw new Error(`buildSharedModelsTypes.getOutput: ${Model.name}.${prop} must be auto-incremented (id), required, nullable or have default.`);
     }
 
     const fields = await compile(
-      jsonSchema as JSONSchema,
+      Model.jsonSchema as JsonSchema,
       'Foo',
       { bannerComment: '' },
     );

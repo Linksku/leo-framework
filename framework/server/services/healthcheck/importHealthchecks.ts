@@ -1,0 +1,15 @@
+import './pgHealthcheck';
+import './replicationSlotsHealthcheck';
+import './rrEntitiesHealthcheck';
+import './dbzConnectorsHealthcheck';
+import './dbzConnectorTopicsHealthcheck';
+import './mzSourcesHealthcheck';
+import './mzViewsHealthcheck';
+import './mzSinksHealthcheck';
+import './mzSinkTopicsHealthcheck';
+import './mzSinkPrometheusHealthcheck';
+import './mzSinkConnectorsHealthcheck';
+import './rrMVsHealthcheck';
+import './mzUpdatingHealthcheck';
+import './redisHealthcheck';
+import './bullCronHealthcheck';

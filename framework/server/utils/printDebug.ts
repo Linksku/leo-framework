@@ -1,5 +1,8 @@
-import { inspect } from 'util';
 import chalk from 'chalk';
+import dayjs from 'dayjs';
+
+import formatErr from 'utils/formatErr';
+import getServerId from 'utils/getServerId';
 
 const MSG_TYPES = new Set(['normal', 'success', 'highlight', 'info', 'warn', 'error', 'fail'] as const);
 
@@ -9,6 +12,7 @@ function printDebug(
   val: any,
   type?: MsgType,
   details?: string,
+  printInProd?: 'always' | 'only' | 'never',
 ): void;
 
 function printDebug(
@@ -20,20 +24,20 @@ function printDebug(
   val: any,
   _type: any = 'normal',
   _details: string | undefined = undefined,
+  _printInProd: 'always' | 'only' | 'never' = 'never',
 ) {
+  if (process.env.PRODUCTION) {
+    if (!process.env.IS_SERVER_SCRIPT && _printInProd === 'never') {
+      return;
+    }
+  } else if (_printInProd === 'only') {
+    return;
+  }
+
   const type: MsgType = MSG_TYPES.has(_type) ? _type : 'normal';
   const details = MSG_TYPES.has(_type) ? _details : null;
 
-  let msg: string;
-  if (val instanceof Error) {
-    msg = `${val.message}
-${inspect(val, { depth: 10 })}`;
-  } else if (val && typeof val === 'object') {
-    msg = inspect(val, { depth: 10 });
-  } else {
-    msg = `${val}`;
-  }
-
+  let msg = formatErr(val);
   if (type === 'success') {
     msg = chalk.green(msg);
   } else if (type === 'highlight' || type === 'info') {
@@ -44,15 +48,15 @@ ${inspect(val, { depth: 10 })}`;
     msg = chalk.redBright(msg);
   }
 
+  const timeStr = dayjs().format('MM-DD HH:mm:ss');
+  const serverId = getServerId();
   if (details) {
     // eslint-disable-next-line no-console
-    console.log(`${msg}:`, details);
+    console.log(`[${timeStr}]${serverId ? `[${serverId}]` : ''} ${msg}:`, details);
   } else {
     // eslint-disable-next-line no-console
-    console.log(msg);
+    console.log(`[${timeStr}]${serverId ? `[${serverId}]` : ''} ${msg}`);
   }
 }
 
-export default process.env.PRODUCTION && !process.env.IS_SERVER_SCRIPT
-  ? NOOP as typeof printDebug
-  : printDebug;
+export default printDebug;

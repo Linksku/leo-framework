@@ -1,0 +1,27 @@
+FROM node:18.9.1-slim
+COPY --from=docker:20.10.14 /usr/local/bin/docker /usr/local/bin/
+
+ENV IS_DOCKER=1
+EXPOSE 80
+EXPOSE 443
+WORKDIR /usr/src
+
+RUN apt-get -y update \
+  && apt-get -y install curl \
+  && apt-get clean \
+  && mkdir -p /usr/local/lib/docker/cli-plugins \
+  && curl -SL https://github.com/docker/compose/releases/download/v2.11.2/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose \
+  && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+COPY package.docker.json package.json
+COPY patches patches
+COPY docker-compose.js docker-compose.js
+COPY build/production build/production
+
+# Sync with webpack.server.js
+RUN yarn --production \
+  && yarn cache clean
+
+USER 1000
+
+ENTRYPOINT []

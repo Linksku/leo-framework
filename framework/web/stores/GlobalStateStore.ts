@@ -39,9 +39,7 @@ function useGlobalState<T>(
     const prevVal = allVals[key];
     allVals[key] = newVal;
     if (prevVal !== newVal) {
-      batchedUpdates(() => {
-        GlobalStateEventEmitter.emit(key);
-      });
+      GlobalStateEventEmitter.emit(key);
     }
   }, [allVals, key]);
 
@@ -51,10 +49,10 @@ function useGlobalState<T>(
       update();
     };
 
-    GlobalStateEventEmitter.addListener(key, cb);
+    GlobalStateEventEmitter.on(key, cb);
 
     return () => {
-      GlobalStateEventEmitter.removeListener(key, cb);
+      GlobalStateEventEmitter.off(key, cb);
     };
   }, [key, update]);
 

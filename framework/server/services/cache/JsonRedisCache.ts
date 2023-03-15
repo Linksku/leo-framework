@@ -14,7 +14,7 @@ export default class JsonRedisCache<T extends Json, T2 extends Json = T> extends
       ...props,
       serialize: obj => (
         obj
-          ? JSON.stringify(serialize ? serialize(obj) : obj)
+          ? TS.defined(JSON.stringify(serialize ? serialize(obj) : obj))
           : 'null'
       ),
       unserialize: (json, key) => {
@@ -26,7 +26,7 @@ export default class JsonRedisCache<T extends Json, T2 extends Json = T> extends
           const parsed = JSON.parse(json) as T2;
           return unserialize ? unserialize(parsed, key) : parsed as unknown as T;
         } catch {
-          ErrorLogger.error(new Error(`JsonRedisCache(${key}): data isn't JSON`), json.slice(0, 100));
+          ErrorLogger.error(new Error(`JsonRedisCache(${key}): data isn't JSON`), { json });
         }
         return undefined;
       },

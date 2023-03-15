@@ -10,7 +10,8 @@ import { fetchUserIdByJwt } from 'helpers/auth/jwt';
 import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
 import rateLimitMiddleware from 'routes/api/helpers/rateLimitMiddleware';
 import requestContextMiddleware from 'routes/api/helpers/requestContextMiddleware';
-import formatApiErrorResponse from 'routes/api/helpers/formatApiErrorResponse';
+import formatAndLogApiErrorResponse from 'routes/api/helpers/formatAndLogApiErrorResponse';
+import { getIsHealthy } from 'services/healthcheck/HealthcheckManager';
 
 import './api/authApis';
 import './api/batchedApi';
@@ -27,12 +28,31 @@ const upload = multer({
   },
 });
 
+function healthcheckMiddleware(
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) {
+  if (req.path === '/status' || getIsHealthy()) {
+    next();
+  } else {
+    res.status(503)
+      .json({
+        status: 503,
+        data: null,
+        error: {
+          msg: 'Service temporarily unavailable',
+        },
+      } as ApiErrorResponse);
+  }
+}
+
 async function addUserMiddleware(
   req: ExpressRequest,
   _res: ExpressResponse,
   next: NextFunction,
 ) {
-  const cookieJwt = req.cookies.authToken;
+  const cookieJwt = req.cookies?.authToken;
   const headerJwt = req.headers.authorization;
   req.currentUserId = (await fetchUserIdByJwt(cookieJwt, headerJwt)) ?? undefined;
   next();
@@ -44,13 +64,14 @@ function requireAuthMiddleware(
   next: NextFunction,
 ) {
   if (typeof req.currentUserId !== 'number' || req.currentUserId <= 0) {
-    res.status(401).json({
-      status: 401,
-      data: null,
-      error: {
-        msg: 'Not authenticated',
-      },
-    } as ApiErrorResponse);
+    res.status(401)
+      .json({
+        status: 401,
+        data: null,
+        error: {
+          msg: 'Not authenticated',
+        },
+      } as ApiErrorResponse);
   } else {
     next();
   }
@@ -60,15 +81,17 @@ function apiNotFound(
   _req: ExpressRequest,
   res: ExpressResponse,
 ) {
-  res.status(404).json({
-    error: {
-      title: 'API not found.',
-    },
-  });
+  res.status(404)
+    .json({
+      error: {
+        title: 'API not found.',
+      },
+    });
 }
 
 const router = express.Router();
 const apis = getApis();
+
 if (!process.env.PRODUCTION) {
   router.use((req, res, next) => {
     if (req.query?.DEBUG && req.path !== '/sseSubscribe' && req.path !== '/sseUnsubscribe') {
@@ -83,12 +106,6 @@ if (!process.env.PRODUCTION) {
   });
 }
 
-router.use(cookieParser());
-router.use('/', addUserMiddleware);
-router.use(rateLimitMiddleware(60));
-
-router.use(express.json());
-router.use(express.urlencoded({ extended: true }));
 router.use(cors({
   origin: [
     HOME_URL,
@@ -102,6 +119,13 @@ router.use(cors({
   ],
 }));
 
+router.use(healthcheckMiddleware);
+router.use(cookieParser());
+router.use(addUserMiddleware);
+router.use(rateLimitMiddleware(100));
+
+router.use(express.json());
+router.use(express.urlencoded({ extended: true }));
 router.use(requestContextMiddleware);
 
 // Unauth.
@@ -115,7 +139,7 @@ for (const api of apis) {
 }
 
 // Auth.
-router.use('/', requireAuthMiddleware);
+router.use(requireAuthMiddleware);
 for (const api of apis) {
   if (api.config.auth) {
     if (api.config.fileFields) {
@@ -136,12 +160,10 @@ for (const api of apis) {
 router.use('/', apiNotFound);
 
 // Express checks number of args
-router.use((err: Error, req: ExpressRequest, res: ExpressResponse, _next: NextFunction) => {
-  ErrorLogger.error(err, 'apiRoutes');
-  const result = formatApiErrorResponse(err, 'apiRoutes');
+router.use((err: Error, _req: ExpressRequest, res: ExpressResponse, _next: NextFunction) => {
+  const result = formatAndLogApiErrorResponse(err, 'apiRoutes', 'default');
   res.status(result.status)
     .set('Content-Type', 'application/json; charset=utf-8')
-    .set('Access-Control-Allow-Origin', HOME_URL)
     .send(JSON.stringify(
       result,
       null,

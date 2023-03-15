@@ -2,6 +2,8 @@ import type { BackButtonListenerEvent } from '@capacitor/app';
 import type { ParsedQuery } from 'query-string';
 import qs from 'query-string';
 import { App as Capacitor } from '@capacitor/app';
+// Include in main bundle
+import '@capacitor/app/dist/esm/web.js';
 
 import useUpdate from 'utils/hooks/useUpdate';
 import useEffectInitialMount from 'utils/hooks/useEffectInitialMount';
@@ -14,8 +16,8 @@ type NativeHistoryState = {
   path: string,
   queryStr: string | null,
   hash: string | null,
-  prevId?: number,
-  prevPath?: string,
+  prevId?: number | undefined,
+  prevPath?: string | undefined,
   prevQueryStr?: string | null,
   prevHash?: string | null,
   direction: Direction,
@@ -43,50 +45,66 @@ function historyStateToKey(
   queryStr: string | null,
   hash: string | null,
 ) {
-  return `${id}|${path}?${queryStr ?? ''}#${hash ?? ''}`;
+  const isHome = path.split('/')[1]?.toUpperCase() in HOME_TABS;
+  return isHome
+    ? `${path}?${queryStr ?? ''}#${hash ?? ''}`
+    // Note: id is for stack UI
+    : `${id}:${path}?${queryStr ?? ''}#${hash ?? ''}`;
 }
 
 // Reduce rerenders.
 const QS_CACHE: ObjectOf<Memoed<ObjectOf<string | string[]>>> = Object.create(null);
-function getHistoryState(
+const HISTORY_STATE_MEMO: ObjectOf<HistoryState> = Object.create(null);
+function getHistoryState({
+  id,
+  path,
+  query,
+  queryStr,
+  hash,
+}: {
   id: number,
   path: string,
+  query?: ObjectOf<string | string[]> | null,
   queryStr: string | null,
   hash: string | null,
-): HistoryState {
-  let query: Memoed<ObjectOf<string | string[]>> = EMPTY_OBJ;
-  if (queryStr && !QS_CACHE[queryStr]) {
-    query = markMemoed(queryToStrVals(qs.parse(queryStr)));
-    QS_CACHE[queryStr] = query;
+}): HistoryState {
+  const key = historyStateToKey(id, path, queryStr, hash);
+  if (!HISTORY_STATE_MEMO[key]) {
+    if (!query && queryStr && !QS_CACHE[queryStr]) {
+      QS_CACHE[queryStr] = markMemoed(queryToStrVals(qs.parse(queryStr)));
+    }
+    HISTORY_STATE_MEMO[key] = markMemoed({
+      id,
+      path,
+      query: markMemoed(query)
+        ?? (queryStr ? QS_CACHE[queryStr] : null)
+        ?? EMPTY_OBJ,
+      queryStr: queryStr || null,
+      hash,
+      key,
+    });
   }
-  return markMemoed({
+
+  return TS.defined(HISTORY_STATE_MEMO[key]);
+}
+
+function getHistoryStateFromLocation(id: number): HistoryState {
+  const { pathname, search, hash } = window.location;
+  let pathDecoded = pathname;
+  try {
+    pathDecoded = decodeURIComponent(pathname);
+  } catch {}
+
+  return getHistoryState({
     id,
-    path,
-    query,
-    queryStr: queryStr || null,
-    hash,
-    key: historyStateToKey(id, path, queryStr, hash),
+    path: pathDecoded,
+    queryStr: search ? (search.slice(1) || null) : null,
+    hash: hash ? (hash.slice(1) || null) : null,
   });
 }
 
-function getHistoryStateFromLocation(id: number) {
-  const { pathname, search, hash } = window.location;
-  let pathDecoded: string;
-  try {
-    pathDecoded = decodeURIComponent(pathname);
-  } catch {
-    pathDecoded = pathname;
-  }
-  return getHistoryState(
-    id,
-    pathDecoded,
-    search || null,
-    hash ? hash.slice(1) : null,
-  );
-}
-
 function getFullPath(path: string, queryStr: string | null, hash: string | null) {
-  let fullPath = path;
+  let fullPath = `${window.location.origin}${path}`;
   if (queryStr) {
     fullPath += `?${queryStr}`;
   }
@@ -114,6 +132,47 @@ function getNativeHistoryState(
   };
 }
 
+function getPartsFromPath(
+  _path: string,
+  _query: Partial<ParsedQuery<string | number>> | null = null,
+  _hash: string | null = null,
+) {
+  const firstQuestion = _path.indexOf('?');
+  const firstHash = _path.indexOf('#');
+  const path = _path.replace(/[#?].*$/, '');
+
+  if (!process.env.PRODUCTION && (
+    (_query && firstQuestion >= 0)
+    || (_hash && firstHash >= 0)
+  )) {
+    throw new Error(`pushPath(${_path}): don't include query/hash in path`);
+  }
+
+  let query: ObjectOf<string | string[]> | null = null;
+  let queryStr: string | null = null;
+  if (_query) {
+    query = queryToStrVals(_query);
+    queryStr = qs.stringify(query);
+  } else if (firstQuestion >= 0) {
+    if (firstHash < 0) {
+      queryStr = _path.slice(firstQuestion + 1);
+      query = queryToStrVals(qs.parse(queryStr));
+    } else if (firstQuestion < firstHash) {
+      queryStr = _path.slice(firstQuestion + 1, firstHash);
+      query = queryToStrVals(qs.parse(queryStr));
+    }
+  }
+  const hash = _hash
+    ?? (firstHash >= 0 ? _path.slice(firstHash + 1) : '');
+
+  return {
+    path,
+    query,
+    queryStr,
+    hash,
+  };
+}
+
 export const [
   HistoryProvider,
   useHistoryStore,
@@ -126,6 +185,7 @@ export const [
       let nativeHistoryState: NativeHistoryState | undefined;
       try {
         nativeHistoryState = TS.assertType<NativeHistoryState>(
+          window.history?.state,
           val => typeof val === 'object' && val
             && typeof val.id === 'number'
             && typeof val.path === 'string'
@@ -146,69 +206,49 @@ export const [
               )
             )
             && ['none', 'back', 'forward'].includes(val.direction),
-          window.history?.state,
         );
       } catch {}
 
       return {
         prevState: nativeHistoryState?.prevId && nativeHistoryState?.prevPath
-          ? getHistoryState(
-            nativeHistoryState.prevId,
-            nativeHistoryState.prevPath,
-            nativeHistoryState.prevQueryStr ?? null,
-            nativeHistoryState.prevHash ?? null,
-          )
+          ? getHistoryState({
+            id: nativeHistoryState.prevId,
+            path: nativeHistoryState.prevPath,
+            queryStr: nativeHistoryState.prevQueryStr ?? null,
+            hash: nativeHistoryState.prevHash ?? null,
+          })
           : null,
         curState: nativeHistoryState
-          ? getHistoryState(
-            nativeHistoryState.id,
-            nativeHistoryState.path,
-            nativeHistoryState.queryStr,
-            nativeHistoryState.hash,
-          )
+          ? getHistoryState({
+            id: nativeHistoryState.id,
+            path: nativeHistoryState.path,
+            queryStr: nativeHistoryState.queryStr,
+            hash: nativeHistoryState.hash,
+          })
           : getHistoryStateFromLocation(FIRST_ID),
         direction: nativeHistoryState?.direction ?? 'none',
         isReplaced: !!nativeHistoryState,
         didRefresh: !!nativeHistoryState,
         popHandlers: [] as (() => boolean)[],
         lastPopStateTime: Number.MIN_SAFE_INTEGER,
+        // After navigating back and un-suspending, WDYR would consider context unchanged
+        navCountHack: 0,
       };
     }));
     const update = useUpdate();
+    const catchAsync = useCatchAsync();
 
     const _pushPath = useCallback((
       _path: string,
       _query: Partial<ParsedQuery<string | number>> | null = null,
       _hash: string | null = null,
     ) => {
-      const firstQuestion = _path.indexOf('?');
-      const firstHash = _path.indexOf('#');
-      const path = _path.replace(/[#?].*$/, '');
-
-      if (!process.env.PRODUCTION && (
-        (_query && firstQuestion >= 0)
-        || (_hash && firstHash >= 0)
-      )) {
-        throw new Error(`pushPath(${_path}): don't include query/hash in path`);
-      }
-
-      let query: ObjectOf<string | string[]> | null = null;
-      let queryStr: string | null = null;
-      if (_query) {
-        query = queryToStrVals(_query);
-        queryStr = qs.stringify(query);
-      } else if (firstQuestion >= 0) {
-        if (firstHash < 0) {
-          queryStr = _path.slice(firstQuestion + 1);
-          query = queryToStrVals(qs.parse(queryStr));
-        } else if (firstQuestion < firstHash) {
-          queryStr = _path.slice(firstQuestion + 1, firstHash);
-          query = queryToStrVals(qs.parse(queryStr));
-        }
-      }
-      const hash = _hash
-        ?? (firstHash >= 0 ? _path.slice(firstHash + 1) : '');
-
+      const {
+        path,
+        query,
+        queryStr,
+        hash,
+      } = getPartsFromPath(_path, _query, _hash);
       if (path === ref.current.curState.path
         && queryStr === ref.current.curState.queryStr
         && hash === ref.current.curState.hash) {
@@ -218,17 +258,17 @@ export const [
       ref.current = markMemoed({
         ...ref.current,
         prevState: ref.current.curState,
-        curState: markMemoed({
+        curState: getHistoryState({
           id: ref.current.curState.id + 1,
           path,
-          query: query ? markMemoed(query) : EMPTY_OBJ,
+          query,
           queryStr,
           hash,
-          key: historyStateToKey(ref.current.curState.id + 1, path, queryStr, hash),
         }),
         direction: 'forward',
         isReplaced: false,
         didRefresh: false,
+        navCountHack: ref.current.navCountHack + 1,
       });
 
       const newCurState = ref.current.curState;
@@ -247,12 +287,16 @@ export const [
     }, [update]);
 
     const _replacePath = useCallback((
-      path: string,
+      _path: string,
       _query: Partial<ParsedQuery<string | number>> | null = null,
-      hash: string | null = null,
+      _hash: string | null = null,
     ) => {
-      const query = _query ? queryToStrVals(_query) : null;
-      const queryStr = query ? qs.stringify(query) : null;
+      const {
+        path,
+        query,
+        queryStr,
+        hash,
+      } = getPartsFromPath(_path, _query, _hash);
       if (path === ref.current.curState.path
         && queryStr === ref.current.curState.queryStr
         && hash === ref.current.curState.hash) {
@@ -261,16 +305,16 @@ export const [
 
       ref.current = markMemoed({
         ...ref.current,
-        curState: markMemoed({
+        curState: getHistoryState({
           id: ref.current.curState.id,
           path,
-          query: query ? markMemoed(query) : EMPTY_OBJ,
+          query,
           queryStr,
           hash,
-          key: historyStateToKey(ref.current.curState.id, path, queryStr, hash),
         }),
         isReplaced: true,
         didRefresh: false,
+        navCountHack: ref.current.navCountHack + 1,
       });
 
       const newCurState = ref.current.curState;
@@ -313,7 +357,7 @@ export const [
         };
 
         // Popped twice too quickly, for fixing swipe back gesture.
-        // todo: mid/mid rapidly going back and forth breaks history
+        // todo: low/mid rapidly going back and forth breaks history
         if (performance.now() - ref.current.lastPopStateTime < 100) {
           _pushLastState();
         }
@@ -343,6 +387,7 @@ export const [
         isReplaced: false,
         didRefresh: false,
         lastPopStateTime: performance.now(),
+        navCountHack: ref.current.navCountHack + 1,
       });
 
       const newCurState = ref.current.curState;
@@ -388,7 +433,7 @@ export const [
         if (event.canGoBack) {
           window.history.back();
         } else {
-          wrapPromise(Capacitor.exitApp(), 'warn', 'Capacitor.exitApp');
+          catchAsync(Capacitor.exitApp(), 'Capacitor.exitApp');
         }
       });
 
@@ -397,25 +442,41 @@ export const [
         backButtonListener.remove()
           .catch(NOOP);
       };
-    }, [_replacePath, _pushPath]);
+    }, [_replacePath, _pushPath, catchAsync]);
 
     // todo: low/mid scroll to hash in homewrap and stackwrap
+    // Note: this doesn't work for deferred components
     useEffectInitialMount(() => {
       if (ref.current.curState.hash) {
         document.getElementById(ref.current.curState.hash)?.scrollIntoView(true);
       }
     }, [ref.current.curState.hash]);
 
-    return useDeepMemoObj({
-      prevState: ref.current.prevState,
-      curState: ref.current.curState,
-      direction: ref.current.direction,
-      isReplaced: ref.current.isReplaced,
-      didRefresh: ref.current.didRefresh,
-      _pushPath,
-      _replacePath,
-      _addPopHandler,
-    });
+    return useMemo(
+      () => ({
+        prevState: ref.current.prevState,
+        curState: ref.current.curState,
+        direction: ref.current.direction,
+        isReplaced: ref.current.isReplaced,
+        didRefresh: ref.current.didRefresh,
+        navCountHack: ref.current.navCountHack,
+        _pushPath,
+        _replacePath,
+        _addPopHandler,
+      }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [
+        ref.current.prevState,
+        ref.current.curState,
+        ref.current.direction,
+        ref.current.isReplaced,
+        ref.current.didRefresh,
+        ref.current.navCountHack,
+        _pushPath,
+        _replacePath,
+        _addPopHandler,
+      ],
+    );
   },
   function HistoryStore(val) {
     return val;

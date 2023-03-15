@@ -1,14 +1,15 @@
 import knexMZ from 'services/knex/knexMZ';
 import EntityModels from 'services/model/allEntityModels';
-import { BT_PUB_ALL_TABLES, MZ_SOURCE_PG_ALL_TABLES, MZ_TIMESTAMP_FREQUENCY } from 'consts/mz';
+import { BT_PUB_UPDATEABLE, MZ_SOURCE_PG_UPDATEABLE, MZ_TIMESTAMP_FREQUENCY } from 'consts/mz';
+import { INTERNAL_DOCKER_HOST, PG_BT_PORT } from 'consts/infra';
 
 export default async function createMZViewsFromPostgres() {
   printDebug('Creating Postgres source', 'highlight');
   await knexMZ.raw(`
-    CREATE MATERIALIZED SOURCE "${MZ_SOURCE_PG_ALL_TABLES}"
+    CREATE MATERIALIZED SOURCE "${MZ_SOURCE_PG_UPDATEABLE}"
     FROM POSTGRES
-      CONNECTION 'host=${process.env.INTERNAL_DOCKER_HOST} port=${process.env.PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${process.env.PG_BT_DB} sslmode=require'
-      PUBLICATION '${BT_PUB_ALL_TABLES}'
+      CONNECTION 'host=${INTERNAL_DOCKER_HOST} port=${PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${process.env.PG_BT_DB} sslmode=require'
+      PUBLICATION '${BT_PUB_UPDATEABLE}'
     WITH (
       timestamp_frequency_ms = ${MZ_TIMESTAMP_FREQUENCY}
     );
@@ -18,10 +19,10 @@ export default async function createMZViewsFromPostgres() {
     await knexMZ.raw(`
       CREATE MATERIALIZED SOURCE "${MZ_SOURCE_PG_PREFIX}${model.tableName}"
       FROM POSTGRES
-        CONNECTION 'host=${process.env.INTERNAL_DOCKER_HOST} port=${process.env.PG_BT_PORT}
+        CONNECTION 'host=${INTERNAL_DOCKER_HOST} port=${PG_BT_PORT}
         user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS}
         dbname=${process.env.PG_BT_DB} sslmode=require'
-        PUBLICATION '${BT_PUB_PREFIX}${model.tableName.toLowerCase()}'
+        PUBLICATION '${BT_PUB_MODEL_PREFIX}${model.tableName.toLowerCase()}'
       WITH (
         timestamp_frequency_ms = ${MZ_TIMESTAMP_FREQUENCY}
       );
@@ -30,7 +31,7 @@ export default async function createMZViewsFromPostgres() {
 
   printDebug('Creating views', 'highlight');
   await knexMZ.raw(`
-    CREATE VIEWS FROM SOURCE "${MZ_SOURCE_PG_ALL_TABLES}"
+    CREATE VIEWS FROM SOURCE "${MZ_SOURCE_PG_UPDATEABLE}"
     (${EntityModels.map(model => `"${model.tableName}"`).join(',')})
   `);
 

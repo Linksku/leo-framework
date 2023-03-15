@@ -1,12 +1,34 @@
 import type { ExecOptions } from 'child_process';
 import childProcess from 'child_process';
-import { promisify } from 'util';
 
 export default function exec(
   cmd: string,
-  opts?: {
-    encoding?: BufferEncoding;
+  _opts?: {
+    encoding?: BufferEncoding,
+    stream?: boolean,
   } & ExecOptions,
-) {
-  return promisify(childProcess.exec)(cmd, opts) as Promise<{ stdout: string, stderr: string }>;
+): Promise<{ stdout: string, stderr: string }> {
+  const { stream, ...opts } = _opts ?? {};
+  return new Promise((succ, fail) => {
+    const child = childProcess.exec(cmd, opts, (err, stdout, stderr) => {
+      if (err) {
+        fail(err);
+      } else {
+        succ({
+          stdout: stdout.toString(),
+          stderr: stderr.toString(),
+        });
+      }
+    });
+
+    if (stream) {
+      child.stdout?.on('data', data => {
+        process.stdout.write(data.toString());
+      });
+
+      child.stderr?.on('data', data => {
+        process.stdout.write(data.toString());
+      });
+    }
+  });
 }

@@ -7,7 +7,10 @@ const plugins = [
     ? [CSSNano({
       preset: [
         'default',
-        { discardComments: { removeAll: true } },
+        {
+          calc: false,
+          discardComments: { removeAll: true },
+        },
       ],
     })]
     : []),

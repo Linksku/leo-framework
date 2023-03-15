@@ -13,7 +13,7 @@ export default function Switch({
   ...props
 }: Props) {
   return (
-    <label className={cn(styles.wrap, className)}>
+    <label className={cx(styles.wrap, className)}>
       <span className={styles.switch}>
         <input
           type="checkbox"

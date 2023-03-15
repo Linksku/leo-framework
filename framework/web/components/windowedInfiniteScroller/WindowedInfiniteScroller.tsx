@@ -1,119 +1,68 @@
-import type { ColumnProps } from './WindowedInfiniteScrollerColumn';
-import WindowedInfiniteScrollerColumn from './WindowedInfiniteScrollerColumn';
-import useItemIdsToColumns from './useItemIdsToColumns';
+import type { PaginatedApiName } from 'utils/hooks/useApi/usePaginationApi';
+import usePaginationApi from 'utils/hooks/useApi/usePaginationApi';
 
-import styles from './WindowedInfiniteScrollerStyles.scss';
+import type { ListItemRendererProps } from './WindowedInfiniteScrollerColumn';
+import WindowedInfiniteScrollerInner, { Props as InnerProps } from './WindowedInfiniteScrollerInner';
 
-type Props = {
-  origItemIds: EntityId[],
-  addedItemIds: EntityId[],
-  deletedItemIds: Set<EntityId>,
-  initialId?: EntityId,
-  reverse: boolean,
-  addToEnd: boolean,
-  hasCompleted: boolean,
-  completedMsg: ReactNode,
-  columns: number,
-  columnMargin: number,
-  className?: string,
-  columnClassName?: string,
-} & ColumnProps;
+type Props<
+  Name extends PaginatedApiName,
+> = {
+  apiName: Name,
+  apiParams: Memoed<ApiParams<Name>>,
+  apiKey?: string,
+  throttleTimeout?: number,
+  columns?: number,
+} & Omit<
+  InnerProps,
+  'origItems' | 'addedItems' | 'deletedItems'
+    | 'cursor' | 'hasCompleted' | 'fetchingFirstTime' | 'fetchNext'
+    | keyof ListItemRendererProps
+>;
 
-// Note: itemIds are append-only.
-function WindowedInfiniteScroller({
-  origItemIds,
-  addedItemIds,
-  deletedItemIds,
-  initialId,
-  reverse,
-  addToEnd,
-  hasCompleted,
-  completedMsg,
-  columns,
-  columnMargin,
-  className,
-  columnClassName,
+function WindowedInfiniteScroller<
+  Name extends PaginatedApiName,
+>(props: Props<Name> & ListItemRendererProps & { otherItemProps?: undefined }): ReactElement;
+
+function WindowedInfiniteScroller<
+  Name extends PaginatedApiName,
+  OtherProps extends ObjectOf<any>,
+>(props: Props<Name>
+  & ListItemRendererProps<OtherProps>
+  & { otherItemProps: Memoed<OtherProps> }): ReactElement;
+
+function WindowedInfiniteScroller<
+  Name extends PaginatedApiName,
+>({
+  apiName,
+  apiParams,
+  apiKey,
+  throttleTimeout = 1000,
+  columns = 1,
   ...props
-}: Props) {
-  if (!process.env.PRODUCTION && reverse && columns > 1) {
-    throw new Error('Reverse scroller only works with 1 column.');
-  }
-
-  const containerRef = useRef<HTMLDivElement>(null);
-
+}: Props<Name> & ListItemRendererProps) {
   const {
-    columnItemIds,
-    idToItem,
-    initialVisibleIds,
-  } = useItemIdsToColumns({
-    origItemIds,
-    addedItemIds,
-    deletedItemIds,
-    columns,
-    addToEnd,
+    items,
+    fetchingFirstTime,
+    fetchNext,
+    hasCompleted,
+    cursor,
+  } = usePaginationApi(apiName, apiParams, {
+    apiKey,
+    throttleTimeout,
   });
 
-  const scrollParentRelative = useCallback((px: number) => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop += px;
-    }
-  }, []);
-
-  // todo: mid/hard with initialId, scroll to item and handle scrolling in opposite direction
-  const initialIdIdx = initialId && origItemIds.indexOf(initialId);
-  if (initialIdIdx && initialIdIdx >= 0) {
-    for (let i = 0; i <= initialIdIdx; i++) {
-      initialVisibleIds.add(origItemIds[i]);
-    }
-  }
-
   return (
-    <div
-      ref={containerRef}
-      className={cn(styles.container, { [styles.reverse]: reverse }, className)}
-    >
-      {columns === 1
-        ? (
-          <WindowedInfiniteScrollerColumn
-            {...props}
-            columnIdx={0}
-            itemIds={columnItemIds[0]}
-            initialVisibleIds={initialVisibleIds}
-            scrollParentRelative={scrollParentRelative}
-            idToItem={idToItem}
-            reverse={reverse}
-            hasCompleted={hasCompleted}
-          />
-        )
-        : (
-          <div className={styles.columns}>
-            {columnItemIds.map((ids, columnIdx) => (
-              <div
-                // eslint-disable-next-line react/no-array-index-key
-                key={columnIdx}
-                className={cn(styles.column, columnClassName)}
-                style={{
-                  paddingLeft: columnIdx === 0 ? 0 : columnMargin,
-                }}
-              >
-                <WindowedInfiniteScrollerColumn
-                  {...props}
-                  columnIdx={columnIdx}
-                  itemIds={ids}
-                  initialVisibleIds={initialVisibleIds}
-                  scrollParentRelative={scrollParentRelative}
-                  idToItem={idToItem}
-                  reverse={reverse}
-                  hasCompleted={hasCompleted}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-      {hasCompleted && completedMsg}
-    </div>
+    <WindowedInfiniteScrollerInner
+      key={columns}
+      origItems={items}
+      fetchNext={fetchNext}
+      hasCompleted={hasCompleted}
+      cursor={cursor}
+      fetchingFirstTime={fetchingFirstTime}
+      columns={columns}
+      {...props}
+    />
   );
 }
 
-export default React.memo(WindowedInfiniteScroller);
+export default WindowedInfiniteScroller;

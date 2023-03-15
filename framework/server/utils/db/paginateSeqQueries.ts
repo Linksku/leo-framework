@@ -2,14 +2,17 @@ import uniq from 'lodash/uniq';
 
 import paginateQuery, { OrderByColumns, PaginatedResponse, MAX_PER_PAGE } from './paginateQuery';
 
-export default async function paginateSeqQueries<T extends QueryBuilder<Model>>(
-  queries: {
-    query: T,
+export default async function paginateSeqQueries<
+  Queries extends {
+    query: QueryBuilder<Model>,
     orderBy: OrderByColumns,
   }[],
+  QB extends Queries[number]['query'],
+>(
+  queries: Queries,
   limit: number = MAX_PER_PAGE,
   cursor = '0,',
-): Promise<PaginatedResponse<T['ModelType']>> {
+): Promise<PaginatedResponse<QB['ModelType']>> {
   const cursorSplitIdx = cursor.indexOf(',');
   let queryIdx = cursor ? TS.parseIntOrNull(cursor.slice(0, cursorSplitIdx)) : null;
   if (queryIdx === null || !queries[queryIdx]) {
@@ -24,7 +27,7 @@ export default async function paginateSeqQueries<T extends QueryBuilder<Model>>(
     cursor: curCursor,
   });
 
-  while (res.data.entityIds.length < limit / 2 && queryIdx < queries.length - 1) {
+  while (res.data.items.length < limit / 2 && queryIdx < queries.length - 1) {
     if (!process.env.PRODUCTION && !res.data.hasCompleted) {
       throw new Error('paginateSeqQueries: query should be completed.');
     }
@@ -38,12 +41,12 @@ export default async function paginateSeqQueries<T extends QueryBuilder<Model>>(
       queries[queryIdx].query,
       queries[queryIdx].orderBy,
       {
-        limit: limit - res.data.entityIds.length,
+        limit: limit - res.data.items.length,
         cursor: curCursor,
       },
     );
     res.entities.unshift(...prevRes.entities);
-    res.data.entityIds = uniq([...prevRes.data.entityIds, ...res.data.entityIds]);
+    res.data.items = uniq([...prevRes.data.items, ...res.data.items]);
   }
 
   if (!res.data.hasCompleted) {

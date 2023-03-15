@@ -1,37 +1,17 @@
 import tokenizeString from 'utils/nlp/tokenizeString';
-
-// https://www.ofcom.org.uk/__data/assets/pdf_file/0022/91624/OfcomOffensiveLanguage.pdf
-const subStrs = [
-  'chink',
-  'fagg',
-  'golliwog',
-  'jailbait',
-  'negro',
-  'nigg',
-  'retard',
-];
-
-const words = new Set([
-  'coon',
-  'cunt',
-  'fag',
-  'nig',
-  'paki',
-  'twat',
-  'wog',
-]);
+import { forbiddenSubStrs, forbiddenWords } from 'consts/unsafeWords';
 
 // Names that should never be allowed.
 export default function isNameForbidden(name: string | string[]) {
-  if (typeof name === 'string') {
-    name = tokenizeString(name);
-  }
+  const words = typeof name === 'string'
+    ? tokenizeString(name)
+    : name;
 
-  for (const w of name) {
-    if (words.has(w)) {
+  for (const w of words) {
+    if (forbiddenWords.has(w)) {
       return true;
     }
-    for (const subStr of subStrs) {
+    for (const subStr of forbiddenSubStrs) {
       if (w.includes(subStr)) {
         return true;
       }

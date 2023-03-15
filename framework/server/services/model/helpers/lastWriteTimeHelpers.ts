@@ -1,11 +1,11 @@
 import redis from 'services/redis';
 import getModelRecursiveDeps from 'utils/models/getModelRecursiveDeps';
+import { LAST_WRITE_TIME } from 'consts/coreRedisNamespaces';
 
-const redisNamespace = 'lastWriteTime';
 const MIN_WAIT_TIME = 1000;
 
 function _getRedisKey(modelType: ModelType, currentUserId: number) {
-  return `${redisNamespace}:${currentUserId},${modelType}`;
+  return `${LAST_WRITE_TIME}:${currentUserId},${modelType}`;
 }
 
 export async function updateLastWriteTime(modelType: ModelType) {

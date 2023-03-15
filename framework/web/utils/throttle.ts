@@ -21,7 +21,7 @@ function createThrottle(
     {
       timeout,
       restartTimerAfterFinished = true,
-      allowSchedulingDuringDelay = false,
+      allowSchedulingDuringDelay = true,
       disabled = false,
     }: Opts,
   ): (...args: Args) => void {
@@ -41,13 +41,19 @@ function createThrottle(
         current.lastRunTime = performance.now();
         const res = fn.apply(current.lastCtx, current.lastArgs as Args);
         if (res instanceof Promise) {
-          res.catch(err => ErrorLogger.warn(err, `throttle: ${fn.name}`));
+          res.catch(err => ErrorLogger.warn(err, {
+            ctx: 'throttle',
+            fnName: fn.name,
+          }));
         }
       } else {
         const res = fn.apply(current.lastCtx, current.lastArgs as Args);
         if (res instanceof Promise) {
           res
-            .catch(err => ErrorLogger.warn(err, `throttle: ${fn.name}`))
+            .catch(err => ErrorLogger.warn(err, {
+              ctx: 'throttle',
+              fnName: fn.name,
+            }))
             .finally(() => {
               current.lastRunTime = performance.now();
             });
@@ -100,7 +106,7 @@ const _useThrottle = createThrottle(() => useRef({
   disabled: false,
 }));
 
-// todo: mid/mid use latest callback fn
+// todo: low/mid use latest callback fn
 export function useThrottle<Args extends any[]>(
   fn: (...args: Args) => void | Promise<void>,
   opts: Memoed<Opts>,

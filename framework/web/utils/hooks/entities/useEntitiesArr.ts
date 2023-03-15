@@ -1,43 +1,105 @@
-import type { EntitiesMap } from 'stores/EntitiesStore';
-import useHandleEntityEvents from 'utils/hooks/entities/useHandleEntityEvents';
-import useUpdate from 'utils/hooks/useUpdate';
+import { useSyncExternalStore } from 'react';
 
-export default function useEntitiesArr<T extends EntityType>(
+import { API_TIMEOUT } from 'settings';
+import useShallowMemoObj from 'utils/hooks/useShallowMemoObj';
+import useTimeout from 'utils/hooks/useTimeout';
+
+function useEntitiesArr<T extends EntityType>(
   entityType: T,
   _ids: (EntityId | (string | number)[])[],
   opts: {
+    nullIfMissing: true,
     throwIfMissing?: boolean,
-  } = {},
-): Memoed<Memoed<TypeToEntity<T>>[]> {
-  const ids = useDeepMemoObj(_ids.map(
-    id => (Array.isArray(id) ? id.join(',') : id),
-  ));
-  const { entitiesRef } = useEntitiesStore();
-  const update = useUpdate();
+    allowMissing?: boolean,
+  },
+): Memoed<(Memoed<TypeToEntity<T>> | null)[]>;
 
-  useHandleEntityEvents(
-    useMemo(
-      () => ids.flatMap(id => [
-        { actionType: 'load', entityType, id },
-        { actionType: 'create', entityType, id },
-        { actionType: 'update', entityType, id },
-        { actionType: 'delete', entityType, id },
-      ]),
-      [entityType, ids],
-    ),
-    update,
+function useEntitiesArr<T extends EntityType>(
+  entityType: T,
+  _ids: (EntityId | (string | number)[])[],
+  opts?: {
+    nullIfMissing?: false,
+    throwIfMissing?: boolean,
+    allowMissing?: boolean,
+  },
+): Memoed<Memoed<TypeToEntity<T>>[]>;
+
+function useEntitiesArr<T extends EntityType>(
+  entityType: T,
+  _ids: (EntityId | (string | number)[])[],
+  opts: {
+    nullIfMissing?: boolean,
+    throwIfMissing?: boolean,
+    allowMissing?: boolean,
+  } = {},
+) {
+  const ids = _ids.map(
+    id => (Array.isArray(id) ? id.join(',') : id),
+  );
+  const stableIds = useMemo(
+    () => [...new Set(ids)],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ids.join('|')],
   );
 
-  const entitiesMap = entitiesRef.current[entityType] as EntitiesMap<TypeToEntity<T>> | undefined;
+  const { entitiesRef, addEntityListener } = useEntitiesStore();
+  const allEntities = useSyncExternalStore(
+    useCallback(cb => {
+      if (!entityType) {
+        return NOOP;
+      }
+
+      const unsubs = stableIds.flatMap(id => [
+        addEntityListener('load', entityType, id, cb),
+        addEntityListener('create', entityType, id, cb),
+        addEntityListener('update', entityType, id, cb),
+        addEntityListener('delete', entityType, id, cb),
+      ]);
+      return () => {
+        for (const unsub of unsubs) {
+          unsub();
+        }
+      };
+    }, [addEntityListener, entityType, stableIds]),
+    () => (entityType
+      ? (
+        entitiesRef.current[entityType] || EMPTY_OBJ
+      ) as Memoed<ObjectOf<Memoed<TypeToEntity<T>>>>
+      : EMPTY_OBJ),
+  );
+
+  const [waited, setWaited] = useState(false);
+  if (!process.env.PRODUCTION) {
+    /* eslint-disable react-hooks/rules-of-hooks */
+    useTimeout(
+      useCallback(() => {
+        if (!opts.allowMissing && !waited
+          && stableIds.some(id => !allEntities?.[id])) {
+          setWaited(true);
+        }
+      }, [opts.allowMissing, waited, stableIds, allEntities]),
+      API_TIMEOUT,
+    );
+    /* eslint-enable react-hooks/rules-of-hooks */
+  }
+
   if (opts.throwIfMissing) {
-    const missingIdx = ids.findIndex(id => !entitiesMap?.[id]);
+    const missingIdx = ids.findIndex(id => !allEntities?.[id]);
     if (missingIdx >= 0) {
       throw new Error(`Entities array missing ${entityType} ${ids[missingIdx]}`);
     }
+  } else if (!process.env.PRODUCTION && !opts.allowMissing && waited) {
+    const missingIdx = ids.findIndex(id => !allEntities?.[id]);
+    if (missingIdx >= 0) {
+      ErrorLogger.warn(new Error(`useEntitiesArr: missing ${entityType} ${ids[missingIdx]}`));
+    }
   }
-  const arr = useMemo(
-    () => TS.filterNulls(ids.map(id => entitiesMap?.[id])),
-    [ids, entitiesMap],
+
+  const entitiesArr = ids.map(id => allEntities?.[id] ?? null);
+  // Can't use useMemo because other ids in allEntities can change
+  return useShallowMemoObj(
+    opts.nullIfMissing ? entitiesArr : TS.filterNulls(entitiesArr),
   );
-  return arr;
 }
+
+export default useEntitiesArr;

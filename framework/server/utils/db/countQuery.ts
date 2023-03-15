@@ -1,3 +1,4 @@
+// todo: low/easy add countQuery to ModelSelector
 export default async function countQuery<T extends Model>(
   query: QueryBuilder<T>,
 ): Promise<number> {

@@ -24,7 +24,7 @@ function objEntries<Obj extends ObjectOf<any>>(
     return Object.entries(obj);
   }
   return Object.entries(obj).filter(
-    arr => typeof arr[1] !== 'undefined',
+    arr => arr[1] !== undefined,
   );
 }
 

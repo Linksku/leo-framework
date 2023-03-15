@@ -2,9 +2,11 @@ import type { UseApiState } from 'stores/ApiStore';
 import useDeepMemoObj from 'utils/hooks/useDeepMemoObj';
 import useDynamicCallback from 'utils/hooks/useDynamicCallback';
 import useUpdate from 'utils/hooks/useUpdate';
+import { useIsRouteActive } from 'stores/RouteStore';
 
 type Opts<Name extends ApiName> = {
   shouldFetch?: boolean,
+  returnState?: boolean,
   onFetch?: (results: ApiData<Name>) => void,
   onError?: (err: Error) => void,
   key?: string,
@@ -19,28 +21,50 @@ type Return<Name extends ApiName> = {
   error: any,
 };
 
+function useApi<Name extends ApiName, Opt extends Opts<Name>>(
+  name: Name,
+  params: Memoed<ApiParams<Name>>,
+  opts: Opt,
+): Opt['returnState'] extends true ? Return<Name> : void;
+
 function useApi<Name extends ApiName>(
   name: Name,
-  params: ApiParams<Name>,
+  params: Memoed<ApiParams<Name>>,
+  opts?: Opts<Name> & { returnState?: false },
+): void;
+
+function useApi<Name extends ApiName>(
+  name: Name,
+  params: Memoed<ApiParams<Name>>,
   {
     shouldFetch = true,
+    returnState = false,
     onFetch,
     onError,
     key,
     refetchOnFocus,
     refetchOnMount,
   }: Opts<Name> = {},
-): Return<Name> {
+): Return<Name> | void {
   useDebugValue(name);
 
-  const paramsMemo = useDeepMemoObj(params) as Memoed<ApiParams<Name>>;
   const {
     getApiState,
     subscribeApiHandlers,
     clearCache,
   } = useApiStore();
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const isRouteActive = useIsRouteActive();
+    if (isRouteActive != null) {
+      shouldFetch &&= isRouteActive;
+    }
+  } catch {}
   const stateRef = useRef<UseApiState<Name>>(
-    getApiState(name, params, shouldFetch),
+    useMemo(
+      () => getApiState(name, params, shouldFetch),
+      [getApiState, name, params, shouldFetch],
+    ),
   );
   const update = useUpdate();
   const ref = useRef({
@@ -64,17 +88,17 @@ function useApi<Name extends ApiName>(
     if (!ref.current.ranFirstEffect) {
       ref.current.ranFirstEffect = true;
       if (refetchOnMount) {
-        clearCache(name, paramsMemo);
+        clearCache(name, params);
       }
     }
 
     // todo: low/mid fetch before render
     const unsub = subscribeApiHandlers({
       name,
-      params: paramsMemo,
+      params,
       key,
       state: stateRef.current,
-      update,
+      update: returnState ? update : NOOP,
       onFetch: onFetchWrap,
       onError: onErrorWrap,
       refetchOnFocus,
@@ -85,9 +109,10 @@ function useApi<Name extends ApiName>(
     refetchOnMount,
     subscribeApiHandlers,
     name,
-    paramsMemo,
+    params,
     key,
     update,
+    returnState,
     onFetchWrap,
     onErrorWrap,
     shouldFetch,
@@ -95,7 +120,7 @@ function useApi<Name extends ApiName>(
   ]);
 
   return {
-    data: stateRef.current.data,
+    data: useDeepMemoObj(stateRef.current.data as ApiNameToData[Name]),
     fetching: stateRef.current.fetching,
     fetchingFirstTime: stateRef.current.isFirstTime && stateRef.current.fetching,
     error: stateRef.current.error,

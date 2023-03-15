@@ -1,72 +1,79 @@
 import cluster from 'cluster';
-import os from 'os';
 import { promises as fs } from 'fs';
 import https from 'https';
 import express from 'express';
 import chalk from 'chalk';
 
-import 'helpers/initServer/initDotenv';
-import 'services/errorLogger/initErrorLogger';
+import 'helpers/initDotenv';
+import 'services/healthcheck/importHealthchecks';
+import 'config/cronjobs';
 import { DOMAIN_NAME, PORT } from 'settings';
-import initCheckPg from 'helpers/initServer/initCheckPg';
-import initCheckMz from 'helpers/initServer/initCheckMz';
+import { NUM_CLUSTER_SERVERS } from 'serverSettings';
+import { startHealthchecks } from 'services/healthcheck/HealthcheckManager';
 import initCheckPgExtensions from 'helpers/initServer/initCheckPgExtensions';
+import fetchEachModelOnce from 'helpers/initServer/fetchEachModelOnce';
 import initCheckTimeZone from 'helpers/initServer/initCheckTimeZone';
+import scheduleRestartWorker from 'helpers/initServer/scheduleRestartWorker';
 import redisFlushAll from 'utils/infra/redisFlushAll';
 import getServerId from 'utils/getServerId';
 import app from 'app';
-import 'config/cronjobs';
 import { startCronJobs } from 'services/cron/CronManager';
+import { MODEL_NAMESPACES, PUB_SUB, RATE_LIMIT } from 'consts/coreRedisNamespaces';
 
-// todo: high/hard add testing, maybe Cypress
+process.on('unhandledRejection', reason => {
+  ErrorLogger.error(new Error(`unhandled rejection: ${reason}`));
+});
+
 try {
-  if (!process.env.SERVER || !process.env.NODE_ENV) {
-    throw new Error('Env vars not set.');
-  }
-
-  const numCpus = process.env.PRODUCTION
-    ? os.cpus().length
-    : 1;
-  let sslKey = '';
-  let sslCert = '';
-  if (process.env.SERVER === 'production') {
-    try {
-      ({ sslKey, sslCert } = await promiseObj({
-        sslKey: fs.readFile(TS.defined(process.env.SSL_KEY), 'utf8'),
-        sslCert: fs.readFile(TS.defined(process.env.SSL_CERT), 'utf8'),
-      }));
-    } catch (err) {
-      ErrorLogger.fatal(ErrorLogger.castError(err), 'privkey.pem or cert.pem not found');
-    }
+  if (!process.env.SERVER || !process.env.NODE_ENV || !process.env.SSL_KEY) {
+    throw new Error('server: env vars not set.');
   }
 
   if (cluster.isMaster) {
     if (process.env.PRODUCTION) {
-      await initCheckPg();
       await Promise.all([
-        initCheckMz(),
         initCheckPgExtensions(),
         initCheckTimeZone(),
+        fetchEachModelOnce(),
       ]);
     } else {
-      await initCheckPg();
-      wrapPromise(initCheckMz(), 'fatal', 'Check MZ');
+      await redisFlushAll([...MODEL_NAMESPACES, PUB_SUB, RATE_LIMIT]);
       wrapPromise(initCheckPgExtensions(), 'fatal', 'Check PG extensions');
       wrapPromise(initCheckTimeZone(), 'fatal', 'Check timezone');
-      // todo: mid/mid only flush cache, keep Bull queue, etc
-      wrapPromise(redisFlushAll(), 'warn', 'Redis flushall');
+      wrapPromise(fetchEachModelOnce(), 'fatal', 'Fetch models');
     }
 
-    if (numCpus > 1) {
-      for (let i = 0; i < numCpus; i++) {
+    if (NUM_CLUSTER_SERVERS > 1) {
+      for (let i = 0; i < NUM_CLUSTER_SERVERS; i++) {
         cluster.fork();
       }
     }
 
-    wrapPromise(startCronJobs(), 'error', 'Start cron jobs');
+    cluster.on('exit', deadWorker => {
+      printDebug(`Worker ${deadWorker.process.pid} died, restarting.`, 'warn');
+      cluster.fork();
+    });
   }
 
-  if (!cluster.isMaster || numCpus === 1) {
+  if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
+    // todo: low/mid share healthcheck state within cluster
+    startHealthchecks();
+    await startCronJobs();
+    scheduleRestartWorker();
+
+    let sslKey = '';
+    let sslCert = '';
+    if (process.env.SERVER === 'production') {
+      try {
+        ({ sslKey, sslCert } = await promiseObj({
+          sslKey: fs.readFile(process.env.SSL_KEY, 'utf8'),
+          sslCert: fs.readFile(process.env.SSL_CERT, 'utf8'),
+        }));
+      } catch (err) {
+        await ErrorLogger.fatal(err, { ctx: 'privkey.pem or cert.pem not found' });
+      }
+    }
+
     // Note: Nginx has half the req/sec the last time I tried
     if (process.env.SERVER === 'production') {
       // todo: mid/blocked add http2
@@ -79,22 +86,23 @@ try {
         .listen(
           443,
           () => printDebug(`Server started on worker ${getServerId()}`, 'success'),
-        );
+        )
+        .on('error', err => ErrorLogger.error(err, { ctx: 'Express error' }));
 
       const http = express();
       http.get('*', (req, res) => {
         res.redirect(`https://${DOMAIN_NAME}${req.url}`);
       });
+    } else {
+      app
+        .listen(
+          PORT,
+          // eslint-disable-next-line no-console
+          () => console.log(chalk.green(`Server started on worker ${getServerId()}`)),
+        )
+        .on('error', err => ErrorLogger.error(err, { ctx: 'Express error' }));
     }
-
-    app
-      .listen(
-        PORT,
-        // eslint-disable-next-line no-console
-        () => console.log(chalk.green(`Server started on worker ${getServerId()}`)),
-      )
-      .on('error', err => ErrorLogger.warn(ErrorLogger.castError(err), 'Express error'));
   }
 } catch (err) {
-  ErrorLogger.fatal(ErrorLogger.castError(err), 'Failed to start server');
+  await ErrorLogger.fatal(err, { ctx: 'Failed to start server' });
 }

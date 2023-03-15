@@ -38,12 +38,12 @@ export const [
       shownRef.current = state.shown;
     }, [state.shown]);
 
-    return useDeepMemoObj({
+    return useMemo(() => ({
       showSlideUp,
       hideSlideUp,
       slideUpShown: state.shown,
       slideUpElement: state.element,
-    });
+    }), [showSlideUp, hideSlideUp, state.shown, state.element]);
   },
   function SlideUpStore(val) {
     return val;

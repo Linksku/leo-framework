@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<style>
+body {
+  padding: 20px;
+  text-align: center;
+  color: #333;
+  font-family: helvetica, sans-serif;
+}
+h1 {
+  font-size: 22px;
+}
+a {
+  text-decoration: none;
+  color: #2196f3;
+}
+</style>
+
+<%- include('partials/metaTags') %>
+
+<script>
+function reloadPage() {
+  document.body.style.display = 'none';
+  window.location.reload(true);
+}
+</script>
+</head>
+<body>
+  <h1>Service temporarily unavailable</h1>
+  <p>You can try to <a href="#" onclick="reloadPage()">reload</a> the page or restart the app.</p>
+</body>
+</html>

@@ -1,0 +1,26 @@
+.btn {
+  display: block;
+  position: fixed;
+  right: $containerPadding;
+  bottom: calc($footerHeight + 1rem);
+  z-index: $zIndexFixed;
+  background-color: $primaryColor;
+  border-radius: 50%;
+  padding: 1.2rem;
+  box-shadow: 0 0 3px rgb(0 0 0 / 30%);
+
+  @include gtLg {
+    right: calc((100vw - $containerMaxWidth) / 2 + $containerPadding);
+  }
+
+  svg {
+    display: block;
+    height: 2rem;
+    width: 2rem;
+    fill: #fff;
+  }
+
+  &:active {
+    background-color: $activePrimaryColorBg;
+  }
+}

@@ -4,29 +4,53 @@ import qs from 'query-string';
 
 import detectOs from 'utils/detectOs';
 import isOsMobile from 'utils/isOsMobile';
+import formatErr from 'utils/formatErr';
+
+const WARN_THROTTLE_DURATION = 10 * 60 * 1000;
+const ERROR_THROTTLE_DURATION = 60 * 1000;
+const lastLoggedTimes: ObjectOf<number> = Object.create(null);
 
 let Sentry: {
   configureScope: typeof SentryType.configureScope,
   withScope: typeof SentryType.withScope,
   captureException: typeof SentryType.captureException,
 } | null = null;
-let queuedErrors: { level: SeverityLevel, err: Error, ctx: string }[] = [];
+let queuedErrors: { level: SeverityLevel, err: Error }[] = [];
 let latestUserId : EntityId | null = null;
 
-const _queueError = (level: SeverityLevel, err: Error, ctx: string) => {
+const _queueError = (level: SeverityLevel, err: Error) => {
   if (!process.env.PRODUCTION || process.env.SERVER !== 'production') {
     return;
   }
-  if (Sentry) {
-    Sentry.withScope(scope => {
-      scope.setLevel(level);
-      scope.setExtra('ctx', ctx);
-      scope.setTag('jsVersion', process.env.JS_VERSION);
 
-      Sentry?.captureException(err);
+  const msg = err.message && err.debugCtx?.ctx && !err.message.includes(': ')
+    ? `${err.debugCtx?.ctx}: ${err.message}`
+    : err.message;
+  const lastLoggedTime = msg && lastLoggedTimes[msg];
+  const throttleDuration = level === 'warning' ? WARN_THROTTLE_DURATION : ERROR_THROTTLE_DURATION;
+  if (lastLoggedTime && performance.now() - lastLoggedTime < throttleDuration) {
+    return;
+  }
+  lastLoggedTimes[msg] = performance.now();
+
+  if (Sentry) {
+    const debugCtx: ObjectOf<any> = {};
+    if (err.debugCtx) {
+      for (const [k, v] of Object.entries(err.debugCtx)) {
+        debugCtx[k] = `${typeof v === 'object' ? JSON.stringify(v) : v}`.slice(0, 1000);
+      }
+    }
+
+    const newErr = new Error(msg);
+    newErr.stack = err.stack;
+    Sentry.captureException(newErr, {
+      level,
+      contexts: {
+        debugCtx,
+      },
     });
   } else {
-    queuedErrors.push({ level, err, ctx });
+    queuedErrors.push({ level, err });
   }
 };
 
@@ -49,28 +73,31 @@ export const setErrorLoggerUserId = (userId: Nullish<IUser['id']>) => {
 };
 
 const ErrorLogger = {
-  warn(err: Error, ctx = '', consoleLog = true) {
+  warn(_err: Error, debugCtx?: ObjectOf<any>, consoleLog = true) {
+    const err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
     if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
-      console.warn(`${ctx} ${err.stack || err}`);
+      console.warn(formatErr(err));
     }
-    _queueError('warning', err, ctx);
+    _queueError('warning', err);
   },
 
-  error(err: Error, ctx = '', consoleLog = true) {
+  error(_err: Error, debugCtx?: ObjectOf<any>, consoleLog = true) {
+    const err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
     if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
-      console.error(`${ctx} ${err.stack || err}`);
+      console.error(formatErr(err));
     }
-    _queueError('error', err, ctx);
+    _queueError('error', err);
   },
 
-  fatal(err: Error, ctx = '', consoleLog = true) {
+  fatal(_err: Error, debugCtx?: ObjectOf<any>, consoleLog = true) {
+    const err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
     if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
-      console.error(`${ctx} ${err.stack || err}`);
+      console.error(formatErr(err));
     }
-    _queueError('fatal', err, ctx);
+    _queueError('fatal', err);
   },
 } as const;
 
@@ -110,8 +137,8 @@ export const loadErrorLogger = (userId : EntityId | null) => {
       });
 
       if (queuedErrors.length) {
-        for (const { level, err, ctx } of queuedErrors) {
-          _queueError(level, err, ctx);
+        for (const { level, err } of queuedErrors) {
+          _queueError(level, err);
         }
         queuedErrors = [];
       }

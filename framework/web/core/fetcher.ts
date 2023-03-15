@@ -1,6 +1,6 @@
 import removeUndefinedValues from 'utils/removeUndefinedValues';
 import promiseTimeout from 'utils/promiseTimeout';
-import { MAX_HTTP_TIMEOUT } from 'settings';
+import { API_TIMEOUT, API_POST_TIMEOUT } from 'settings';
 import TimeoutError from 'core/TimeoutError';
 
 type FetcherOpts = {
@@ -74,8 +74,11 @@ async function _fetcher(
   try {
     data = JSON.parse(text);
   } catch {
-    const err = new Error(`fetcher(${url}): unable to parse JSON`);
-    ErrorLogger.warn(err, text.slice(0, 200));
+    const err = getErr('fetcher: unable to parse JSON', {
+      url,
+      text: text.slice(0, 200),
+    });
+    ErrorLogger.warn(err);
     throw err;
   }
 
@@ -103,7 +106,9 @@ function _fetcherWrap(
       body,
       opts,
     ),
-    opts.timeout ?? MAX_HTTP_TIMEOUT,
+    opts.timeout
+      // Allow for a bit of transport time
+      ?? ((method === 'GET' ? API_TIMEOUT : API_POST_TIMEOUT) + 1000),
     timeoutErr,
   );
 }

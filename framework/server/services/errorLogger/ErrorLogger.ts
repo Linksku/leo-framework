@@ -1,66 +1,169 @@
 import type { SeverityLevel } from '@sentry/types';
 import * as Sentry from '@sentry/node';
-import chalk from 'chalk';
+import mapValues from 'lodash/mapValues';
 
-const THROTTLE_DURATION = 1000;
+import { serializeCtxVal } from 'utils/formatErr';
+
+if (!process.env.PRODUCTION) {
+  Error.stackTraceLimit = 30;
+}
+
+if (process.env.PRODUCTION) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN_SERVER,
+    tracesSampleRate: process.env.PRODUCTION ? 0.01 : 1,
+  });
+}
+
+const WARN_THROTTLE_DURATION = 10 * 60 * 1000;
+const ERROR_THROTTLE_DURATION = 60 * 1000;
 const lastLoggedTimes: ObjectOf<number> = Object.create(null);
 
-// todo: low/mid look into Pino
-const _log = (level: SeverityLevel, err: unknown, debugCtx: string) => {
-  const msg = err instanceof Error
-    ? err.message
-    : (typeof err === 'string' ? err : null);
-  const lastLoggedTime = msg && lastLoggedTimes[msg];
-  if (msg && lastLoggedTime && performance.now() - lastLoggedTime < THROTTLE_DURATION) {
+// todo: low/mid maybe switch to Pino
+function _log(level: SeverityLevel, err: Error) {
+  if (!process.env.PRODUCTION) {
     return;
   }
 
+  if (err.message && err.debugCtx?.ctx && !err.message.includes(': ')) {
+    err.message = `${err.debugCtx?.ctx}: ${err.message}`;
+  }
+  const lastLoggedTime = err.message && lastLoggedTimes[err.message];
+  const throttleDuration = level === 'warning' ? WARN_THROTTLE_DURATION : ERROR_THROTTLE_DURATION;
+  // Note: this depuding is per server
+  if (lastLoggedTime && performance.now() - lastLoggedTime < throttleDuration) {
+    return;
+  }
+  lastLoggedTimes[err.message] = performance.now();
+
   try {
     Sentry.withScope(scope => {
-      scope.setLevel(level);
-      scope.setExtra('ctx', debugCtx);
-
-      // eslint-disable-next-line global-require
+      // eslint-disable-next-line unicorn/prefer-module
       require('./setErrorLoggerScope').default(scope);
 
-      if (err instanceof Error) {
-        Sentry.captureException(err);
-      } else {
-        scope.setExtra('err', err);
-        Sentry.captureException(new Error('Non-error was thrown.'));
-      }
+      Sentry.captureException(err, {
+        level,
+        contexts: {
+          debugCtx: mapValues(
+            err.debugCtx,
+            val => serializeCtxVal(val).slice(0, 1000),
+          ),
+        },
+      });
     });
   } catch (err2) {
     // eslint-disable-next-line no-console
     console.error(err2);
   }
-};
+}
 
-export default {
-  warn(err: Error, debugCtx = '') {
-    if (!process.env.PRODUCTION) {
-      printDebug(`${debugCtx} ${err instanceof Error ? err.stack || err : err}`, 'warn');
+const ErrorLogger = {
+  warn<T>(
+    _err: T & (
+      T extends Error ? unknown
+      : unknown extends T ? unknown
+      : never
+    ),
+    debugCtx?: ObjectOf<any>,
+    consoleLog = true,
+  ) {
+    let err: Error;
+    if (_err instanceof Error) {
+      err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
+    } else {
+      err = getErr('ErrorLogger.warn: got non-Error', {
+        ...debugCtx,
+        nonError: _err,
+      });
     }
-    _log('warning', err, debugCtx);
+
+    if (consoleLog) {
+      printDebug(err, 'warn');
+    }
+    _log('warning', err);
   },
 
-  error(err: Error, debugCtx = '') {
-    printDebug(`${debugCtx} ${err instanceof Error ? err.stack || err : err}`, 'error');
-    _log('error', err, debugCtx);
+  error<T>(
+    _err: T & (
+      T extends Error ? unknown
+      : unknown extends T ? unknown
+      : never
+    ),
+    debugCtx?: ObjectOf<any>,
+    consoleLog = true,
+  ) {
+    let err: Error;
+    if (_err instanceof Error) {
+      err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
+    } else {
+      err = getErr('ErrorLogger.error: got non-Error', {
+        ...debugCtx,
+        nonError: _err,
+      });
+    }
+
+    if (consoleLog) {
+      if (process.env.PRODUCTION) {
+        // eslint-disable-next-line no-console
+        console.log(err);
+      } else {
+        printDebug(err, 'error');
+      }
+    }
+    _log('error', err);
   },
 
-  fatal(err: Error, debugCtx = '') {
-    // eslint-disable-next-line no-console
-    console.log(chalk.red(`${debugCtx} ${err instanceof Error ? err.stack || err : err}`));
-    _log('fatal', err, debugCtx);
+  async fatal<T>(
+    _err: T & (
+      T extends Error ? unknown
+      : unknown extends T ? unknown
+      : never
+    ),
+    debugCtx?: ObjectOf<any>,
+  ) {
+    try {
+      let err: Error;
+      if (_err instanceof Error) {
+        err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
+      } else {
+        err = getErr('ErrorLogger.fatal: got non-Error', {
+          ...debugCtx,
+          nonError: _err,
+        });
+      }
+
+      if (process.env.PRODUCTION) {
+        // eslint-disable-next-line no-console
+        console.log(err);
+      } else {
+        printDebug(err, 'error');
+      }
+      _log('fatal', err);
+    } catch (err2) {
+      // eslint-disable-next-line no-console
+      console.log(err2);
+    }
+
+    try {
+      await ErrorLogger.flushAndExit(1);
+    } catch (err2) {
+      // eslint-disable-next-line no-console
+      console.log(err2);
+      // eslint-disable-next-line unicorn/no-process-exit
+      process.exit(1);
+    }
+  },
+
+  async flushAndExit(code?: number) {
+    try {
+      await Sentry.close(2000);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.log(err);
+    }
     // eslint-disable-next-line unicorn/no-process-exit
-    process.exit(1);
-  },
-
-  castError(err: unknown) {
-    if (err instanceof Error) {
-      return err;
-    }
-    return new Error(`Caught non-error: ${err}`);
+    process.exit(code);
   },
 } as const;
+
+export default ErrorLogger;

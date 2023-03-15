@@ -1,5 +1,6 @@
 type ReactNode = React.ReactNode;
 type ReactElement = React.ReactElement;
+type ReactFragment = React.ReactFragment;
 type SetState<T> = Memoed<React.Dispatch<React.SetStateAction<T>>>;
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -12,7 +13,7 @@ type Memoed<T> = T extends Primitive ? T
   : T & __MEMOED;
 
 type StableTypes = Primitive
-  | ComponentType<any>
+  | React.ComponentType<any>
   | React.MutableRefObject<any>
   | React.SVGFactory
   | __MEMOED;

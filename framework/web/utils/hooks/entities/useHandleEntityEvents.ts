@@ -1,24 +1,27 @@
 import type { EntityEventHandler } from 'stores/EntitiesStore';
 
-export type EntityEvent = {
+export type EntityEvents<T extends EntityType> = Memoed<{
   actionType: EntityAction,
-  entityType: EntityType,
+  entityType: T,
   id?: EntityId,
-  cb?: EntityEventHandler<EntityType>,
-};
+  cb?: EntityEventHandler<T>,
+}[]>;
 
-export type EntityEvents = Memoed<EntityEvent[]>;
-
-export default function useHandleEntityEvents(
-  events: EntityEvents,
-  cb: Memoed<EntityEventHandler<EntityType>>,
+export default function useHandleEntityEvents<T extends EntityType>(
+  events: EntityEvents<T>,
+  cb: Memoed<EntityEventHandler<T>>,
 ) {
   const { addEntityListener } = useEntitiesStore();
   useEffect(() => {
     const unsubs: (() => void)[] = [];
 
     if (events.length) {
-      for (const { actionType, entityType, id, cb: cb2 } of events) {
+      for (const {
+        actionType,
+        entityType,
+        id,
+        cb: cb2,
+      } of events) {
         if (id) {
           unsubs.push(addEntityListener(actionType, entityType, id, cb));
         } else {

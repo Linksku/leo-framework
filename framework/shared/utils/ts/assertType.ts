@@ -1,6 +1,6 @@
 export default function assertType<T>(
-  validator: (val2: any) => boolean,
   val: any,
+  validator: (val2: any) => boolean,
   err?: Error,
 ): T {
   try {

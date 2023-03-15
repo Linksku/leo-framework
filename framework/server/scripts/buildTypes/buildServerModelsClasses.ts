@@ -7,11 +7,13 @@ import allModels, { ModelsArr, frameworkModels } from 'services/model/allModels'
 import Entity from 'services/model/Entity';
 import MaterializedView from 'services/model/MaterializedView';
 import InputMaterializedView from 'services/model/InputMaterializedView';
+import VirtualModel from 'services/model/VirtualModel';
 
 const ModelBaseClasses = [
   InputMaterializedView,
   MaterializedView,
   Entity,
+  VirtualModel,
 ];
 
 async function getOutput(models: ModelsArr) {
@@ -21,9 +23,13 @@ async function getOutput(models: ModelsArr) {
     if (!BaseClass) {
       throw new Error(`getModelBaseClass: unknown base class for ${Model.name}`);
     }
+    // todo: low/easy create types for MZ-only models, for createMaterializedViewClass
+    if (Model.getReplicaTable() === null) {
+      continue;
+    }
 
     const fields = await compile(
-      Model.jsonSchema as JSONSchema,
+      Model.jsonSchema as JsonSchema,
       'Foo',
       { bannerComment: '' },
     );

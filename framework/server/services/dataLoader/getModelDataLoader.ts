@@ -33,17 +33,18 @@ export default function getModelDataLoader<T extends ModelClass>(Model: T): Data
           }
         }
 
-        return partials.map(
-          partial => rows.find(row => {
-            for (const [k, v] of TS.objEntries(partial)) {
+        return partials.map(partial => {
+          const pairs = TS.objEntries(partial);
+          return rows.find(row => {
+            for (const pair of pairs) {
               // @ts-ignore wontfix no overlap
-              if (row[k] !== v) {
+              if (row[pair[0]] !== pair[1]) {
                 return false;
               }
             }
             return true;
-          }) ?? null,
-        );
+          }) ?? null;
+        });
       },
       {
         objKeys: true,

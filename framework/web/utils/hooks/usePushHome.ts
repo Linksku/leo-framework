@@ -1,5 +1,3 @@
-import HOME_TABS from 'config/homeTabs';
-
 export default function usePushHome() {
   const pushPath = usePushPath();
 

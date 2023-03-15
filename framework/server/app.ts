@@ -1,3 +1,4 @@
+import type { NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import express from 'express';
@@ -8,8 +9,10 @@ import * as Tracing from '@sentry/tracing';
 import apiRoutes from 'routes/apiRoutes';
 import sseRoute from 'routes/sseRoute';
 import { DOMAIN_NAME } from 'settings';
+import { getIsHealthy } from 'services/healthcheck/HealthcheckManager';
+import addMetaTags from 'helpers/addMetaTags';
 
-// todo: low/hard switch to Fastify
+// todo: low/hard maybe switch to Fastify
 const app = express();
 
 if (process.env.PRODUCTION) {
@@ -36,12 +39,19 @@ app.use('/sse', sseRoute);
 
 if (process.env.SERVER !== 'production') {
   app.use(express.static(
-    path.resolve('./build/development/web'),
+    path.resolve(`./build/${process.env.NODE_ENV}/web`),
     { dotfiles: 'allow', redirect: false, index: false },
   ));
 
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve('./build/development/web/index.html'));
+  app.get('*', async (req, res) => {
+    if (getIsHealthy()) {
+      const html = await fs.promises.readFile(path.resolve(`./build/${process.env.NODE_ENV}/web/index.html`));
+      res.send(await addMetaTags(req, html.toString()));
+    } else {
+      res
+        .status(503)
+        .sendFile(path.resolve(`./build/${process.env.NODE_ENV}/web/503.html`));
+    }
   });
 } else {
   app.all('*', (req, res, next) => {
@@ -54,8 +64,9 @@ if (process.env.SERVER !== 'production') {
     }
   });
 
+  // todo: low/easy handle Express throwing on malformed urls
   app.use(express.static(
-    path.resolve('./build/production/web'),
+    path.resolve(`./build/${process.env.NODE_ENV}/web`),
     {
       maxAge: 24 * 60 * 60 * 1000,
       dotfiles: 'allow',
@@ -63,30 +74,74 @@ if (process.env.SERVER !== 'production') {
       index: false,
       setHeaders(res, file) {
         if (/\.html$/i.test(file)) {
-          res.setHeader(
-            'Cache-Control',
-            process.env.PRODUCTION ? 'public,max-age=60' : 'public,max-age=0',
-          );
+          res
+            .setHeader(
+              'Cache-Control',
+              process.env.PRODUCTION ? 'public,max-age=60' : 'public,max-age=0',
+            );
         }
       },
     },
   ));
 
-  const indexFile = fs.readFileSync(path.resolve('./build/production/web/index.html')).toString()
-    || '<p>Temporarily unavailable.</p>';
-  app.get('*', (req, res) => {
+  // todo: mid/hard server routing to add meta tags for shareable links
+  let indexFile: string;
+  let serviceUnavailableFile: string;
+  fs.readFile(
+    path.resolve(`./build/${process.env.NODE_ENV}/web/index.html`),
+    (err, file) => {
+      if (err) {
+        ErrorLogger.fatal(err, { ctx: 'Read index.html' }).catch(() => {
+          // eslint-disable-next-line unicorn/no-process-exit
+          process.exit(1);
+        });
+      } else {
+        indexFile = file.toString();
+      }
+    },
+  );
+  fs.readFile(path.resolve(`./build/${process.env.NODE_ENV}/web/503.html`), (err, file) => {
+    if (err) {
+      ErrorLogger.fatal(err, { ctx: 'Read 503.html' }).catch(() => {
+        // eslint-disable-next-line unicorn/no-process-exit
+        process.exit(1);
+      });
+    } else {
+      serviceUnavailableFile = file.toString();
+    }
+  });
+
+  app.get('*', async (req, res) => {
     if (req.subdomains.length) {
       res.status(404).end();
       return;
     }
-
-    res.set(
-      'Cache-Control',
-      process.env.PRODUCTION ? 'public,max-age=60' : 'public,max-age=0',
-    );
-    res.send(indexFile);
-    res.end();
+    if (indexFile && getIsHealthy()) {
+      res
+        .setHeader(
+          'Cache-Control',
+          process.env.PRODUCTION ? 'public,max-age=60' : 'public,max-age=0',
+        )
+        .send(await addMetaTags(req, indexFile));
+    } else {
+      res
+        .status(503)
+        .setHeader('Cache-Control', 'public,max-age=0')
+        .send(serviceUnavailableFile ?? '<p>Service temporarily unavailable</p>');
+    }
   });
 }
+
+// Express checks number of args
+app.use((err: Error, _req: ExpressRequest, res: ExpressResponse, _next: NextFunction) => {
+  if (!(err instanceof URIError)) {
+    ErrorLogger.error(err, { ctx: 'Express catch-all' });
+  }
+
+  res
+    .status(400)
+    .setHeader('Cache-Control', 'public,max-age=0')
+    .send('<p>Unknown error occurred</p>');
+});
 
 export default app;

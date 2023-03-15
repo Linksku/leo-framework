@@ -1,8 +1,6 @@
-import usePrevious from 'utils/hooks/usePrevious';
-
 export default function useEnterRoute(cb: Memoed<() => () => void>) {
-  const { isRouteActive } = useRouteStore();
-  const wasRouteActive = usePrevious(isRouteActive);
+  const { isRouteActive, wasRouteActive, frozenCount } = useRouteStore();
+  // Note: handleLeaveRoute isn't called if route is frozen
   const handleLeaveRoute = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -12,5 +10,5 @@ export default function useEnterRoute(cb: Memoed<() => () => void>) {
       handleLeaveRoute.current?.();
       handleLeaveRoute.current = null;
     }
-  }, [isRouteActive, wasRouteActive, cb]);
+  }, [isRouteActive, wasRouteActive, cb, frozenCount]);
 }

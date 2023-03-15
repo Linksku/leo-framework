@@ -22,13 +22,11 @@ export default function HookFormErrors({
   }
   return (
     <div className={styles.container}>
-      {additionalError
-        ? (
-          <p className={styles.error}>
-            {additionalError instanceof Error ? additionalError.message : additionalError}
-          </p>
-        )
-        : null}
+      {additionalError && (
+        <p className={styles.error}>
+          {additionalError instanceof Error ? additionalError.message : additionalError}
+        </p>
+      )}
       {[...new Set(errorValues.map(err => err.message ?? 'Unknown error'))].map(msg => (
         <p
           key={msg}

@@ -8,8 +8,9 @@ import buildClass from './buildClass';
 
 type MaterializedViewConfigStaticProps = {
   replicaTable?: Nullish<string>,
+  mzIndexes?: (string | string[])[],
   MVQueryDeps: MaterializedViewClass[],
-  MVQuery: QueryBuilder<MaterializedView>,
+  getMVQuery: () => QueryBuilder<MaterializedView>,
   extendMVQuery?: ((query: QueryBuilder<MaterializedView>) => QueryBuilder<MaterializedView>)[],
 };
 
@@ -43,14 +44,16 @@ export function processMaterializedViewConfig<Config extends MaterializedViewCon
   return {
     ...omit(config, [
       'replicaTable',
+      'mzIndexes',
       'MVQueryDeps',
-      'MVQuery',
+      'getMVQuery',
       'extendMVQuery',
     ]),
     staticProps: {
       replicaTable: config.replicaTable,
+      mzIndexes: config.mzIndexes,
       MVQueryDeps: config.MVQueryDeps,
-      MVQuery: config.MVQuery,
+      getMVQuery: config.getMVQuery,
       extendMVQuery: config.extendMVQuery,
       ...config.staticProps,
     },

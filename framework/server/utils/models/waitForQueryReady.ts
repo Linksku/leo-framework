@@ -1,13 +1,13 @@
 import type { Knex } from 'knex';
 
-import { HTTP_TIMEOUT } from 'settings';
+import { API_POST_TIMEOUT } from 'settings';
 
 // Mostly for testing.
 export default async function waitForQueryReady(
   query: Knex.QueryBuilder<any>,
   {
     minWaitTime = 100,
-    maxWaitTime = HTTP_TIMEOUT / 2,
+    maxWaitTime = API_POST_TIMEOUT / 2,
     exponentialBackoff = true,
   } = {},
 ) {
@@ -33,7 +33,7 @@ export default async function waitForQueryReady(
     }
 
     if (performance.now() + waitTime - startTime >= maxWaitTime) {
-      throw new ErrorWithCtx('waitForQueryReady: timed out', `${lastErr}`);
+      throw getErr('waitForQueryReady: timed out', { lastErr });
     }
     // eslint-disable-next-line no-await-in-loop
     await pause(waitTime);
@@ -43,5 +43,5 @@ export default async function waitForQueryReady(
     }
   }
 
-  throw new ErrorWithCtx('waitForQueryReady: reached end of loop', `${lastErr}`);
+  throw getErr('waitForQueryReady: reached end of loop', { lastErr });
 }

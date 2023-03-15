@@ -1,0 +1,48 @@
+export default function getErr<T>(
+  msgOrErr: T & (
+    T extends (string | Error) ? unknown
+    : unknown extends T ? unknown
+    : never
+  ),
+  debugDetails: ObjectOf<any>,
+) {
+  let err: Error;
+  let stackLines: string[] = [];
+  if (typeof msgOrErr === 'string') {
+    err = new Error(msgOrErr);
+    stackLines = err.stack?.split('\n') ?? [];
+    stackLines.splice(1, 1);
+  } else if (msgOrErr instanceof Error) {
+    err = msgOrErr;
+    stackLines = err.stack?.split('\n') ?? [];
+  } else {
+    err = new Error('getErr: got non-Error');
+    err.debugCtx = {
+      nonError: msgOrErr,
+    };
+    stackLines = err.stack?.split('\n') ?? [];
+    stackLines.splice(1, 1);
+  }
+
+  if (TS.hasProp(debugDetails, 'ctx')) {
+    if (!debugDetails.ctx) {
+      delete debugDetails.ctx;
+    } else if (err.debugCtx?.ctx) {
+      for (let i = 2; ; i++) {
+        if (!err.debugCtx[`ctx${i}`]) {
+          debugDetails[`ctx${i}`] = debugDetails.ctx;
+          break;
+        }
+      }
+      delete debugDetails.ctx;
+    }
+  }
+  const newDebugCtx: ObjectOf<any> = {
+    ...err.debugCtx,
+    ...debugDetails,
+  };
+
+  err.stack = stackLines.join('\n');
+  err.debugCtx = newDebugCtx;
+  return err;
+}

@@ -16,14 +16,16 @@ const [
 ] = constate(
   function AuthStore() {
     const [authToken, setAuthToken, removeAuthToken] = useAuthTokenLS();
-    const [state, setState] = useStateStable<{
+    const [{ currentUserId, authState }, setState] = useStateStable<{
       currentUserId: IUser['id'] | null,
       authState: AuthStateType,
     }>({
+      // todo: mid/easy store last currentUserId in localStorage
       currentUserId: null,
       authState: authToken ? 'fetching' : 'out',
     });
     const [isReloadingAfterAuth, setIsReloadingAfterAuth] = useState(false);
+    const catchAsync = useCatchAsync();
 
     const setAuth = useCallback(({
       authToken: newAuthToken,
@@ -35,40 +37,39 @@ const [
       // todo: low/mid redirect to previous path
       redirectPath: string,
     }) => {
-      batchedUpdates(() => {
-        if (newAuthToken && userId) {
-          setAuthToken(newAuthToken);
-          setState({ currentUserId: userId, authState: 'in' });
-        } else {
-          removeAuthToken();
-          setState({ currentUserId: null, authState: 'out' });
-        }
+      if (newAuthToken && userId) {
+        setAuthToken(newAuthToken);
+        setState({ currentUserId: userId, authState: 'in' });
+      } else {
+        removeAuthToken();
+        setState({ currentUserId: null, authState: 'out' });
+      }
 
-        setIsReloadingAfterAuth(true);
-        window.location.href = redirectPath;
-      });
-    }, [setAuthToken, removeAuthToken, setState]);
+      setIsReloadingAfterAuth(true);
+      window.location.href = redirectPath;
+      catchAsync(Promise.reject(new Promise(NOOP)));
+    }, [setAuthToken, removeAuthToken, setState, catchAsync]);
 
-    const fetchedCurrentUser = useCallback((currentUserId: IUser['id'] | null) => {
-      setErrorLoggerUserId(currentUserId);
+    const fetchedCurrentUser = useCallback((newCurrentUserId: IUser['id'] | null) => {
+      setErrorLoggerUserId(newCurrentUserId);
       setState({
-        currentUserId,
-        authState: currentUserId ? 'in' : 'out',
+        currentUserId: newCurrentUserId,
+        authState: newCurrentUserId ? 'in' : 'out',
       });
     }, [setState]);
 
-    if (!process.env.PRODUCTION && !!state.currentUserId !== (state.authState === 'in')) {
+    if (!process.env.PRODUCTION && !!currentUserId !== (authState === 'in')) {
       throw new Error('AuthStore: invalid authState');
     }
 
-    return useDeepMemoObj({
-      currentUserId: state.currentUserId,
-      authState: state.authState,
+    return useMemo(() => ({
+      currentUserId,
+      authState,
       fetchedCurrentUser,
       isReloadingAfterAuth,
       authToken,
       setAuth,
-    });
+    }), [currentUserId, authState, fetchedCurrentUser, isReloadingAfterAuth, authToken, setAuth]);
   },
   function AuthStore(val) {
     return val;
@@ -93,4 +94,9 @@ function useCurrentUserId(errorMessage?: string | null): IUser['id'] | null {
   return id;
 }
 
-export { AuthProvider, useAuthStore, useCurrentUserId, useAuthState };
+export {
+  AuthProvider,
+  useAuthStore,
+  useCurrentUserId,
+  useAuthState,
+};

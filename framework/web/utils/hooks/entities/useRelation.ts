@@ -1,8 +1,11 @@
 import useEntityByField from 'utils/hooks/entities/useEntityByField';
-import { HTTP_TIMEOUT } from 'settings';
+import { API_TIMEOUT } from 'settings';
+import useShallowMemoObj from 'utils/hooks/useShallowMemoObj';
+import useRelationConfig from 'utils/hooks/entities/useRelationConfig';
 
 const warnedRelations = new Set<string>();
 
+// todo: low/mid improve perf by removing useEntityByField
 export default function useRelation<
   T extends EntityType,
   RelationName extends string & keyof EntityRelationTypes<T>,
@@ -13,25 +16,29 @@ export default function useRelation<
   relationName: RelationName,
 ): Nullish<Memoed<RelationType>> {
   const entity = useEntity(entityType, entityId);
-  const { relationConfigs } = useApiStore();
-  const relationConfig = relationConfigs[entityType]?.[relationName];
+  const relationConfig = useRelationConfig(entityType, relationName);
 
-  const { entitiesRef } = useEntitiesStore();
-  if (!process.env.PRODUCTION
-    && entityId
-    && entity
-    && !entity.includedRelations?.some(r => r === relationName || r.startsWith(`${relationName}.`))) {
-    setTimeout(() => {
-      const id = Array.isArray(entityId) ? entityId.join(',') : entityId;
-      const newEntity = entitiesRef.current[entityType]?.[id];
-      const key = `${entityType}, ${entityId}, ${relationName}`;
-      if (!warnedRelations.has(key)) {
-        if (newEntity && !newEntity.includedRelations?.includes(relationName)) {
-          ErrorLogger.warn(new Error(`useRelation(${key}): missing relation`));
+  if (!process.env.PRODUCTION) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { entitiesRef } = useEntitiesStore();
+
+    if (entityId
+      && entity
+      && !entity.includedRelations?.some(r => r === relationName || r.startsWith(`${relationName}.`))) {
+      setTimeout(() => {
+        const id = Array.isArray(entityId) ? entityId.join(',') : entityId;
+        const newEntity = entitiesRef.current[entityType]?.[id];
+        const key = `${entityType}, ${entityId}, ${relationName}`;
+        if (!warnedRelations.has(key)) {
+          if (newEntity && !newEntity.includedRelations?.some(
+            r => r === relationName || r.startsWith(`${relationName}.`),
+          )) {
+            ErrorLogger.warn(new Error(`useRelation(${key}): missing relation`));
+          }
+          warnedRelations.add(key);
         }
-        warnedRelations.add(key);
-      }
-    }, HTTP_TIMEOUT);
+      }, API_TIMEOUT);
+    }
   }
 
   const throughEntities = useEntityByField(
@@ -51,24 +58,28 @@ export default function useRelation<
     relationConfig?.toCol ?? 'ENTITY_FIELD_HACK',
   );
 
+  let related: Nullish<Memoed<RelationType>>;
   if (!entity || !relationConfig) {
-    return null;
+    related = null;
+  } else if (relationConfig.through && throughEntity) {
+    // @ts-ignore wontfix key error
+    const toCol = throughEntity[relationConfig.through.to];
+    related = (Array.isArray(toCol)
+      ? toCol.map(col => relatedEntities[col])
+      : relatedEntities[
+        toCol
+      ]) as Memoed<RelationType>;
+  } else if (!relationConfig.through) {
+    // @ts-ignore wontfix key error
+    const fromCol = entity[relationConfig.fromCol];
+    related = (Array.isArray(fromCol)
+      ? fromCol.map(col => relatedEntities[col])
+      : relatedEntities[
+        fromCol
+      ]) as Memoed<RelationType>;
+  } else {
+    related = undefined;
   }
-  if (relationConfig.through && throughEntity) {
-    return relatedEntities[
-      // @ts-ignore wontfix key error
-      throughEntity[
-        relationConfig.through.to
-      ]
-    ] as Memoed<RelationType>;
-  }
-  if (!relationConfig.through) {
-    return relatedEntities[
-      // @ts-ignore wontfix key error
-      entity[
-        relationConfig.fromCol
-      ]
-    ] as Memoed<RelationType>;
-  }
-  return undefined;
+
+  return useShallowMemoObj(related);
 }

@@ -4,7 +4,7 @@ const Toasts = React.lazy(
   async () => import(/* webpackChunkName: 'deferred' */ './Toasts'),
 );
 
-export default function ToastsDeferred({
+export default React.memo(function ToastsDeferred({
   children,
   ...props
 }: React.PropsWithChildren<Props>) {
@@ -17,4 +17,4 @@ export default function ToastsDeferred({
       </Toasts>
     </React.Suspense>
   );
-}
+});

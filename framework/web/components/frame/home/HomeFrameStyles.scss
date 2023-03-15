@@ -1,0 +1,41 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: $zIndexFixed;
+  height: calc($headerHeight - $insetTop);
+  padding-top: calc($insetTop);
+  box-sizing: content-box;
+  background-color: #fff;
+}
+
+.headerInner {
+  @extend %maxWidthContainer;
+
+  height: calc($headerHeight - $insetTop);
+  display: flex;
+  align-items: stretch;
+}
+
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: $zIndexFixed;
+  height: calc($footerHeight - $insetBottom);
+  padding-bottom: calc($insetBottom);
+  background-color: #fff;
+  border-top: 1px solid $separatorColor;
+  box-sizing: content-box;
+}
+
+.footerInner {
+  @extend %maxWidthContainer;
+
+  height: calc($footerHeight - $insetBottom);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-evenly;
+}

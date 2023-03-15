@@ -22,7 +22,7 @@ export type OrderByColumns = (
 export type PaginatedResponse<T extends Model> = {
   entities: T[],
   data: {
-    entityIds: (T['cls']['primaryIndex'] extends any[] ? ApiEntityId : EntityId)[],
+    items: (T['cls']['primaryIndex'] extends any[] ? ApiEntityId : EntityId)[],
     cursor?: string,
     hasCompleted: boolean,
   },
@@ -33,7 +33,7 @@ export const MAX_PER_PAGE = 30;
 export const EMPTY_PAGINATION = {
   entities: [],
   data: {
-    entityIds: [],
+    items: [],
     cursor: undefined,
     hasCompleted: true,
   },
@@ -98,7 +98,12 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
     });
   }
 
-  for (let [idx, { column, columnWithoutTransforms, order, nulls }] of orderByColumns.entries()) {
+  for (let [idx, {
+    column,
+    columnWithoutTransforms,
+    order,
+    nulls,
+  }] of orderByColumns.entries()) {
     query = query
       .select({
         [`__cursorVal${idx}`]: column,
@@ -113,7 +118,11 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
   query = query.limit(limit);
 
   const entities = await query;
-  const entityIds = entities.map(e => e.getId() as T['ModelType']['cls']['primaryIndex'] extends any[] ? ApiEntityId : EntityId);
+  const entityIds = entities.map(
+    e => e.getId() as T['ModelType']['cls']['primaryIndex'] extends any[]
+      ? ApiEntityId
+      : EntityId,
+  );
   const lastRowCursorVals = entities.length
     ? orderByColumns.map((_, idx) => {
       const lastRow = entities[entities.length - 1];
@@ -124,7 +133,10 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
 
   if (!process.env.PRODUCTION) {
     if (lastRowCursorVals && lastRowCursorVals.some(val => typeof val !== 'number')) {
-      throw new ErrorWithCtx(`paginateQuery: orderBy columns (${orderByColumns.map(col => col.columnWithoutTransforms ?? col.column).join(',')}) must all be numbers`, JSON.stringify(lastRowCursorVals).slice(0, 100));
+      throw getErr(
+        `paginateQuery: orderBy columns (${orderByColumns.map(col => col.columnWithoutTransforms ?? col.column).join(',')}) must all be numbers`,
+        { lastRowCursorVals },
+      );
     }
 
     if ((new Set(entityIds)).size !== entityIds.length) {
@@ -154,7 +166,7 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
   return {
     entities,
     data: {
-      entityIds,
+      items: entityIds,
       cursor: lastRowCursorVals
         ? lastRowCursorVals.join(',')
         : undefined,

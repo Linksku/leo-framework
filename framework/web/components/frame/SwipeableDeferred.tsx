@@ -30,7 +30,7 @@ function SwipeableDeferred(
           });
         importPromise.catch(err => {
           importPromise = null;
-          ErrorLogger.warn(err, 'Load Swipeable');
+          ErrorLogger.warn(err, { ctx: 'Load Swipeable' });
         });
       }
 

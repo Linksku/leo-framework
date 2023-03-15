@@ -1,7 +1,7 @@
-import useHandleEntityEvents from 'utils/hooks/entities/useHandleEntityEvents';
-import useUpdate from 'utils/hooks/useUpdate';
-import { HTTP_TIMEOUT } from 'settings';
-import useEffectIfReady from 'utils/hooks/useEffectIfReady';
+import { useSyncExternalStore } from 'react';
+
+import { API_TIMEOUT } from 'settings';
+import useTimeout from 'utils/hooks/useTimeout';
 
 function useCheckEntityExists(
   entityType: EntityType,
@@ -12,10 +12,10 @@ function useCheckEntityExists(
 
   useApi(
     'checkEntityExists',
-    {
+    useMemo(() => ({
       entityType,
       entityId: id ?? '',
-    },
+    }), [entityType, id]),
     {
       shouldFetch: waited && id != null && !entity,
       onFetch({ exists }) {
@@ -26,16 +26,14 @@ function useCheckEntityExists(
     },
   );
 
-  // todo: low/easy add useTimeout/useInterval
-  useEffectIfReady(() => {
-    const timer = setTimeout(() => {
-      setWaited(true);
-    }, HTTP_TIMEOUT);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [], !waited && id != null && !entity);
+  useTimeout(
+    useCallback(() => {
+      if (!waited && id != null && !entity) {
+        setWaited(true);
+      }
+    }, [waited, id, entity]),
+    API_TIMEOUT,
+  );
 }
 
 export default function useEntity<T extends EntityType>(
@@ -43,28 +41,32 @@ export default function useEntity<T extends EntityType>(
   _id: Nullish<EntityId | (string | number)[]>,
 ): Memoed<TypeToEntity<T>> | null {
   const id = Array.isArray(_id) ? _id.join(',') : _id;
-  const { entitiesRef } = useEntitiesStore();
-  const update = useUpdate();
+  const { entitiesRef, addEntityListener } = useEntitiesStore();
 
-  useHandleEntityEvents(
-    useMemo(() => (
-      id == null
-        ? []
-        : [
-          { actionType: 'load', entityType, id },
-          { actionType: 'create', entityType, id },
-          { actionType: 'update', entityType, id },
-          { actionType: 'delete', entityType, id },
-        ]
-    ), [entityType, id]),
-    update,
+  const entity = useSyncExternalStore(
+    useCallback(cb => {
+      if (!entityType || id == null) {
+        return NOOP;
+      }
+
+      const unsubs = [
+        addEntityListener('load', entityType, id, cb),
+        addEntityListener('create', entityType, id, cb),
+        addEntityListener('update', entityType, id, cb),
+        addEntityListener('delete', entityType, id, cb),
+      ];
+      return () => {
+        for (const unsub of unsubs) {
+          unsub();
+        }
+      };
+    }, [addEntityListener, entityType, id]),
+    () => (id
+      ? (entitiesRef.current[entityType]?.[id] ?? null) as unknown as Memoed<TypeToEntity<T>> | null
+      : null),
   );
 
-  const entity = id
-    ? (entitiesRef.current[entityType]?.[id] ?? null) as unknown as Memoed<TypeToEntity<T>> | null
-    : null;
-
-  if (!process.env.PRODUCTION) {
+  if (!process.env.PRODUCTION && !!window.localStorage.getItem('DEBUG')) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useCheckEntityExists(
       entityType,

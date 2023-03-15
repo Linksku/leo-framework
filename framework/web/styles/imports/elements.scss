@@ -5,9 +5,8 @@
 
 html,
 body {
+  // Doesn't work in iOS: https://bugs.webkit.org/show_bug.cgi?id=176454
   overscroll-behavior-y: none;
-  // Disable iOS overscroll, may not work https://bugs.webkit.org/show_bug.cgi?id=176454
-  position: fixed;
   overflow: hidden;
 }
 
@@ -96,7 +95,9 @@ a,
 a,
 [role=button],
 img {
-  -webkit-user-drag: none;
+  // stylelint-disable-next-line property-no-unknown
+  user-drag: none;
+  user-select: none;
 }
 
 a,
@@ -142,21 +143,21 @@ th {
 }
 
 thead {
-  border-bottom: 1px solid $separatorColor;
+  border-bottom: 0.5px solid $separatorColor;
 }
 
 tbody {
   tr:not(:first-child) {
-    border-top: 1px solid $separatorColor;
+    border-top: 0.5px solid $separatorColor;
   }
 
   tr:not(:last-child) {
-    border-bottom: 1px solid $separatorColor;
+    border-bottom: 0.5px solid $separatorColor;
   }
 }
 
 tfoot {
-  border-top: 1px solid $separatorColor;
+  border-top: 0.5px solid $separatorColor;
 }
 
 ul,
@@ -181,9 +182,14 @@ p svg {
   display: inline-block;
 }
 
-// Ios input shadow: https://stackoverflow.com/questions/23211656/remove-ios-input-shadow
+// iOS input shadow: https://stackoverflow.com/questions/23211656/remove-ios-input-shadow
 input,
 input[type],
 textarea {
   background-clip: padding-box !important;
+}
+
+// iOS date input
+::-webkit-date-and-time-value {
+  text-align: left;
 }

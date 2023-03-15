@@ -76,5 +76,14 @@ module.exports = {
         }],
       ],
     },
+    {
+      test: ['./app/tests', './framework/tests'],
+      plugins: [
+        ['module-resolver', {
+          root: ['./app/tests', './app/shared', './framework/tests', './framework/shared'],
+          extensions: ['.js', '.ts', '.cjs'],
+        }],
+      ],
+    },
   ],
 };

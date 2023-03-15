@@ -5,7 +5,6 @@ export default createEntityClass(
     type: 'userMeta',
     schema: {
       id: SchemaConstants.id,
-      version: SchemaConstants.version,
       userId: SchemaConstants.id,
       metaKey: SchemaConstants.type,
       metaValue: { type: 'string' },

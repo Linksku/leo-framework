@@ -46,7 +46,6 @@ export default class AjvValidator extends Validator {
     if (!validator(json)) {
       const rc = getRC();
       const error = validator.errors?.[0];
-      // todo: low/mid add context for Bull queues
       if (rc?.debug || (!process.env.PRODUCTION && !rc)) {
         if (error) {
           printDebug(error, 'error');

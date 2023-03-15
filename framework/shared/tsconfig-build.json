@@ -2,12 +2,16 @@
   "extends": "../../tsconfig-base.json",
   "compilerOptions": {
     "paths": {
-      "baseUrl": ["."],
+      /* "config/*": [
+        "app/shared/config/*",
+      ], */
       "*": [
         "framework/shared/*",
       ],
     },
-    "rootDir": "../..",
+    "rootDirs": [
+      ".",
+    ],
   },
   "include": [
     ".",

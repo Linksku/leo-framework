@@ -1,10 +1,29 @@
 import type express from 'express';
+import type { Result, Callback } from 'ioredis';
 import type { JSONSchema4 } from 'json-schema';
 // Unused import to extend Express with Express.Multer.File
 import type _multer from 'multer';
 import 'compression';
+import { fetch as _fetch } from 'undici';
+
+declare module 'ioredis' {
+  interface RedisCommander<Context> {
+    flushprefix(
+      key: string,
+      argv: string,
+      callback?: Callback<number>
+    ): Result<number, Context>;
+  }
+}
 
 declare global {
+  declare namespace NodeJS {
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    export interface ProcessEnv extends FrameworkEnv {}
+  }
+
+  const fetch: typeof _fetch;
+
   // eslint-disable-next-line @typescript-eslint/no-namespace
   declare namespace Express {
     export interface Request {
@@ -37,13 +56,10 @@ declare global {
     },
     debug: boolean,
     profiling: boolean,
+    numDbQueries: number,
   };
 
-  type BullQueueContext = {
-    queueName: string,
-    jobName: string,
-    data: any,
-  };
+  type JsonSchema = JSONSchema4;
 
-  type JSONSchema = JSONSchema4;
+  type JsonSchemaProperties = Defined<JsonSchema['properties']>;
 }

@@ -2,6 +2,8 @@ import pick from 'lodash/pick';
 import omit from 'lodash/omit';
 
 import ucFirst from 'utils/ucFirst';
+import getNonNullSchema from 'utils/models/getNonNullSchema';
+import isSchemaNullable from 'utils/models/isSchemaNullable';
 import type { ModelRelationsSpecs } from './helpers/modelRelations';
 import type { BuildClassConfig } from './buildClass';
 
@@ -13,9 +15,11 @@ type ModelConfigStaticProps<Type> = {
   uniqueIndexes?: (string | string[])[],
   normalIndexes?: (string | string[])[],
   expressionIndexes?: ({
+    name?: string,
     cols: string[],
     expression: string,
   } | {
+    name?: string,
     col: string,
     expression: string,
   })[],
@@ -36,7 +40,9 @@ const HANDLED_STATIC_PROPS = [
 export type ModelConfig<
   Type extends ModelType,
   // eslint-disable-next-line @typescript-eslint/ban-types
-  StaticProps extends ObjectOf<any> = {},
+  StaticProps extends ObjectOf<any> = {
+    virtualAttributes?: string[],
+  },
   // eslint-disable-next-line @typescript-eslint/ban-types
   Props extends ObjectOf<any> = {},
 > = {
@@ -44,7 +50,6 @@ export type ModelConfig<
   props: Props,
 } & ModelConfigStaticProps<Type>;
 
-// todo: mid/hard speed up TS by maybe generating classes
 export function processModelConfig<
   Config extends ModelConfig<ModelType>,
 >(config: Config): BuildClassConfig<
@@ -62,8 +67,9 @@ export function processModelConfig<
   if (!/^[a-z][\dA-Za-z]+$/.test(config.type)) {
     throw new Error(`processMaterializedViewConfig(${config.type}): invalid type.`);
   }
-  if (!config.uniqueIndexes?.length) {
-    throw new Error(`processModelConfig(${config.type}): unique index is required.`);
+  const uniqueIndexes = config.uniqueIndexes ?? ['id'];
+  if (!uniqueIndexes.length) {
+    throw new Error(`processModelConfig(${config.type}): 1 unique index is required.`);
   }
 
   const unhandledConfig = omit(config, [
@@ -75,7 +81,7 @@ export function processModelConfig<
     throw new Error(`processModelConfig(${config.type}): unhandled config: ${Object.keys(unhandledConfig).join(', ')}`);
   }
 
-  for (const [idx, index] of config.uniqueIndexes.entries()) {
+  for (const [idx, index] of uniqueIndexes.entries()) {
     const arr = Array.isArray(index)
       ? index
       : [index];
@@ -84,11 +90,18 @@ export function processModelConfig<
       if (!colSchema) {
         throw new Error(`processModelConfig(${config.type}): no schema for "${col}"`);
       }
-      // After adding "NULLS NOT DISTINCT" from PG 15, disallow nulls in unique
 
       // Primary index
-      if (idx === 0 && colSchema.type !== 'number' && colSchema.type !== 'integer' && colSchema.type !== 'string') {
-        throw new Error(`processModelConfig(${config.type}): primary index columns must be number or string`);
+      if (idx === 0) {
+        if (isSchemaNullable(colSchema)) {
+          throw new Error(`processModelConfig(${config.type}): primary index columns can't be nullable`);
+        }
+
+        const { nonNullType } = getNonNullSchema(colSchema);
+        if (nonNullType !== 'number' && nonNullType !== 'integer' && nonNullType !== 'string'
+          && !config.staticProps.virtualAttributes?.includes(col)) {
+          throw new Error(`processModelConfig(${config.type}): primary index columns must be number or string`);
+        }
       }
     }
   }
@@ -97,6 +110,7 @@ export function processModelConfig<
     name: ucFirst(config.type) as Capitalize<Config['type']>,
     staticProps: {
       ...pick(config, HANDLED_STATIC_PROPS),
+      uniqueIndexes,
       ...config.staticProps,
       ...({} as {
         Interface: ModelTypeToInterface<Config['type']>,

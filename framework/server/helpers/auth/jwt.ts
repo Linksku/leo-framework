@@ -1,6 +1,13 @@
 import jwt from 'jsonwebtoken';
+import { createSecretKey } from 'crypto';
 
-import { DEFAULT_AUTH_EXPIRATION } from 'serverSettings';
+import { DEFAULT_COOKIES_TTL } from 'settings';
+
+export const COOKIE_JWT_KEY = createSecretKey(Buffer.from(process.env.COOKIE_JWT_KEY));
+
+export const HEADER_JWT_KEY = createSecretKey(Buffer.from(process.env.HEADER_JWT_KEY));
+
+export const SSE_JWT_KEY = createSecretKey(Buffer.from(process.env.SSE_JWT_KEY));
 
 export async function fetchUserIdByJwt(cookieJwt?: string, headerJwt?: string) {
   if (!cookieJwt || !headerJwt) {
@@ -11,7 +18,7 @@ export async function fetchUserIdByJwt(cookieJwt?: string, headerJwt?: string) {
     cookieVerified: new Promise<number | null>(succ => {
       jwt.verify(
         cookieJwt,
-        TS.defined(process.env.COOKIE_JWT_KEY),
+        COOKIE_JWT_KEY,
         {},
         (err, obj: any) => {
           if (err) {
@@ -25,7 +32,7 @@ export async function fetchUserIdByJwt(cookieJwt?: string, headerJwt?: string) {
     headerVerified: new Promise<number | null>(succ => {
       jwt.verify(
         headerJwt,
-        TS.defined(process.env.HEADER_JWT_KEY),
+        HEADER_JWT_KEY,
         {},
         (err, obj: any) => {
           if (err) {
@@ -51,15 +58,15 @@ export async function getCookieJwt(userId: EntityId) {
       {
         id: userId,
       },
-      TS.defined(process.env.COOKIE_JWT_KEY),
+      COOKIE_JWT_KEY,
       {
-        expiresIn: DEFAULT_AUTH_EXPIRATION,
+        expiresIn: DEFAULT_COOKIES_TTL,
       },
       (err, token) => {
         if (err) {
           fail(err);
         } else if (!token) {
-          fail(new Error('Couldn\'t create cookie JWT.'));
+          fail(new Error('getCookieJwt: couldn\'t create cookie JWT'));
         } else {
           succ(token);
         }
@@ -74,15 +81,15 @@ export async function getHeaderJwt(userId: EntityId) {
       {
         id: userId,
       },
-      TS.defined(process.env.HEADER_JWT_KEY),
+      HEADER_JWT_KEY,
       {
-        expiresIn: DEFAULT_AUTH_EXPIRATION,
+        expiresIn: DEFAULT_COOKIES_TTL,
       },
       (err, token) => {
         if (err) {
           fail(err);
         } else if (!token) {
-          fail(new Error('Couldn\'t create header JWT.'));
+          fail(new Error('getHeaderJwt: couldn\'t create header JWT'));
         } else {
           succ(token);
         }

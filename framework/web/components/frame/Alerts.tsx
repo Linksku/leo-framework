@@ -3,7 +3,7 @@ import useUpdate from 'utils/hooks/useUpdate';
 
 import styles from './AlertsStyles.scss';
 
-function Alerts() {
+export default React.memo(function Alerts() {
   const ref = useRef({
     isHiding: false,
     hideTimer: -1,
@@ -71,7 +71,7 @@ function Alerts() {
   return (
     <div
       onClick={closeable ? hideAlert : undefined}
-      className={cn(styles.container, {
+      className={cx(styles.container, {
         [styles.visible]: alerts.length,
       })}
       role="dialog"
@@ -82,48 +82,34 @@ function Alerts() {
         onClick={event => event.stopPropagation()}
         role="dialog"
       >
-        {title
-          ? <h2 className={styles.title}>{title}</h2>
-          : null}
-        {msg
-          ? <div className={styles.msg}>{msg}</div>
-          : null}
+        {title && <h2 className={styles.title}>{title}</h2>}
+        {msg && <div className={styles.msg}>{msg}</div>}
 
-        {closeable && (showOk || showCancel)
-          ? (
-            <div className={styles.btns}>
-              {closeable && showOk
-                ? (
-                  <Button
-                    label={okText}
-                    onClick={handleOk}
-                    disabled={disabled}
-                    fullWidth
-                  />
-                )
-                : null}
-              {closeable && showOk && showCancel
-                ? (
-                  <div className={styles.btnSeparator} />
-                )
-                : null}
-              {closeable && showCancel
-                ? (
-                  <Button
-                    label={cancelText}
-                    onClick={handleCancel}
-                    disabled={disabled}
-                    fullWidth
-                    outline
-                  />
-                )
-                : null}
-            </div>
-          )
-          : null}
+        {closeable && (showOk || showCancel) && (
+          <div className={styles.btns}>
+            {closeable && showOk && (
+              <Button
+                label={okText}
+                onClick={handleOk}
+                disabled={disabled}
+                fullWidth
+              />
+            )}
+            {closeable && showOk && showCancel && (
+              <div className={styles.btnSeparator} />
+            )}
+            {closeable && showCancel && (
+              <Button
+                label={cancelText}
+                onClick={handleCancel}
+                disabled={disabled}
+                fullWidth
+                outline
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
-}
-
-export default React.memo(Alerts);
+});

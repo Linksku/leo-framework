@@ -18,7 +18,7 @@ export default async function migrateDown(params: Arguments) {
     filename = filename.slice(0, -3);
   }
 
-  const migration = await getMigration(`${filename}.ts`);
+  const migration = getMigration(`${filename}.ts`);
   if (!migration.down) {
     throw new Error('migrateDown: missing down()');
   }
@@ -29,7 +29,7 @@ export default async function migrateDown(params: Arguments) {
   await ret;
 
   await updateMigrationState(
-    await getPrevMigration(filename),
+    getPrevMigration(filename),
     {
       type: 'up',
       files: [`${filename}.ts`],

@@ -1,9 +1,9 @@
 .container {
-  padding: 10px $containerPadLeftRight;
+  padding: 1rem $containerPadding;
 }
 
 .loggedInMsg {
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
 
   svg {
     fill: $fadedPrimaryColorBg;
@@ -11,5 +11,5 @@
 }
 
 .form {
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
 }

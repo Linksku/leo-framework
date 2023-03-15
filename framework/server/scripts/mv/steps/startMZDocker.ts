@@ -1,19 +1,36 @@
 import exec from 'utils/exec';
 import retry from 'utils/retry';
+import { MZ_HOST, MZ_PORT } from 'consts/infra';
+import { APP_NAME_LOWER } from 'settings';
 
 export default async function startMZDocker() {
-  printDebug('Starting MZ Docker', 'highlight');
-  await exec('docker compose up -d materialize && docker compose start materialize');
+  const startTime = performance.now();
+
+  try {
+    const connector = await fetch(`http://${MZ_HOST}:${MZ_PORT}/status`);
+    if (connector.status < 400) {
+      printDebug('Materialize Docker already running', 'info');
+      return;
+    }
+  } catch {}
+
+  printDebug('Starting MZ Docker', 'info');
+  await exec(`yarn dc -p ${APP_NAME_LOWER} --compatibility up -d materialize`);
+  await exec(`yarn dc -p ${APP_NAME_LOWER} start materialize`);
 
   await retry(
     async () => {
-      const connector = await fetch(`http://${process.env.MZ_HOST}:${process.env.MZ_PORT}/status`);
-      return connector.status < 400;
+      const connector = await fetch(`http://${MZ_HOST}:${MZ_PORT}/status`);
+      if (connector.status >= 400) {
+        throw new Error(`MZ unavailable: ${connector.status}`);
+      }
     },
     {
-      times: 10,
+      timeout: 60 * 1000,
       interval: 1000,
-      err: 'startMZDocker: MZ not ready.',
+      ctx: 'startMZDocker',
     },
   );
+
+  printDebug(`Started MZ Docker after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
 }

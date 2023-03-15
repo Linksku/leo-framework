@@ -1,57 +1,77 @@
 import Knex from 'knex';
+import pg from 'pg';
 
-import { HTTP_TIMEOUT } from 'settings';
+import { API_TIMEOUT } from 'settings';
+import { MZ_HOST, MZ_PORT } from 'consts/infra';
+import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
 import './initKnex';
+import beforeQuery from './beforeQuery';
 
 if (!process.env.MZ_USER) {
-  throw new Error('MZ_USER env var not set.');
+  throw new Error('knexMZ: MZ_USER env var not set.');
 }
 
-const knexMZ = Knex<any, any[]>({
-  client: 'pg',
-  connection: {
-    host: process.env.MZ_HOST,
-    port: TS.parseIntOrNull(process.env.MZ_PORT) ?? undefined,
-    user: process.env.MZ_USER,
-    password: process.env.MZ_PASS,
-    database: process.env.MZ_DB,
-    charset: 'utf8',
-    timezone: 'utc',
-    dateStrings: true,
-  },
-  pool: {
-    min: 0,
-    max: 10,
-  },
-  acquireConnectionTimeout: HTTP_TIMEOUT / 2,
-  debug: !process.env.PRODUCTION,
-  log: {
-    debug({
-      sql,
-      bindings,
-    }: {
-      sql?: string,
-      bindings: any,
-    }) {
-      const rc = getRC();
-      if (process.env.PRODUCTION
-        || process.env.IS_SERVER_SCRIPT
-        || !sql
-        || sql.startsWith('explain ')
-        || !sql.startsWith('select ')
-        || rc?.profiling) {
-        return;
-      }
-
-      if (rc?.debug) {
-        printDebug(
-          rc ? `Query MZ ${rc.path}` : 'Query MZ',
-          'success',
-          knexMZ.raw(sql, bindings).toString(),
-        );
-      }
+const knexMZ = ServiceContextLocalStorage.run(
+  createServiceContext('knexMZ'),
+  () => Knex<any, any[]>({
+    client: 'pg',
+    connection: {
+      host: MZ_HOST,
+      port: MZ_PORT,
+      user: process.env.MZ_USER,
+      password: process.env.MZ_PASS,
+      database: process.env.MZ_DB,
+      charset: 'utf8',
+      timezone: 'utc',
+      dateStrings: true,
     },
-  },
-});
+    pool: {
+      min: 0,
+      max: process.env.IS_SERVER_SCRIPT ? 10 : 3,
+      idleTimeoutMillis: 60 * 1000,
+      afterCreate(conn: unknown, cb: AnyFunction) {
+        if (!(conn instanceof pg.Client)) {
+          throw new TypeError('Client isn\'t PG');
+        }
+
+        conn.on('error', err => ServiceContextLocalStorage.run(
+          createServiceContext('knexMZ'),
+          () => {
+            if (!err.message.includes('Connection terminated unexpectedly')) {
+              ErrorLogger.error(err, { ctx: 'Unexpected error on idle MZ client' });
+            }
+          },
+        ));
+
+        cb(null, conn);
+      },
+    },
+    acquireConnectionTimeout: process.env.IS_SERVER_SCRIPT ? 60 * 1000 : API_TIMEOUT / 2,
+    debug: !process.env.PRODUCTION,
+    log: {
+      debug({
+        sql,
+        bindings,
+      }: {
+        sql?: string,
+        bindings: any,
+      }) {
+        beforeQuery({
+          db: 'mz',
+          knex: knexMZ,
+          sql,
+          bindings,
+        });
+      },
+      warn(msg: any) {
+        if (typeof msg !== 'string' || (
+          !msg.startsWith('Connection Error: KnexTimeoutError:')
+            && !msg.startsWith('Connection Error: Connection ended unexpectedly'))) {
+          printDebug(msg, 'warn', 'knexMZ');
+        }
+      },
+    },
+  }),
+);
 
 export default knexMZ;

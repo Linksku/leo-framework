@@ -1,5 +1,5 @@
 .list {
-  padding: 0 $containerPadLeftRight 0.5rem $containerPadLeftRight;
+  padding: 0 $containerPadding 0.5rem $containerPadding;
 }
 
 .listItem {
@@ -9,6 +9,10 @@
   display: flex;
   align-items: center;
   min-width: 0;
+
+  &:active {
+    background-color: $activeBackgroundColor;
+  }
 
   svg {
     margin-right: 1rem;

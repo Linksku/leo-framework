@@ -10,12 +10,16 @@ export default async function deleteBTReplicationSlot(name: string) {
         .select(['slot_name', 'active_pid'])
         .whereNotNull('active_pid')
         .whereLike('slot_name', name);
-      return !activeSlots.length;
+      if (activeSlots.length) {
+        throw getErr('Replication slots still active', {
+          activeSlots: activeSlots.map(row => row.slot_name),
+        });
+      }
     },
     {
-      times: 5,
+      timeout: 10 * 60 * 1000,
       interval: 1000,
-      err: `deleteBTReplicationSlot(${name}): slots are active`,
+      ctx: `deleteBTReplicationSlot(${name}): wait for slot to be inactive`,
     },
   );
 

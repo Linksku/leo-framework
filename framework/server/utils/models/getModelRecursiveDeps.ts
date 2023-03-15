@@ -1,9 +1,14 @@
 import type { InputMaterializedViewClass } from 'services/model/InputMaterializedView';
 import type { MaterializedViewClass } from 'services/model/MaterializedView';
 
+const memo: Partial<Record<ModelType, ModelClass[]>> = Object.create(null);
 export default function getModelRecursiveDeps(Model: ModelClass): ModelClass[] {
   if (!Model.isMV) {
     return [];
+  }
+
+  if (TS.hasProp(memo, Model.type)) {
+    return memo[Model.type];
   }
 
   const deps = [...(Model as MaterializedViewClass).MVQueryDeps];
@@ -12,7 +17,7 @@ export default function getModelRecursiveDeps(Model: ModelClass): ModelClass[] {
   }
 
   const seen = new Set(deps.map(dep => dep.type));
-  const allDeps: ModelClass[] = deps.slice();
+  const allDeps: ModelClass[] = [...deps];
   for (const dep of allDeps) {
     if (dep.isMV) {
       for (const dep2 of (dep as MaterializedViewClass).MVQueryDeps) {
@@ -23,5 +28,7 @@ export default function getModelRecursiveDeps(Model: ModelClass): ModelClass[] {
       }
     }
   }
+
+  memo[Model.type] = allDeps;
   return allDeps;
 }

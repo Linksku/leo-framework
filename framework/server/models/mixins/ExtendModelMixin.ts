@@ -10,7 +10,7 @@ export default function ExtendModelMixin<T extends ModelClass>(Model: T) {
       ? (Model as unknown as ModelClass).relations
       : {},
     MVQueryDeps: [Model],
-    MVQuery: modelQuery(Model)
+    getMVQuery: () => modelQuery(Model)
       .select(Object.keys(Model.getSchema()).map(k => `${Model.tableName}.${k}`)),
   };
 }

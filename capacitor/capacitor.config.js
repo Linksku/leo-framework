@@ -5,7 +5,7 @@ if (!process.env.MOBILE_APP_ID || !process.env.REMOTE_DOMAIN_NAME) {
 module.exports = {
   appId: process.env.MOBILE_APP_ID,
   appName: process.env.APP_NAME,
-  bundledWebRuntime: true,
+  bundledWebRuntime: false,
   npmClient: 'yarn',
   webDir: '../build/production/web/capacitor',
   plugins: {

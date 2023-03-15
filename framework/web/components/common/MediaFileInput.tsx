@@ -1,5 +1,5 @@
 import type { UseFormRegister, RegisterOptions } from 'react-hook-form';
-import TimesSvg from 'fontawesome5/svgs/solid/times-circle.svg';
+import TimesSvg from 'fa5/svg/times-circle-solid.svg';
 
 import fileToDataUrl from 'utils/fileToDataUrl';
 
@@ -88,24 +88,18 @@ function MediaFileInput({
 
   return (
     <label
-      className={cn(styles.container, className, {
+      className={cx(styles.container, className, {
         [styles.withLabel]: label,
       })}
     >
-      {label
-        ? (
-          <span className={styles.label}>{label}</span>
-        )
-        : null}
+      {label && <span className={styles.label}>{label}</span>}
       <div className={styles.mediaWrap}>
-        {renderPreview
-          ? renderPreview({
-            file,
-            isLoadingImg: !!(isImg && file && !imgUrl),
-            imgUrl,
-            imgAspectRatio,
-          })
-          : null}
+        {renderPreview && renderPreview({
+          file,
+          isLoadingImg: !!(isImg && file && !imgUrl),
+          imgUrl,
+          imgAspectRatio,
+        })}
         <input
           {...registerProps}
           ref={elem => {
@@ -150,30 +144,26 @@ function MediaFileInput({
           className={styles.input}
           {...inputProps}
         />
-        {clearField && (file || defaultUrl)
-          ? (
-            <div
-              className={styles.delete}
-              onClick={event => {
-                event.stopPropagation();
-                event.preventDefault();
-                batchedUpdates(() => {
-                  setState({
-                    file: null,
-                    imgUrl: null,
-                    imgAspectRatio: 1,
-                  });
-                  // react-hook-form doesn't automatically clear value.
-                  clearField();
-                });
-              }}
-              role="button"
-              tabIndex={-1}
-            >
-              <TimesSvg />
-            </div>
-          )
-          : null}
+        {clearField && (file || defaultUrl) && (
+          <div
+            className={styles.delete}
+            onClick={event => {
+              event.stopPropagation();
+              event.preventDefault();
+              setState({
+                file: null,
+                imgUrl: null,
+                imgAspectRatio: 1,
+              });
+              // react-hook-form doesn't automatically clear value.
+              clearField();
+            }}
+            role="button"
+            tabIndex={-1}
+          >
+            <TimesSvg />
+          </div>
+        )}
       </div>
     </label>
   );

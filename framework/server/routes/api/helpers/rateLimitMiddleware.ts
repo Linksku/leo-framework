@@ -2,6 +2,7 @@ import type { NextFunction } from 'express';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 
 import redisClient from 'services/redis';
+import { RATE_LIMIT } from 'consts/coreRedisNamespaces';
 
 // Allow 10x the traffic per IP as per user, since users can share IP.
 const PER_IP_MULTIPLIER = 10;
@@ -10,7 +11,7 @@ export default function rateLimitMiddleware(reqsPerMin: number) {
   const POINTS_PER_REQ = PER_IP_MULTIPLIER;
   const rateLimiter = new RateLimiterRedis({
     storeClient: redisClient,
-    keyPrefix: 'middleware',
+    keyPrefix: RATE_LIMIT,
     points: reqsPerMin * POINTS_PER_REQ,
     duration: 60,
   });
@@ -35,7 +36,13 @@ export default function rateLimitMiddleware(reqsPerMin: number) {
       });
       next();
     } catch {
-      res.status(429).send('Too many requests');
+      res.status(429)
+        .json({
+          status: 429,
+          error: {
+            msg: 'Too many requests.',
+          },
+        });
     }
   };
 }

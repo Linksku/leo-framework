@@ -4,7 +4,7 @@ const SlideUps = React.lazy(
   async () => import(/* webpackChunkName: 'deferred' */ './SlideUps'),
 );
 
-export default function SlideUpsDeferred({
+export default React.memo(function SlideUpsDeferred({
   children,
   ...props
 }: React.PropsWithChildren<Props>) {
@@ -17,4 +17,4 @@ export default function SlideUpsDeferred({
       </SlideUps>
     </React.Suspense>
   );
-}
+});

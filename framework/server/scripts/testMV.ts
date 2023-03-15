@@ -7,21 +7,22 @@ import knexRR from 'services/knex/knexRR';
 import waitForQueryReady from 'utils/models/waitForQueryReady';
 import fetchKafkaConnectors from 'utils/infra/fetchKafkaConnectors';
 import deleteKafkaConnector from 'utils/infra/deleteKafkaConnector';
-import deleteKafkaTopic from 'utils/infra/deleteKafkaTopic';
+import deleteKafkaTopics from 'utils/infra/deleteKafkaTopics';
 import deleteBTReplicationSlot from 'utils/infra/deleteBTReplicationSlot';
 import deleteRRSubscription from 'utils/infra/deleteRRSubscription';
 import createBTReplicationSlot from 'utils/infra/createBTReplicationSlot';
 import {
-  BT_PUB_PREFIX,
-  BT_SLOT_MZ_PREFIX,
+  BT_PUB_MODEL_PREFIX,
   BT_SLOT_RR_PREFIX,
   MZ_SOURCE_PG_PREFIX,
-  MZ_TIMESTAMP_FREQUENCY_PROD,
+  MZ_TIMESTAMP_FREQUENCY,
   MZ_SINK_PREFIX,
   MZ_SINK_CONNECTOR_PREFIX,
   MZ_SINK_TOPIC_PREFIX,
   RR_SUB_PREFIX,
 } from 'consts/mz';
+import { PG_BT_HOST, PG_BT_PORT, INTERNAL_DOCKER_HOST } from 'consts/infra';
+import deleteSchemaRegistry from 'utils/infra/deleteSchemaRegistry';
 import createMZSink from './mv/helpers/createMZSink';
 import createMZSinkConnector from './mv/helpers/createMZSinkConnector';
 
@@ -40,11 +41,11 @@ async function destroyTestInfra() {
           }
         }
         await knexMZ.raw(`DROP SINK IF EXISTS "${MZ_SINK_PREFIX}__testMV__"`);
-        await deleteKafkaTopic(`${MZ_SINK_TOPIC_PREFIX}__testMV__.*`);
+        await deleteKafkaTopics(`${MZ_SINK_TOPIC_PREFIX}__testMV__`);
+        await deleteSchemaRegistry(new RegExp(`^${MZ_SINK_TOPIC_PREFIX}__testMV__-(key|value)$`));
         await knexMZ.raw(`DROP SOURCE IF EXISTS ${MZ_SOURCE_PG_PREFIX}test CASCADE`);
-        await deleteBTReplicationSlot(`${BT_SLOT_MZ_PREFIX}test`);
       } catch (err: any) {
-        printDebug(err?.message, 'warn');
+        printDebug(err, 'warn');
       }
     })(),
     (async () => {
@@ -53,11 +54,11 @@ async function destroyTestInfra() {
         await deleteBTReplicationSlot(`${BT_SLOT_RR_PREFIX}test`);
         await knexRR.raw('TRUNCATE __test__');
       } catch (err: any) {
-        printDebug(err?.message, 'warn');
+        printDebug(err, 'warn');
       }
     })(),
   ]);
-  await knexBT.raw(`DROP PUBLICATION IF EXISTS ${BT_PUB_PREFIX}test`);
+  await knexBT.raw(`DROP PUBLICATION IF EXISTS ${BT_PUB_MODEL_PREFIX}test`);
 }
 
 function getRandomRow() {
@@ -110,7 +111,7 @@ export default async function testMV() {
 
   console.log('Creating publication');
   await knexBT.raw('ALTER TABLE __test__ REPLICA IDENTITY FULL');
-  await knexBT.raw(`CREATE PUBLICATION ${BT_PUB_PREFIX}test FOR TABLE __test__`);
+  await knexBT.raw(`CREATE PUBLICATION ${BT_PUB_MODEL_PREFIX}test FOR TABLE __test__`);
 
   let startTime = performance.now();
   await Promise.all([
@@ -119,10 +120,10 @@ export default async function testMV() {
       await knexMZ.raw(`
         CREATE MATERIALIZED SOURCE "${MZ_SOURCE_PG_PREFIX}test"
         FROM POSTGRES
-          CONNECTION 'host=${process.env.INTERNAL_DOCKER_HOST} port=${process.env.PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${process.env.PG_BT_DB} sslmode=require'
-          PUBLICATION '${BT_PUB_PREFIX}test'
+          CONNECTION 'host=${INTERNAL_DOCKER_HOST} port=${PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${process.env.PG_BT_DB} sslmode=require'
+          PUBLICATION '${BT_PUB_MODEL_PREFIX}test'
         WITH (
-          timestamp_frequency_ms = ${MZ_TIMESTAMP_FREQUENCY_PROD}
+          timestamp_frequency_ms = ${MZ_TIMESTAMP_FREQUENCY}
         );
       `);
       await knexMZ.raw(`CREATE VIEWS FROM SOURCE "${MZ_SOURCE_PG_PREFIX}test" (__test__)`);
@@ -147,8 +148,8 @@ export default async function testMV() {
       await createBTReplicationSlot(`${BT_SLOT_RR_PREFIX}test`);
       await knexRR.raw(`
         CREATE SUBSCRIPTION "${RR_SUB_PREFIX}test"
-        CONNECTION 'host=${process.env.PG_BT_HOST} port=${process.env.PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${process.env.PG_BT_DB}'
-        PUBLICATION "${BT_PUB_PREFIX}test"
+        CONNECTION 'host=${PG_BT_HOST} port=${PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${process.env.PG_BT_DB}'
+        PUBLICATION "${BT_PUB_MODEL_PREFIX}test"
         WITH (
           create_slot = false,
           slot_name = '${BT_SLOT_RR_PREFIX}test'

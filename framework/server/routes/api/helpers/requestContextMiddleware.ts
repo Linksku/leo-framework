@@ -4,13 +4,12 @@ import RequestContextLocalStorage, { createRequestContext } from 'services/reque
 
 export default function requestContextMiddleware(
   req: ExpressRequest,
-  res: ExpressResponse,
+  _res: ExpressResponse,
   next: NextFunction,
 ) {
   RequestContextLocalStorage.run(
     createRequestContext(req),
     () => {
-      req.rc = TS.defined(RequestContextLocalStorage.getStore());
       next();
     },
   );

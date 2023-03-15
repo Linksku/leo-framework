@@ -1,0 +1,22 @@
+{
+  "name": "leo-framework",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "postinstall": "patch-package",
+    "dc": "node ./docker-compose.js | docker compose -f -"
+  },
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "bull": "^4.9.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "json-schema-to-typescript": "^11.0.2",
+    "kafkajs": "^2.2.0",
+    "knex": "^2.3.0",
+    "patch-package": "^6.4.7",
+    "pg": "^8.8.0",
+    "sharp": "^0.31.0"
+  },
+  "license": "MIT"
+}

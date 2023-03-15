@@ -4,7 +4,7 @@ const Alerts = React.lazy(
   async () => import(/* webpackChunkName: 'deferred' */ './Alerts'),
 );
 
-export default function AlertsDeferred({
+export default React.memo(function AlertsDeferred({
   children,
   ...props
 }: React.PropsWithChildren<Props>) {
@@ -17,4 +17,4 @@ export default function AlertsDeferred({
       </Alerts>
     </React.Suspense>
   );
-}
+});

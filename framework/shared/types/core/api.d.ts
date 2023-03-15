@@ -7,7 +7,7 @@ type ModelSerializedForApi = {
   includedRelations?: string[],
 };
 
-type ApiRelationConfig = {
+type ApiRelationConfig = Memoed<{
   name: string,
   relationType: ModelRelationType,
   fromModel: ModelType,
@@ -19,7 +19,7 @@ type ApiRelationConfig = {
     from: string,
     to: string,
   },
-};
+}>;
 
 type ApiRelationConfigs = Partial<Record<ModelType, ObjectOf<ApiRelationConfig>>>;
 

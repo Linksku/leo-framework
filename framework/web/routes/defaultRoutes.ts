@@ -1,4 +1,3 @@
-// todo: low/hard build separate JS files for each route.
 const defaultRoutes = [
   // Unauth.
   {

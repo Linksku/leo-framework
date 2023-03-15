@@ -1,0 +1,15 @@
+diff --git a/node_modules/kafkajs/types/index.d.ts b/node_modules/kafkajs/types/index.d.ts
+index 26bcbfe..60f75a7 100644
+--- a/node_modules/kafkajs/types/index.d.ts
++++ b/node_modules/kafkajs/types/index.d.ts
+@@ -1010,8 +1010,8 @@ export type ConsumerEachMessagePayload = EachMessagePayload
+  */
+ export type ConsumerEachBatchPayload = EachBatchPayload
+ 
+-export type EachBatchHandler = (payload: EachBatchPayload) => Promise<void>
+-export type EachMessageHandler = (payload: EachMessagePayload) => Promise<void>
++export type EachBatchHandler = (payload: EachBatchPayload) => Promise<void> | void
++export type EachMessageHandler = (payload: EachMessagePayload) => Promise<void> | void
+ 
+ export type ConsumerRunConfig = {
+   autoCommit?: boolean

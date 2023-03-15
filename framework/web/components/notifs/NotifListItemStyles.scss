@@ -1,0 +1,40 @@
+.item {
+  padding: 1rem $containerPadding;
+  border-bottom: 0.5px solid $separatorColor;
+  color: $fadedTextColor;
+  display: flex;
+
+  &:active {
+    background-color: $activeBackgroundColor;
+  }
+}
+
+.leftWrap {
+  flex-grow: 1;
+}
+
+.time {
+  color: $fadedTextColor;
+  font-size: 0.9em;
+  margin-top: 0.3rem;
+}
+
+.rightWrap {
+  width: 1rem;
+  align-self: center;
+}
+
+.unread {
+  color: $textColor;
+
+  .time {
+    color: $primaryColor;
+  }
+}
+
+.unreadIndicator {
+  height: 1rem;
+  width: 1rem;
+  background-color: $primaryColor;
+  border-radius: 50%;
+}

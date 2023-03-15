@@ -8,6 +8,7 @@ type Props = {
 
 const VALID_PREFIXES = ['/', 'http://', 'https://', 'mailto:'];
 
+// todo: mid/hard make clients open _blank in browser
 function Link({
   href,
   onClick,

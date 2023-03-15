@@ -4,10 +4,8 @@ const { frameworkModels } = require('./__generated__/allModels.cjs');
 
 const globals = {
   // Node modules.
-  fetch: ['node-fetch', 'default'],
   performance: ['perf_hooks', 'performance'],
   // Lib.
-  ErrorWithCtx: ['./framework/server/utils/ErrorWithCtx', 'default'],
   EMPTY_ARR: ['./framework/server/utils/emptyArr', 'default'],
   EMPTY_OBJ: ['./framework/server/utils/emptyObj', 'default'],
   ErrorLogger: ['./framework/server/services/errorLogger/ErrorLogger', 'default'],
@@ -18,6 +16,7 @@ const globals = {
   entityQuery: ['./framework/server/services/model/entityQuery', 'default'],
   modelQuery: ['./framework/server/services/model/modelQuery', 'default'],
   raw: ['./framework/server/services/knex/knexRR', 'raw'],
+  rawSelect: ['./framework/server/utils/db/rawSelect', 'default'],
   SchemaConstants: ['./framework/server/consts/schema', 'default'],
   UserFacingError: ['./framework/server/utils/UserFacingError', 'default'],
   wrapPromise: ['./framework/server/utils/wrapPromise', 'default'],

@@ -1,23 +1,29 @@
-import type { PaginatedApiName, ShouldAddCreatedEntity } from 'utils/hooks/useApi/usePaginatedApi';
-import usePaginatedApi from 'utils/hooks/useApi/usePaginatedApi';
+import type { PaginatedEntitiesApiName, ShouldAddCreatedEntity } from 'utils/hooks/useApi/useEntitiesPaginationApi';
+import useEntitiesPaginationApi from 'utils/hooks/useApi/useEntitiesPaginationApi';
 import useVisibilityObserver from 'utils/hooks/useVisibilityObserver';
 
 import styles from './InfiniteEntitiesScrollerStyles.scss';
 
 type Props<
   Type extends EntityType,
-  Name extends PaginatedApiName,
+  Name extends PaginatedEntitiesApiName,
   // eslint-disable-next-line @typescript-eslint/ban-types
   OtherProps extends ObjectOf<any> = {},
 > = {
   apiName: Name,
-  apiParams: ApiParams<Name>,
+  apiParams: Memoed<ApiParams<Name>>,
   entityType: Type,
-  ItemRenderer: React.MemoExoticComponent<React.ComponentType<{
-    itemId: EntityId,
-    prevItemId?: EntityId,
-    nextItemId?: EntityId,
-  } & OtherProps>>,
+  ItemRenderer:
+    React.MemoExoticComponent<React.ComponentType<{
+      item: EntityId,
+      aboveItem?: EntityId,
+      belowItem?: EntityId,
+    } & OtherProps>>
+    | React.NamedExoticComponent<{
+      item: EntityId,
+      aboveItem?: EntityId,
+      belowItem?: EntityId,
+    } & OtherProps>,
   throttleTimeout?: number,
   shouldAddCreatedEntity?: ShouldAddCreatedEntity<Type>,
   notFoundMsg?: ReactNode,
@@ -26,18 +32,18 @@ type Props<
 
 function InfiniteEntitiesScroller<
   Type extends EntityType,
-  Name extends PaginatedApiName,
+  Name extends PaginatedEntitiesApiName,
 >(props: Props<Type, Name> & { otherItemProps?: undefined }): ReactElement;
 
 function InfiniteEntitiesScroller<
   Type extends EntityType,
-  Name extends PaginatedApiName,
+  Name extends PaginatedEntitiesApiName,
   OtherProps extends ObjectOf<any>,
 >(props: Props<Type, Name, OtherProps> & { otherItemProps: Memoed<OtherProps> }): ReactElement;
 
 function InfiniteEntitiesScroller<
   Type extends EntityType,
-  Name extends PaginatedApiName,
+  Name extends PaginatedEntitiesApiName,
   OtherProps extends ObjectOf<any>,
 >({
   apiName,
@@ -53,13 +59,17 @@ function InfiniteEntitiesScroller<
   const {
     fetching,
     fetchingFirstTime,
-    entityIds,
+    items,
+    addedEntityIds,
+    deletedEntityIds,
     fetchNext,
     hasCompleted,
-  } = usePaginatedApi(entityType, apiName, apiParams, {
+  } = useEntitiesPaginationApi(entityType, apiName, apiParams, {
     throttleTimeout,
     shouldAddCreatedEntity,
   });
+  const entityIds = [...addedEntityIds, ...items]
+    .filter(id => !deletedEntityIds.has(id));
 
   const loadMoreRef = useVisibilityObserver({
     onVisible: fetchNext,
@@ -72,9 +82,9 @@ function InfiniteEntitiesScroller<
           // @ts-ignore no idea
           <ItemRenderer
             key={id}
-            itemId={id}
-            prevItemId={entityIds[idx - 1]}
-            nextItemId={entityIds[idx + 1]}
+            item={id}
+            aboveItem={entityIds[idx - 1]}
+            belowItem={entityIds[idx + 1]}
             {...otherItemProps}
           />
         ))}

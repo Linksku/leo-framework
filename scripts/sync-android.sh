@@ -1,12 +1,13 @@
 #!/bin/bash
 
-set -o allexport; source app/env; set +o allexport
+# Note: can't build in WSL, need to copy capacitor/android and node_modules/@capacitor/android/capacitor to Windows
 
-export SERVER=production
-export NODE_ENV=production
+set -o allexport; source ./env; set +o allexport
 
-yarn ss buildTemplates
+SERVER=production NODE_ENV=production MINIMIZE=0 yarn ss buildTemplates
+
 cd capacitor
-npx cordova-res android --skip-config --copy
+npx capacitor-assets generate --android \
+  --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#222222' --splashBackgroundColor '#f8f8f8' --splashBackgroundColorDark '#111111'
 npx cap sync android
 cd -

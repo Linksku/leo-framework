@@ -1,7 +1,21 @@
 .img,
 .svg {
+  @include fadeIn(0.2s);
+
   height: 100%;
   width: 100%;
+}
+
+.initialLoad {
+  animation-duration: 0.4s;
+}
+
+.svgWrap {
+  background-color: #fff;
+}
+
+.withBoxShadow {
+  box-shadow: 0 0 1px rgb(0 0 0 / 20%);
 }
 
 .svg {

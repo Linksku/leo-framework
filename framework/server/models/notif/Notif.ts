@@ -5,7 +5,6 @@ export default createEntityClass(
     type: 'notif',
     schema: {
       id: SchemaConstants.id,
-      version: SchemaConstants.version,
       notifType: { type: 'string' },
       userId: SchemaConstants.id,
       groupingId: SchemaConstants.id,

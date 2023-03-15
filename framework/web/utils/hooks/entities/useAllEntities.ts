@@ -1,30 +1,32 @@
-import useHandleEntityEvents from 'utils/hooks/entities/useHandleEntityEvents';
-import useUpdate from 'utils/hooks/useUpdate';
+import { useSyncExternalStore } from 'react';
 
 export default function useAllEntities<T extends EntityType>(
   entityType: T | null,
 ): Memoed<ObjectOf<Memoed<TypeToEntity<T>>>> {
-  const { entitiesRef } = useEntitiesStore();
-  const update = useUpdate();
+  const { entitiesRef, addEntityListener } = useEntitiesStore();
 
-  useHandleEntityEvents(
-    useMemo(
-      () => (entityType
-        ? [
-          { actionType: 'load', entityType },
-          { actionType: 'create', entityType },
-          { actionType: 'update', entityType },
-          { actionType: 'delete', entityType },
-        ]
-        : []),
-      [entityType],
-    ),
-    update,
+  return useSyncExternalStore(
+    useCallback(cb => {
+      if (!entityType) {
+        return NOOP;
+      }
+
+      const unsubs = [
+        addEntityListener('load', entityType, cb),
+        addEntityListener('create', entityType, cb),
+        addEntityListener('update', entityType, cb),
+        addEntityListener('delete', entityType, cb),
+      ];
+      return () => {
+        for (const unsub of unsubs) {
+          unsub();
+        }
+      };
+    }, [addEntityListener, entityType]),
+    () => (entityType
+      ? (
+        entitiesRef.current[entityType] || EMPTY_OBJ
+      ) as Memoed<ObjectOf<Memoed<TypeToEntity<T>>>>
+      : EMPTY_OBJ),
   );
-
-  return entityType
-    ? (
-      entitiesRef.current[entityType] || EMPTY_OBJ
-    ) as Memoed<ObjectOf<Memoed<TypeToEntity<T>>>>
-    : EMPTY_OBJ;
 }

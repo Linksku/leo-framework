@@ -3,7 +3,7 @@ import FacebookSvg from 'boxicons/svg/logos/bxl-facebook-square.svg';
 import TwitterSvg from 'boxicons/svg/logos/bxl-twitter.svg';
 import PinterestSvg from 'boxicons/svg/logos/bxl-pinterest.svg';
 import LinkedinSvg from 'boxicons/svg/logos/bxl-linkedin-square.svg';
-import ShareSvg from 'boxicons/svg/solid/bxs-share-alt.svg';
+import ShareSvg from 'boxicons/svg/regular/bx-share-alt.svg';
 import { Share } from '@capacitor/share';
 
 import { HOME_URL } from 'settings';
@@ -110,7 +110,7 @@ export default function ShareSlideUp({ path }: Props) {
         tabIndex={-1}
       >
         <ShareSvg />
-        Open Share Dialog
+        Open Native Sharing
       </div>
     </div>
   );

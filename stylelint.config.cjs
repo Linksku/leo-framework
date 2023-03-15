@@ -9,7 +9,27 @@ module.exports = {
   rules: {
     'at-rule-no-unknown': null,
     'scss/at-rule-no-unknown': [true, {
-      ignoreAtRules: ['charset', 'import', 'namespace', 'media', 'supports', 'document', 'page', 'font-face', 'keyframes', 'viewport', 'counter-style', 'font-feature-values', 'swash', 'ornaments', 'annotation', 'stylistic', 'styleset', 'character-variant', 'value'],
+      ignoreAtRules: [
+        'charset',
+        'import',
+        'namespace',
+        'media',
+        'supports',
+        'document',
+        'page',
+        'font-face',
+        'keyframes',
+        'viewport',
+        'counter-style',
+        'font-feature-values',
+        'swash',
+        'ornaments',
+        'annotation',
+        'stylistic',
+        'styleset',
+        'character-variant',
+        'value',
+      ],
     }],
     'selector-pseudo-class-no-unknown': [true, {
       ignorePseudoClasses: ['global', 'export', 'import', 'local'],

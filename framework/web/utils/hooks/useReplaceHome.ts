@@ -1,26 +1,37 @@
-import HOME_TABS from 'config/homeTabs';
 import shallowEqual from 'utils/shallowEqual';
 import { FIRST_ID } from 'stores/HistoryStore';
+import { DEFAULT_PATH_PARTS } from 'config/homeTabs';
 
 export default function useReplaceHome() {
   const pushPath = usePushPath();
   const replacePath = useReplacePath();
   const { prevState, curState, direction } = useHistoryStore();
-  const { isHome, wasHome, homeTab, prevHomeTab, homeParts, prevHomeParts } = useHomeNavStore();
+  const {
+    isHome,
+    wasHome,
+    homeTab,
+    prevHomeTab,
+    homeParts,
+    prevHomeParts,
+  } = useHomeNavStore();
 
   return useCallback((
     newHomeTab: ValueOf<typeof HOME_TABS>,
     ...newParts: string[]
   ) => {
-    let newPath = `/${newHomeTab}`;
-    if (newParts.length) {
-      newPath += `/${newParts.join('/')}`;
-    } else if (newHomeTab === HOME_TABS.FEED) {
+    let newPath: string;
+    if (newHomeTab === DEFAULT_PATH_PARTS[0]
+      && newParts.every((part, idx) => part === DEFAULT_PATH_PARTS[idx + 1])) {
       newPath = '/';
+    } else {
+      newPath = `/${newHomeTab}/${newParts.join('/')}`;
     }
 
     if (!isHome) {
       pushPath(newPath);
+      return;
+    }
+    if (newPath === curState.path && !Object.keys(curState.query).length && !curState?.hash) {
       return;
     }
     if (newPath === prevState?.path && !Object.keys(prevState.query).length && !prevState?.hash) {
@@ -54,6 +65,9 @@ export default function useReplaceHome() {
     wasHome,
     prevHomeParts,
     prevHomeTab,
+    curState.path,
+    curState.query,
+    curState.hash,
     curState.id,
     prevState?.hash,
     prevState?.path,

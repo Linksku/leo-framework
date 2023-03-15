@@ -10,7 +10,12 @@ import lcFirst from 'utils/lcFirst';
 import getValDbType from 'utils/db/getValDbType';
 import exec from 'utils/exec';
 
-async function getMigration({ command, modelType, columnName, isColumnCommand }: {
+function getMigration({
+  command,
+  modelType,
+  columnName,
+  isColumnCommand,
+}: {
   command: string,
   modelType: string,
   columnName: string,
@@ -30,8 +35,10 @@ async function getMigration({ command, modelType, columnName, isColumnCommand }:
   }
   const Model = getModelClass(modelType);
   let columnType = '';
+  let schema: JsonSchema | null = null;
   if (isColumnCommand) {
-    columnType = TS.hasOwnProp(Model.getSchema(), columnName)
+    schema = TS.getProp(Model.getSchema(), columnName);
+    columnType = schema
       ? getValDbType(Model, columnName as ModelKey<typeof Model>, null)
       : 'bigint';
   }
@@ -42,6 +49,13 @@ async function getMigration({ command, modelType, columnName, isColumnCommand }:
   cb(builder) {
 
   },
+});
+
+await createIndex({
+  db: '${Model.isMV ? 'rr' : 'bt'}',
+  primary: true,
+  table: '${Model.tableName}',
+  cols: [''],
 });`;
   const dropTable = `await dropTable({
   isMV: ${Model.isMV},
@@ -65,8 +79,8 @@ async function getMigration({ command, modelType, columnName, isColumnCommand }:
   col: '${columnName}',
   type: '${columnType}',
   nullable: false,
-  default: 0,
-  dropDefault: true,
+  default: ${schema?.default ?? ''},
+  dropDefault: ${!schema || !TS.hasProp(schema, 'default')},
 });`;
   const dropColumn = `await dropColumn({
   isMV: ${Model.isMV},
@@ -84,6 +98,7 @@ async function getMigration({ command, modelType, columnName, isColumnCommand }:
       imports: [
         'utils/migrations/createTable',
         'utils/migrations/dropTable',
+        'utils/migrations/createIndex',
       ],
       up: createTable,
       down: dropTable,
@@ -94,6 +109,7 @@ async function getMigration({ command, modelType, columnName, isColumnCommand }:
       imports: [
         'utils/migrations/dropTable',
         'utils/migrations/createTable',
+        'utils/migrations/createIndex',
       ],
       up: dropTable,
       down: createTable,
@@ -159,7 +175,7 @@ export default async function migrateGenerate(params: Arguments) {
       columnName = await prompt('Column name?');
     }
   }
-  const { imports, up, down } = await getMigration({
+  const { imports, up, down } = getMigration({
     command: `${command}`,
     modelType: `${modelType}`,
     columnName: `${columnName}`,

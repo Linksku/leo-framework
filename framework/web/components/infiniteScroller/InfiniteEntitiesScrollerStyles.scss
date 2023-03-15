@@ -1,6 +1,6 @@
 .spinner {
   width: 100%;
-  padding: 50px 0;
+  padding: 5rem 0;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -12,7 +12,7 @@
 }
 
 .msg {
-  padding: 1rem $containerPadLeftRight;
+  padding: 1rem $containerPadding;
   color: $lightTextColor;
   margin-bottom: 0;
 }

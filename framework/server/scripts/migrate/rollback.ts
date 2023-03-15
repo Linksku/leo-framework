@@ -1,6 +1,6 @@
-import pgdump from 'scripts/db/pgdump';
 import { getMigrationState, updateMigrationState } from './helpers/migrationState';
 import { getMigration, getPrevMigration } from './helpers/migrationFiles';
+import syncDbAfterMigration from './helpers/syncDbAfterMigration';
 
 export default async function migrationRollback() {
   const { rollback } = await getMigrationState();
@@ -9,29 +9,34 @@ export default async function migrationRollback() {
   }
 
   const filesRan: string[] = [];
+  let hadError = false;
   for (const file of rollback.files) {
-    const migration = await getMigration(file);
+    const migration = getMigration(file);
+    printDebug(`Running ${file}.${rollback.type}`, 'info');
     try {
-      printDebug(`Running ${file}.${rollback.type}`, 'info');
       await migration[rollback.type]?.();
+      filesRan.push(file);
     } catch (err) {
       console.log(err);
+      hadError = true;
       break;
     }
-    filesRan.push(file);
   }
 
   if (filesRan.length) {
     await updateMigrationState(
       rollback.type === 'up'
         ? filesRan[filesRan.length - 1]
-        : await getPrevMigration(filesRan[filesRan.length - 1]),
+        : getPrevMigration(filesRan[filesRan.length - 1]),
       {
         type: rollback.type === 'up' ? 'down' : 'up',
         files: filesRan.reverse(),
       },
     );
-    await pgdump();
+
+    if (!hadError) {
+      await syncDbAfterMigration();
+    }
   }
 
   printDebug(`Rolled back ${filesRan.length} migrations`, 'success');

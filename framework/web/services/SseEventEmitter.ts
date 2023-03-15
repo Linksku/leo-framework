@@ -1,3 +1,3 @@
-import EventEmitter from 'eventemitter2';
+import EventEmitter from 'utils/EventEmitter';
 
 export default new EventEmitter();

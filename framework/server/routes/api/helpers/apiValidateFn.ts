@@ -21,6 +21,10 @@ export default function apiValidateFn(
     }
     if (error?.message) {
       debugErrParts.push(`${error.message.toLowerCase()}`);
+
+      if (error?.params?.additionalProperty) {
+        debugErrParts.push(`(${error.params.additionalProperty})`);
+      }
     }
     if (!debugErrParts.length) {
       debugErrParts.push('unknown error');
@@ -43,7 +47,13 @@ export default function apiValidateFn(
       }
       throw new UserFacingError('Received invalid data.', 400);
     }
-    ErrorLogger.error(new Error(debugErrMsg));
-    throw new UserFacingError('Unknown server error.', 500);
+
+    const newErr = getErr(debugErrMsg, { ctx: 'apiValidateFn', apiName });
+    ErrorLogger.error(newErr);
+    throw new UserFacingError(
+      'Unknown server error.',
+      500,
+      { ...(newErr instanceof Error && newErr.debugCtx), origErr: newErr },
+    );
   }
 }

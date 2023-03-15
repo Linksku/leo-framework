@@ -77,8 +77,10 @@
   }
 }
 
-@mixin fadeIn {
+@mixin fadeIn($duration) {
   :global {
     animation-name: keyframesFadeIn;
   }
+
+  animation-duration: $duration;
 }

@@ -1,4 +1,6 @@
-FROM confluentinc/cp-kafka-connect-base:7.0.1
+FROM confluentinc/cp-kafka-connect-base:7.3.0
 
-RUN confluent-hub install confluentinc/kafka-connect-jdbc:10.4.1 --no-prompt
-RUN confluent-hub install debezium/debezium-connector-postgresql:1.8.1 --no-prompt
+RUN confluent-hub install confluentinc/kafka-connect-jdbc:10.6.4 --no-prompt \
+  && confluent-hub install debezium/debezium-connector-postgresql:2.0.1 --no-prompt
+
+ADD kafka-connectors/jars /opt/kafka-connectors

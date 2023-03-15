@@ -1,11 +1,11 @@
-import InfoSvg from 'fontawesome5/svgs/solid/info-circle.svg';
+import InfoSvg from 'fa5/svg/info-circle-solid.svg';
 
-import StackWrapInner from 'components/frame/StackWrapInner';
+import StackWrapInner from 'components/frame/stack/StackWrapInner';
 import HookFormErrors from 'components/HookFormErrors';
 
 import styles from './LoginRouteStyles.scss';
 
-function LoginRoute() {
+export default React.memo(function LoginRoute() {
   const { register, handleSubmit, control } = useForm({
     reValidateMode: 'onBlur',
     defaultValues: {
@@ -18,38 +18,42 @@ function LoginRoute() {
 
   const { fetching, fetchApi: loginUser, error: apiError } = useDeferredApi(
     'loginUser',
-    {},
+    EMPTY_OBJ,
     {
       type: 'load',
       method: 'post',
+      returnState: true,
       successMsg: 'Logged in successfully',
       onFetch(data) {
-        setAuth({ authToken: data.authToken, userId: data.currentUserId, redirectPath: '/' });
+        setAuth({
+          authToken: data.authToken,
+          userId: data.currentUserId,
+          redirectPath: '/',
+        });
       },
     },
   );
 
   // todo: high/hard google/fb login
   return (
-    <StackWrapInner title="Login">
+    <StackWrapInner title="Log In">
       <div className={styles.container}>
-        {authState === 'in'
-          ? (
-            <p className={styles.loggedInMsg}>
-              <InfoSvg />
-              {' '}
-              Already logged in.
-              {' '}
-              <Link href="/">Go back to home</Link>
-              {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
-              {'.'}
-            </p>
-          )
-          : null}
+        {authState === 'in' && (
+          <p className={styles.loggedInMsg}>
+            <InfoSvg />
+            {' '}
+            Already logged in.
+            {' '}
+            <Link href="/">Go back to home</Link>
+            {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
+            {'.'}
+          </p>
+        )}
 
         <form
           onSubmit={handleSubmit(data => loginUser(data))}
           className={styles.form}
+          data-testid={TestIds.loginForm}
         >
           <Input
             type="email"
@@ -61,6 +65,7 @@ function LoginRoute() {
             }}
             disabled={fetching}
             required
+            autoFocus
           />
 
           <Input
@@ -75,7 +80,7 @@ function LoginRoute() {
             }}
             disabled={fetching}
             required
-            placeholder="********"
+            placeholder="••••••••"
           />
 
           <HookFormErrors errors={errors} additionalError={apiError} />
@@ -97,6 +102,4 @@ function LoginRoute() {
       </div>
     </StackWrapInner>
   );
-}
-
-export default React.memo(LoginRoute);
+});

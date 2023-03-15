@@ -1,5 +1,6 @@
 import { redisSub, redisPub } from 'services/redis';
 import getServerId from 'utils/getServerId';
+import { PUB_SUB } from 'consts/coreRedisNamespaces';
 
 type Message = {
   data: string,
@@ -7,8 +8,6 @@ type Message = {
 };
 
 type Cb = (data: string) => void;
-
-const REDIS_EVENT_NAME = 'PubSubManager:';
 
 const eventTypesToCbs = Object.create(null) as ObjectOf<Set<Cb>>;
 const serverId = getServerId();
@@ -21,7 +20,7 @@ const PubSubManager = {
     };
     wrapPromise(
       redisPub.publish(
-        `${REDIS_EVENT_NAME}${eventType}`,
+        `${PUB_SUB}:${eventType}`,
         JSON.stringify(msg),
       ),
       'warn',
@@ -36,7 +35,7 @@ const PubSubManager = {
     if (!eventTypesToCbs[eventType]) {
       eventTypesToCbs[eventType] = new Set();
       wrapPromise(
-        redisSub.subscribe(`${REDIS_EVENT_NAME}${eventType}`),
+        redisSub.subscribe(`${PUB_SUB}:${eventType}`),
         'warn',
         `Subscribe pubsub event ${eventType}`,
       );
@@ -58,7 +57,7 @@ const PubSubManager = {
     if (!cbs.size) {
       delete eventTypesToCbs[eventType];
       wrapPromise(
-        redisSub.unsubscribe(`${REDIS_EVENT_NAME}${eventType}`),
+        redisSub.unsubscribe(`${PUB_SUB}:${eventType}`),
         'warn',
         `Unsubscribe pubsub event ${eventType}`,
       );
@@ -68,23 +67,26 @@ const PubSubManager = {
   unsubscribeAll(eventType: string) {
     delete eventTypesToCbs[eventType];
     wrapPromise(
-      redisSub.unsubscribe(`${REDIS_EVENT_NAME}${eventType}`),
+      redisSub.unsubscribe(`${PUB_SUB}:${eventType}`),
       'warn',
       `Unsubscribe all pubsub event ${eventType}`,
     );
   },
 
   handleMessage(this: void, channel: string, msgStr: string) {
-    if (!channel.startsWith(REDIS_EVENT_NAME)) {
+    if (!channel.startsWith(`${PUB_SUB}:`)) {
       return;
     }
 
-    const eventType = channel.slice(REDIS_EVENT_NAME.length);
+    const eventType = channel.slice(PUB_SUB.length + 1);
     let msg: Message;
     try {
       msg = JSON.parse(msgStr);
     } catch {
-      ErrorLogger.error(new Error(`PubSubManager.handleMessage(${channel}): msg isn't JSON`), msgStr.slice(0, 100));
+      ErrorLogger.error(
+        new Error(`PubSubManager.handleMessage(${channel}): msg isn't JSON`),
+        { msgStr },
+      );
       return;
     }
 

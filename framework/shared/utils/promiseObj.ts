@@ -1,9 +1,14 @@
-export default async function promiseObj<T>(
-  obj: { [P in keyof T]: PromiseLike<T[P]> | T[P] },
-) {
-  const results = await Promise.all(TS.objValues(obj)) as ValueOf<T>[];
+export default async function promiseObj<
+  Obj extends ObjectOf<any>,
+  Ret extends {
+    [P in keyof Obj]: Awaited<Obj[P]>;
+  },
+>(
+  obj: Obj,
+): Promise<Ret> {
+  const results = await Promise.all(TS.objValues(obj));
 
-  const newObj = {} as T;
+  const newObj = {} as Ret;
   for (const [i, k] of TS.objKeys(obj).entries()) {
     newObj[k] = results[i];
   }

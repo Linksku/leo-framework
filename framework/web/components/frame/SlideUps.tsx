@@ -1,10 +1,10 @@
 import Swipeable from 'components/frame/Swipeable';
 import ErrorBoundary from 'components/ErrorBoundary';
-import { useAnimatedValue, useAnimation } from 'utils/hooks/useAnimation';
+import { useAnimatedValue, useAnimation, DEFAULT_DURATION } from 'utils/hooks/useAnimation';
 
 import styles from './SlideUpsStyles.scss';
 
-function SlideUps() {
+export default React.memo(function SlideUps() {
   const { hideSlideUp, slideUpShown, slideUpElement } = useSlideUpStore();
   const animatedShownPercent = useAnimatedValue(slideUpShown ? 100 : 0, 'SlideUps');
   const [dialogRef, dialogStyle] = useAnimation<HTMLDivElement>();
@@ -20,16 +20,23 @@ function SlideUps() {
         ref={dialogRef}
         swipeProps={{
           elementRef: containerRef,
-          onNavigate: hideSlideUp,
-          setPercent: (p, quick) => animatedShownPercent.setVal(100 - p, quick ? 50 : undefined),
+          onNavigate: () => hideSlideUp(),
+          setPercent: (p, durationPercent) => animatedShownPercent.setVal(
+            100 - p,
+            durationPercent * DEFAULT_DURATION,
+          ),
           direction: 'down',
           enabled: slideUpShown,
         }}
-        style={dialogStyle(animatedShownPercent, {
-          filter: x => `opacity(${x}%)`,
-          display: x => (x < 1 ? 'none' : 'block'),
-          pointerEvents: x => (x < 50 ? 'none' : 'auto'),
-        }, [1, 50])}
+        style={dialogStyle(
+          animatedShownPercent,
+          {
+            filter: x => `opacity(${x}%)`,
+            display: x => (x < 1 ? 'none' : 'block'),
+            pointerEvents: x => (x < 50 ? 'none' : 'auto'),
+          },
+          { keyframes: [1, 50] },
+        )}
         className={styles.overlay}
         onClick={() => hideSlideUp()}
         role="dialog"
@@ -37,15 +44,22 @@ function SlideUps() {
       <Swipeable
         ref={containerRef}
         swipeProps={{
-          onNavigate: hideSlideUp,
-          setPercent: (p, quick) => animatedShownPercent.setVal(100 - p, quick ? 50 : undefined),
+          onNavigate: () => hideSlideUp(),
+          setPercent: (p, durationPercent) => animatedShownPercent.setVal(
+            100 - p,
+            durationPercent * 50,
+          ),
           direction: 'down',
           enabled: slideUpShown,
         }}
-        style={containerStyle(animatedShownPercent, {
-          transform: x => `translateY(${100 - x}%)`,
-          display: x => (x < 1 ? 'none' : 'flex'),
-        }, [1])}
+        style={containerStyle(
+          animatedShownPercent,
+          {
+            transform: x => `translateY(${100 - x}%)`,
+            display: x => (x < 1 ? 'none' : 'flex'),
+          },
+          { keyframes: [1] },
+        )}
         className={styles.container}
       >
         <div className={styles.dragSymbol} />
@@ -63,6 +77,4 @@ function SlideUps() {
       </Swipeable>
     </>
   );
-}
-
-export default React.memo(SlideUps);
+});

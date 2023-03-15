@@ -10,8 +10,12 @@
   @extend %oneLine;
 }
 
-body,
 :global(#react) {
-  min-height: 100vh;
+  visibility: visible;
+  min-height: var(--vh100, 100vh);
+  max-height: var(--vh100, 100vh);
   min-width: 100vw;
+  max-width: 100vw;
+  position: relative;
+  overflow: hidden;
 }

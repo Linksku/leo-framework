@@ -6,6 +6,10 @@ import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
 import transformWebpackCopied from './scripts/helpers/transformWebpackCopied';
 import baseConfig from './webpack.web';
 
+if (process.env.NODE_ENV !== 'development') {
+  throw new Error('NODE_ENV isn\'t development');
+}
+
 export default mergeReplaceArrays(baseConfig, {
   mode: 'development',
   output: {

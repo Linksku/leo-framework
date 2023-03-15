@@ -16,7 +16,7 @@ export default function Checkbox({
 }: Props) {
   return (
     <label
-      className={cn(className, styles.wrap, {
+      className={cx(className, styles.wrap, {
         [styles.labelWrap]: label,
         [styles.checked]: checked,
       })}
@@ -44,11 +44,7 @@ export default function Checkbox({
           {...props}
         />
       </span>
-      {label
-        ? (
-          <span className={styles.label}>{label}</span>
-        )
-        : null}
+      {label && <span className={styles.label}>{label}</span>}
     </label>
   );
 }

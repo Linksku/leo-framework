@@ -12,7 +12,7 @@ index 29177fc..11d726e 100644
  
      return knexBuilder;
 diff --git a/node_modules/objection/typings/objection/index.d.ts b/node_modules/objection/typings/objection/index.d.ts
-index 5be592c..ee8d8c9 100644
+index 5be592c..d80883a 100644
 --- a/node_modules/objection/typings/objection/index.d.ts
 +++ b/node_modules/objection/typings/objection/index.d.ts
 @@ -120,7 +120,7 @@ declare namespace Objection {
@@ -252,7 +252,22 @@ index 5be592c..ee8d8c9 100644
    }
  
    interface CountMethod<QB extends AnyQueryBuilder> {
-@@ -580,10 +492,6 @@ declare namespace Objection {
+@@ -561,12 +473,13 @@ declare namespace Objection {
+   interface OrderByDescriptor {
+     column: ColumnRef;
+     order?: OrderByDirection;
++    nulls?: 'first' | 'last';
+   }
+ 
+   type ColumnRefOrOrderByDescriptor = ColumnRef | OrderByDescriptor;
+ 
+   interface OrderByMethod<QB extends AnyQueryBuilder> {
+-    (column: ColumnRef, order?: OrderByDirection): QB;
++    (column: ColumnRef, order?: OrderByDirection, nulls?: 'first' | 'last'): QB;
+     (columns: ColumnRefOrOrderByDescriptor[]): QB;
+   }
+ 
+@@ -580,10 +493,6 @@ declare namespace Objection {
  
    type ForIdValue = MaybeCompositeId | AnyQueryBuilder;
  
@@ -263,7 +278,16 @@ index 5be592c..ee8d8c9 100644
    interface IdentityMethod<QB extends AnyQueryBuilder> {
      (): QB;
    }
-@@ -665,7 +573,7 @@ declare namespace Objection {
+@@ -627,7 +536,7 @@ declare namespace Objection {
+   interface ReturningMethod {
+     <QB extends AnyQueryBuilder>(
+       this: QB,
+-      column: string | string[]
++      column: string | readonly (string | Raw)[] | Raw
+     ): QB extends ArrayQueryBuilder<QB>
+       ? ArrayQueryBuilder<QB>
+       : QB extends NumberQueryBuilder<QB>
+@@ -665,7 +574,7 @@ declare namespace Objection {
    }
  
    interface OnBuildMethod<QB extends AnyQueryBuilder> {
@@ -272,7 +296,7 @@ index 5be592c..ee8d8c9 100644
    }
  
    interface OnBuildKnexCallback<QB extends AnyQueryBuilder> {
-@@ -684,71 +592,6 @@ declare namespace Objection {
+@@ -684,71 +593,6 @@ declare namespace Objection {
      (cb: OnErrorCallback<QB>): QB;
    }
  
@@ -344,7 +368,7 @@ index 5be592c..ee8d8c9 100644
    interface ContextMethod<QB extends AnyQueryBuilder> {
      (context: object): QB;
      (): QueryContext;
-@@ -893,15 +736,6 @@ declare namespace Objection {
+@@ -893,15 +737,6 @@ declare namespace Objection {
      withRecursive: WithMethod<this>;
      withWrapped: WithMethod<this>;
  
@@ -360,7 +384,7 @@ index 5be592c..ee8d8c9 100644
      join: JoinMethod<this>;
      joinRaw: JoinRawMethod<this>;
      innerJoin: JoinMethod<this>;
-@@ -971,18 +805,9 @@ declare namespace Objection {
+@@ -971,18 +806,9 @@ declare namespace Objection {
      insertAndFetch(insert: PartialModelObject<M>[]): ArrayQueryBuilder<this>;
      insertAndFetch(): SingleQueryBuilder<this>;
  
@@ -379,7 +403,7 @@ index 5be592c..ee8d8c9 100644
  
      throwIfNotFound: (
        arg?: any
-@@ -1025,16 +850,6 @@ declare namespace Objection {
+@@ -1025,16 +851,6 @@ declare namespace Objection {
      onBuildKnex: OnBuildKnexMethod<this>;
      onError: OnErrorMethod<this>;
  
@@ -396,7 +420,7 @@ index 5be592c..ee8d8c9 100644
      context: ContextMethod<this>;
      clearContext: ClearContextMethod<this>;
  
-@@ -1046,12 +861,9 @@ declare namespace Objection {
+@@ -1046,12 +862,9 @@ declare namespace Objection {
      isInsert: BooleanReturningMethod;
      isUpdate: BooleanReturningMethod;
      isDelete: BooleanReturningMethod;
@@ -409,7 +433,7 @@ index 5be592c..ee8d8c9 100644
  
      has: HasMethod;
      clear: ClearMethod<this>;
-@@ -1059,8 +871,6 @@ declare namespace Objection {
+@@ -1059,8 +872,6 @@ declare namespace Objection {
      clearSelect: IdentityMethod<this>;
      clearOrder: IdentityMethod<this>;
      clearWhere: IdentityMethod<this>;
@@ -418,7 +442,7 @@ index 5be592c..ee8d8c9 100644
  
      ModelType: M;
      ResultType: R;
-@@ -1083,15 +893,6 @@ declare namespace Objection {
+@@ -1083,15 +894,6 @@ declare namespace Objection {
  
    type X<T> = Promise<T>;
  
@@ -434,7 +458,7 @@ index 5be592c..ee8d8c9 100644
    type ArrayQueryBuilderThunk<M extends Model> = () => ArrayQueryBuilder<QueryBuilderType<M>>;
    type CancelQueryThunk = (result: any) => void;
  
-@@ -1100,7 +901,6 @@ declare namespace Objection {
+@@ -1100,7 +902,6 @@ declare namespace Objection {
      cancelQuery: CancelQueryThunk;
      context: QueryContext;
      transaction: TransactionOrKnex;
@@ -442,7 +466,7 @@ index 5be592c..ee8d8c9 100644
      modelOptions?: ModelOptions;
      items: Model[];
      inputItems: M[];
-@@ -1110,68 +910,9 @@ declare namespace Objection {
+@@ -1110,68 +911,9 @@ declare namespace Objection {
    export type Transaction = Knex.Transaction;
    export type TransactionOrKnex = Transaction | Knex;
  
@@ -511,7 +535,7 @@ index 5be592c..ee8d8c9 100644
  
    export interface QueryContext {
      transaction: Transaction;
-@@ -1319,7 +1060,6 @@ declare namespace Objection {
+@@ -1319,7 +1061,6 @@ declare namespace Objection {
      tableName: string;
      idColumn: string | string[];
      jsonSchema: JSONSchema;
@@ -519,7 +543,7 @@ index 5be592c..ee8d8c9 100644
      modelPaths: string[];
      jsonAttributes: string[];
      virtualAttributes: string[];
-@@ -1328,8 +1068,6 @@ declare namespace Objection {
+@@ -1328,8 +1069,6 @@ declare namespace Objection {
      dbRefProp: string;
      propRefRegex: RegExp;
      pickJsonSchemaProperties: boolean;
@@ -528,7 +552,7 @@ index 5be592c..ee8d8c9 100644
      useLimitInFirst: boolean;
      modifiers: Modifiers;
      columnNameMappers: ColumnNameMappers;
-@@ -1338,25 +1076,7 @@ declare namespace Objection {
+@@ -1338,25 +1077,7 @@ declare namespace Objection {
      ref: ReferenceFunction;
      fn: FunctionFunction;
  
@@ -555,7 +579,7 @@ index 5be592c..ee8d8c9 100644
  
      fromJson(json: object, opt?: ModelOptions): M;
      fromDatabaseJson(json: object): M;
-@@ -1381,34 +1101,6 @@ declare namespace Objection {
+@@ -1381,34 +1102,6 @@ declare namespace Objection {
      bindKnex(trxOrKnex: TransactionOrKnex): this;
      bindTransaction(trxOrKnex: TransactionOrKnex): this;
  
@@ -590,7 +614,7 @@ index 5be592c..ee8d8c9 100644
      beforeFind(args: StaticHookArguments<any>): any;
      afterFind(args: StaticHookArguments<any>): any;
      beforeInsert(args: StaticHookArguments<any>): any;
-@@ -1425,7 +1117,6 @@ declare namespace Objection {
+@@ -1425,7 +1118,6 @@ declare namespace Objection {
      static tableName: string;
      static idColumn: string | string[];
      static jsonSchema: JSONSchema;
@@ -598,7 +622,7 @@ index 5be592c..ee8d8c9 100644
      static modelPaths: string[];
      static jsonAttributes: string[];
      static virtualAttributes: string[];
-@@ -1434,8 +1125,6 @@ declare namespace Objection {
+@@ -1434,8 +1126,6 @@ declare namespace Objection {
      static dbRefProp: string;
      static propRefRegex: RegExp;
      static pickJsonSchemaProperties: boolean;
@@ -607,7 +631,7 @@ index 5be592c..ee8d8c9 100644
      static useLimitInFirst: boolean;
      static modifiers: Modifiers;
      static columnNameMappers: ColumnNameMappers;
-@@ -1444,30 +1133,6 @@ declare namespace Objection {
+@@ -1444,30 +1134,6 @@ declare namespace Objection {
      static ref: ReferenceFunction;
      static fn: FunctionFunction;
  
@@ -638,7 +662,7 @@ index 5be592c..ee8d8c9 100644
      static fromJson<M extends Model>(this: Constructor<M>, json: object, opt?: ModelOptions): M;
      static fromDatabaseJson<M extends Model>(this: Constructor<M>, json: object): M;
  
-@@ -1491,36 +1156,6 @@ declare namespace Objection {
+@@ -1491,36 +1157,6 @@ declare namespace Objection {
      static bindKnex<M>(this: M, trxOrKnex: TransactionOrKnex): M;
      static bindTransaction<M>(this: M, trxOrKnex: TransactionOrKnex): M;
  
@@ -675,7 +699,7 @@ index 5be592c..ee8d8c9 100644
      static beforeFind(args: StaticHookArguments<any>): any;
      static afterFind(args: StaticHookArguments<any>): any;
      static beforeInsert(args: StaticHookArguments<any>): any;
-@@ -1532,26 +1167,11 @@ declare namespace Objection {
+@@ -1532,26 +1168,11 @@ declare namespace Objection {
  
      $modelClass: ModelClass<this>;
  
@@ -703,7 +727,7 @@ index 5be592c..ee8d8c9 100644
      $formatDatabaseJson(json: Pojo): Pojo;
      $parseDatabaseJson(json: Pojo): Pojo;
  
-@@ -1578,24 +1198,10 @@ declare namespace Objection {
+@@ -1578,24 +1199,10 @@ declare namespace Objection {
      $setJson(json: object, opt?: ModelOptions): this;
      $setDatabaseJson(json: object): this;
  

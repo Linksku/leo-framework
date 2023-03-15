@@ -1,11 +1,12 @@
 import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
 import getPartialAllUniqueIndexes from 'utils/models/getPartialAllUniqueIndexes';
 import getModelDataLoader from 'services/dataLoader/getModelDataLoader';
+import { MODEL_INSTANCE } from 'consts/coreRedisNamespaces';
 import BaseRedisCache from './BaseRedisCache';
 import { getModelCacheKey } from './utils/getModelCacheKey';
 
 const redisCache = new BaseRedisCache<Model | null>({
-  redisNamespace: 'model',
+  redisNamespace: MODEL_INSTANCE,
   serialize: instance => (instance
     ? JSON.stringify(instance.$toCacheJson())
     : 'null'),
@@ -21,12 +22,15 @@ const redisCache = new BaseRedisCache<Model | null>({
       return undefined;
     }
 
-    const Model = getModelClass<ModelType>(modelType);
+    const Model = getModelClass(modelType);
     try {
       const parsed = JSON.parse(json);
       return Model.fromCacheJson(parsed);
     } catch {
-      ErrorLogger.error(new Error(`modelsCache(${key}): data isn't JSON`), json.slice(0, 100));
+      ErrorLogger.error(
+        new Error(`modelsCache(${key}): data isn't JSON`),
+        { json },
+      );
     }
     return undefined;
   },
@@ -34,33 +38,40 @@ const redisCache = new BaseRedisCache<Model | null>({
 });
 
 async function set<T extends ModelClass>(
+  rc: Nullish<RequestContext>,
   Model: T,
   ent: ModelInstance<T>,
 ): Promise<void> {
   const allCacheKeys = Model.getUniqueIndexes()
     .map(index => getModelCacheKey(Model, index, ent));
   try {
-    await Promise.all(allCacheKeys.map(key => redisCache.set(key, ent, !Model.cacheable)));
+    await Promise.all(allCacheKeys.map(
+      key => redisCache.setWithRc(rc, key, ent, !Model.cacheable),
+    ));
   } catch (err) {
-    ErrorLogger.warn(ErrorLogger.castError(err), `modelsCache.set(${Model.type})`);
+    ErrorLogger.warn(err, { ctx: `modelsCache.set(${Model.type})` });
   }
 }
 
 async function setNull<T extends ModelClass>(
+  rc: Nullish<RequestContext>,
   Model: T,
   partial: ModelPartial<T>,
 ): Promise<void> {
   const allCacheKeys = getPartialAllUniqueIndexes(Model, partial)
     .map(index => getModelCacheKey(Model, index, partial));
   try {
-    await Promise.all(allCacheKeys.map(key => redisCache.set(key, null, !Model.cacheable)));
+    await Promise.all(allCacheKeys.map(
+      key => redisCache.setWithRc(rc, key, null, !Model.cacheable),
+    ));
   } catch (err) {
-    ErrorLogger.warn(ErrorLogger.castError(err), `modelsCache.setNull(${Model.type})`);
+    ErrorLogger.warn(err, { ctx: `modelsCache.setNull(${Model.type})` });
   }
 }
 
 export default {
   async get<T extends ModelClass>(
+    rc: Nullish<RequestContext>,
     Model: T,
     partial: ModelPartial<T>,
   ): Promise<ModelInstance<T> | null> {
@@ -70,7 +81,8 @@ export default {
     }
 
     const cacheKey = getModelCacheKey(Model, uniqueIndex, partial);
-    const fromRedis = (await redisCache.get(
+    const fromRedis = (await redisCache.getWithRc(
+      rc,
       cacheKey,
       !Model.cacheable,
     )) as Nullish<ModelInstance<T>>;
@@ -81,13 +93,13 @@ export default {
     const instance = await getModelDataLoader(Model).load(partial);
     if (instance) {
       wrapPromise(
-        set(Model, instance),
+        set(rc, Model, instance),
         'warn',
         `modelsCache.get(${Model.type}) with instance`,
       );
     } else {
       wrapPromise(
-        setNull(Model, partial),
+        setNull(rc, Model, partial),
         'warn',
         `modelsCache.get(${Model.type}) without instance`,
       );
@@ -97,28 +109,32 @@ export default {
   },
 
   handleUpdate<T extends ModelClass>(
+    rc: Nullish<RequestContext>,
     Model: T,
     ent: ModelInstance<T>,
   ): Promise<void> {
-    return set(Model, ent);
+    return set(rc, Model, ent);
   },
 
   handleInsert<T extends ModelClass>(
+    rc: Nullish<RequestContext>,
     Model: T,
     ent: ModelInstance<T>,
   ): Promise<void> {
-    return set(Model, ent);
+    return set(rc, Model, ent);
   },
 
   // If an model is deleted, use set(null).
   handleDelete<T extends ModelClass>(
+    rc: Nullish<RequestContext>,
     Model: T,
     partial: ModelPartial<T>,
   ): Promise<void> {
-    return setNull(Model, partial);
+    return setNull(rc, Model, partial);
   },
 
   async invalidate<T extends ModelClass>(
+    rc: Nullish<RequestContext>,
     Model: T,
     partial: ModelPartial<T>,
   ): Promise<void> {
@@ -129,9 +145,9 @@ export default {
     const allCacheKeys = getPartialAllUniqueIndexes(Model, partial)
       .map(index => getModelCacheKey(Model, index, partial));
     try {
-      await Promise.all(allCacheKeys.map(key => redisCache.del(key)));
+      await Promise.all(allCacheKeys.map(key => redisCache.delWithRc(rc, key)));
     } catch (err) {
-      ErrorLogger.warn(ErrorLogger.castError(err), `modelsCache.invalidate(${Model.type})`);
+      ErrorLogger.warn(err, { ctx: `modelsCache.invalidate(${Model.type})` });
     }
   },
 };

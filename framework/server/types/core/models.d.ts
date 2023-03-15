@@ -24,21 +24,20 @@ declare global {
 
   type ModelPartial<T extends { Interface: IBaseModel }> = Partial<T['Interface']>;
 
-  type ModelPartialDefined<
+  type ModelPartialExact<
     T extends { Interface: IBaseModel },
-    P extends ModelPartial<T>,
-  > = P & (P extends any
-      ? {
-        [K in keyof P]: Defined<P[K]>;
-      }
-      : never);
+    P,
+  > = Partial<T['Interface']>
+    & Pick<T['Interface'], keyof P>
+    & Record<Exclude<keyof P, keyof T['Interface']>, never>;
 
   type ModelKey<T extends { Interface: IBaseModel }> = (keyof T['Interface']) & string;
 
   type ModelIndex<T extends { Interface: IBaseModel }> = ModelKey<T>[];
 
   type ModelSchema<T extends IBaseModel> = {
-    [k in keyof T]: JSONSchema;
+    [k in keyof T]: JsonSchema;
+    __propertiesHack?: never;
   };
 
   type ModelColsMap<T extends IBaseModel> = {

@@ -13,17 +13,19 @@ package-lock.json
 /build
 /dist
 /build.*
-/kafka/**/target/
+/framework/infra/kafka-connectors/**/target/
 
 # Framework
 /.env
-/app/.env
-/app/server/.migrationState.json
 
 # Generated
 /stats.json
 /isolate-*.log
 *.tsbuildinfo
+/capacitor/android/app/src/main/assets/
+/cypress/screenshots/
+/cypress/videos/
+/framework/tests/fixtures/auth.json
 
 # OS
 .DS_Store
@@ -42,6 +44,14 @@ package-lock.json
 *.jks
 /temp
 /tmp
-app/
-android/
-resources/
+/tmp.*
+/env
+/app/
+/capacitor/android/
+/capacitor/ios/
+/capacitor/resources/
+/env
+/app/
+/capacitor/android/
+/capacitor/ios/
+/capacitor/resources/

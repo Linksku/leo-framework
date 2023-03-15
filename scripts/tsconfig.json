@@ -4,14 +4,19 @@
     "checkJs": true,
     "noImplicitAny": false,
     "rootDir": "..",
+    "types": [
+      "webpack-env",
+    ],
   },
   "include": [
     "../*.ts",
     "../.*.ts",
     "../**/.*.ts",
-    "../**/*.cjs",
     "../**/*.js",
-    "../**/.*.cjs",
     "../**/.*.js",
+    "../**/*.cjs",
+    "../**/.*.cjs",
+    "../**/*.mjs",
+    "../**/.*.mjs",
   ],
 }

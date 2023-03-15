@@ -11,10 +11,13 @@ export default function useStateStable<T extends ObjectOf<any>>(
   Memoed<(patch: Partial<T> | ((prevState: T) => Partial<T>)) => void>,
 ] {
   const [state, setState] = useState(() => {
-    if (typeof initial === 'function') {
-      return deepFreezeIfDev((initial as () => T)());
+    const val = typeof initial === 'function'
+      ? (initial as () => T)()
+      : initial;
+    if (!process.env.PRODUCTION && val?.constructor !== Object) {
+      throw new Error('useStateStable should have a plain object');
     }
-    return deepFreezeIfDev(initial);
+    return deepFreezeIfDev(val);
   });
   return [
     state,
@@ -24,6 +27,19 @@ export default function useStateStable<T extends ObjectOf<any>>(
         const delta = typeof patch === 'function'
           ? (patch as ((prevState: T) => T))(prevState)
           : patch;
+
+        if (Array.isArray(delta)) {
+          if (prevState.length !== delta.length
+            || !delta.every((v, i) => v === prevState[i])) {
+            // Hack for WDYR + double-invocation
+            if (!newState) {
+              newState = deepFreezeIfDev(delta as unknown as T);
+            }
+            return newState;
+          }
+          return prevState;
+        }
+
         for (const k of Object.keys(delta)) {
           if (prevState[k] !== delta[k]) {
             // Hack for WDYR + double-invocation

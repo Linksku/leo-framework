@@ -1,5 +1,4 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import knexBT from 'services/knex/knexBT';
 
 type MigrationState = {
   lastMigration: string,
@@ -9,13 +8,15 @@ type MigrationState = {
   },
 };
 
+// todo: mid/mid combine __migration__ and mzTest into a "global config" table
 export async function getMigrationState(): Promise<MigrationState> {
+  const data = await knexBT('__migration__')
+    .select('*')
+    .first();
   try {
-    const lastMigrateTimeFile = await fs.readFile(path.resolve('./app/server/.migrationState.json'));
-    const data = JSON.parse(lastMigrateTimeFile.toString().trim());
     return TS.assertType<MigrationState>(
-      val => val && typeof val.lastMigration === 'string' && val.lastMigration.endsWith('.ts'),
       data,
+      val => val && typeof val.lastMigration === 'string' && val.lastMigration.endsWith('.ts'),
     );
   } catch {}
   return {
@@ -24,11 +25,19 @@ export async function getMigrationState(): Promise<MigrationState> {
 }
 
 export async function updateMigrationState(lastMigration: string, rollback?: MigrationState['rollback']) {
-  await fs.writeFile(
-    path.resolve('./app/server/.migrationState.json'),
-    `${JSON.stringify({
-      lastMigration,
-      rollback,
-    }, null, 2)}\n`,
-  );
+  const update = {
+    lastMigration,
+    rollback: rollback ?? {
+      type: 'up',
+      files: [],
+    },
+  };
+
+  if (await knexBT('__migration__').select('*').first()) {
+    await knexBT('__migration__')
+      .update(update);
+  } else {
+    await knexBT('__migration__')
+      .insert(update);
+  }
 }

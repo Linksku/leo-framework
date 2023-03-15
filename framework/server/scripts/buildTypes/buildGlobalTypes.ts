@@ -2,12 +2,12 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
 
-const webGlobals = require('../../../web/config/globals.cjs');
-const webAppGlobals = require('../../../../app/web/config/globals.cjs');
-const serverGlobals = require('../../config/globals.cjs');
-const serverAppGlobals = require('../../../../app/server/config/globals.cjs');
-const sharedGlobals = require('../../../shared/config/globals.cjs');
-const sharedAppGlobals = require('../../../../app/shared/config/globals.cjs');
+import webGlobals from '../../../web/config/globals.cjs';
+import webAppGlobals from '../../../../app/web/config/globals.cjs';
+import serverGlobals from '../../config/globals.cjs';
+import serverAppGlobals from '../../../../app/server/config/globals.cjs';
+import sharedGlobals from '../../../shared/config/globals.cjs';
+import sharedAppGlobals from '../../../../app/shared/config/globals.cjs';
 
 type GlobalsConfig = ObjectOf<string | string[]>;
 

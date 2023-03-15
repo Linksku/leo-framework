@@ -1,23 +1,24 @@
-import UserSvg from 'fontawesome5/svgs/regular/user.svg';
+import UserSvg from 'fa5/svg/user-light.svg';
 
 import Image from 'components/common/Image';
 
 type Props = {
-  url?: string | null,
   size?: number | string,
-};
+} & Parameters<typeof Image>[0];
 
 export default function UserPhoto({
-  url,
   size,
+  borderRadius = 5,
+  ...props
 }: Props) {
   return (
     <Image
-      url={url}
       height={size}
       width={size}
       defaultSvg={UserSvg}
-      borderRadius={3}
+      borderRadius={borderRadius}
+      withBoxShadow
+      {...props}
     />
   );
 }

@@ -23,11 +23,14 @@ function _transformDateProps(
   }
 }
 
-export default function useHandleApiEntities(
-  addRelationConfigs: Memoed<(config: ApiRelationConfigs) => void>,
-  allowPost = false,
-) {
-  const { loadEntities, createEntities, updateEntities, deleteEntities } = useEntitiesStore();
+export default function useHandleApiEntities(allowPost = false) {
+  const {
+    loadEntities,
+    createEntities,
+    updateEntities,
+    deleteEntities,
+  } = useEntitiesStore();
+  const { addRelationConfigs } = useRelationsStore();
 
   return useCallback(({
     entities,
@@ -38,7 +41,7 @@ export default function useHandleApiEntities(
   }: MemoDeep<ApiSuccessResponse<any>>) => {
     if (!process.env.PRODUCTION) {
       const invalidEnt = [...entities, ...(createdEntities ?? []), ...(updatedEntities ?? [])]
-        .find(ent => !ent.id || !ent.type || TS.hasProp(ent, 'version') || TS.getProp(ent, 'isDeleted'));
+        .find(ent => !ent.id || !ent.type || TS.hasProp(ent, 'version'));
       if (invalidEnt) {
         throw new Error(`useHandleApiEntities: invalid ent "${JSON.stringify(invalidEnt)}"`);
       }

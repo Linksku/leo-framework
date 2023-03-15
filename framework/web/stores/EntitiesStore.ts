@@ -26,6 +26,12 @@ export const [
     const entitiesRef = useRef(deepFreezeIfDev(
       Object.create(null) as ObjectOf<EntitiesMap>,
     ));
+    const eventsCountRef = useRef<Record<EntityAction, ObjectOf<ObjectOf<number>>>>({
+      load: Object.create(null),
+      create: Object.create(null),
+      update: Object.create(null),
+      delete: Object.create(null),
+    });
 
     const getEntities = useCallback(
       <T extends EntityType>(
@@ -45,19 +51,21 @@ export const [
     );
 
     // entities: [{ id, type }]
-    // forceOverwrite means replace object even if nothing changed
+    // forceUpdate means replace object even if nothing changed
     const addOrUpdateEntities = useCallback((
       entities: Entity | Entity[],
-      forceOverwrite = false,
+      forceUpdate = false,
     ) => {
       if (!entities || (Array.isArray(entities) && !entities.length)) {
-        return [];
+        return { added: [], updated: [] };
       }
       if (!Array.isArray(entities)) {
         entities = [entities];
       }
 
-      const changed: Entity[] = [];
+      const added: Entity[] = [];
+      const updated: Entity[] = [];
+      let newIncludedRelations = false;
       const newEntities = Object.assign(
         Object.create(null) as ObjectOf<EntitiesMap>,
         entitiesRef.current,
@@ -75,10 +83,15 @@ export const [
         );
 
         const oldEntity = entitiesMap[entity.id];
-        if (!oldEntity
-          || forceOverwrite
-          || hasNewOrChangedExtras(oldEntity.extras, entity.extras)
-          || hasNewIncludedRelations(oldEntity.includedRelations, entity.includedRelations)) {
+        const isEntityAdded = !oldEntity;
+        const isEntityUpdated = !isEntityAdded && (forceUpdate
+          || hasNewOrChangedExtras(oldEntity.extras, entity.extras));
+        const entityNewIncludedRelations = !process.env.PRODUCTION
+          && hasNewIncludedRelations(
+            oldEntity?.includedRelations,
+            entity.includedRelations,
+          );
+        if (isEntityAdded || isEntityUpdated || entityNewIncludedRelations) {
           if (entitiesMap === entitiesRef.current[entity.type]) {
             entitiesMap = Object.assign(
               Object.create(null),
@@ -93,18 +106,24 @@ export const [
               entity.extras,
             );
           }
-          if (oldEntity?.includedRelations) {
+          if (entityNewIncludedRelations) {
             entity.includedRelations = mergeEntityIncludedRelations(
-              oldEntity.includedRelations,
+              oldEntity?.includedRelations,
               entity.includedRelations,
             );
+            newIncludedRelations = true;
           }
           entitiesMap[entity.id] = entity;
-          changed.push(entity);
+
+          if (isEntityAdded) {
+            added.push(entity);
+          } else if (isEntityUpdated) {
+            updated.push(entity);
+          }
         }
       }
 
-      if (changed.length) {
+      if (added.length || updated.length || newIncludedRelations) {
         entitiesRef.current = deepFreezeIfDev(newEntities);
 
         if (!process.env.PRODUCTION && typeof window !== 'undefined') {
@@ -113,40 +132,70 @@ export const [
         }
       }
 
-      return changed;
+      return { added, updated };
     }, []);
 
     const loadEntities = useCallback((entities: Entity | Entity[]) => {
-      const changed = addOrUpdateEntities(entities);
+      const { added, updated } = addOrUpdateEntities(entities);
 
-      batchedUpdates(() => {
-        for (const entity of changed) {
-          EntitiesEventEmitter.emit(getEventKey('load', entity.type), entity);
-          EntitiesEventEmitter.emit(getEventKey('load', entity.type, entity.id), entity);
-        }
-      });
+      for (const entity of [...added, ...updated]) {
+        const eventsCount = TS.objValOrSetDefault(
+          eventsCountRef.current.load,
+          entity.type,
+          Object.create(null),
+        );
+        eventsCount.total = (eventsCount.total ?? 0) + 1;
+        eventsCount[entity.id] = (eventsCount[entity.id] ?? 0) + 1;
+
+        EntitiesEventEmitter.emit(getEventKey('load', entity.type), entity);
+        EntitiesEventEmitter.emit(getEventKey('load', entity.type, entity.id), entity);
+      }
     }, [addOrUpdateEntities]);
 
     const createEntities = useCallback((entities: Entity | Entity[]) => {
-      const changed = addOrUpdateEntities(entities, true);
+      const { added, updated } = addOrUpdateEntities(entities, true);
 
-      batchedUpdates(() => {
-        for (const entity of changed) {
-          EntitiesEventEmitter.emit(getEventKey('create', entity.type), entity);
-          EntitiesEventEmitter.emit(getEventKey('create', entity.type, entity.id), entity);
-        }
-      });
+      for (const entity of added) {
+        const eventsCount = TS.objValOrSetDefault(
+          eventsCountRef.current.create,
+          entity.type,
+          Object.create(null),
+        );
+        eventsCount.total = (eventsCount.total ?? 0) + 1;
+        eventsCount[entity.id] = (eventsCount[entity.id] ?? 0) + 1;
+
+        EntitiesEventEmitter.emit(getEventKey('create', entity.type), entity);
+        EntitiesEventEmitter.emit(getEventKey('create', entity.type, entity.id), entity);
+      }
+      for (const entity of updated) {
+        const eventsCount = TS.objValOrSetDefault(
+          eventsCountRef.current.update,
+          entity.type,
+          Object.create(null),
+        );
+        eventsCount.total = (eventsCount.total ?? 0) + 1;
+        eventsCount[entity.id] = (eventsCount[entity.id] ?? 0) + 1;
+
+        EntitiesEventEmitter.emit(getEventKey('update', entity.type), entity);
+        EntitiesEventEmitter.emit(getEventKey('update', entity.type, entity.id), entity);
+      }
     }, [addOrUpdateEntities]);
 
     const updateEntities = useCallback((entities: Entity | Entity[]) => {
-      const changed = addOrUpdateEntities(entities, true);
+      const { added, updated } = addOrUpdateEntities(entities, true);
 
-      batchedUpdates(() => {
-        for (const entity of changed) {
-          EntitiesEventEmitter.emit(getEventKey('update', entity.type), entity);
-          EntitiesEventEmitter.emit(getEventKey('update', entity.type, entity.id), entity);
-        }
-      });
+      for (const entity of [...added, ...updated]) {
+        const eventsCount = TS.objValOrSetDefault(
+          eventsCountRef.current.update,
+          entity.type,
+          Object.create(null),
+        );
+        eventsCount.total = (eventsCount.total ?? 0) + 1;
+        eventsCount[entity.id] = (eventsCount[entity.id] ?? 0) + 1;
+
+        EntitiesEventEmitter.emit(getEventKey('update', entity.type), entity);
+        EntitiesEventEmitter.emit(getEventKey('update', entity.type, entity.id), entity);
+      }
     }, [addOrUpdateEntities]);
 
     const deleteEntities = useCallback(<T extends EntityType>(
@@ -178,12 +227,18 @@ export const [
         window.entities = entitiesRef.current;
       }
 
-      batchedUpdates(() => {
-        for (const entity of entitiesToDelete) {
-          EntitiesEventEmitter.emit(getEventKey('delete', type), entity);
-          EntitiesEventEmitter.emit(getEventKey('delete', type, entity.id), entity);
-        }
-      });
+      for (const entity of entitiesToDelete) {
+        const eventsCount = TS.objValOrSetDefault(
+          eventsCountRef.current.delete,
+          entity.type,
+          Object.create(null),
+        );
+        eventsCount.total = (eventsCount.total ?? 0) + 1;
+        eventsCount[entity.id] = (eventsCount[entity.id] ?? 0) + 1;
+
+        EntitiesEventEmitter.emit(getEventKey('delete', type), entity);
+        EntitiesEventEmitter.emit(getEventKey('delete', type, entity.id), entity);
+      }
     }, []);
 
     type MutateEntityUpdates<T extends EntityType> = {
@@ -197,43 +252,48 @@ export const [
     | { action: 'delete' }
     | null;
 
-    function mutateEntity<T extends EntityType>(
-      type: T,
-      id: EntityId,
-      updater: MutateEntityUpdates<T>
-        | ((ent: TypeToEntity<T> | null) => MutateEntityUpdates<T>),
-    ) {
-      const entity = (entitiesRef.current[type]?.[id] ?? null) as TypeToEntity<T> | null;
-      const updates = typeof updater === 'function'
-        ? updater(entity)
-        : updater;
+    const mutateEntity = useCallback(
+      <T extends EntityType>(
+        type: T,
+        id: EntityId,
+        updater: MutateEntityUpdates<T>
+          | ((ent: TypeToEntity<T> | null) => MutateEntityUpdates<T>),
+      ) => {
+        const entity = (entitiesRef.current[type]?.[id] ?? null) as TypeToEntity<T> | null;
+        const updates = typeof updater === 'function'
+          ? updater(entity)
+          : updater;
 
-      if (!process.env.PRODUCTION && updates) {
-        // eslint-disable-next-line no-console
-        console.log(
-          `mutate(${type}, ${id})`,
-          updates.action,
-          TS.getProp(updates, 'entity') ?? TS.getProp(updates, 'partial') ?? '',
-        );
-      }
+        if (!process.env.PRODUCTION && updates) {
+          // eslint-disable-next-line no-console
+          console.log(
+            `mutate(${type}, ${id})`,
+            updates.action,
+            TS.getProp(updates, 'entity') ?? TS.getProp(updates, 'partial') ?? '',
+          );
 
-      if (updates?.action === 'load') {
-        loadEntities([{ id, type, ...updates.entity } as Memoed<TypeToEntity<T>>]);
-      } else if (updates?.action === 'create') {
-        createEntities([{ id, type, ...updates.entity } as Memoed<TypeToEntity<T>>]);
-      } else if (updates?.action === 'update') {
-        if (!entity) {
-          if (!process.env.PRODUCTION) {
-            ErrorLogger.warn(new Error(`mutateEntity(${type},${id}): entity to update not found.`));
-          }
-          return;
+          // todo: low/easy detect missing keys
         }
-        const newEntity = { ...entity, ...updates.partial } as Memoed<TypeToEntity<T>>;
-        updateEntities([newEntity]);
-      } else if (updates?.action === 'delete') {
-        deleteEntities(type, [id]);
-      }
-    }
+
+        if (updates?.action === 'load') {
+          loadEntities([{ id, type, ...updates.entity } as Memoed<TypeToEntity<T>>]);
+        } else if (updates?.action === 'create') {
+          createEntities([{ id, type, ...updates.entity } as Memoed<TypeToEntity<T>>]);
+        } else if (updates?.action === 'update') {
+          if (!entity) {
+            if (!process.env.PRODUCTION) {
+              ErrorLogger.warn(new Error(`mutateEntity(${type},${id}): entity to update not found.`));
+            }
+            return;
+          }
+          const newEntity = { ...entity, ...updates.partial } as Memoed<TypeToEntity<T>>;
+          updateEntities([newEntity]);
+        } else if (updates?.action === 'delete') {
+          deleteEntities(type, [id]);
+        }
+      },
+      [loadEntities, createEntities, updateEntities, deleteEntities],
+    );
 
     const addEntityListener = useCallback(<T extends EntityType>(
       action: EntityAction,
@@ -272,8 +332,9 @@ export const [
       window.mutateEntity = mutateEntity;
     }
 
-    return useDeepMemoObj({
+    return useMemo(() => ({
       entitiesRef,
+      eventsCountRef,
       getEntities,
       getEntity,
       addEntityListener,
@@ -283,7 +344,19 @@ export const [
       updateEntities,
       deleteEntities,
       mutateEntity,
-    });
+    }), [
+      entitiesRef,
+      eventsCountRef,
+      getEntities,
+      getEntity,
+      addEntityListener,
+      removeEntityListener,
+      loadEntities,
+      createEntities,
+      updateEntities,
+      deleteEntities,
+      mutateEntity,
+    ]);
   },
   function EntitiesStore(val) {
     return val;

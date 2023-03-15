@@ -5,6 +5,6 @@
     "../../app/web/types/__generated__",
     "../../app/shared/types/__generated__",
     ".",
-    "../shared",
+    "../shared/types",
   ],
 }

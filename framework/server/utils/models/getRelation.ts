@@ -8,7 +8,7 @@ export default function getRelation(
 
   const parts = relationName.split('.');
   if (parts.length > 2) {
-    throw new Error(`Invalid relation "${relationName}"`);
+    throw new Error(`getRelation(${modelType}): invalid relation "${relationName}"`);
   }
   const [name, nestedName] = parts;
   if (!TS.hasProp(modelRelations, name)) {

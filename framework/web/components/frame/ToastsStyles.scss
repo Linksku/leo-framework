@@ -1,21 +1,29 @@
-.toast {
+.toastWrap {
   position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translate(-50%, 0);
+  bottom: 3rem;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: $zIndexToast;
+}
+
+.toast {
+  position: absolute;
+  bottom: 0;
   max-width: 80%;
-  background-color: rgb(64 64 64 / 80%);
+  background-color: rgb(64 64 64 / 90%);
   border-radius: 10px;
   color: #fff;
-  padding: 10px;
-  z-index: $zIndexToast;
+  padding: 1rem;
   filter: opacity(0);
   transition: filter 0.2s;
+  overflow-wrap: break-word;
+  white-space: pre-line;
 
   &.visible {
-    filter: opacity(100%);
-    @include fadeIn;
+    @include fadeIn(0.2s);
 
-    animation-duration: 0.2s;
+    filter: opacity(100%);
   }
 }

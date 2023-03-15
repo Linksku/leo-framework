@@ -1,0 +1,48 @@
+.container {
+  overflow: hidden;
+  box-sizing: content-box;
+  background-color: #fff;
+  position: relative;
+  touch-action: none;
+}
+
+.inner {
+  @extend %maxWidthContainer;
+
+  height: calc($headerHeight - $insetTop);
+  display: flex;
+}
+
+.btnWrap {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 $containerPadding 0 math.div($containerPadding, 2);
+
+  @include gtSm {
+    padding-left: $containerPadding;
+  }
+}
+
+.rightBtnWrap {
+  padding-left: $containerPadding;
+  padding-right: math.div($containerPadding, 2);
+
+  @include gtSm {
+    padding-right: $containerPadding;
+  }
+}
+
+.svgBtnWrap:active {
+  background-color: $activeBackgroundColor;
+}
+
+.title {
+  @extend %oneLine;
+
+  align-self: center;
+  flex-grow: 1;
+  font-size: 1.8rem;
+  font-weight: 400;
+  padding: 0 $containerPadding;
+}

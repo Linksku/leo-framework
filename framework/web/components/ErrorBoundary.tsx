@@ -1,7 +1,17 @@
 import ErrorPage from 'components/ErrorPage';
 
+function getErrorMessage(err: Error) {
+  if (!err.message) {
+    return 'Unknown error.';
+  }
+  if (err.message.includes('Loading chunk ') || err.message.includes('Loading CSS chunk ')) {
+    return 'Content failed to load.';
+  }
+  return err.message;
+}
+
 type Props = {
-  renderFallback?: (err: Error) => ReactElement,
+  renderFallback?: (msg: string, err: Error) => ReactElement,
   className?: string,
 };
 
@@ -18,7 +28,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   override state: State = { err: null };
 
   override componentDidCatch(err: Error) {
-    ErrorLogger.error(err, '', false);
+    ErrorLogger.error(err, undefined, false);
   }
 
   override render() {
@@ -26,13 +36,15 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     const { err } = this.state;
 
     if (err) {
+      const msg = getErrorMessage(err);
+
       if (renderFallback) {
-        return renderFallback(err);
+        return renderFallback(msg, err);
       }
       return (
         <ErrorPage
           title="Error"
-          content={err.message}
+          content={msg}
           className={className}
         />
       );

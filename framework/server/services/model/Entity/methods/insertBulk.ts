@@ -1,36 +1,42 @@
+import type { Knex } from 'knex';
+
 import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
 import modelsCache from 'services/cache/modelsCache';
 import modelIdsCache from 'services/cache/modelIdsCache';
 import knexBT from 'services/knex/knexBT';
 import { updateLastWriteTime } from 'services/model/helpers/lastWriteTimeHelpers';
-import waitForRRUpdate from 'utils/models/waitForRRUpdate';
+import RequestContextLocalStorage from 'services/requestContext/RequestContextLocalStorage';
 
 const MAX_BULK_INSERTS = 100;
 
-function insertBulk<T extends EntityClass>(
+// todo: mid/mid exact types for model partial
+function insertBulk<T extends EntityClass, Obj extends ModelPartialExact<T, Obj>>(
   this: T,
-  objs: ModelPartial<T>[],
+  objs: Obj[],
   opts?: {
     onDuplicate?: 'update' | 'ignore',
-    waitForRR?: boolean,
+    trx?: Knex.Transaction,
   },
 ): Promise<EntityInstance<T>[]>;
 
-function insertBulk<T extends EntityClass>(
+function insertBulk<T extends EntityClass, Obj extends ModelPartialExact<T, Obj>>(
   this: T,
-  objs: ModelPartial<T>[],
+  objs: Obj[],
   opts: {
     onDuplicate: 'ignore',
-    waitForRR?: boolean,
+    trx?: Knex.Transaction,
   },
 ): Promise<(EntityInstance<T> | null)[]>;
 
-async function insertBulk<T extends EntityClass>(
+async function insertBulk<T extends EntityClass, Obj extends ModelPartialExact<T, Obj>>(
   this: T,
-  objs: ModelPartial<T>[],
-  { onDuplicate = 'error', waitForRR }: {
+  objs: Obj[],
+  {
+    onDuplicate = 'error' as 'error' | 'update' | 'ignore',
+    trx,
+  }: {
     onDuplicate?: 'error' | 'update' | 'ignore',
-    waitForRR?: boolean,
+    trx?: Knex.Transaction
   } = {},
 ): Promise<(EntityInstance<T> | null)[]> {
   const firstObj = objs[0];
@@ -52,12 +58,13 @@ async function insertBulk<T extends EntityClass>(
     }
   }
 
+  const rc = getRC();
   let allInserted: (EntityInstance<T> | null)[] = [];
   for (let i = 0; i < objs.length; i += MAX_BULK_INSERTS) {
     const slice = objs.slice(i, i + MAX_BULK_INSERTS);
 
     // todo: mid/mid handle $beforeInsert
-    let query = entityQuery(this, knexBT)
+    let query = entityQuery(this, trx ?? knexBT)
       .insert(slice)
       .returning('*');
     if (onDuplicate === 'update' && uniqueIndex) {
@@ -89,30 +96,28 @@ async function insertBulk<T extends EntityClass>(
     allInserted = [...allInserted, ...inserted];
 
     // eslint-disable-next-line no-await-in-loop
-    await Promise.all(inserted.flatMap(ent => {
-      if (!ent) {
-        return null;
-      }
-      if (ent.isInitialVersion()) {
+    await RequestContextLocalStorage.exit(
+      () => Promise.all(inserted.flatMap(ent => {
+        if (!ent) {
+          return null;
+        }
+        if (onDuplicate === 'update') {
+          return [
+            modelsCache.handleUpdate(rc, this, ent),
+            modelIdsCache.handleUpdate(rc, this, ent),
+          ];
+        }
         return [
-          modelsCache.handleInsert(this, ent),
-          modelIdsCache.handleInsert(this, ent),
+          modelsCache.handleInsert(rc, this, ent),
+          modelIdsCache.handleInsert(rc, this, ent),
         ];
-      }
-      return [
-        modelsCache.handleUpdate(this, ent),
-        modelIdsCache.handleUpdate(this, ent),
-      ];
-    }));
+      })),
+    );
   }
 
   const allInsertedNonNull = TS.filterNulls(allInserted);
   if (allInsertedNonNull.length) {
     await updateLastWriteTime(this.type);
-    if (waitForRR) {
-      const last = allInsertedNonNull[allInsertedNonNull.length - 1];
-      await waitForRRUpdate(this, last.id, last.version);
-    }
   }
 
   return allInserted;

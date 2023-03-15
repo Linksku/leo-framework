@@ -26,7 +26,7 @@ export function processInputMaterializedViewConfig<
   config: Config,
 ): Pick<Config, keyof MaterializedViewConfig<any>> & {
     MVQueryDeps: ModelClass[],
-    MVQuery: QueryBuilder<Model>,
+    getMVQuery: () => QueryBuilder<Model>,
   } {
   if (config.BTClass == null) {
     throw new Error(`processInputMaterializedViewConfig(${config.type}): missing BTClass.`);

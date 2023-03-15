@@ -1,17 +1,22 @@
 import type { JSONSchemaDefinition } from 'objection';
 import { Model as ObjectionModel } from 'objection';
-import omit from 'lodash/omit';
-import uniq from 'lodash/uniq';
 
-import { formatModel, parseModel } from 'utils/models/formatModelPartials';
+import { formatModelPojo, parseModel } from 'utils/models/formatModelPartials';
 import modelInstanceToPojo from 'utils/models/modelInstanceToPojo';
 import isSchemaNullable from 'utils/models/isSchemaNullable';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
-import { ModelRelationsSpecs, getRelationsMap } from '../helpers/modelRelations';
+import { ModelRelationsSpecs, getRelationsMap, ModelRelationsMap } from '../helpers/modelRelations';
 import AjvValidator from './AjvValidator';
 import CustomQueryBuilder from './CustomQueryBuilder';
 
-function hasDefault(val: JSONSchema): boolean {
+type ModelJsonSchema = {
+  type: 'object',
+  required: string[],
+  properties: Record<string, JSONSchemaDefinition>,
+  additionalProperties: false,
+};
+
+function hasDefault(val: JsonSchema): boolean {
   if (typeof val === 'boolean') {
     return false;
   }
@@ -31,7 +36,7 @@ function hasDefault(val: JSONSchema): boolean {
   return false;
 }
 
-// todo: low/hard remove Objection
+// todo: mid/hard remove Objection
 class BaseModel extends ObjectionModel implements IBaseModel {
   static type: ModelType;
 
@@ -39,7 +44,9 @@ class BaseModel extends ObjectionModel implements IBaseModel {
 
   static instanceType: Model;
 
-  static isMV: boolean;
+  static isMV = false;
+
+  static isVirtual = false;
 
   static cacheable: boolean;
 
@@ -47,32 +54,41 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     return this.tableName;
   }
 
-  // todo: mid/hard validate json schema against mysql
   static schema = {} as ModelSchema<IBaseModel>;
 
   static getSchema<T extends ModelClass>(this: T): ModelSchema<T['Interface']> {
     return this.schema as ModelSchema<T['Interface']>;
   }
 
+  static _cols: ObjectOf<string> | undefined;
+
   // Relies on Objection to add quotes
   static get cols(): ModelColsMap<IBaseModel> {
-    const cols: ObjectOf<string> = {
-      all: `${this.tableName}.*`,
-    };
-    for (const prop of Object.keys(this.schema)) {
-      cols[prop] = `${this.tableName}.${prop}`;
+    if (!this._cols) {
+      const cols: ObjectOf<string> = {
+        all: `${this.tableName}.*`,
+      };
+      for (const prop of Object.keys(this.schema)) {
+        cols[prop] = `${this.tableName}.${prop}`;
+      }
+      this._cols = cols;
     }
-    return cols as ModelColsMap<IBaseModel>;
+    return this._cols as ModelColsMap<IBaseModel>;
   }
 
+  static _colsQuoted: ObjectOf<string> | undefined;
+
   static get colsQuoted(): ModelColsMap<IBaseModel> {
-    const cols: ObjectOf<string> = {
-      all: `"${this.tableName}".*`,
-    };
-    for (const prop of Object.keys(this.schema)) {
-      cols[prop] = `"${this.tableName}"."${prop}"`;
+    if (!this._colsQuoted) {
+      const cols: ObjectOf<string> = {
+        all: `"${this.tableName}".*`,
+      };
+      for (const prop of Object.keys(this.schema)) {
+        cols[prop] = `"${this.tableName}"."${prop}"`;
+      }
+      this._colsQuoted = cols;
     }
-    return cols as ModelColsMap<IBaseModel>;
+    return this._colsQuoted as ModelColsMap<IBaseModel>;
   }
 
   static as<T extends ModelClass>(this: T, name: string): ModelColsMap<ModelTypeToInterface<T['type']>> {
@@ -100,10 +116,12 @@ class BaseModel extends ObjectionModel implements IBaseModel {
   static normalIndexes: (string | string[])[] = [];
 
   static expressionIndexes: ({
+    name?: string,
     cols: string[],
     col?: undefined,
     expression: string,
   } | {
+    name?: string,
     col: string,
     cols?: undefined,
     expression: string,
@@ -116,13 +134,44 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     return this.uniqueIndexes[0];
   }
 
-  // todo: low/easy turn methods into accessors or memoize
+  static _uniqueIndexes: ModelIndex<ModelClass>[] | undefined;
+
+  // todo: low/easy add memoize decorator
   static getUniqueIndexes<T extends ModelClass>(this: T): ModelIndex<T>[] {
-    return this.uniqueIndexes.map(idx => (Array.isArray(idx) ? idx : [idx])) as ModelIndex<T>[];
+    if (!this._uniqueIndexes) {
+      this._uniqueIndexes = this.uniqueIndexes.map(
+        idx => (Array.isArray(idx) ? idx : [idx]),
+      ) as ModelIndex<ModelClass>[];
+    }
+    return this._uniqueIndexes as ModelIndex<T>[];
   }
 
+  static _uniqueColumnsSet: Set<ModelKey<ModelClass>> | undefined;
+
+  static getUniqueColumnsSet<T extends ModelClass>(this: T): Set<ModelKey<T>> {
+    if (!this._uniqueColumnsSet) {
+      this._uniqueColumnsSet = new Set(
+        this.uniqueIndexes
+          .map(idx => (
+            Array.isArray(idx) && idx.length === 1 ? idx[0] : idx
+          ) as ModelKey<ModelClass>)
+          .filter(
+            idx => !Array.isArray(idx) || idx.length === 1,
+          ),
+      );
+    }
+    return this._uniqueColumnsSet as Set<ModelKey<T>>;
+  }
+
+  static _normalIndexes: ModelIndex<ModelClass>[] | undefined;
+
   static getNormalIndexes<T extends ModelClass>(this: T): ModelIndex<T>[] {
-    return this.normalIndexes.map(idx => (Array.isArray(idx) ? idx : [idx])) as ModelIndex<T>[];
+    if (!this._normalIndexes) {
+      this._normalIndexes = this.normalIndexes.map(
+        idx => (Array.isArray(idx) ? idx : [idx]),
+      ) as ModelIndex<ModelClass>[];
+    }
+    return this._normalIndexes as ModelIndex<T>[];
   }
 
   static getPrimaryIndex<T extends ModelClass>(this: T): ModelIndex<T> {
@@ -131,8 +180,13 @@ class BaseModel extends ObjectionModel implements IBaseModel {
 
   static relations: ModelRelationsSpecs = {};
 
-  static get relationsMap() {
-    return getRelationsMap(this as ModelClass, this.relations);
+  static _relationsMap: ModelRelationsMap | undefined;
+
+  static get relationsMap(): ModelRelationsMap {
+    if (!this._relationsMap) {
+      this._relationsMap = getRelationsMap(this as ModelClass, this.relations);
+    }
+    return this._relationsMap;
   }
 
   /*
@@ -147,23 +201,28 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     return this.primaryIndex;
   }
 
-  static override get jsonSchema() {
-    const required: string[] = [];
-    for (const [prop, val] of TS.objEntries(this.schema)) {
-      if (
-        (prop as string !== 'id' && !hasDefault(val as JSONSchema))
-        || this.isMV
-      ) {
-        required.push(prop);
-      }
-    }
+  static _jsonSchema: ModelJsonSchema | undefined;
 
-    return {
-      type: 'object',
-      required,
-      properties: this.schema as Record<string, JSONSchemaDefinition>,
-      additionalProperties: false,
-    };
+  static override get jsonSchema(): ModelJsonSchema {
+    if (!this._jsonSchema) {
+      const required: string[] = [];
+      for (const [prop, val] of TS.objEntries(this.schema)) {
+        if (
+          (prop as string !== 'id' && !hasDefault(val as JsonSchema))
+          || this.isMV
+        ) {
+          required.push(prop);
+        }
+      }
+
+      this._jsonSchema = {
+        type: 'object',
+        required,
+        properties: this.schema as Record<string, JSONSchemaDefinition>,
+        additionalProperties: false,
+      };
+    }
+    return this._jsonSchema as ModelJsonSchema;
   }
 
   static override pickJsonSchemaProperties = true;
@@ -237,23 +296,31 @@ class BaseModel extends ObjectionModel implements IBaseModel {
 
   override $formatDatabaseJson(obj: ObjectOf<any>): ObjectOf<any> {
     obj = super.$formatDatabaseJson(obj);
-    return formatModel(this.constructor as ModelClass, obj, {
+    return formatModelPojo(this.constructor as ModelClass, obj, {
       forDb: true,
       inPlace: true,
     });
   }
 
   static fromCacheJson<T extends ModelClass>(this: T, obj: ObjectOf<any>): ModelInstance<T> {
-    return this.fromJson(
-      parseModel(this, obj as Partial<T['Interface']>),
-      { skipValidation: true },
-    ) as ModelInstance<T>;
+    obj = parseModel(this, obj as Partial<T['Interface']>);
+    const ent = new this();
+    for (const pair of TS.objEntries(obj)) {
+      // @ts-ignore perf
+      ent[pair[0]] = pair[1];
+    }
+
+    if (!process.env.PRODUCTION) {
+      ent.$validate();
+    }
+
+    return ent;
   }
 
   $toCacheJson<T extends Model>(this: T): ObjectOf<any> {
-    return formatModel(
+    return formatModelPojo(
       this.constructor as ModelClass,
-      modelInstanceToPojo(this),
+      modelInstanceToPojo(this, false),
     );
   }
 
@@ -265,14 +332,14 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     const Model = this.constructor as T['cls'];
     const { extras, includedRelations } = this;
 
-    const obj = modelInstanceToPojo(this);
-    const formatted = formatModel(Model, obj);
+    const obj = modelInstanceToPojo(this, false);
+    const formatted = formatModelPojo<ModelClass>(Model, obj);
     return deepFreezeIfDev(this.$formatApiJson({
       type: Model.type,
       id: this.getId(),
-      ...omit(formatted, ['version']),
+      ...formatted,
       ...(extras ? { extras } : null),
-      ...(includedRelations ? { includedRelations: uniq(includedRelations) } : null),
+      ...(includedRelations ? { includedRelations: [...new Set(includedRelations)] } : null),
     }));
   }
 }

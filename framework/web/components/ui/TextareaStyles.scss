@@ -18,7 +18,7 @@
 }
 
 .textarea {
-  min-height: $inputHeight * 2;
+  min-height: ($inputHeight * 2) - ($inputPadding * 2);
   vertical-align: middle;
   display: inline-block;
   max-width: 100%;

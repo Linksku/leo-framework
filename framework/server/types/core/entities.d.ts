@@ -9,7 +9,6 @@ declare global {
 
   interface IBaseEntity extends IBaseModel {
     id: EntityId;
-    version: number;
   }
 
   type EntityInstance<T extends { instanceType: Entity }> = T['instanceType'];

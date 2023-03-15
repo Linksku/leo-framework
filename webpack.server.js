@@ -1,5 +1,4 @@
 import path from 'path';
-import nodeExternals from 'webpack-node-externals';
 import mapValues from 'lodash/mapValues';
 import webpack from 'webpack';
 
@@ -16,7 +15,7 @@ export default mergeReplaceArrays(baseConfig, {
     main: path.resolve('./framework/server/server.ts'),
   },
   output: {
-    filename: '[name].js',
+    filename: 'main.js',
     chunkFormat: 'module',
     environment: {
       module: true,
@@ -60,19 +59,28 @@ export default mergeReplaceArrays(baseConfig, {
       return Array.isArray(v) ? [p, v[1]] : p;
     })),
     new webpack.EnvironmentPlugin({
-      SCRIPT_PATH: process.env.SCRIPT_PATH || '',
-      IS_SERVER_SCRIPT: !!process.env.SCRIPT_PATH,
+      IS_SERVER_SCRIPT: !!process.env.SERVER_SCRIPT_PATH,
+      SERVER_SCRIPT_PATH: process.env.SERVER_SCRIPT_PATH || '',
     }),
   ],
   externalsPresets: { node: true },
   externals: [
-    nodeExternals({
-      importType: 'module',
-    }),
+    // Note: these packages have errors when bundled
+    // Sync with package.docker.json
+    {
+      bcrypt: 'bcrypt',
+      bull: 'bull',
+      'fluent-ffmpeg': 'fluent-ffmpeg',
+      'json-schema-to-typescript': 'json-schema-to-typescript',
+      kafkajs: 'kafkajs',
+      knex: 'knex',
+      pg: 'pg',
+      sharp: 'sharp',
+    },
   ],
+  externalsType: 'module',
   experiments: {
     outputModule: true,
     topLevelAwait: true,
   },
-  externalsType: 'module',
 });

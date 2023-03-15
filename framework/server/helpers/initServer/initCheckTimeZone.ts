@@ -4,7 +4,7 @@ import knexBT from 'services/knex/knexBT';
 
 export default async function initCheckTimeZone() {
   if ((new Date()).getTimezoneOffset() !== 0) {
-    ErrorLogger.fatal(new Error('Node TZ isn\'t UTC.'));
+    await ErrorLogger.fatal(new Error('initCheckTimeZone: Node TZ isn\'t UTC'));
   }
 
   if (!cluster.isMaster) {
@@ -13,6 +13,6 @@ export default async function initCheckTimeZone() {
 
   const rows = await knexBT.raw('SHOW TIMEZONE');
   if (rows?.rows?.[0]?.TimeZone !== 'UTC') {
-    ErrorLogger.fatal(new Error('DB isn\'t UTC.'));
+    await ErrorLogger.fatal(new Error('initCheckTimeZone: DB isn\'t UTC'));
   }
 }

@@ -1,0 +1,31 @@
+.columns {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+.column {
+  flex-basis: 0;
+  flex-grow: 1;
+  width: 0;
+  min-width: 0;
+}
+
+.reverse {
+  .columns {
+    align-items: flex-end;
+  }
+
+  .singleColumn,
+  // this is untested
+  .column {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+}
+
+.notFoundMsg {
+  padding: 3rem $containerPadding 5rem $containerPadding;
+  text-align: center;
+  color: $fadedTextColor;
+  margin-bottom: 0;
+}

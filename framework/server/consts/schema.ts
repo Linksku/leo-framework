@@ -3,7 +3,7 @@ const idArr = TS.literal({ type: 'array', items: id } as const);
 const url = TS.literal({ type: 'string', format: 'url', maxLength: 255 } as const);
 const datetime = TS.literal({
   instanceof: 'Date',
-  // todo: low/mid extend JSONSchema with custom props
+  // todo: low/mid extend JsonSchema with custom props
   tsType: 'Date',
 } as const);
 const cursor = TS.literal({ type: 'string', minLength: 1 } as const);
@@ -12,7 +12,6 @@ const SchemaConstants = TS.literal({
   // Core.
   id,
   idArr,
-  version: { type: 'integer', default: 0 },
   limit: { type: 'integer', minimum: 1, maximum: 30 },
   cursor,
 
@@ -62,13 +61,13 @@ const SchemaConstants = TS.literal({
   name: { type: 'string', minLength: 1, maxLength: 50 },
   pagination: {
     type: 'object',
-    required: ['entityIds', 'hasCompleted'],
+    required: ['items', 'hasCompleted'],
     properties: {
-      entityIds: {
+      items: {
         type: 'array',
         items: {
           anyOf: [
-            id,
+            { type: 'number' },
             { type: 'string' },
           ],
         },
@@ -78,11 +77,11 @@ const SchemaConstants = TS.literal({
     },
     additionalProperties: false,
   },
-  entityPagination: {
+  entitiesPagination: {
     type: 'object',
-    required: ['entityIds', 'hasCompleted'],
+    required: ['items', 'hasCompleted'],
     properties: {
-      entityIds: idArr,
+      items: idArr,
       cursor,
       hasCompleted: { type: 'boolean' },
     },
@@ -101,7 +100,7 @@ for (const val of Object.values(SchemaConstants)) {
 
   Object.defineProperties(val, {
     orNull: {
-      value(this: JSONSchema) {
+      value(this: JsonSchema) {
         if (this.type) {
           return {
             ...this,
@@ -123,7 +122,7 @@ for (const val of Object.values(SchemaConstants)) {
       enumerable: false,
     },
     withDefault: {
-      value(this: JSONSchema, defaultVal: any) {
+      value(this: JsonSchema, defaultVal: any) {
         return {
           ...this,
           default: defaultVal,

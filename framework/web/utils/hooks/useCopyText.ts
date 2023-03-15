@@ -9,7 +9,7 @@ export default function useCopyText() {
           showToast({ msg: 'Copied' });
         })
         .catch(err => {
-          ErrorLogger.warn(err, 'useCopyText');
+          ErrorLogger.warn(err, { ctx: useCopyText });
           showToast({ msg: 'Failed to copy' });
         });
     } catch {

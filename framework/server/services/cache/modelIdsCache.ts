@@ -2,10 +2,12 @@ import pick from 'lodash/pick';
 
 import BaseRedisCache from 'services/cache/BaseRedisCache';
 import getModelIdsDataLoader from 'services/dataLoader/getModelIdsDataLoader';
+import getNonNullSchema from 'utils/models/getNonNullSchema';
+import { MODEL_IDS } from 'consts/coreRedisNamespaces';
 import { getModelIdsCacheKey } from './utils/getModelCacheKey';
 
 const redisCache = new BaseRedisCache<(number | string | (number | string)[])[]>({
-  redisNamespace: 'modelIds',
+  redisNamespace: MODEL_IDS,
   serialize: ids => JSON.stringify(ids),
   unserialize: json => {
     if (!json) {
@@ -15,7 +17,7 @@ const redisCache = new BaseRedisCache<(number | string | (number | string)[])[]>
       const parsed = JSON.parse(json);
       return parsed;
     } catch {
-      ErrorLogger.error(new Error('modelIdsCache: data isn\'t JSON'), json.slice(0, 100));
+      ErrorLogger.error(new Error('modelIdsCache: data isn\'t JSON'), { json });
     }
     return undefined;
   },
@@ -39,8 +41,8 @@ function getAllowedColSets<T extends ModelClass>(Model: T): ModelIndex<T>[] {
   const seen = new Set<string>();
   for (const index of allIndexes) {
     for (let i = 0; i < index.length; i++) {
-      const schema = allSchema[index[i]];
-      if (schema.type !== 'integer' && schema.type !== 'number' && schema.type !== 'string') {
+      const { nonNullType } = getNonNullSchema(allSchema[index[i]]);
+      if (nonNullType !== 'integer' && nonNullType !== 'number' && nonNullType !== 'string') {
         break;
       }
       // Fetching by unique index would return only 1 row
@@ -62,6 +64,7 @@ function getAllowedColSets<T extends ModelClass>(Model: T): ModelIndex<T>[] {
 }
 
 async function invalidateCache<T extends ModelClass>(
+  rc: Nullish<RequestContext>,
   Model: T,
   partial: ModelPartial<T>,
 ): Promise<void> {
@@ -80,32 +83,37 @@ async function invalidateCache<T extends ModelClass>(
         }
         return true;
       })
-      .map(colSet => redisCache.del(getModelIdsCacheKey(
-        Model,
-        pick(partial, colSet) as Partial<T['Interface']>,
-      ))),
+      .map(colSet => redisCache.delWithRc(
+        rc,
+        getModelIdsCacheKey(
+          Model,
+          pick(partial, colSet) as Partial<T['Interface']>,
+        ),
+      )),
   );
 }
 
 export default {
   async get<T extends ModelClass>(
+    rc: Nullish<RequestContext>,
     Model: T,
     partial: ModelPartial<T>,
   ): Promise<(number | string | (number | string)[])[]> {
     if (!process.env.PRODUCTION) {
       const colSets = getAllowedColSets(Model);
+      const partialKeys = Object.keys(partial);
       let found = false;
       for (const colSet of colSets) {
-        if (Object.keys(partial).length !== colSet.length) {
+        if (partialKeys.length !== colSet.length) {
           continue;
         }
-        if (colSet.every(col => partial[col])) {
+        if (colSet.every(col => TS.hasProp(partial, col))) {
           found = true;
           break;
         }
       }
       if (!found) {
-        throw new Error(`modelIdsCache.get(${Model.type}): cols not allowed: ${Object.keys(partial).join(', ')}`);
+        throw new Error(`modelIdsCache.get(${Model.type}): cols not allowed: ${partialKeys.join(', ')}`);
       }
     }
 
@@ -120,7 +128,7 @@ export default {
     };
 
     const cacheKey = getModelIdsCacheKey(Model, partial);
-    const fromRedis = await redisCache.get(cacheKey, !Model.cacheable);
+    const fromRedis = await redisCache.getWithRc(rc, cacheKey, !Model.cacheable);
     if (fromRedis !== undefined) {
       return fromRedis;
     }
@@ -128,7 +136,7 @@ export default {
     const ids = await getIds();
 
     wrapPromise(
-      redisCache.set(cacheKey, ids, !Model.cacheable),
+      redisCache.setWithRc(rc, cacheKey, ids, !Model.cacheable),
       'warn',
       `Set ${Model.type} ids after getting`,
     );
@@ -136,6 +144,7 @@ export default {
   },
 
   handleUpdate<T extends ModelClass>(
+    _rc: Nullish<RequestContext>,
     _Model: T,
     _partial: ModelInstance<T>,
   ): void {
@@ -143,24 +152,27 @@ export default {
   },
 
   handleInsert<T extends ModelClass>(
+    rc: Nullish<RequestContext>,
     Model: T,
     ent: ModelInstance<T>,
   ): Promise<void> {
     // todo: mid/hard use redis lists instead of invalidating every time
-    return invalidateCache(Model, ent);
+    return invalidateCache(rc, Model, ent);
   },
 
   handleDelete<T extends ModelClass>(
+    rc: Nullish<RequestContext>,
     Model: T,
     partial: ModelPartial<T>,
   ): Promise<void> {
-    return invalidateCache(Model, partial);
+    return invalidateCache(rc, Model, partial);
   },
 
   invalidate<T extends ModelClass>(
+    rc: Nullish<RequestContext>,
     Model: T,
     partial: ModelPartial<T>,
   ): Promise<void> {
-    return invalidateCache(Model, partial);
+    return invalidateCache(rc, Model, partial);
   },
 };

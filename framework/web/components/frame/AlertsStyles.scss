@@ -1,19 +1,18 @@
 .container {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  height: var(--vh100, 100vh);
   z-index: $zIndexAlert;
   background-color: rgb(94 110 141 / 90%);
   filter: opacity(0);
   transition: filter 0.2s;
 
   &.visible {
-    filter: opacity(100%);
-    @include fadeIn;
+    @include fadeIn(0.2s);
 
-    animation-duration: 0.2s;
+    filter: opacity(100%);
   }
 }
 
@@ -32,28 +31,28 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 2rem;
 
   @include gtMd {
     min-width: 300px;
     max-width: 500px;
-    padding: 20px 30px;
+    padding: 2rem 3rem;
   }
 }
 
 .title {
   font-size: 1.1em;
   flex-shrink: 0;
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
 }
 
 .msg {
   color: $lightTextColor;
   overflow: auto;
-  word-break: break-word;
+  overflow-wrap: break-word;
   white-space: pre-line;
   font-size: 0.9em;
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
 }
 
 .btns {

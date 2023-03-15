@@ -3,7 +3,7 @@
     filter: opacity(0);
   }
 
-  50% {
+  25% {
     filter: opacity(0);
   }
 
@@ -26,7 +26,7 @@
   position: relative;
   width: 6.4rem;
   height: 6.4rem;
-  margin: 5px auto;
+  margin: 0.5rem auto;
   border-color: $primaryColor transparent transparent transparent;
   flex-shrink: 0;
   overflow: hidden;
@@ -61,11 +61,5 @@
 }
 
 .initialLoad {
-  @include fadeIn;
-}
-
-:export {
-  /* stylelint-disable property-no-unknown */
-  color: $primaryColor;
-  /* stylelint-enable */
+  @include fadeIn(0.2s);
 }

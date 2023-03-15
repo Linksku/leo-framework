@@ -66,6 +66,19 @@ export default mergeReplaceArrays(baseConfig, {
                     },
                   },
                   'removeDimensions',
+                  {
+                    name: 'removeAttrs',
+                    params: {
+                      attrs: [
+                        'aria-hidden',
+                        'data-prefix',
+                        'data-icon',
+                        'role',
+                        'class',
+                        'path:fill',
+                      ],
+                    },
+                  },
                 ],
               },
             },

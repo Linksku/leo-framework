@@ -8,6 +8,9 @@ type Props = {
 } & FixedRatioContainerProps;
 
 export default function Video({ url, ...containerProps }: Props) {
+  const [showControls, setShowControls] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
   if (!url) {
     return null;
   }
@@ -28,14 +31,23 @@ export default function Video({ url, ...containerProps }: Props) {
     );
   }
   if (videoRegex.test(url)) {
+    const handleClick = () => {
+      setShowControls(true);
+      if (videoRef.current) {
+        wrapPromise(videoRef.current.play(), 'warn');
+      }
+    };
     return (
       <FixedRatioContainer {...containerProps}>
         <video
+          ref={videoRef}
           src={url}
-          controls
           autoPlay
           playsInline
           loop
+          controls={showControls}
+          onClick={handleClick}
+          onTouchEnd={handleClick}
           className={styles.video}
         />
       </FixedRatioContainer>

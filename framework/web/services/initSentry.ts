@@ -1,4 +1,9 @@
-import { init, configureScope, withScope, captureException } from '@sentry/browser';
+import {
+  init,
+  configureScope,
+  withScope,
+  captureException,
+} from '@sentry/browser';
 import { Integrations } from '@sentry/tracing';
 
 init({

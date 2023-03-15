@@ -10,26 +10,30 @@ export default function useVisibilityObserver<T extends HTMLElement | undefined>
     onVisible?: Memoed<() => void>,
     onHidden?: Memoed<() => void>,
   },
-): React.RefCallback<T> {
+  opts?: IntersectionObserverInit,
+): Memoed<React.RefCallback<T>> {
   const cbRef = useLatest({
     onVisible,
     onHidden,
   });
   const isMounted = useMountedState();
   const elemRef = useRef<T>();
-  const observerRef = useRef(useConst(() => new IntersectionObserver(entries => {
-    if (!isMounted()) {
-      return;
-    }
-
-    for (const entry of entries) {
-      if (entry.intersectionRatio > 0 || entry.isIntersecting) {
-        cbRef.current.onVisible?.();
-      } else if (entry.intersectionRatio === 0 && !entry.isIntersecting) {
-        cbRef.current.onHidden?.();
+  const observerRef = useRef(useConst(() => new IntersectionObserver(
+    entries => {
+      if (!isMounted()) {
+        return;
       }
-    }
-  })));
+
+      for (const entry of entries) {
+        if (entry.intersectionRatio > 0 || entry.isIntersecting) {
+          cbRef.current.onVisible?.();
+        } else if (entry.intersectionRatio === 0 && !entry.isIntersecting) {
+          cbRef.current.onHidden?.();
+        }
+      }
+    },
+    opts,
+  )));
 
   return useCallback((elem: T) => {
     if (elem) {

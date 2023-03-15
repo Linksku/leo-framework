@@ -8,6 +8,10 @@ const WEB_SRC_ROOT = path.resolve('./app/web');
 const SERVER_ROOT = path.resolve('./framework/server');
 const SERVER_SRC_ROOT = path.resolve('./app/server');
 
+if (!process.env.SERVER || !process.env.NODE_ENV) {
+  throw new Error('Env vars not set.');
+}
+
 const ENV_KEYS = [
   'SERVER',
   'DOMAIN_NAME',
@@ -30,8 +34,12 @@ for (const k of ENV_KEYS) {
   ENV_OBJ[k] = process.env[k] || '';
 }
 
+const shouldMinimize = process.env.MINIMIZE != null
+  ? !!process.env.MINIMIZE && process.env.MINIMIZE !== '0' && process.env.MINIMIZE !== 'false'
+  : process.env.NODE_ENV === 'production';
+
 export default {
-  mode: 'development',
+  mode: /** @type {const} */ ('development'),
   module: {
     rules: [
       {
@@ -47,6 +55,8 @@ export default {
           SERVER_SRC_ROOT,
           path.resolve('./framework/shared'),
           path.resolve('./app/shared'),
+          path.resolve('./framework/tests'),
+          path.resolve('./app/tests'),
           path.resolve('./scripts'),
         ],
         exclude: [
@@ -71,14 +81,13 @@ export default {
   resolve: {
     extensions: ['.js', '.ts', '.tsx', '.cjs'],
     alias: {
-      ejs: 'ejs/ejs.min',
       // SVGR imports boxicons/node_modules/react
       react: path.resolve('./node_modules/react/index.js'),
     },
   },
   optimization: {
-    minimize: !!process.env.ANALYZER,
-    concatenateModules: !process.env.ANALYZER,
+    minimize: shouldMinimize,
+    concatenateModules: !shouldMinimize,
   },
   context: ROOT,
   plugins: [
@@ -91,11 +100,11 @@ export default {
       ...ENV_OBJ,
     }),
   ],
-  stats: process.env.ANALYZER
+  stats: shouldMinimize
     ? true
     : {
       optimizationBailout: true,
-      logging: 'warn',
+      logging: /** @type {const} */ ('warn'),
       assets: false,
       version: false,
       hash: false,
@@ -104,7 +113,7 @@ export default {
       modules: false,
       // all: false,
     },
-  devtool: false,
+  devtool: /** @type {const} */ (false),
   watchOptions: {
     aggregateTimeout: 50,
     ignored: '**/node_modules',

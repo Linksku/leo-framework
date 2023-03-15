@@ -12,9 +12,9 @@ function createCache() {
     set(key: string, value: any) {
       if (process.env.PRODUCTION) {
         cache[key] = value;
-      } else if (!TS.hasOwnProp(cache, key)) {
+      } else if (!Object.prototype.hasOwnProperty.call(cache, key)) {
         if (size === DEV_MAX_SIZE) {
-          ErrorLogger.warn(new Error(`sessionCacheMiddle: session cache has exceeded ${DEV_MAX_SIZE} values.`));
+          ErrorLogger.warn(new Error(`RequestContextLocalStorage.cache.set: exceeded ${DEV_MAX_SIZE} values.`));
         }
 
         cache[key] = value;
@@ -54,6 +54,7 @@ export function createRequestContext(req: ExpressRequest): RequestContext {
   const profiling = !process.env.PRODUCTION && !!req.query?.PROFILING;
 
   const userAgent = req.headers['user-agent'];
+  const language = req.headers['accept-language']?.split(/,;/)[0].toLowerCase() ?? null;
   return {
     method: req.method,
     path: req.path,
@@ -62,10 +63,11 @@ export function createRequestContext(req: ExpressRequest): RequestContext {
     currentUserId: req.currentUserId ?? null,
     userAgent: userAgent ?? null,
     os: userAgent ? detectOs(userAgent) : null,
-    language: req.acceptsLanguages()[0] ?? null,
+    language,
     cache: createCache(),
     debug,
     profiling,
+    numDbQueries: 0,
   };
 }
 

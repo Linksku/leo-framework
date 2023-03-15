@@ -1,3 +1,29 @@
+diff --git a/node_modules/constate/dist/constate.cjs.js b/node_modules/constate/dist/constate.cjs.js
+index 12b9ded..327a9f9 100644
+--- a/node_modules/constate/dist/constate.cjs.js
++++ b/node_modules/constate/dist/constate.cjs.js
+@@ -31,7 +31,7 @@ function createUseContext(context) {
+     if (isDev && value === NO_PROVIDER) {
+       var warnMessage = context.displayName ? "The context consumer of " + context.displayName + " must be wrapped with its corresponding Provider" : "Component must be wrapped with Provider."; // eslint-disable-next-line no-console
+ 
+-      console.warn(warnMessage);
++      throw new Error(warnMessage);
+     }
+ 
+     return value;
+diff --git a/node_modules/constate/dist/constate.es.js b/node_modules/constate/dist/constate.es.js
+index c8297e5..6954e47 100644
+--- a/node_modules/constate/dist/constate.es.js
++++ b/node_modules/constate/dist/constate.es.js
+@@ -27,7 +27,7 @@ function createUseContext(context) {
+     if (isDev && value === NO_PROVIDER) {
+       var warnMessage = context.displayName ? "The context consumer of " + context.displayName + " must be wrapped with its corresponding Provider" : "Component must be wrapped with Provider."; // eslint-disable-next-line no-console
+ 
+-      console.warn(warnMessage);
++      throw new Error(warnMessage);
+     }
+ 
+     return value;
 diff --git a/node_modules/constate/dist/ts/src/index.d.ts b/node_modules/constate/dist/ts/src/index.d.ts
 index 26c95bb..bf99382 100644
 --- a/node_modules/constate/dist/ts/src/index.d.ts

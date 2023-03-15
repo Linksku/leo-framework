@@ -31,20 +31,39 @@ export const [
       }
     }, [reloadSpinnerDeg]);
 
-    return useDeepMemoObj({
+    const showSidebar = useCallback(() => {
+      sidebarShownPercent.setVal(100);
+      setSidebarLoaded(true);
+    }, [sidebarShownPercent]);
+
+    const hideSidebar = useCallback(
+      () => sidebarShownPercent.setVal(0),
+      [sidebarShownPercent],
+    );
+
+    const loadSidebar = useCallback(() => setSidebarLoaded(true), []);
+
+    return useMemo(() => ({
       sidebarLoaded,
       sidebarShownPercent,
       sidebarRef,
       sidebarStyle,
-      showSidebar: useCallback(() => {
-        sidebarShownPercent.setVal(100);
-        setSidebarLoaded(true);
-      }, [sidebarShownPercent]),
-      hideSidebar: useCallback(() => sidebarShownPercent.setVal(0), [sidebarShownPercent]),
-      loadSidebar: useCallback(() => setSidebarLoaded(true), []),
+      showSidebar,
+      hideSidebar,
+      loadSidebar,
       reloadSpinnerDeg,
       reloadPage,
-    });
+    }), [
+      sidebarLoaded,
+      sidebarShownPercent,
+      sidebarRef,
+      sidebarStyle,
+      showSidebar,
+      hideSidebar,
+      loadSidebar,
+      reloadSpinnerDeg,
+      reloadPage,
+    ]);
   },
   function UIFrameStore(val) {
     return val;

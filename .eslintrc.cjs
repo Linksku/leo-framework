@@ -2,16 +2,19 @@ const yargs = require('yargs');
 const mapValues = require('lodash/mapValues');
 
 const webGlobals = require('./framework/web/config/globals.cjs');
-const webSrcGlobals = require('./app/web/config/globals.cjs');
+const webAppGlobals = require('./app/web/config/globals.cjs');
 const serverGlobals = require('./framework/server/config/globals.cjs');
-const serverSrcGlobals = require('./app/server/config/globals.cjs');
+const serverAppGlobals = require('./app/server/config/globals.cjs');
 const sharedGlobals = require('./framework/shared/config/globals.cjs');
-const sharedSrcGlobals = require('./app/shared/config/globals.cjs');
+const sharedAppGlobals = require('./app/shared/config/globals.cjs');
+
+// const isVsCode = !!process.env.VSCODE_PID || !!process.env.VSCODE_CWD;
+const extensions = ['.js', '.ts', '.tsx', '.cjs', '.mjs'];
 
 const config = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    // All .js and .cjs files are handled by scripts/tsconfig
+    // All .js, .cjs, and .mjs files are handled by scripts/tsconfig
     // .ts and .tsx files are handled by [web,server,shared]/tsconfig
     project: 'scripts/tsconfig.json',
     ecmaVersion: 2020,
@@ -20,9 +23,6 @@ const config = {
       jsx: true,
       impliedStrict: true,
     },
-    extraFileExtensions: [
-      '.cjs',
-    ],
   },
   extends: [
     'airbnb',
@@ -39,14 +39,24 @@ const config = {
     commonjs: true,
     es6: true,
   },
-  ignorePatterns: ['*.scss.d.ts'],
+  ignorePatterns: [
+    '/node_modules',
+    '/app-template',
+    '/build',
+    '/tmp',
+    '/temp',
+    '/capacitor',
+    '**/__generated__/*.ts',
+    '*.scss.d.ts',
+  ],
   settings: {
+    'import/extensions': extensions,
     'import/resolver': {
       node: {
-        extensions: ['.js', '.ts', '.tsx', '.cjs'],
+        extensions,
       },
       alias: {
-        extensions: ['.js', '.ts', '.tsx', '.cjs'],
+        extensions,
       },
     },
   },
@@ -57,9 +67,8 @@ const config = {
   rules: {
     'no-underscore-dangle': 0,
     'no-multi-assign': 0,
-    'object-curly-newline': [2, { consistent: true }],
     'no-plusplus': 0,
-    'default-case': 1,
+    'default-case': 0,
     'no-param-reassign': 0,
     'no-unused-expressions': 1, /* Temporarily disable until do expressions are supported. */
     'lines-between-class-members': 0,
@@ -67,12 +76,17 @@ const config = {
     eqeqeq: [2, 'always', {
       null: 'ignore',
     }],
+    'object-curly-newline': [2, {
+      minProperties: 4,
+      consistent: true,
+    }],
     'object-property-newline': [2, { allowAllPropertiesOnSameLine: true }],
     'max-len': [2, {
       code: 100,
       comments: 200,
       tabWidth: 2,
       ignoreTemplateLiterals: true,
+      // Note: this allows any lines with short strings
       ignoreStrings: true,
       ignoreRegExpLiterals: true,
       ignoreUrls: true,
@@ -144,7 +158,10 @@ const config = {
     'arrow-parens': [2, 'as-needed'],
     'no-continue': 0,
     'prefer-arrow-callback': [2, { allowNamedFunctions: true }],
-    'prefer-destructuring': [2, { array: false, object: true }],
+    'prefer-destructuring': [2, {
+      VariableDeclarator: { array: false, object: true },
+      AssignmentExpression: { array: false, object: false },
+    }],
     'no-empty': [2, {
       allowEmptyCatch: true,
     }],
@@ -154,19 +171,24 @@ const config = {
     'no-loop-func': 0,
     'space-before-function-paren': 0,
     'function-paren-newline': 0,
+    'no-template-curly-in-string': 0,
     'no-restricted-exports': 0,
+    // Same as unicorn/prefer-module
+    'global-require': 0,
     'import/prefer-default-export': 0,
     'import/no-relative-packages': 0,
     'import/extensions': 0,
     // Disabling because adding `file:../` to `app/package.json` breaks yarn
     'import/no-extraneous-dependencies': [0, {
       devDependencies: false,
-      packageDir: ['.', './app'],
+      packageDir: ['./', './app/'],
     }],
     'import/no-self-import': 0,
     'import/no-unresolved': 0,
     'import/no-named-as-default-member': 0,
     'import/no-duplicates': 0,
+    // Too slow.
+    'import/no-cycle': 0,
     'react/jsx-filename-extension': [2, { extensions: ['.tsx'] }],
     'react/no-unknown-property': [2, { ignore: ['class', 'for'] }],
     'react/prop-types': 0,
@@ -196,7 +218,7 @@ const config = {
     'react/no-will-update-set-state': 0,
     'react/prefer-es6-class': 0,
     'react/require-render-return': 0,
-    'react/no-find-dom-node': 0,
+    'react/no-find-dom-node': 2,
     'react/no-danger-with-children': 0,
     'react/no-redundant-should-component-update': 0,
     'react/no-access-state-in-setstate': 0,
@@ -210,9 +232,7 @@ const config = {
     'react/default-props-match-prop-types': 0,
     'react/no-this-in-sfc': 0,
     'react/void-dom-elements-no-children': 0,
-    'jsx-a11y/media-has-caption': 1,
     'jsx-a11y/label-has-associated-control': [1, { assert: 'either' }],
-    'jsx-a11y/click-events-have-key-events': 1,
     'jsx-a11y/no-noninteractive-element-interactions': 0,
     'jsx-a11y/accessible-emoji': 0,
     'jsx-a11y/aria-role': 2,
@@ -254,6 +274,10 @@ const config = {
       },
     ],
     'jsx-a11y/anchor-is-valid': [2, { components: [] }],
+    // Temp
+    'jsx-a11y/media-has-caption': 0,
+    // Temp
+    'jsx-a11y/click-events-have-key-events': 0,
     'css-modules/no-unused-class': 2,
     'css-modules/no-undef-class': 2,
     'unicorn/prevent-abbreviations': 0,
@@ -265,20 +289,23 @@ const config = {
     'unicorn/better-regex': 1,
     'unicorn/no-fn-reference-in-iterator': 1,
     'unicorn/no-process-exit': 1,
-    'unicorn/no-reduce': 1,
     'unicorn/consistent-function-scoping': 0,
     'unicorn/no-array-reduce': 0,
-    'unicorn/consistent-destructuring': 0,
-    'unicorn/prefer-module': 0,
+    'unicorn/consistent-destructuring': 1,
+    'unicorn/prefer-module': 1,
     'unicorn/prefer-switch': 0,
     'unicorn/prefer-node-protocol': 0,
     'unicorn/no-useless-undefined': 0,
     'unicorn/text-encoding-identifier-case': 0,
-    'unicorn/prefer-array-flat-map': 1,
+    'unicorn/prefer-array-flat-map': 2,
     'unicorn/template-indent': 0,
     // EventEmitter is ~10x faster
     'unicorn/prefer-event-target': 0,
     'unicorn/prefer-spread': 0,
+    'unicorn/prefer-ternary': [1, 'only-single-line'],
+    'unicorn/no-negated-condition': 0,
+    'unicorn/switch-case-braces': [2, 'avoid'],
+    'unicorn/no-array-push-push': 0,
   },
   overrides: [
     {
@@ -293,7 +320,7 @@ const config = {
         'no-unused-vars': 0,
         '@typescript-eslint/no-unused-vars': [2, {
           args: 'after-used',
-          varsIgnorePattern: '^(_|styles$)',
+          varsIgnorePattern: '^_',
           argsIgnorePattern: '^_',
           ignoreRestSiblings: true,
         }],
@@ -377,11 +404,10 @@ const config = {
         '@typescript-eslint/no-meaningless-void-operator': 2,
       },
     },
+    // App web
     {
       files: [
-        'framework/web/**/*.ts',
         'app/web/**/*.ts',
-        'framework/web/**/*.tsx',
         'app/web/**/*.tsx',
       ],
       parserOptions: {
@@ -413,23 +439,20 @@ const config = {
         ] }],
       },
       globals: {
-        self: false,
-        process: false,
-        ...mapValues(sharedSrcGlobals, () => false),
+        ...mapValues(sharedAppGlobals, () => false),
         ...mapValues(sharedGlobals, () => false),
-        ...mapValues(webSrcGlobals, () => false),
+        ...mapValues(webAppGlobals, () => false),
         ...mapValues(webGlobals, () => false),
       },
     },
+    // Framework web
     {
       files: [
         'framework/web/**/*.ts',
         'framework/web/**/*.tsx',
       ],
       parserOptions: {
-        project: process.env.VSCODE_PID
-          ? 'app/web/tsconfig.json'
-          : 'framework/web/tsconfig.json',
+        project: 'framework/web/tsconfig.json',
       },
       settings: {
         'import/resolver': {
@@ -442,15 +465,13 @@ const config = {
         },
       },
       globals: {
-        self: false,
-        process: false,
         ...mapValues(sharedGlobals, () => false),
         ...mapValues(webGlobals, () => false),
       },
     },
+    // App server
     {
       files: [
-        'framework/server/**/*.ts',
         'app/server/**/*.ts',
       ],
       parserOptions: {
@@ -475,22 +496,19 @@ const config = {
         },
       },
       globals: {
-        self: false,
-        process: false,
-        ...mapValues(sharedSrcGlobals, () => false),
+        ...mapValues(sharedAppGlobals, () => false),
         ...mapValues(sharedGlobals, () => false),
-        ...mapValues(serverSrcGlobals, () => false),
+        ...mapValues(serverAppGlobals, () => false),
         ...mapValues(serverGlobals, () => false),
       },
     },
+    // Framework server
     {
       files: [
         'framework/server/**/*.ts',
       ],
       parserOptions: {
-        project: process.env.VSCODE_PID
-          ? 'app/server/tsconfig.json'
-          : 'framework/server/tsconfig.json',
+        project: 'framework/server/tsconfig.json',
       },
       settings: {
         'import/resolver': {
@@ -503,15 +521,13 @@ const config = {
         },
       },
       globals: {
-        self: false,
-        process: false,
         ...mapValues(sharedGlobals, () => false),
         ...mapValues(serverGlobals, () => false),
       },
     },
+    // App shared
     {
       files: [
-        'framework/shared/**/*.ts',
         'app/shared/**/*.ts',
       ],
       parserOptions: {
@@ -533,14 +549,13 @@ const config = {
         },
       },
     },
+    // Framework shared
     {
       files: [
         'framework/shared/**/*.ts',
       ],
       parserOptions: {
-        project: process.env.VSCODE_PID
-          ? 'app/shared/tsconfig.json'
-          : 'framework/shared/tsconfig.json',
+        project: 'framework/shared/tsconfig.json',
       },
       settings: {
         'import/resolver': {
@@ -552,8 +567,72 @@ const config = {
         },
       },
     },
+    // App Cypress tests
     {
       files: [
+        'app/tests/**/*.ts',
+      ],
+      parserOptions: {
+        project: 'app/tests/tsconfig.json',
+      },
+      settings: {
+        'import/resolver': {
+          node: {
+            paths: [
+              'app/tests',
+              'app/shared',
+              'framework/tests',
+              'framework/shared',
+            ],
+          },
+        },
+      },
+      rules: {
+        'no-unused-expressions': 0,
+      },
+      globals: {
+        ...mapValues(sharedAppGlobals, () => false),
+        ...mapValues(sharedGlobals, () => false),
+        Cypress: false,
+        describe: false,
+        it: false,
+        cy: false,
+      },
+    },
+    // Framework Cypress tests
+    {
+      files: [
+        'framework/tests/**/*.ts',
+      ],
+      parserOptions: {
+        project: 'framework/tests/tsconfig.json',
+      },
+      settings: {
+        'import/resolver': {
+          node: {
+            paths: [
+              'framework/tests',
+              'framework/shared',
+            ],
+          },
+        },
+      },
+      rules: {
+        'no-unused-expressions': 0,
+      },
+      globals: {
+        ...mapValues(sharedGlobals, () => false),
+        Cypress: false,
+        describe: false,
+        it: false,
+        cy: false,
+      },
+    },
+    // Scripts
+    {
+      files: [
+        '**/*.cjs',
+        '**/*.mjs',
         'framework/server/scripts/**/*.ts',
         'app/server/scripts/**/*.ts',
       ],
@@ -561,6 +640,7 @@ const config = {
         'no-console': 0,
         'no-await-in-loop': 0,
         'unicorn/no-process-exit': 0,
+        'unicorn/prefer-module': 0,
       },
     },
   ],

@@ -1,7 +1,7 @@
-import LocationSvg from 'boxicons/svg/regular/bx-current-location.svg';
+import LocationSvg from 'fa5/svg/location-regular.svg';
 import { Geolocation } from '@capacitor/geolocation';
 
-import { HTTP_TIMEOUT } from 'settings';
+import { API_TIMEOUT } from 'settings';
 
 import styles from './GeolocateButtonStyles.scss';
 
@@ -21,7 +21,7 @@ export default function GeolocateButton({
           const {
             coords: { latitude, longitude },
           } = await Geolocation.getCurrentPosition({
-            timeout: HTTP_TIMEOUT,
+            timeout: API_TIMEOUT,
           });
           onGeolocate(latitude, longitude);
         } catch {
@@ -30,7 +30,7 @@ export default function GeolocateButton({
           });
         }
       }}
-      className={styles.btn}
+      className={styles.svg}
       role="button"
       tabIndex={-1}
     />

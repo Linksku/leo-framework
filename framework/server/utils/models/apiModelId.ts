@@ -20,7 +20,7 @@ export function apiIdToPartial<T extends ModelType>(
   const index = Model.getPrimaryIndex();
   if (!Array.isArray(index)) {
     if (typeof id !== 'number') {
-      throw new ErrorWithCtx(`apiIdToPartial: expected ${entityType}'s id to be number`, id);
+      throw getErr(`apiIdToPartial: expected ${entityType}'s id to be number`, { id });
     }
     return {
       [index]: id,
@@ -28,11 +28,11 @@ export function apiIdToPartial<T extends ModelType>(
   }
 
   if (typeof id !== 'string') {
-    throw new ErrorWithCtx(`apiIdToPartial: expected ${entityType}'s api id to be string`, `${id}`);
+    throw getErr(`apiIdToPartial: expected ${entityType}'s api id to be string`, { id });
   }
   const parts = id.split(',');
   if (parts.length !== index.length) {
-    throw new ErrorWithCtx(`apiIdToPartial: invalid ${entityType} api id`, id);
+    throw getErr(`apiIdToPartial: invalid ${entityType} api id`, { id });
   }
 
   return fromPairs(index.map((col, idx) => {

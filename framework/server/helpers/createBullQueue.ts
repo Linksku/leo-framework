@@ -2,6 +2,9 @@ import type { QueueOptions, Job } from 'bull';
 import Bull from 'bull';
 
 import BullQueueContextLocalStorage, { createBullQueueContext } from 'services/BullQueueContextLocalStorage';
+import { REDIS_HOST, REDIS_PORT } from 'consts/infra';
+import { BULL } from 'consts/coreRedisNamespaces';
+import { shouldIgnoreRedisError } from 'services/redis';
 
 export function wrapProcessJob<T extends Job<any>>(
   processJob: (job: T) => Promise<void>,
@@ -14,18 +17,37 @@ export function wrapProcessJob<T extends Job<any>>(
 }
 
 export default function createBullQueue<T>(name: string, opts?: QueueOptions) {
-  const queue = new Bull<T>(name, opts);
+  const queue = new Bull<T>(name, {
+    redis: {
+      host: REDIS_HOST,
+      port: REDIS_PORT,
+      password: process.env.REDIS_PASS,
+    },
+    prefix: BULL,
+    ...opts,
+  });
 
   queue.on('failed', (job, err) => {
-    ErrorLogger.warn(err, `${name} Bull queue: ${job.id} job failed.`);
+    ErrorLogger.error(err, { ctx: `Bull(${name}): failed`, name, jobId: job.id });
   });
 
   queue.on('error', err => {
-    ErrorLogger.error(err, `${name} Bull queue: error.`);
+    if (err.message.includes('Promise timed out')) {
+      ErrorLogger.warn(
+        new Error(`Bull(${name}): timed out`),
+        { name },
+      );
+    }
+    if (!shouldIgnoreRedisError(err)) {
+      ErrorLogger.error(err, { ctx: `Bull(${name}): error`, name });
+    }
   });
 
   queue.on('stalled', job => {
-    ErrorLogger.warn(new Error(`${name} Bull queue: ${job.id} stalled`));
+    ErrorLogger.warn(getErr(
+      `Bull(${name}): stalled`,
+      { name, jobId: job.id },
+    ));
   });
 
   return queue;

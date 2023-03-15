@@ -1,6 +1,5 @@
-import type { unstable_batchedUpdates as _batchedUpdates } from 'react-dom';
 import type { default as _constate } from 'constate';
-import type _cn from 'classnames';
+import type { default as _cx } from 'clsx';
 import type _React from 'react';
 import type { createElement as _ReactCreateElement } from 'react';
 import type { Fragment as _ReactFragment } from 'react';
@@ -32,8 +31,10 @@ import type { default as _UncontrolledCheckbox } from '../../components/ui/Uncon
 import type { default as _EMPTY_ARR } from '../../utils/emptyArr';
 import type { default as _EMPTY_OBJ } from '../../utils/emptyObj';
 import type { default as _ErrorLogger } from '../../services/ErrorLogger';
+import type { HOME_TABS as _HOME_TABS } from '../../../../app/web/config/homeTabs';
 import type { default as _markMemoed } from '../../utils/markMemoed';
 import type { default as _NOOP } from '../../utils/noop';
+import type { default as _TestIds } from '../../../shared/consts/testIds';
 import type { default as _useAllEntities } from '../../utils/hooks/entities/useAllEntities';
 import type { default as _useApi } from '../../utils/hooks/useApi/useApi';
 import type { default as _useCatchAsync } from '../../utils/hooks/useCatchAsync';
@@ -54,6 +55,7 @@ import type { default as _useReplaceHome } from '../../utils/hooks/useReplaceHom
 import type { default as _useRequiredRelation } from '../../utils/hooks/entities/useRequiredRelation';
 import type { default as _useRequiredEntity } from '../../utils/hooks/entities/useRequiredEntity';
 import type { default as _useSse } from '../../utils/hooks/useSse';
+import type { default as _useSseArr } from '../../utils/hooks/useSseArr';
 import type { default as _useStateStable } from '../../utils/hooks/useStateStable';
 import type { default as _wrapPromise } from '../../utils/wrapPromise';
 import type { useAlertsStore as _useAlertsStore } from '../../stores/AlertsStore';
@@ -63,6 +65,7 @@ import type { useEntitiesStore as _useEntitiesStore } from '../../stores/Entitie
 import type { useHistoryStore as _useHistoryStore } from '../../stores/HistoryStore';
 import type { useHomeNavStore as _useHomeNavStore } from '../../stores/HomeNavStore';
 import type { useNotifsStore as _useNotifsStore } from '../../stores/NotifsStore';
+import type { useRelationsStore as _useRelationsStore } from '../../stores/RelationsStore';
 import type { useRouteStore as _useRouteStore } from '../../stores/RouteStore';
 import type { useSlideUpStore as _useSlideUpStore } from '../../stores/SlideUpStore';
 import type { useSseStore as _useSseStore } from '../../stores/SseStore';
@@ -74,6 +77,7 @@ import type { useCurrentUserId as _useCurrentUserId } from '../../stores/AuthSto
 import type { useGlobalMemo as _useGlobalMemo } from '../../stores/GlobalMemoStore';
 import type { useGlobalState as _useGlobalState } from '../../stores/GlobalStateStore';
 import type { useHideSlideUp as _useHideSlideUp } from '../../stores/SlideUpStore';
+import type { useHomeTab as _useHomeTab } from '../../stores/HomeNavStore';
 import type { useMutateApiCache as _useMutateApiCache } from '../../stores/ApiStore';
 import type { useMutateEntity as _useMutateEntity } from '../../stores/EntitiesStore';
 import type { usePushPath as _usePushPath } from '../../stores/HistoryStore';
@@ -87,9 +91,8 @@ import type { useShowSlideUp as _useShowSlideUp } from '../../stores/SlideUpStor
 import type { useShowToast as _useShowToast } from '../../stores/ToastsStore';
 
 declare global {
-  const batchedUpdates: typeof _batchedUpdates;
   const constate: typeof _constate;
-  const cn: typeof _cn;
+  const cx: typeof _cx;
   const React: typeof _React;
   const ReactCreateElement: typeof _ReactCreateElement;
   const ReactFragment: typeof _ReactFragment;
@@ -121,8 +124,10 @@ declare global {
   const EMPTY_ARR: typeof _EMPTY_ARR;
   const EMPTY_OBJ: typeof _EMPTY_OBJ;
   const ErrorLogger: typeof _ErrorLogger;
+  const HOME_TABS: typeof _HOME_TABS;
   const markMemoed: typeof _markMemoed;
   const NOOP: typeof _NOOP;
+  const TestIds: typeof _TestIds;
   const useAllEntities: typeof _useAllEntities;
   const useApi: typeof _useApi;
   const useCatchAsync: typeof _useCatchAsync;
@@ -143,6 +148,7 @@ declare global {
   const useRequiredRelation: typeof _useRequiredRelation;
   const useRequiredEntity: typeof _useRequiredEntity;
   const useSse: typeof _useSse;
+  const useSseArr: typeof _useSseArr;
   const useStateStable: typeof _useStateStable;
   const wrapPromise: typeof _wrapPromise;
   const useAlertsStore: typeof _useAlertsStore;
@@ -152,6 +158,7 @@ declare global {
   const useHistoryStore: typeof _useHistoryStore;
   const useHomeNavStore: typeof _useHomeNavStore;
   const useNotifsStore: typeof _useNotifsStore;
+  const useRelationsStore: typeof _useRelationsStore;
   const useRouteStore: typeof _useRouteStore;
   const useSlideUpStore: typeof _useSlideUpStore;
   const useSseStore: typeof _useSseStore;
@@ -163,6 +170,7 @@ declare global {
   const useGlobalMemo: typeof _useGlobalMemo;
   const useGlobalState: typeof _useGlobalState;
   const useHideSlideUp: typeof _useHideSlideUp;
+  const useHomeTab: typeof _useHomeTab;
   const useMutateApiCache: typeof _useMutateApiCache;
   const useMutateEntity: typeof _useMutateEntity;
   const usePushPath: typeof _usePushPath;

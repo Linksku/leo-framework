@@ -2,12 +2,15 @@
   "name": "%APP_NAME%",
   "short_name": "%APP_NAME%",
   "start_url": "/%BASE_PATH%",
-  "icons": [{
-    "src": "icon.svg",
-    "sizes": "any"
-  }],
-  "theme_color": "#2196f3",
-  "background_color": "#FFFFFF",
+  "icons": [
+    {
+      "src": "%ASSETS_URL%/android-icon192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "theme_color": "#FFFFFF",
+  "background_color": "#F8F8F8",
   "display": "standalone",
   "orientation": "portrait"
 }

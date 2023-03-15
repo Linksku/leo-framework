@@ -24,7 +24,7 @@ function objValues<Obj extends ObjectOf<any>>(
     return Object.values(obj);
   }
   return Object.values(obj).filter(
-    val => typeof val !== 'undefined',
+    val => val !== undefined,
   );
 }
 

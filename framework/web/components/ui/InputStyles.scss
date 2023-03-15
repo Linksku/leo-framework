@@ -107,5 +107,9 @@
   border-top-right-radius: $inputBorderRadius;
   border-bottom-right-radius: $inputBorderRadius;
   border-left: 0;
-  padding-left: 0;
+}
+
+.prefix:active,
+.suffix:active {
+  background-color: $activeBackgroundColor;
 }

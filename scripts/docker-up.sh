@@ -7,4 +7,4 @@ if [ -n "$isPortUsed" ] && [ "$numDockerContainers" -le 1 ] ; then
     exit
 fi
 
-docker compose up -d
+yarn dc --compatibility up -d --remove-orphans
