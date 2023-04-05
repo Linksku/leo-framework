@@ -11,8 +11,8 @@ export function hasNewOrChangedExtras(
     return true;
   }
 
-  for (const [k, newVal] of TS.objEntries(newMap)) {
-    if (!TS.hasOwnProp(oldMap, k) || !equal(oldMap[k], newVal)) {
+  for (const pair of TS.objEntries(newMap)) {
+    if (!TS.hasOwnProp(oldMap, pair[0]) || !equal(oldMap[pair[0]], pair[1])) {
       return true;
     }
   }

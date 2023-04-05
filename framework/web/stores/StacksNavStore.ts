@@ -1,4 +1,4 @@
-import type { AnimatedValue } from 'utils/hooks/useAnimation';
+import type { AnimatedValue } from 'hooks/useAnimation';
 import { useHomeNavStore } from './HomeNavStore';
 
 // todo: mid/hard when going back twice by swiping, the bottom stack isn't shown
@@ -20,6 +20,7 @@ export const [
     } = useHistoryStore();
     const { isHome, wasHome } = useHomeNavStore();
     const pushPath = usePushPath();
+    const replacePath = useReplacePath();
     const lastStackAnimatedVal = useRef<AnimatedValue | null>(null);
 
     if (didRefresh) {
@@ -50,12 +51,14 @@ export const [
     const hasPrevState = !!prevState;
     const goBackStack = useCallback(() => {
       if (!hasPrevState) {
-        pushPath('/');
-      } else if (!isHome) {
-        // todo: low/mid prevent exiting app by going back
+        replacePath('/', null);
+        pushPath(curState.path, curState.query, curState.hash);
+      }
+
+      if (!isHome) {
         window.history.back();
       }
-    }, [hasPrevState, pushPath, isHome]);
+    }, [hasPrevState, pushPath, replacePath, isHome, curState]);
 
     const goForwardStack = useCallback(() => {
       if (!isHome && (direction === 'forward' || !wasHome)) {

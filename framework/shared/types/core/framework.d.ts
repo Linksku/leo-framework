@@ -76,6 +76,11 @@ declare global {
     GA_ID: string;
     SENTRY_DSN_WEB: string;
     SENTRY_DSN_SERVER: string;
+    FIREBASE_ID: string;
+    FIREBASE_KEY: string;
+    FIREBASE_MESSAGING_SENDER_ID: string;
+    FIREBASE_APP_ID: string;
+    FIREBASE_WEB_PUSH_KEY: string;
 
     // From /.env
     PG_BT_USER: string;

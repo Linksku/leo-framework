@@ -10,13 +10,13 @@ import pathToRoute from 'utils/pathToRoute';
 import LoadingRoute from 'routes/LoadingRoute';
 import LoadingHomeInnerRoute from 'routes/LoadingHomeInnerRoute';
 import LoadingStackInnerRoute from 'routes/LoadingStackInnerRoute';
-import useEffectIfReady from 'utils/hooks/useEffectIfReady';
-import useTimeComponentPerf from 'utils/hooks/useTimeComponentPerf';
+import useEffectIfReady from 'hooks/useEffectIfReady';
+import useTimeComponentPerf from 'hooks/useTimeComponentPerf';
 import { loadErrorLogger } from 'services/ErrorLogger';
 import ErrorBoundary from 'components/ErrorBoundary';
 import { RouteProvider } from 'stores/RouteStore';
 import HomeRouteProvider from 'config/HomeRouteProvider';
-import useUpdatedState from 'utils/hooks/useUpdatedState';
+import useUpdatedState from 'hooks/useUpdatedState';
 import customRoutes from 'config/routes';
 import defaultRoutes from 'routes/defaultRoutes';
 
@@ -24,6 +24,7 @@ import defaultRoutes from 'routes/defaultRoutes';
 import '@capacitor/splash-screen/dist/esm/web.js';
 import 'components/frame/stack/StackWrapInner';
 
+const FROZEN_PATHS_PER_HOME_TAB = 3;
 const renderedComponents = new Set<React.ComponentType>();
 
 function _Route({
@@ -130,19 +131,25 @@ export default function Router() {
       const curRoute = pathToRoute(curState.path);
       const lastStates: ObjectOf<{
         routeConfig: RouteConfig,
-        state: HistoryState | null,
-        matches: Memoed<string[]>,
+        lastPaths: {
+          key: string,
+          state: HistoryState,
+          matches: Memoed<string[]>,
+        }[],
+        lastPathsAccessOrder: string[],
       }> = {};
       for (const routeConfig of [...customRoutes, ...defaultRoutes]) {
         if (routeConfig.homeTab) {
           lastStates[routeConfig.homeTab] = {
             routeConfig,
-            state: curRoute.routeConfig === routeConfig
-              ? curState
-              : null,
-            matches: curRoute.routeConfig === routeConfig
-              ? curRoute.matches
-              : EMPTY_ARR,
+            lastPaths: curRoute.routeConfig === routeConfig
+              ? [{
+                key: curState.key,
+                state: curState,
+                matches: curRoute.matches,
+              }]
+              : [],
+            lastPathsAccessOrder: [curState.key],
           };
         }
       }
@@ -157,17 +164,33 @@ export default function Router() {
       if (!curRoute.routeConfig?.homeTab) {
         return s;
       }
+
       const curHomeTab = curRoute.routeConfig.homeTab;
       const curTabLastState = TS.defined(s[curRoute.routeConfig.homeTab]);
-      if (curTabLastState.state === curState) {
+      if (TS.last(curTabLastState.lastPathsAccessOrder) === curState.key) {
         return s;
       }
+
+      const newAccessOrder = [
+        ...curTabLastState.lastPathsAccessOrder.filter(k => k !== curState.key),
+        curState.key,
+      ].slice(-FROZEN_PATHS_PER_HOME_TAB);
       return markMemoed({
         ...s,
         [curHomeTab]: {
-          ...curTabLastState,
-          state: curState,
-          matches: curRoute.matches,
+          routeConfig: curTabLastState.routeConfig,
+          lastPaths: curTabLastState.lastPaths.some(p => p.key === curState.key)
+            // Don't reorder lastPaths to maintain scroll position
+            ? curTabLastState.lastPaths
+            : [
+              ...curTabLastState.lastPaths.filter(p => newAccessOrder.includes(p.key)),
+              {
+                key: curState.key,
+                state: curState,
+                matches: curRoute.matches,
+              },
+            ],
+          lastPathsAccessOrder: newAccessOrder,
         },
       });
     },
@@ -199,22 +222,22 @@ export default function Router() {
   return (
     <>
       {TS.objValues(homeTabsLastStates)
-        .map(({ routeConfig, state, matches }) => {
-          if (!state) {
+        .flatMap(({ routeConfig, lastPaths }) => {
+          if (!lastPaths.length) {
             return null;
           }
           const HomeComponent = routeConfig.Component;
-          return (
+          return lastPaths.map(p => (
             <Route
-              key={state.key}
+              key={p.key}
               routeConfig={routeConfig}
-              matches={matches}
-              historyState={state}
-              isFrozen={state.key !== stackBot?.key && state !== lastHomeState}
+              matches={p.matches}
+              historyState={p.state}
+              isFrozen={p.state.key !== stackBot?.key && p.state !== lastHomeState}
               isHome
               Component={HomeComponent}
             />
-          );
+          ));
         })}
       <HomeFrame />
       {stackBot && !botRouteConfig?.homeTab && BotComponent && isBotAuth && (

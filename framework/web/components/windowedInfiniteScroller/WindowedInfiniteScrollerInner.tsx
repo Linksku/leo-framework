@@ -9,7 +9,7 @@ export type Props = {
   addedItems?: Memoed<EntityId[]>,
   deletedItems?: Memoed<Set<EntityId>>,
   fetchingFirstTime?: boolean,
-  fetchNext: () => void,
+  fetchNext: Memoed<() => void>,
   hasCompleted: boolean,
   cursor: string | undefined,
   reverse?: boolean,
@@ -84,16 +84,17 @@ export default React.memo(function WindowedInfiniteScrollerInner({
     }
   }
 
-  function handleReachedEnd(colIdx: number) {
+  const numOrigItems = origItems.length;
+  const handleReachedEnd = useCallback((colIdx: number) => {
     setColsReachedEnd(s => {
-      if (s.numOrigItems === origItems.length && s.cols.has(colIdx)) {
+      if (s.numOrigItems === numOrigItems && s.cols.has(colIdx)) {
         return s;
       }
 
-      const newSet = new Set(s.numOrigItems === origItems.length ? s.cols : []);
+      const newSet = new Set(s.numOrigItems === numOrigItems ? s.cols : []);
       newSet.add(colIdx);
       return {
-        numOrigItems: origItems.length,
+        numOrigItems,
         cols: newSet,
       };
     });
@@ -103,7 +104,7 @@ export default React.memo(function WindowedInfiniteScrollerInner({
         fetchNext();
       }, 0);
     }
-  }
+  }, [hasCompleted, fetchNext, numOrigItems]);
 
   const numItems = columnItems.reduce((sum, ids) => sum + ids.length, 0);
   if (fetchingFirstTime && !numItems && loadingElement) {
@@ -124,6 +125,7 @@ export default React.memo(function WindowedInfiniteScrollerInner({
               <WindowedInfiniteScrollerColumn
                 {...props}
                 columnIdx={0}
+                hasRightColumn={false}
                 items={columnItems[0]}
                 addedItems={addedItems}
                 initialVisibleItems={initialVisibleItems}
@@ -134,7 +136,7 @@ export default React.memo(function WindowedInfiniteScrollerInner({
                   (colsReachedEnd.numOrigItems === origItems.length && colsReachedEnd.cols.has(0))
                     || columnItems[0].every(item => initialVisibleItems.has(item))
                 )}
-                onReachEnd={() => handleReachedEnd(0)}
+                onReachEnd={handleReachedEnd}
               />
             </div>
           )
@@ -149,6 +151,7 @@ export default React.memo(function WindowedInfiniteScrollerInner({
                   <WindowedInfiniteScrollerColumn
                     {...props}
                     columnIdx={colIdx}
+                    hasRightColumn={colIdx < columns - 1}
                     items={items}
                     addedItems={addedItems}
                     initialVisibleItems={initialVisibleItems}
@@ -160,7 +163,7 @@ export default React.memo(function WindowedInfiniteScrollerInner({
                         && colsReachedEnd.cols.has(colIdx))
                         || items.every(item => initialVisibleItems.has(item))
                     )}
-                    onReachEnd={() => handleReachedEnd(colIdx)}
+                    onReachEnd={handleReachedEnd}
                   />
                 </div>
               ))}

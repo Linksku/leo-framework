@@ -3,7 +3,7 @@ import { UniqueViolationError } from 'db-errors';
 
 import { defineApi } from 'services/ApiManager';
 import sendEmail from 'services/sendEmail';
-import { RESET_PASSWORD_HASH } from 'consts/coreUserMetaKeys';
+import { RESET_PASSWORD } from 'consts/coreUserMetaKeys';
 import {
   APP_NAME,
   HOME_URL,
@@ -15,8 +15,13 @@ import { getCookieJwt, getHeaderJwt } from 'helpers/auth/jwt';
 import { getPasswordHash, isPasswordValid } from 'helpers/auth/passwords';
 import waitForUserInsert from 'config/waitForUserInsert';
 import knexBT from 'services/knex/knexBT';
+import safeParseJson from 'utils/safeParseJson';
 
-const dataSchema = TS.literal({
+const RESET_PASSWORD_THROTTLE = 10 * 60 * 1000;
+const RESET_PASSWORD_EXPIRE = 60 * 60 * 1000;
+type ResetPasswordMetaValue = { hash: string, time: number };
+
+const userDataSchema = TS.literal({
   type: 'object',
   required: ['currentUserId', 'authToken'],
   properties: {
@@ -67,14 +72,19 @@ defineApi(
       },
       additionalProperties: false,
     },
-    dataSchema,
+    dataSchema: userDataSchema,
   },
   async function registerUserApi({
     email,
     password,
     name,
     birthday,
+    currentUserId,
   }: ApiHandlerParams<'registerUser'>, res) {
+    if (currentUserId) {
+      throw new UserFacingError('Already logged in.', 400);
+    }
+
     const invalidBirthdayReason = getBirthdayInvalidReason(birthday);
     if (invalidBirthdayReason) {
       throw new UserFacingError(invalidBirthdayReason, 400);
@@ -109,7 +119,6 @@ defineApi(
       await waitForUserInsert(
         user.id,
         {
-          throwIfTimeout: true,
           timeoutErrMsg: 'Timed out while creating account, please try again or try logging in later.',
         },
       );
@@ -146,9 +155,17 @@ defineApi(
       },
       additionalProperties: false,
     },
-    dataSchema,
+    dataSchema: userDataSchema,
   },
-  async function loginUserApi({ email, password }: ApiHandlerParams<'loginUser'>, res) {
+  async function loginUserApi({
+    email,
+    password,
+    currentUserId,
+  }: ApiHandlerParams<'loginUser'>, res) {
+    if (currentUserId) {
+      throw new UserFacingError('Already logged in.', 400);
+    }
+
     const user = await User.selectOne({ email: email.toLowerCase() });
     if (!user) {
       throw new UserFacingError('Email or password is incorrect.', 400);
@@ -180,6 +197,19 @@ defineApi(
     if (!user) {
       throw new UserFacingError('Can\'t find an account with that email.', 400);
     }
+    const userMeta = await UserMeta.selectOne({
+      userId: user.id,
+      metaKey: RESET_PASSWORD,
+    });
+    if (userMeta) {
+      const metaValue = safeParseJson<ResetPasswordMetaValue>(
+        userMeta.metaValue,
+        val => val && typeof val === 'object' && val.hash && typeof val.time === 'number',
+      );
+      if (metaValue && metaValue.time > Date.now() - RESET_PASSWORD_THROTTLE) {
+        throw new UserFacingError('A password reset was requested for this account recently. Please try again later.', 400);
+      }
+    }
 
     const randToken = await new Promise<string>((succ, fail) => {
       crypto.randomBytes(16, (err, buf) => {
@@ -190,20 +220,20 @@ defineApi(
         }
       });
     });
-
     const hash = crypto.createHash('sha256').update(randToken).digest('base64');
+
     // todo: low/easy use UserAuth instead of UserMeta
     await UserMeta.delete({
       userId: user.id,
-      metaKey: RESET_PASSWORD_HASH,
+      metaKey: RESET_PASSWORD,
     });
     await UserMeta.insert({
       userId: user.id,
-      metaKey: RESET_PASSWORD_HASH,
+      metaKey: RESET_PASSWORD,
       metaValue: JSON.stringify({
         hash,
-        expires: Date.now() + (60 * 60 * 1000),
-      }),
+        time: Date.now(),
+      } as ResetPasswordMetaValue),
     });
 
     try {
@@ -220,7 +250,7 @@ defineApi(
       );
     } catch (err) {
       throw new UserFacingError(
-        'Failed to send email',
+        'Failed to send email, please try again later',
         500,
         { ...(err instanceof Error && err.debugCtx), origErr: err },
       );
@@ -246,7 +276,7 @@ defineApi(
       },
       additionalProperties: false,
     },
-    dataSchema,
+    dataSchema: userDataSchema,
   },
   async function verifyResetPasswordApi({
     userId,
@@ -265,20 +295,20 @@ defineApi(
       throw new UserFacingError('Invalid user.', 400);
     }
 
-    let data;
+    let data: ResetPasswordMetaValue | undefined;
     try {
       // todo: mid/mid add skip cache option to entloader
       const row = await modelQuery(UserMeta)
         .select(UserMeta.cols.metaValue)
         .findOne({
           [UserMeta.cols.userId]: userAuth.userId,
-          [UserMeta.cols.metaKey]: RESET_PASSWORD_HASH,
+          [UserMeta.cols.metaKey]: RESET_PASSWORD,
         });
-      if (row?.metaValue) {
+      if (row) {
         data = JSON.parse(row.metaValue);
       }
     } catch {}
-    if (!data || !data.expires || data.expires < Date.now()) {
+    if (!data?.time || data.time < Date.now() - RESET_PASSWORD_EXPIRE) {
       throw new UserFacingError('Password reset request has expired.', 400);
     }
 

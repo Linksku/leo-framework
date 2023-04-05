@@ -1,6 +1,6 @@
 import Swipeable from 'components/frame/Swipeable';
 import ErrorBoundary from 'components/ErrorBoundary';
-import { useAnimatedValue, useAnimation, DEFAULT_DURATION } from 'utils/hooks/useAnimation';
+import { useAnimatedValue, useAnimation, DEFAULT_DURATION } from 'hooks/useAnimation';
 
 import styles from './SlideUpsStyles.scss';
 

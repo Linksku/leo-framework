@@ -100,5 +100,5 @@ addHealthcheck('mzSourceRows', {
   },
   resourceUsage: 'high',
   stability: 'mid',
-  timeout: 60 * 1000,
+  timeout: 2 * 60 * 1000,
 });

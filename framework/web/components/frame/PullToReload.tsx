@@ -1,7 +1,7 @@
 import SyncSvg from 'fa5/svg/sync-alt-solid.svg';
 
-import useSwipeNavigation from 'utils/hooks/useSwipeNavigation';
-import { useAnimation } from 'utils/hooks/useAnimation';
+import useSwipeNavigation from 'hooks/useSwipeNavigation';
+import { useAnimation } from 'hooks/useAnimation';
 import mergeRefs from 'utils/mergeRefs';
 
 import styles from './PullToReloadStyles.scss';

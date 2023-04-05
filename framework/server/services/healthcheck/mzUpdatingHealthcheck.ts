@@ -7,13 +7,6 @@ addHealthcheck('mzUpdating', {
     'pgBT',
     'replicationSlots',
     'dbzConnectors',
-    'mzSources',
-    'mzViews',
-    'mzSinks',
-    'mzSinkTopics',
-    'mzSinkTopicMessages',
-    'mzSinkConnectors',
-    'rrMVs',
   ],
   cb: async function mzUpdatingHealthcheck() {
     await checkMZUpdating(60 * 1000);

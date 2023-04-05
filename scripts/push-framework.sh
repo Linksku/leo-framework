@@ -12,7 +12,7 @@ printf '%s\n\n%s\n' $'This is the public version of my private repo with commits
 
 git --git-dir=.git-framework add -A
 git --git-dir=.git-framework commit -m 'Squashed commits'
-git --git-dir=.git-framework push -f
+git --git-dir=.git-framework push
 
 sed -i 1,2d README.md
 rm .gitignore

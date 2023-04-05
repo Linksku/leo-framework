@@ -76,6 +76,7 @@ interface CreatePostApiParams {
     bot: number;
   };
   location?: 'city' | 'global';
+  isAdult?: boolean;
 }
 
 interface CreateReactionApiParams {
@@ -198,6 +199,12 @@ interface RecentFollowingPostsApiParams {
   limit?: number;
   sort?: 'hot' | 'lastReply' | 'new';
   cursor?: string;
+}
+
+interface RegisterPushNotifTokenApiParams {
+  platform: 'web' | 'android' | 'ios';
+  deviceId: string;
+  registrationToken: string;
 }
 
 interface RegisterUserApiParams {
@@ -654,6 +661,7 @@ type ApiNameToParams = {
   'readChat': ReadChatApiParams,
   'readNotif': ReadNotifApiParams,
   'recentFollowingPosts': RecentFollowingPostsApiParams,
+  'registerPushNotifToken': RegisterPushNotifTokenApiParams,
   'registerUser': RegisterUserApiParams,
   'relatedUsers': RelatedUsersApiParams,
   'replies': RepliesApiParams,
@@ -725,6 +733,7 @@ type ApiNameToData = {
   'readChat': null,
   'readNotif': null,
   'recentFollowingPosts': RecentFollowingPostsApiData,
+  'registerPushNotifToken': null,
   'registerUser': RegisterUserApiData,
   'relatedUsers': RelatedUsersApiData,
   'replies': RepliesApiData,
@@ -795,6 +804,7 @@ type ApiName = 'batched'
   | 'readChat'
   | 'readNotif'
   | 'recentFollowingPosts'
+  | 'registerPushNotifToken'
   | 'registerUser'
   | 'relatedUsers'
   | 'replies'
@@ -849,6 +859,7 @@ type AuthApiName = 'blockUser'
 | 'postReplyThreads'
 | 'readChat'
 | 'readNotif'
+| 'registerPushNotifToken'
 | 'seenNotifs'
 | 'unblockUser'
 | 'unfollowUser'

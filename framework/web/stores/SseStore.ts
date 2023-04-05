@@ -1,9 +1,11 @@
 import SseEventEmitter from 'services/SseEventEmitter';
+import FcmBroadcastChannel from 'services/FcmBroadcastChannel';
 import serializeSseEvent, { unserializeSseEvent } from 'utils/serializeSseEvent';
 import { API_URL } from 'settings';
-import useHandleApiEntities from 'utils/hooks/useApi/useHandleApiEntities';
+import useHandleApiEntities from 'hooks/useApi/useHandleApiEntities';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 import { useThrottle } from 'utils/throttle';
+import safeParseJson from 'utils/safeParseJson';
 
 export const [
   SseProvider,
@@ -17,7 +19,7 @@ export const [
         params: Memoed<JsonObj>
         numSubscribers: number,
       }>,
-      readyState: EventSource.CLOSED,
+      readyState: EventSource.CLOSED as number,
       numReconnects: 0,
       lastReconnectTime: 0,
       reconnectTimer: 0,
@@ -96,23 +98,16 @@ export const [
       ref.current.readyState = EventSource.CONNECTING;
 
       source.addEventListener('message', msg => {
-        let parsed: any;
-        try {
-          parsed = JSON.parse(msg.data);
-        } catch {
-          ErrorLogger.warn(new Error(`SseStore: can't parse SSE data: ${msg.data.slice(0, 200)}`));
+        const parsed = safeParseJson<SseResponse>(
+          msg.data,
+          val => val && typeof val === 'object' && typeof val.eventType === 'string',
+        );
+        if (!parsed || !TS.hasOwnProp(parsed, 'data')) {
+          ErrorLogger.warn(new Error(`SseStore: invalid SSE data: ${msg.data?.slice(0, 200)}`));
           return;
         }
 
-        if (!parsed
-          || typeof parsed !== 'object'
-          || typeof parsed.eventType !== 'string'
-          || !TS.hasOwnProp(parsed, 'data')) {
-          ErrorLogger.warn(new Error(`SseStore: invalid SSE data: ${msg.data.slice(0, 200)}`));
-          return;
-        }
         const data = parsed as unknown as MemoDeep<SseResponse>;
-
         const { name, params } = unserializeSseEvent(data.eventType);
         handleApiEntities(data);
         SseEventEmitter.emit(name, deepFreezeIfDev(data.data), params);
@@ -293,6 +288,27 @@ export const [
         SseEventEmitter.off('sseHeartbeat', handleHeartbeat);
       };
     }, [processQueuedSubs, closeSse]);
+
+    useEffect(() => {
+      const cb = (event: MessageEvent) => {
+        const data = safeParseJson<ApiSuccessResponse<any>>(
+          event.data,
+          val => val && typeof val === 'object',
+        );
+        if (!data || !TS.hasOwnProp(data, 'data')) {
+          ErrorLogger.warn(new Error(`SseStore: invalid FCM message: ${event.data?.slice(0, 200)}`));
+          return;
+        }
+
+        handleApiEntities(data as MemoDeep<ApiSuccessResponse<any>>);
+      };
+
+      FcmBroadcastChannel.addEventListener('message', cb);
+
+      return () => {
+        FcmBroadcastChannel.removeEventListener('message', cb);
+      };
+    }, [handleApiEntities]);
 
     return useMemo(() => ({
       addSubscription,

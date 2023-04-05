@@ -1,5 +1,6 @@
 import getModelDataLoader from 'services/dataLoader/getModelDataLoader';
 import { API_POST_TIMEOUT } from 'settings';
+import waitForKafkaSinkMsg from 'utils/models/waitForKafkaSinkMsg';
 
 // todo: mid/mid subscribe to kafka sink topic instead of polling
 export default async function waitForModelRRInsert<
@@ -9,7 +10,7 @@ export default async function waitForModelRRInsert<
   Model: T,
   partial: P,
   {
-    retryInterval = 500,
+    retryInterval = 300,
     // todo: low/mid default to remaining api time
     timeout = API_POST_TIMEOUT / 2,
     throwIfTimeout = false,
@@ -19,11 +20,25 @@ export default async function waitForModelRRInsert<
   if (!process.env.PRODUCTION && !Model.getReplicaTable()) {
     throw new Error(`waitForModelRRInsert: ${Model.name} isn't in RR.`);
   }
-
   const startTime = performance.now();
-  let lastErr: string | null = null;
 
-  for (let i = 0; i < 100; i++) {
+  try {
+    await waitForKafkaSinkMsg(Model.type, partial, { timeout });
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('timed out')) {
+      if (timeoutErrMsg) {
+        throw new UserFacingError(timeoutErrMsg, 503, { err });
+      }
+      if (throwIfTimeout) {
+        throw err;
+      }
+      return;
+    }
+    throw err;
+  }
+
+  let lastErr: string | null = null;
+  for (let i = 0; i < timeout / retryInterval; i++) {
     lastErr = null;
     try {
       // eslint-disable-next-line no-await-in-loop
@@ -36,10 +51,11 @@ export default async function waitForModelRRInsert<
     }
 
     if (performance.now() - startTime >= timeout - retryInterval) {
+      if (timeoutErrMsg) {
+        throw new UserFacingError(timeoutErrMsg, 503, { lastErr });
+      }
       if (throwIfTimeout) {
-        throw timeoutErrMsg
-          ? new UserFacingError(timeoutErrMsg, 503, { lastErr })
-          : getErr('waitForModelRRInsert: timed out', { lastErr });
+        throw getErr('waitForModelRRInsert: timed out', { lastErr });
       }
       return;
     }

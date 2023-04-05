@@ -30,9 +30,15 @@ const frameworkModels = [
     replicaTable: 'userAuth',
   },
   {
+    type: 'userDevice',
+    path: 'framework/server/models/user/UserDevice.ts',
+    // Model: require('../../models/user/UserDevice').default,
+    replicaTable: 'userDevice',
+  },
+  {
     type: 'userMeta',
-    path: 'framework/server/models/userMeta/UserMeta.ts',
-    // Model: require('../../models/userMeta/UserMeta').default,
+    path: 'framework/server/models/user/UserMeta.ts',
+    // Model: require('../../models/user/UserMeta').default,
     replicaTable: 'userMeta',
   },
 ];

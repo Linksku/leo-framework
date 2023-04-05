@@ -1,4 +1,3 @@
-import withErrCtx from 'utils/withErrCtx';
 import initInfraWrap from 'utils/infra/initInfraWrap';
 import deleteRRSubscriptions from './steps/deleteRRSubscriptions';
 import deleteRRData from './steps/deleteRRData';

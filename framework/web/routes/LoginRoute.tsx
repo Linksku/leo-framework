@@ -14,7 +14,7 @@ export default React.memo(function LoginRoute() {
     },
   });
   const { errors } = useFormState({ control });
-  const { authState, setAuth } = useAuthStore();
+  const { authState, setAuth, isReloadingAfterAuth } = useAuthStore();
 
   const { fetching, fetchApi: loginUser, error: apiError } = useDeferredApi(
     'loginUser',
@@ -34,19 +34,26 @@ export default React.memo(function LoginRoute() {
     },
   );
 
+  const disabled = fetching || isReloadingAfterAuth || authState === 'in';
   // todo: high/hard google/fb login
   return (
     <StackWrapInner title="Log In">
       <div className={styles.container}>
         {authState === 'in' && (
           <p className={styles.loggedInMsg}>
-            <InfoSvg />
-            {' '}
-            Already logged in.
-            {' '}
-            <Link href="/">Go back to home</Link>
-            {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
-            {'.'}
+            {isReloadingAfterAuth
+              ? 'Logging in.'
+              : (
+                <>
+                  <InfoSvg />
+                  {' '}
+                  Already logged in.
+                  {' '}
+                  <Link href="/">Go back to home</Link>
+                  {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
+                  {'.'}
+                </>
+              )}
           </p>
         )}
 
@@ -63,7 +70,7 @@ export default React.memo(function LoginRoute() {
             registerOpts={{
               required: 'Email is required',
             }}
-            disabled={fetching}
+            disabled={disabled}
             required
             autoFocus
           />
@@ -78,7 +85,7 @@ export default React.memo(function LoginRoute() {
               minLength: { value: 8, message: 'Password is incorrect.' },
               maxLength: { value: 64, message: 'Password is incorrect.' },
             }}
-            disabled={fetching}
+            disabled={disabled}
             required
             placeholder="••••••••"
           />
@@ -89,7 +96,7 @@ export default React.memo(function LoginRoute() {
             Component="input"
             type="submit"
             fullWidth
-            disabled={fetching}
+            disabled={disabled}
           />
         </form>
 

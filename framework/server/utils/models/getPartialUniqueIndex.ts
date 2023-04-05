@@ -10,10 +10,13 @@ export default function getPartialUniqueIndex<T extends ModelClass>(
       : null;
   }
 
-  const keysSet = new Set(keys);
   outer: for (const index of Model.getUniqueIndexes()) {
+    if (index.length > keys.length) {
+      continue;
+    }
+
     for (const col of index) {
-      if (!keysSet.has(col)) {
+      if (!Object.prototype.hasOwnProperty.call(partial, col)) {
         continue outer;
       }
     }

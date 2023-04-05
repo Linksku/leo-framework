@@ -11,7 +11,7 @@ export default function validateUniquePartial<T extends ModelClass>(
   const entries = TS.objEntries(partial);
   const uniqueIndex = getPartialUniqueIndex(Model, partial);
   if (!uniqueIndex) {
-    throw new Error(`validateUniquePartial: no unique index for ${Model.type}: ${entries.map(e => e[0]).join(',')}`);
+    throw new Error(`validateUniquePartial(${Model.type}): no unique index: ${entries.map(e => e[0]).join(',')}`);
   }
 
   for (const [key, val] of entries) {

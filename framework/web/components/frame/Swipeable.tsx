@@ -1,5 +1,5 @@
-import type { Props as SwipeNavigationProps } from 'utils/hooks/useSwipeNavigation';
-import useSwipeNavigation from 'utils/hooks/useSwipeNavigation';
+import type { Props as SwipeNavigationProps } from 'hooks/useSwipeNavigation';
+import useSwipeNavigation from 'hooks/useSwipeNavigation';
 import mergeRefs from 'utils/mergeRefs';
 
 export type Props = {

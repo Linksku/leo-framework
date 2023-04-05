@@ -1,4 +1,4 @@
-import useUpdate from 'utils/hooks/useUpdate';
+import useUpdate from 'hooks/useUpdate';
 
 import GlobalStateEventEmitter from 'services/GlobalStateEventEmitter';
 

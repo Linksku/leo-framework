@@ -122,8 +122,8 @@ export default class ModelSelector extends BaseModel {
       } as unknown as ModelPartial<T>))
       : definedValues.map(val => {
         const partial: ModelPartial<T> = {};
-        for (const [i, k] of colOrIndex.entries()) {
-          partial[k] = (val as any[])[i];
+        for (let i = 0; i < colOrIndex.length; i++) {
+          partial[colOrIndex[i]] = (val as any[])[i];
         }
         return partial;
       });

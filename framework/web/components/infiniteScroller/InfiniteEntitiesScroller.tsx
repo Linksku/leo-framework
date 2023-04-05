@@ -1,6 +1,6 @@
-import type { PaginatedEntitiesApiName, ShouldAddCreatedEntity } from 'utils/hooks/useApi/useEntitiesPaginationApi';
-import useEntitiesPaginationApi from 'utils/hooks/useApi/useEntitiesPaginationApi';
-import useVisibilityObserver from 'utils/hooks/useVisibilityObserver';
+import type { PaginatedEntitiesApiName, ShouldAddCreatedEntity } from 'hooks/useApi/useEntitiesPaginationApi';
+import useEntitiesPaginationApi from 'hooks/useApi/useEntitiesPaginationApi';
+import useVisibilityObserver from 'hooks/useVisibilityObserver';
 
 import styles from './InfiniteEntitiesScrollerStyles.scss';
 

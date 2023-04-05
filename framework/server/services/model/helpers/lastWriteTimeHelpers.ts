@@ -1,8 +1,10 @@
 import redis from 'services/redis';
 import getModelRecursiveDeps from 'utils/models/getModelRecursiveDeps';
 import { LAST_WRITE_TIME } from 'consts/coreRedisNamespaces';
+import RedisDataLoader from 'services/RedisDataLoader';
 
 const MIN_WAIT_TIME = 1000;
+const getdelDataloader = new RedisDataLoader('getdel');
 
 function _getRedisKey(modelType: ModelType, currentUserId: number) {
   return `${LAST_WRITE_TIME}:${currentUserId},${modelType}`;
@@ -28,18 +30,18 @@ export async function warnIfRecentlyWritten(modelType: ModelType) {
   }
 
   const rc = getRC();
-  if (!rc?.currentUserId) {
+  const currentUserId = rc?.currentUserId;
+  if (!currentUserId) {
     return;
   }
 
   const deps = getModelRecursiveDeps(getModelClass(modelType));
-  for (const dep of deps) {
-    const key = _getRedisKey(dep.type, rc.currentUserId);
-    // eslint-disable-next-line no-await-in-loop
-    const val = await redis.getdel(key);
-    if (val) {
-      ErrorLogger.warn(new Error(`warnIfRecentlyWritten: reading ${modelType} after writing to ${dep.type}, possible read after write consistency issue`));
-      return;
-    }
+  const vals = TS.filterNulls(await Promise.all(deps.map(
+    dep => getdelDataloader.load(_getRedisKey(dep.type, currentUserId)),
+  )));
+  if (vals.length) {
+    ErrorLogger.warn(new Error(
+      `warnIfRecentlyWritten: reading ${modelType} after writing to ${vals[0]}, possible read after write consistency issue`,
+    ));
   }
 }

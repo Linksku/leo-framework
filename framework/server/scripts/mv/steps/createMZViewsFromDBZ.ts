@@ -1,6 +1,5 @@
 import EntityModels from 'services/model/allEntityModels';
 import waitForKafkaConnectReady from 'utils/infra/waitForKafkaConnectReady';
-import withErrCtx from 'utils/withErrCtx';
 import createMZDBZSource from '../helpers/createMZDBZSource';
 import createDBZUpdateableConnector from './createDBZUpdateableConnector';
 import createDBZInsertOnlyConnector from './createDBZInsertOnlyConnector';
@@ -12,12 +11,11 @@ export default async function createMZViewsFromDBZ() {
   await withErrCtx(createDBZInsertOnlyConnector(), 'createMZViewsFromDBZ: createDBZInsertOnlyConnector');
 
   const updateableModels = EntityModels.filter(model => !model.useInsertOnlyPublication);
-  if (updateableModels.length) {
-    await withErrCtx(createMZDBZSource(updateableModels, false), 'createMZViewsFromDBZ: createMZDBZSource');
-  }
-
   const insertOnlyModels = EntityModels.filter(model => model.useInsertOnlyPublication);
-  if (insertOnlyModels.length) {
-    await withErrCtx(createMZDBZSource(insertOnlyModels, true), 'createMZViewsFromDBZ: createMZDBZSource');
-  }
+  await Promise.all([
+    updateableModels.length
+      && withErrCtx(createMZDBZSource(updateableModels, false), 'createMZViewsFromDBZ: createMZDBZSource'),
+    insertOnlyModels.length
+      && withErrCtx(createMZDBZSource(insertOnlyModels, true), 'createMZViewsFromDBZ: createMZDBZSource'),
+  ]);
 }

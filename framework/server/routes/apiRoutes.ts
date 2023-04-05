@@ -11,7 +11,7 @@ import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
 import rateLimitMiddleware from 'routes/api/helpers/rateLimitMiddleware';
 import requestContextMiddleware from 'routes/api/helpers/requestContextMiddleware';
 import formatAndLogApiErrorResponse from 'routes/api/helpers/formatAndLogApiErrorResponse';
-import { getIsHealthy } from 'services/healthcheck/HealthcheckManager';
+import { isHealthy } from 'services/healthcheck/HealthcheckManager';
 
 import './api/authApis';
 import './api/batchedApi';
@@ -33,7 +33,7 @@ function healthcheckMiddleware(
   res: ExpressResponse,
   next: NextFunction,
 ) {
-  if (req.path === '/status' || getIsHealthy()) {
+  if (req.path === '/status' || isHealthy()) {
     next();
   } else {
     res.status(503)

@@ -4,6 +4,7 @@ declare global {
     | 'notif'
     | 'user'
     | 'userAuth'
+    | 'userDevice'
     | 'userMeta';
 
   // Use ModelTypeToInstance, ModelInstancesMap[ModelType] creates a union of all models
@@ -13,6 +14,7 @@ declare global {
     notif: Notif;
     user: User;
     userAuth: UserAuth;
+    userDevice: UserDevice;
     userMeta: UserMeta;
   };
 
@@ -23,6 +25,7 @@ declare global {
     notif: NotifClass;
     user: UserClass;
     userAuth: UserAuthClass;
+    userDevice: UserDeviceClass;
     userMeta: UserMetaClass;
   };
 }

@@ -1,4 +1,3 @@
-import withErrCtx from 'utils/withErrCtx';
 import initInfraWrap from 'utils/infra/initInfraWrap';
 import destroyMZ from './destroyMZ';
 import destroyRR from './destroyRR';

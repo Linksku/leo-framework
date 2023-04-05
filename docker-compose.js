@@ -358,6 +358,7 @@ const services = {
     volumes: [
       './env:/usr/src/env',
       './.env:/usr/src/.env',
+      './firebaseAdminKey.json:/usr/src/firebaseAdminKey.json',
       '/var/run/docker.sock:/var/run/docker.sock',
     ],
     deploy: {
@@ -387,6 +388,7 @@ const services = {
     volumes: [
       './env:/usr/src/env',
       './.env:/usr/src/.env',
+      './firebaseAdminKey.json:/usr/src/firebaseAdminKey.json',
       '/etc/letsencrypt:/etc/letsencrypt',
     ],
     deploy: {
@@ -417,6 +419,7 @@ const services = {
     volumes: [
       './env:/usr/src/env',
       './.env:/usr/src/.env',
+      './firebaseAdminKey.json:/usr/src/firebaseAdminKey.json',
       '/var/run/docker.sock:/var/run/docker.sock',
     ],
     deploy: {

@@ -3,6 +3,7 @@ import type { Job } from 'bull';
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
 import promiseTimeout from 'utils/promiseTimeout';
 import rand from 'utils/rand';
+import randInt from 'utils/randInt';
 import { defineCronJob } from 'services/cron/CronManager';
 import PubSubManager from 'services/PubSubManager';
 import { NUM_CLUSTER_SERVERS } from 'serverSettings';
@@ -50,6 +51,8 @@ export type RedisServerStatus = {
   failing: {
     name: HealthcheckName,
     numFails: number,
+    skipped: boolean,
+    isStale: boolean,
     lastErr: string | null,
   }[];
   time: string,
@@ -60,11 +63,13 @@ export const SERVER_STATUS_MAX_STALENESS = 60 * 1000;
 
 const healthchecks = Object.create(null) as Record<HealthcheckName, HealthcheckConfig>;
 const numFails = Object.create(null) as Record<HealthcheckName, number>;
+const skipped = Object.create(null) as Record<HealthcheckName, boolean>;
 const lastRunTime = Object.create(null) as Record<HealthcheckName, number>;
 const lastErr = Object.create(null) as Record<HealthcheckName, unknown>;
 let hasStarted = false;
 
-function _getInterval(config: HealthcheckConfig, passing: boolean) {
+function _getDuration(name: HealthcheckName, passing: boolean) {
+  const config = healthchecks[name];
   let intervalIfPassing = {
     high: 60 * 1000,
     mid: 30 * 1000,
@@ -89,21 +94,27 @@ function _getInterval(config: HealthcheckConfig, passing: boolean) {
       : Math.max(interval, config.minUpdateFreq / 4);
   }
 
-  return Math.max(interval, 1000);
+  return config.timeout + Math.max(interval, 1000);
 }
 
 // todo: low/easy maybe change fail count to fail duration
 export function getMinFails(name: HealthcheckName) {
-  const config = healthchecks[name];
-  const duration = config.timeout + _getInterval(config, true);
-  return Math.max(2, Math.ceil(2 * 60 * 1000 / duration));
+  return Math.max(2, Math.ceil(2 * 60 * 1000 / _getDuration(name, true)));
 }
 
 async function _runHealthcheckAllServers(name: HealthcheckName) {
   const config = healthchecks[name];
   const startTime = performance.now();
 
-  if (!config.deps?.some(dep => numFails[dep] >= getMinFails(dep))) {
+  const failingDeps = config.deps?.filter(dep => numFails[dep] >= getMinFails(dep));
+  if (failingDeps?.length) {
+    numFails[name] = getMinFails(name);
+    lastErr[name] = getErr(
+      `HealthcheckManager._runHealthcheckAllServers(${name}): deps failing`,
+      { deps: failingDeps },
+    );
+    skipped[name] = true;
+  } else {
     try {
       await promiseTimeout(
         config.cb(),
@@ -118,8 +129,7 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
         printDebug(
           `Healthcheck ${name} healthy (${numUnhealthy} unhealthy)`,
           'success',
-          undefined,
-          'always',
+          { prod: 'always' },
         );
       }
       numFails[name] = 0;
@@ -132,10 +142,9 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
 
         if (numFails[name] === getMinFails(name) || !lastRunTime[name]) {
           printDebug(
-            `Healthcheck ${name} failed`,
+            `Healthcheck ${name} failed: ${err instanceof Error ? err.message : err}`,
             'warn',
-            err instanceof Error ? err.message : undefined,
-            'only',
+            { prod: 'only' },
           );
           if (!await redisMaster.exists(INIT_INFRA_REDIS_KEY)) {
             ErrorLogger.warn(
@@ -149,10 +158,10 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
     lastRunTime[name] = performance.now();
   }
 
-  const interval = _getInterval(config, numFails[name] < getMinFails(name));
+  const interval = _getDuration(name, numFails[name] < getMinFails(name)) - config.timeout;
   setTimeout(
     () => wrapPromise(_runHealthcheckAllServers(name), 'error', `HealthcheckManager._runHealthcheckAllServers(${name})`),
-    rand(interval * 0.9, interval * 1.1),
+    Math.round(rand(interval * 0.9, interval * 1.1)),
   );
 }
 
@@ -160,7 +169,15 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
   const config = healthchecks[name];
   const startTime = performance.now();
 
-  if (!config.deps?.some(dep => numFails[dep] >= getMinFails(dep))) {
+  const failingDeps = config.deps?.filter(dep => numFails[dep] >= getMinFails(dep));
+  if (failingDeps?.length) {
+    numFails[name] = getMinFails(name);
+    lastErr[name] = getErr(
+      `HealthcheckManager._runHealthcheckOneServer(${name}): deps failing`,
+      { deps: failingDeps },
+    );
+    skipped[name] = true;
+  } else {
     try {
       await promiseTimeout(
         config.cb(),
@@ -176,13 +193,12 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
         printDebug(
           `Healthcheck ${name} healthy (${numUnhealthy} unhealthy)`,
           'success',
-          undefined,
-          'always',
+          { prod: 'always' },
         );
 
         await job.update({
           repeat: {
-            every: config.timeout + _getInterval(config, true),
+            every: _getDuration(name, true),
           },
         });
       }
@@ -201,10 +217,9 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
 
         if (numFails[name] === getMinFails(name) || !lastRunTime[name]) {
           printDebug(
-            `Healthcheck ${name} failed`,
+            `Healthcheck ${name} failed: ${err instanceof Error ? err.message : err}`,
             'warn',
-            err instanceof Error ? err.message : undefined,
-            'only',
+            { prod: 'only' },
           );
           if (!await redisMaster.exists(INIT_INFRA_REDIS_KEY)) {
             ErrorLogger.warn(
@@ -216,7 +231,7 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
           if (numFails[name] === getMinFails(name)) {
             await job.update({
               repeat: {
-                every: config.timeout + _getInterval(config, false),
+                every: _getDuration(name, false),
               },
             });
           }
@@ -228,8 +243,9 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
         );
       }
     }
-    lastRunTime[name] = performance.now();
   }
+
+  lastRunTime[name] = performance.now();
 }
 
 export function addHealthcheck(name: HealthcheckName, config: HealthcheckConfig) {
@@ -242,6 +258,7 @@ export function addHealthcheck(name: HealthcheckName, config: HealthcheckConfig)
 
   healthchecks[name] = config;
   numFails[name] = START_FAILING ? getMinFails(name) : 0;
+  skipped[name] = false;
   lastRunTime[name] = 0;
   lastErr[name] = START_FAILING ? new Error(`HealthcheckManager.addHealthcheck: ${name} hasn't run yet`) : null;
 }
@@ -256,7 +273,7 @@ export function startHealthchecks() {
           createServiceContext(`HealthcheckManager:${name}`),
           () => wrapPromise(_runHealthcheckAllServers(name), 'error', `HealthcheckManager._runHealthcheckAllServers(${name})`),
         );
-      }, rand(0, 60 * 1000));
+      }, randInt(0, 60 * 1000));
     } else {
       PubSubManager.subscribe(
         `HealthcheckManager.${name}.numFails`,
@@ -281,7 +298,7 @@ export function startHealthchecks() {
             );
           },
           repeat: {
-            every: config.timeout + _getInterval(config, !START_FAILING),
+            every: _getDuration(name, !START_FAILING),
           },
           timeout: config.timeout,
         },
@@ -291,20 +308,25 @@ export function startHealthchecks() {
 
   setInterval(() => {
     if (!Object.values(lastRunTime).every(Boolean)) {
+      wrapPromise(
+        redisMaster.unlink(`${HEALTHCHECK}:status`),
+        'warn',
+        'HealthcheckManager: redis.unlink',
+      );
       return;
     }
 
     const data: RedisServerStatus = {
       failing: TS.objEntries(numFails)
-        .filter(
-          pair => pair[1]
-            && performance.now() - (lastRunTime[pair[0]] ?? 0) < SERVER_STATUS_MAX_STALENESS,
-        )
         .map(pair => ({
           name: pair[0],
           numFails: pair[1],
+          skipped: skipped[pair[0]],
+          isStale: performance.now() - (lastRunTime[pair[0]] ?? 0)
+            >= _getDuration(pair[0], true) * 2,
           lastErr: lastErr[pair[0]] ? formatError(lastErr[pair[0]]) : null,
-        })),
+        }))
+        .filter(status => status.numFails || status.isStale),
       time: new Date().toISOString(),
     };
     wrapPromise(
@@ -316,7 +338,7 @@ export function startHealthchecks() {
       'warn',
       'HealthcheckManager: redis.hset',
     );
-  }, SERVER_STATUS_MAX_STALENESS / 2);
+  }, SERVER_STATUS_MAX_STALENESS / 4);
 }
 
 export function getHealthcheckConfigs() {
@@ -341,9 +363,9 @@ async function _updateLocked() {
 // eslint-disable-next-line unicorn/prefer-top-level-await
 wrapPromise(_updateLocked(), 'fatal', 'HealthcheckManager._updateLocked');
 
-export function getIsHealthy(): boolean {
+export function isHealthy(): boolean {
   if (!hasStarted) {
-    throw new Error('HealthcheckManager.getIsHealthy: haven\'t started');
+    throw new Error('HealthcheckManager.isHealthy: haven\'t started');
   }
   if (isLocked) {
     return false;
@@ -351,13 +373,15 @@ export function getIsHealthy(): boolean {
   const failingHealthchecks = TS.objEntries(numFails)
     .filter(
       pair => pair[1] >= getMinFails(pair[0])
-        // Note: stale is unhealthy, but might be too unstable
-        && performance.now() - (lastRunTime[pair[0]] ?? 0) < SERVER_STATUS_MAX_STALENESS,
+        || performance.now() - (lastRunTime[pair[0]] ?? 0) >= _getDuration(pair[0], true) * 2,
     );
-  const onlyFailingHealthcheck = failingHealthchecks[0];
-  if (failingHealthchecks.length === 1
+  const notSkippedFailing = failingHealthchecks.filter(pair => !skipped[pair[0]]);
+  const onlyFailingHealthcheck = notSkippedFailing[0];
+  if (notSkippedFailing.length === 1
     && ['mzSinkPrometheus', 'mzSinkTopicMessages'].includes(onlyFailingHealthcheck[0])
-    && onlyFailingHealthcheck[1] >= getMinFails(onlyFailingHealthcheck[0]) * 3) {
+    && performance.now() - (lastRunTime[onlyFailingHealthcheck[0]] ?? 0)
+      < _getDuration(onlyFailingHealthcheck[0], true) * 2
+    && onlyFailingHealthcheck[1] < getMinFails(onlyFailingHealthcheck[0]) * 3) {
     return true;
   }
   return !failingHealthchecks.length;
@@ -370,7 +394,7 @@ export function getFailingHealthchecks() {
   return TS.objEntries(numFails)
     .filter(
       pair => pair[1] >= getMinFails(pair[0])
-        || performance.now() - (lastRunTime[pair[0]] ?? 0) >= SERVER_STATUS_MAX_STALENESS,
+        || performance.now() - (lastRunTime[pair[0]] ?? 0) >= _getDuration(pair[0], true) * 2,
     )
     .map(pair => pair[0]);
 }

@@ -5,6 +5,7 @@ import { useThrottle } from 'utils/throttle';
 import styles from './SearchFormStyles.scss';
 
 type Props = {
+  onInput?: Memoed<React.FormEventHandler<HTMLInputElement>>,
   onSubmit: Memoed<(query: string) => void>,
   throttleTimeout?: number,
   defaultValue?: string,
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default React.memo(function SearchForm({
+  onInput,
   onSubmit,
   throttleTimeout = 1000,
   defaultValue,
@@ -44,12 +46,15 @@ export default React.memo(function SearchForm({
         suffix={(
           <SearchSvg
             className={styles.icon}
-            onClick={_handleSubmit}
           />
         )}
+        suffixProps={{
+          onClick: _handleSubmit,
+        }}
         register={register}
         autoCapitalize="none"
         autoCorrect="off"
+        onInput={onInput}
         className={styles.input}
       />
     </form>

@@ -17,6 +17,7 @@ package-lock.json
 
 # Framework
 /.env
+/firebaseAdminKey.json
 
 # Generated
 /stats.json
@@ -45,11 +46,6 @@ package-lock.json
 /temp
 /tmp
 /tmp.*
-/env
-/app/
-/capacitor/android/
-/capacitor/ios/
-/capacitor/resources/
 /env
 /app/
 /capacitor/android/

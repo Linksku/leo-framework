@@ -32,6 +32,7 @@ export default async function retry(
 
   const startTime = performance.now();
   let lastPrintTime = performance.now();
+  let didPrint = false;
   let lastErr: any;
   for (
     let i = 0;
@@ -82,8 +83,9 @@ export default async function retry(
     if (performance.now() - lastPrintTime >= printInterval
       && lastErr instanceof Error) {
       printDebug(`Retrying${ctx ? ` (${ctx})` : ''}. Last error:`, 'warn');
-      printDebug(formatErr(lastErr, { maxStackLines: 1 }));
+      printDebug(formatErr(lastErr, { maxStackLines: didPrint ? 0 : undefined }));
       lastPrintTime = performance.now();
+      didPrint = true;
     }
 
     // eslint-disable-next-line no-await-in-loop

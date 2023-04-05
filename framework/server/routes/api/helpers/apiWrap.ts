@@ -1,6 +1,7 @@
 import { API_TIMEOUT, API_POST_TIMEOUT } from 'settings';
-import rand from 'utils/rand';
+import randInt from 'utils/randInt';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
+import safeParseJson from 'utils/safeParseJson';
 import validateApiParams from './validateApiParams';
 import formatApiHandlerParams from './formatApiHandlerParams';
 import validateApiRet from './validateApiRet';
@@ -21,15 +22,12 @@ function getFullParamsFromReq<Name extends ApiName>(
     throw new UserFacingError('Client is outdated.', 469);
   }
 
-  let fullParams: ApiParams<Name>;
+  let fullParams = {} as ApiParams<Name>;
   if (paramsObj?.params) {
-    try {
-      fullParams = JSON.parse(paramsObj?.params);
-    } catch {
-      throw new UserFacingError('Unknown error when handling request.', 400);
+    const parsed = safeParseJson<any>(paramsObj?.params);
+    if (parsed) {
+      fullParams = parsed;
     }
-  } else {
-    fullParams = {} as ApiParams<Name>;
   }
 
   const { files } = req;
@@ -68,6 +66,7 @@ export default function apiWrap<Name extends ApiName>(
       });
 
       const handlerParams = formatApiHandlerParams({
+        userAgent: req.headers['user-agent'],
         api,
         params,
         currentUserId: req.currentUserId,
@@ -105,11 +104,11 @@ export default function apiWrap<Name extends ApiName>(
         printDebug(
           `Handler took ${Math.round(performance.now() - startTime)}ms (${rc?.numDbQueries ?? 0} DB requests)`,
           performance.now() - startTime > 500 ? 'error' : 'warn',
-          `${api.config.name}`,
+          { ctx: `${api.config.name}` },
         );
       }
 
-      await pause(rand(50, 200));
+      await pause(randInt(50, 200));
     }
     res.status(status)
       .set('Content-Type', 'application/json; charset=utf-8')

@@ -1,8 +1,8 @@
 import type { Props as DropdownProps } from 'components/ui/DropdownMenu';
 import { useThrottle } from 'utils/throttle';
-import useLatest from 'utils/hooks/useLatest';
+import useLatest from 'hooks/useLatest';
 import mergeRefs from 'utils/mergeRefs';
-import useEffectOncePerDeps from 'utils/hooks/useEffectOncePerDeps';
+import useEffectOncePerDeps from 'hooks/useEffectOncePerDeps';
 import Input from './Input';
 import DropdownMenu, { Options, RenderOption } from './DropdownMenu';
 import styles from './TypeaheadStyles.scss';

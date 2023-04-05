@@ -2,6 +2,7 @@ import removeUndefinedValues from 'utils/removeUndefinedValues';
 import promiseTimeout from 'utils/promiseTimeout';
 import { API_TIMEOUT, API_POST_TIMEOUT } from 'settings';
 import TimeoutError from 'core/TimeoutError';
+import safeParseJson from 'utils/safeParseJson';
 
 type FetcherOpts = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
@@ -69,11 +70,9 @@ async function _fetcher(
     };
   }
 
-  let data: any = null;
   const text = await res.text();
-  try {
-    data = JSON.parse(text);
-  } catch {
+  const data = safeParseJson(text);
+  if (data === undefined) {
     const err = getErr('fetcher: unable to parse JSON', {
       url,
       text: text.slice(0, 200),

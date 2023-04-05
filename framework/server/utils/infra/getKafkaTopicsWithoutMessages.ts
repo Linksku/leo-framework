@@ -1,18 +1,19 @@
-import kafka from 'services/kafka';
 import promiseTimeout from 'utils/promiseTimeout';
-import rand from 'utils/rand';
+import createKafkaConsumer from 'utils/infra/createKafkaConsumer';
+import listKafkaTopics from 'utils/infra/listKafkaTopics';
 
 // Note: return value may be Avro encoded
 // Note: subscribing to non-existent topics will create the topic
 export default async function getKafkaTopicsWithoutMessages(
-  topics: string[],
+  prefixOrRegex: string | RegExp,
   timeout: number,
 ): Promise<string[]> {
+  const topics = await listKafkaTopics(prefixOrRegex);
   if (!topics.length) {
     return [];
   }
 
-  const consumer = kafka.consumer({ groupId: `${rand(0, Number.MAX_SAFE_INTEGER)}` });
+  const consumer = createKafkaConsumer({ ctx: 'getKafkaTopicsWithoutMessages' });
   await consumer.connect();
   await consumer.subscribe({ topics });
 
@@ -38,10 +39,11 @@ export default async function getKafkaTopicsWithoutMessages(
         resetTimer();
 
         consumer.run({
-          eachMessage({ topic }) {
+          eachMessage({ topic, pause }) {
             // console.log(message.value?.toString());
             if (remainingTopics.has(topic)) {
               remainingTopics.delete(topic);
+              pause();
             }
 
             if (remainingTopics.size) {

@@ -31,6 +31,7 @@ export default mergeReplaceArrays(baseConfig, {
           },
           'postcss-loader',
           {
+            // todo: mid/hard atomic css
             loader: 'sass-loader',
             options: {
               sourceMap: false,
@@ -90,6 +91,7 @@ export default mergeReplaceArrays(baseConfig, {
   },
   entry: {
     main: path.resolve('./framework/web/web.tsx'),
+    sw: path.resolve('./framework/web/sw.ts'),
   },
   output: {
     publicPath: `${ASSETS_URL}/`,

@@ -63,7 +63,7 @@ defineApi(
       additionalProperties: false,
     },
   },
-  async function batchedApi({ apis, currentUserId }: ApiHandlerParams<'batched'>, res) {
+  async function batchedApi({ apis, currentUserId, userAgent }: ApiHandlerParams<'batched'>, res) {
     if ((!process.env.PRODUCTION && apis.length > 25) || apis.length > 50) {
       throw new Error('batchedApi: too many batched requests');
     }
@@ -94,6 +94,7 @@ defineApi(
             });
 
             const handlerParams = formatApiHandlerParams({
+              userAgent,
               api,
               params,
               currentUserId,
@@ -120,7 +121,7 @@ defineApi(
             printDebug(
               `Handler took ${Math.round(performance.now() - startTime)}ms (${rc?.numDbQueries ?? 0} DB requests)`,
               performance.now() - startTime > 500 ? 'error' : 'warn',
-              `batchedApi(${name})`,
+              { ctx: `batchedApi(${name})` },
             );
           }
           if (performance.now() - startTime > API_TIMEOUT) {
@@ -134,9 +135,9 @@ defineApi(
     const allDeletedIds: ApiSuccessResponse<any>['deletedIds'] = {};
     for (const r of results) {
       if (TS.hasProp(r, 'deletedIds')) {
-        for (const [entityName, ids] of TS.objEntries(r.deletedIds)) {
-          const entityDeletedIds = TS.objValOrSetDefault(allDeletedIds, entityName, []);
-          entityDeletedIds.push(...ids);
+        for (const pair of TS.objEntries(r.deletedIds)) {
+          const entityDeletedIds = TS.objValOrSetDefault(allDeletedIds, pair[0], []);
+          entityDeletedIds.push(...pair[1]);
         }
       }
     }

@@ -1,10 +1,12 @@
 import { unserializeDateProps } from 'utils/models/dateSchemaHelpers';
 
 export default function formatApiHandlerParams<Name extends ApiName>({
+  userAgent,
   api,
   params,
   currentUserId,
 }: {
+  userAgent?: string,
   api: ApiDefinition<Name>,
   params: ApiNameToParams[Name],
   currentUserId: EntityId | undefined,
@@ -17,6 +19,7 @@ export default function formatApiHandlerParams<Name extends ApiName>({
   }
 
   return {
+    userAgent,
     ...params,
     currentUserId: currentUserId as EntityId | (Name extends AuthApiName ? never : undefined),
   };

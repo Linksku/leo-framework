@@ -1,5 +1,5 @@
-import useLatest from 'utils/hooks/useLatest';
-import { useInnerContainerRef, useIsRouteActive } from 'stores/RouteStore';
+import useLatest from 'hooks/useLatest';
+import { useInnerContainerRef, useGetIsRouteActive } from 'stores/RouteStore';
 
 import styles from './WindowedInfiniteScrollerColumnStyles.scss';
 
@@ -15,9 +15,10 @@ export type Row = {
 
 export type ItemProps = {
   item: string | number,
-  aboveItem: string | number,
-  belowItem: string | number,
+  aboveItem: string | number | undefined,
+  belowItem: string | number | undefined,
   columnIdx: number,
+  hasRightColumn: boolean,
 };
 
 export type ListItemRendererProps<
@@ -32,9 +33,10 @@ export type ListItemRendererProps<
 
 type ListItemProps = {
   item: string | number,
-  aboveItem: string | number,
-  belowItem: string | number,
+  aboveItem: string | number | undefined,
+  belowItem: string | number | undefined,
   columnIdx: number,
+  hasRightColumn: boolean,
   defaultVisible: boolean,
   defaultBlock: boolean,
   isOverflowAnchor: boolean,
@@ -49,6 +51,7 @@ const WindowedInfiniteScrollerListItem = React.memo(function WindowedInfiniteScr
   aboveItem,
   belowItem,
   columnIdx,
+  hasRightColumn,
   ItemRenderer,
   otherItemProps,
   defaultVisible,
@@ -156,6 +159,7 @@ const WindowedInfiniteScrollerListItem = React.memo(function WindowedInfiniteScr
             aboveItem={aboveItem}
             belowItem={belowItem}
             columnIdx={columnIdx}
+            hasRightColumn={hasRightColumn}
             {...otherItemProps}
           />
         </div>
@@ -167,11 +171,12 @@ const WindowedInfiniteScrollerListItem = React.memo(function WindowedInfiniteScr
 export type ColumnProps = {
   reverse?: boolean,
   hasReachedEnd: boolean,
-  onReachEnd: () => void,
+  onReachEnd: Memoed<(colIdx: number) => void>,
 } & ListItemRendererProps;
 
 type Props = {
   columnIdx: number,
+  hasRightColumn: boolean,
   items: (string | number)[],
   addedItems?: Memoed<(string | number)[]>,
   initialVisibleItems: Set<string | number>,
@@ -181,6 +186,7 @@ type Props = {
 
 export default function WindowedInfiniteScrollerColumn({
   columnIdx,
+  hasRightColumn,
   items,
   addedItems,
   initialVisibleItems,
@@ -192,12 +198,11 @@ export default function WindowedInfiniteScrollerColumn({
   onReachEnd,
   scrollParentRelative,
 }: Props) {
-  const isRouteActive = useIsRouteActive();
+  const getIsRouteActive = useGetIsRouteActive();
   const latestRef = useLatest({
     items,
     itemToRow,
     onReachEnd,
-    isRouteActive,
   });
   const ref = useRef(useConst(() => ({
     elemToItem: new Map() as Map<HTMLDivElement, string | number>,
@@ -222,7 +227,7 @@ export default function WindowedInfiniteScrollerColumn({
         if ((entry.intersectionRatio > 0 || entry.isIntersecting)
           && !ref.current.curVisibleItems.has(item)) {
           if ((!reverse && !row.hasBelowItem) || (reverse && !row.hasAboveItem)) {
-            latestRef.current.onReachEnd();
+            latestRef.current.onReachEnd(columnIdx);
           }
           ref.current.curVisibleItems.add(item);
           changed.add(item);
@@ -252,21 +257,23 @@ export default function WindowedInfiniteScrollerColumn({
         }
       }
 
-      const centerItem = latestRef.current.items
-        .filter(item => ref.current.curVisibleItems.has(item))[
-          Math.floor(ref.current.curVisibleItems.size / 2)
-        ];
-      if (centerItem !== ref.current.overflowAnchorItem) {
-        if (ref.current.overflowAnchorItem) {
-          const overflowAnchorElem = latestRef.current.itemToRow
-            .get(ref.current.overflowAnchorItem)?.elem;
-          TS.defined(overflowAnchorElem).style.overflowAnchor = '';
+      if (reverse) {
+        const centerItem = latestRef.current.items
+          .filter(item => ref.current.curVisibleItems.has(item))[
+            Math.floor(ref.current.curVisibleItems.size / 2)
+          ];
+        if (centerItem !== ref.current.overflowAnchorItem) {
+          if (ref.current.overflowAnchorItem) {
+            const overflowAnchorElem = latestRef.current.itemToRow
+              .get(ref.current.overflowAnchorItem)?.elem;
+            TS.defined(overflowAnchorElem).style.overflowAnchor = '';
+          }
+          if (centerItem) {
+            const centerElem = latestRef.current.itemToRow.get(centerItem)?.elem;
+            TS.defined(centerElem).style.overflowAnchor = 'auto';
+          }
+          ref.current.overflowAnchorItem = centerItem;
         }
-        if (centerItem) {
-          const centerElem = latestRef.current.itemToRow.get(centerItem)?.elem;
-          TS.defined(centerElem).style.overflowAnchor = 'auto';
-        }
-        ref.current.overflowAnchorItem = centerItem;
       }
     }, {
       root: innerContainerRef.current,
@@ -302,12 +309,12 @@ export default function WindowedInfiniteScrollerColumn({
     const row = latestRef.current.itemToRow.get(item);
     if (row) {
       row.height = height;
-    } else if (addedItems?.includes(item) && latestRef.current.isRouteActive) {
+    } else if (addedItems?.includes(item) && getIsRouteActive()) {
       setTimeout(() => {
         elem.scrollIntoView(true);
       }, 0);
     }
-  }, [latestRef, addedItems]);
+  }, [latestRef, addedItems, getIsRouteActive]);
 
   const handleItemUnmount = useCallback((item: string | number) => {
     const row = latestRef.current.itemToRow.get(item);
@@ -327,6 +334,7 @@ export default function WindowedInfiniteScrollerColumn({
           aboveItem={items[reverse ? idx + 1 : idx - 1]}
           belowItem={items[reverse ? idx - 1 : idx + 1]}
           columnIdx={columnIdx}
+          hasRightColumn={hasRightColumn}
           defaultVisible={initialVisibleItems.has(item)}
           defaultBlock={
             initialVisibleItems.has(item) || initialVisibleItems.has(items[idx - 1])

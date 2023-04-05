@@ -40,9 +40,9 @@ function _getDateProps(entities: ModelSerializedForApi[]): ObjectOf<string[]> {
     }
     dateProps[e.type] = [];
 
-    for (const [k, v] of TS.objEntries(getModelClass(e.type).getSchema())) {
-      if (isPropDate(v)) {
-        TS.defined(dateProps[e.type]).push(k);
+    for (const pair of TS.objEntries(getModelClass(e.type).getSchema())) {
+      if (isPropDate(pair[1])) {
+        TS.defined(dateProps[e.type]).push(pair[0]);
       }
     }
   }

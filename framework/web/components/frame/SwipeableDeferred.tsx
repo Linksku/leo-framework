@@ -1,5 +1,5 @@
-import useUpdate from 'utils/hooks/useUpdate';
-import useMountedState from 'utils/hooks/useMountedState';
+import useUpdate from 'hooks/useUpdate';
+import useMountedState from 'hooks/useMountedState';
 import type SwipeableType from './Swipeable';
 import type { Props } from './Swipeable';
 

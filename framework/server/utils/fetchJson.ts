@@ -3,6 +3,7 @@ import type { HeadersInit, RequestInit, Response } from 'undici';
 import { URLSearchParams } from 'url';
 import promiseTimeout from 'utils/promiseTimeout';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
+import safeParseJson from 'utils/safeParseJson';
 
 export default async function fetchJson(
   url: string,
@@ -40,16 +41,14 @@ export default async function fetchJson(
     };
   }
 
-  let data: any = null;
   const text = await res.text();
-  try {
-    data = deepFreezeIfDev(JSON.parse(text));
-  } catch {
+  const data = safeParseJson(text);
+  if (data === undefined) {
     throw getErr(`fetchJson(${url}): unable to parse JSON`, { text });
   }
 
   return {
-    data,
+    data: deepFreezeIfDev(data),
     status: res.status,
   };
 }

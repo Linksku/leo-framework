@@ -33,7 +33,12 @@ export default function formatError(
     const debugCtxStr = debugCtxArr
       .map(([key, val]) => `${key}: ${serializeCtxVal(val).slice(0, 1000)}`)
       .join('\n  ');
-    let stackLines = err.stack?.split('\n') ?? [];
+    let stackLines = err.stack?.split('\n')
+      .filter(line => line && !line.includes(' (node:'))
+      ?? [];
+    if (!stackLines.length) {
+      stackLines.push(err.message);
+    }
     if (maxStackLines !== undefined) {
       stackLines = stackLines.slice(0, maxStackLines + 1);
     }

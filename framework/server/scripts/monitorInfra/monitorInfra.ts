@@ -5,11 +5,11 @@ import monitorMZSinkTopics from './steps/monitorMZSinkTopics';
 
 // todo: high/mid write logs to file in dev to debug
 export default async function monitorInfra() {
-  await initCheckFailingHealthchecks();
+  await withErrCtx(initCheckFailingHealthchecks(), 'monitorInfra: initCheckFailingHealthchecks');
 
   await Promise.all([
-    monitorHealthchecks(),
-    monitorMZPrometheus(),
-    monitorMZSinkTopics(),
+    withErrCtx(monitorHealthchecks(), 'monitorInfra: monitorHealthchecks'),
+    withErrCtx(monitorMZPrometheus(), 'monitorInfra: monitorMZPrometheus'),
+    withErrCtx(monitorMZSinkTopics(), 'monitorInfra: monitorMZSinkTopics'),
   ]);
 }

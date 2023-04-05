@@ -1,4 +1,4 @@
-if (!process.env.PRODUCTION) {
+if (!process.env.PRODUCTION && window.localStorage.getItem('DEBUG')) {
   // eslint-disable-next-line unicorn/prefer-module
   const whyDidYouRender = require('@welldone-software/why-did-you-render');
 

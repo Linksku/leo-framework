@@ -441,11 +441,15 @@ export default async function pgdump() {
   printDebug(
     'Restore BT',
     'info',
-    `psql -d ${process.env.PG_BT_DB} -f app/pgdumpBT.sql --username ${process.env.PG_BT_USER} --password --host=${PG_BT_HOST} -v ON_ERROR_STOP=1`,
+    {
+      details: `psql -d ${process.env.PG_BT_DB} -f app/pgdumpBT.sql --username ${process.env.PG_BT_USER} --password --host=${PG_BT_HOST} -v ON_ERROR_STOP=1`,
+    },
   );
   printDebug(
     'Restore RR',
     'info',
-    `psql -d ${process.env.PG_RR_DB} -f app/pgdumpRR.sql --username ${process.env.PG_RR_USER} --password --host=${PG_RR_HOST} -v ON_ERROR_STOP=1`,
+    {
+      details: `psql -d ${process.env.PG_RR_DB} -f app/pgdumpRR.sql --username ${process.env.PG_RR_USER} --password --host=${PG_RR_HOST} -v ON_ERROR_STOP=1`,
+    },
   );
 }

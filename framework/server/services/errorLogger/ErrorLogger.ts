@@ -52,8 +52,7 @@ function _log(level: SeverityLevel, err: Error) {
       });
     });
   } catch (err2) {
-    // eslint-disable-next-line no-console
-    console.error(err2);
+    printDebug(err2, 'error', { prod: 'always' });
   }
 }
 
@@ -103,12 +102,7 @@ const ErrorLogger = {
     }
 
     if (consoleLog) {
-      if (process.env.PRODUCTION) {
-        // eslint-disable-next-line no-console
-        console.log(err);
-      } else {
-        printDebug(err, 'error');
-      }
+      printDebug(err, 'error', { prod: 'always' });
     }
     _log('error', err);
   },
@@ -132,23 +126,16 @@ const ErrorLogger = {
         });
       }
 
-      if (process.env.PRODUCTION) {
-        // eslint-disable-next-line no-console
-        console.log(err);
-      } else {
-        printDebug(err, 'error');
-      }
+      printDebug(err, 'error', { prod: 'always' });
       _log('fatal', err);
     } catch (err2) {
-      // eslint-disable-next-line no-console
-      console.log(err2);
+      printDebug(err2, 'error', { prod: 'always' });
     }
 
     try {
       await ErrorLogger.flushAndExit(1);
     } catch (err2) {
-      // eslint-disable-next-line no-console
-      console.log(err2);
+      printDebug(err2, 'error', { prod: 'always' });
       // eslint-disable-next-line unicorn/no-process-exit
       process.exit(1);
     }
@@ -158,8 +145,7 @@ const ErrorLogger = {
     try {
       await Sentry.close(2000);
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.log(err);
+      printDebug(err, 'error', { prod: 'always' });
     }
     // eslint-disable-next-line unicorn/no-process-exit
     process.exit(code);

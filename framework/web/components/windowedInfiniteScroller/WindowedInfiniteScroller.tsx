@@ -1,5 +1,5 @@
-import type { PaginatedApiName } from 'utils/hooks/useApi/usePaginationApi';
-import usePaginationApi from 'utils/hooks/useApi/usePaginationApi';
+import type { PaginatedApiName } from 'hooks/useApi/usePaginationApi';
+import usePaginationApi from 'hooks/useApi/usePaginationApi';
 
 import type { ListItemRendererProps } from './WindowedInfiniteScrollerColumn';
 import WindowedInfiniteScrollerInner, { Props as InnerProps } from './WindowedInfiniteScrollerInner';

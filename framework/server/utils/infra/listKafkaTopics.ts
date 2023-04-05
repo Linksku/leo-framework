@@ -1,11 +1,11 @@
 import kafkaAdmin from 'services/kafkaAdmin';
-import rand from 'utils/rand';
+import randInt from 'utils/randInt';
 
 export default async function listKafkaTopics(prefixOrRegex: string | RegExp) {
   try {
     // Force refetch topics
     await kafkaAdmin.fetchTopicMetadata({
-      topics: [`${rand(0, Number.MAX_SAFE_INTEGER)}`],
+      topics: [`${randInt(0, Number.MAX_SAFE_INTEGER)}`],
     });
   } catch {}
 

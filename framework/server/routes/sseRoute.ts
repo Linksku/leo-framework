@@ -12,6 +12,7 @@ import requestContextMiddleware from 'routes/api/helpers/requestContextMiddlewar
 import RequestContextLocalStorage from 'services/requestContext/RequestContextLocalStorage';
 import { DOMAIN_NAME, HOME_URL, PROTOCOL } from 'settings';
 import { SSE_JWT_KEY } from 'helpers/auth/jwt';
+import safeParseJson from 'utils/safeParseJson';
 
 const router = express.Router();
 router.use(rateLimitMiddleware(100));
@@ -33,17 +34,22 @@ router.use(requestContextMiddleware);
 
 router.get('/', async (req, res) => {
   try {
-    let params = {} as {
+    type Params = {
       otp: Nullish<string>,
       events: Nullish<{
         name: string,
         params: any,
       }[]>,
     };
+    let params = {} as Params;
     if (typeof req.query.params === 'string') {
-      try {
-        params = JSON.parse(req.query.params);
-      } catch {}
+      const parsed = safeParseJson<Params>(
+        req.query.params,
+        val => val && typeof val === 'object',
+      );
+      if (parsed) {
+        params = parsed;
+      }
     }
 
     const { otp, events } = params;

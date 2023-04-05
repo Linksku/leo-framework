@@ -20,7 +20,7 @@ try {
   // Note: yargs built-in validation allows non-numbers and converts them to NaN
   promise = fn(yargs(process.argv).argv);
 } catch (err) {
-  printDebug(getErr(err, { ctx: 'serverScript' }), 'error');
+  printDebug(getErr(err, { ctx: `serverScript (${process.env.SERVER_SCRIPT_PATH})` }), 'error');
   await ErrorLogger.flushAndExit(1);
 }
 
@@ -32,7 +32,7 @@ if (promise && promise.then) {
     await promise;
     await ErrorLogger.flushAndExit(0);
   } catch (err) {
-    printDebug(getErr(err, { ctx: 'serverScript' }), 'error');
+    printDebug(getErr(err, { ctx: `serverScript (${process.env.SERVER_SCRIPT_PATH})` }), 'error');
     await ErrorLogger.flushAndExit(1);
   }
 }

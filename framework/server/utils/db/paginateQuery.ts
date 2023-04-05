@@ -79,34 +79,38 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
 
     query = query.where(builder => {
       builder = builder.whereRaw('0=1');
-      for (const [idx, { column, order }] of orderByColumns.entries()) {
+      for (let i = 0; i < orderByColumns.length; i++) {
+        const { column, order } = orderByColumns[i];
+
         builder = builder.orWhere(builder2 => {
-          for (const [idx2, { column: column2 }] of orderByColumns.slice(0, idx).entries()) {
+          for (let j = 0; j < i; j++) {
             builder2 = builder2.where(
-              column2,
+              orderByColumns[j].column,
               '=',
-              cursorCols[idx2],
+              cursorCols[j],
             );
           }
           builder2 = builder2.where(
             column,
             order === 'desc' ? '<' : '>',
-            cursorCols[idx],
+            cursorCols[i],
           );
         });
       }
     });
   }
 
-  for (let [idx, {
-    column,
-    columnWithoutTransforms,
-    order,
-    nulls,
-  }] of orderByColumns.entries()) {
+  for (let i = 0; i < orderByColumns.length; i++) {
+    let {
+      column,
+      columnWithoutTransforms,
+      order,
+      nulls,
+    } = orderByColumns[i];
+
     query = query
       .select({
-        [`__cursorVal${idx}`]: column,
+        [`__cursorVal${i}`]: column,
       });
     if (order === 'desc' && nulls === undefined) {
       nulls = 'last';

@@ -1,11 +1,10 @@
 import Swipeable from 'components/frame/Swipeable';
-import { useAnimation, DEFAULT_DURATION } from 'utils/hooks/useAnimation';
+import { useAnimation, DEFAULT_DURATION } from 'hooks/useAnimation';
 import { HomeSidebarInner } from 'config/homeComponents';
 import ErrorBoundary from 'components/ErrorBoundary';
 
 import styles from './HomeSidebarStyles.scss';
 
-// todo: low/easy hide sidebar after popstate
 export default React.memo(function HomeSidebar() {
   const {
     sidebarLoaded,

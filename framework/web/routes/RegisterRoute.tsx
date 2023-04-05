@@ -18,9 +18,9 @@ export default React.memo(function RegisterRoute() {
     },
   });
   const { errors } = useFormState({ control });
-  const { authState, setAuth } = useAuthStore();
+  const { authState, setAuth, isReloadingAfterAuth } = useAuthStore();
 
-  const { fetching: submitting, fetchApi: registerUser, error: apiError } = useDeferredApi(
+  const { fetching, fetchApi: registerUser, error: apiError } = useDeferredApi(
     'registerUser',
     EMPTY_OBJ,
     {
@@ -36,6 +36,7 @@ export default React.memo(function RegisterRoute() {
     },
   );
 
+  const disabled = fetching || isReloadingAfterAuth || authState === 'in';
   return (
     <StackWrapInner
       title="Sign Up"
@@ -43,13 +44,19 @@ export default React.memo(function RegisterRoute() {
       <div className={styles.container}>
         {authState === 'in' && (
           <p className={styles.loggedInMsg}>
-            <InfoSvg />
-            {' '}
-            Already logged in.
-            {' '}
-            <Link href="/">Go back to home</Link>
-            {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
-            {'.'}
+            {isReloadingAfterAuth
+              ? 'Redirecting.'
+              : (
+                <>
+                  <InfoSvg />
+                  {' '}
+                  Already logged in.
+                  {' '}
+                  <Link href="/">Go back to home</Link>
+                  {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
+                  {'.'}
+                </>
+              )}
           </p>
         )}
         <form
@@ -72,7 +79,7 @@ export default React.memo(function RegisterRoute() {
             registerOpts={{
               required: 'Email is required.',
             }}
-            disabled={submitting}
+            disabled={disabled}
             required
           />
 
@@ -86,7 +93,7 @@ export default React.memo(function RegisterRoute() {
               minLength: { value: 8, message: 'Password needs to be at least 8 characters.' },
               maxLength: { value: 64, message: 'Password too long.' },
             }}
-            disabled={submitting}
+            disabled={disabled}
             required
             placeholder="••••••••"
           />
@@ -99,7 +106,7 @@ export default React.memo(function RegisterRoute() {
             registerOpts={{
               required: 'Name is required',
             }}
-            disabled={submitting}
+            disabled={disabled}
             required
           />
           <p className={styles.hint}>
@@ -124,7 +131,7 @@ export default React.memo(function RegisterRoute() {
                 return true;
               },
             }}
-            disabled={submitting}
+            disabled={disabled}
             required
           />
           <p className={styles.hint}>
@@ -152,7 +159,7 @@ export default React.memo(function RegisterRoute() {
             Component="input"
             type="submit"
             fullWidth
-            disabled={submitting}
+            disabled={disabled}
             value="Sign Up"
           />
         </form>

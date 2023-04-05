@@ -5,9 +5,9 @@ import { App as Capacitor } from '@capacitor/app';
 // Include in main bundle
 import '@capacitor/app/dist/esm/web.js';
 
-import useUpdate from 'utils/hooks/useUpdate';
-import useEffectInitialMount from 'utils/hooks/useEffectInitialMount';
-import useWindowEvent from 'utils/hooks/useWindowEvent';
+import useUpdate from 'hooks/useUpdate';
+import useEffectInitialMount from 'hooks/useEffectInitialMount';
+import useWindowEvent from 'hooks/useWindowEvent';
 
 type Direction = 'none' | 'back' | 'forward';
 

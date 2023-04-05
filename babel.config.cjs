@@ -33,7 +33,7 @@ module.exports = {
       plugins: [
         ['module-resolver', {
           root: ['./app/web', './app/shared', './framework/web', './framework/shared'],
-          extensions: ['.js', '.ts', '.tsx', '.cjs'],
+          extensions: ['.js', '.ts', '.tsx', '.cjs', '.json'],
           alias: {
             config: ['./app/web/config', './app/shared/config'],
           },
@@ -57,7 +57,7 @@ module.exports = {
       plugins: [
         ['module-resolver', {
           root: ['./app/server', './app/shared', './framework/server', './framework/shared'],
-          extensions: ['.js', '.ts', '.cjs'],
+          extensions: ['.js', '.ts', '.cjs', '.json'],
           alias: {
             config: ['./app/server/config', './app/shared/config'],
           },
@@ -69,7 +69,7 @@ module.exports = {
       plugins: [
         ['module-resolver', {
           root: ['./app/shared', './framework/shared'],
-          extensions: ['.js', '.ts', '.cjs'],
+          extensions: ['.js', '.ts', '.cjs', '.json'],
           alias: {
             config: './app/shared/config',
           },
@@ -81,7 +81,7 @@ module.exports = {
       plugins: [
         ['module-resolver', {
           root: ['./app/tests', './app/shared', './framework/tests', './framework/shared'],
-          extensions: ['.js', '.ts', '.cjs'],
+          extensions: ['.js', '.ts', '.cjs', '.json'],
         }],
       ],
     },

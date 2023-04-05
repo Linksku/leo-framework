@@ -10,7 +10,7 @@ import isModelType from 'utils/models/isModelType';
 function getChangedModels(diff: string): string[] | 'other' {
   const lines = diff.split('\n');
   let changedLine: string | null = null;
-  const models: string[] = [];
+  let models: string[] = [];
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i].trim();
 
@@ -49,6 +49,13 @@ function getChangedModels(diff: string): string[] | 'other' {
         continue;
       }
 
+      const matches2 = tmpLine.match(/^\s*CREATE INDEX "?(\w+)"? ON ("?\w+"?\.)?"?(\w+)"? /);
+      if (matches2) {
+        models.push(matches2[3]);
+        changedLine = null;
+        continue;
+      }
+
       changedLine = tmpLine;
     }
   }
@@ -57,10 +64,11 @@ function getChangedModels(diff: string): string[] | 'other' {
     printDebug(`syncDbAfterMigration.getChangedModels: other changed line: ${changedLine}`, 'warn');
     return 'other';
   }
+  models = uniq(models);
   if (models.length) {
     printDebug(`syncDbAfterMigration.getChangedModels: changed models: ${models.join(', ')}`, 'info');
   }
-  return uniq(models);
+  return models;
 }
 
 export default async function syncDbAfterMigration() {

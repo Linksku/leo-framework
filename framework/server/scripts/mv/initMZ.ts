@@ -1,7 +1,6 @@
 import { ENABLE_DBZ } from 'consts/mz';
 import redisFlushAll from 'utils/infra/redisFlushAll';
 import { HEALTHCHECK, MODEL_NAMESPACES } from 'consts/coreRedisNamespaces';
-import withErrCtx from 'utils/withErrCtx';
 import initInfraWrap from 'utils/infra/initInfraWrap';
 import startMZDocker from './steps/startMZDocker';
 import createMZViewsFromPostgres from './steps/createMZViewsFromPostgres';

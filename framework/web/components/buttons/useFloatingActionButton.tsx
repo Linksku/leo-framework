@@ -1,5 +1,5 @@
-import useVisibilityObserver from 'utils/hooks/useVisibilityObserver';
-import { useAnimatedValue, useAnimation } from 'utils/hooks/useAnimation';
+import useVisibilityObserver from 'hooks/useVisibilityObserver';
+import { useAnimatedValue, useAnimation } from 'hooks/useAnimation';
 
 import styles from './useFloatingActionButtonStyles.scss';
 

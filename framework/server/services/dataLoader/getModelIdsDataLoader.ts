@@ -32,9 +32,9 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
 
         return partials.map(partial => {
           const matchedRows = rows.filter(row => {
-            for (const [k, v] of TS.objEntries(partial)) {
+            for (const pair of TS.objEntries(partial)) {
               // @ts-ignore wontfix no overlap
-              if (row[k] !== v) {
+              if (row[pair[0]] !== pair[1]) {
                 return false;
               }
             }

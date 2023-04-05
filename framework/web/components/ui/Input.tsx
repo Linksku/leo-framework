@@ -5,8 +5,11 @@ import styles from './InputStyles.scss';
 type Props = {
   className?: string,
   label?: ReactNode,
+  labelProps?: React.HTMLAttributes<HTMLLabelElement>,
   prefix?: ReactNode,
+  prefixProps?: React.HTMLAttributes<HTMLSpanElement>,
   suffix?: ReactNode,
+  suffixProps?: React.HTMLAttributes<HTMLSpanElement>,
   error?: boolean,
   register?: UseFormRegister<any>,
   registerOpts?: RegisterOptions<any>,
@@ -16,8 +19,11 @@ function Input({
   children: _,
   className,
   label,
+  labelProps,
   prefix,
+  prefixProps,
   suffix,
+  suffixProps,
   error,
   name,
   register,
@@ -43,9 +49,9 @@ function Input({
         [styles.labelWrap]: label,
       })}
     >
-      {label && <span className={styles.label}>{label}</span>}
-      {prefix && <span className={styles.prefix}>{prefix}</span>}
-      {suffix && <span className={styles.suffix}>{suffix}</span>}
+      {label && <span {...labelProps} className={styles.label}>{label}</span>}
+      {prefix && <span {...prefixProps} className={styles.prefix}>{prefix}</span>}
+      {suffix && <span {...suffixProps} className={styles.suffix}>{suffix}</span>}
       <span className={styles.inputWrap}>
         <input
           {...registerProps}

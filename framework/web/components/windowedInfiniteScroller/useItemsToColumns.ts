@@ -1,6 +1,6 @@
-import usePrevious from 'utils/hooks/usePrevious';
+import usePrevious from 'hooks/usePrevious';
 
-import useUpdatedState from 'utils/hooks/useUpdatedState';
+import useUpdatedState from 'hooks/useUpdatedState';
 
 import type { Row } from './WindowedInfiniteScrollerColumn';
 
@@ -84,41 +84,32 @@ export default function useItemsToColumns({
       }
 
       const columnsWithNew = new Set<number>();
-      let maxHeight = Math.max(...columnHeights);
-      let colsWithMaxHeight = columnHeights.filter(h => h === maxHeight).length;
+      const initialMaxHeight = Math.max(...columnHeights);
       // Needed for when 1 column is over a screen taller than another column,
       // so intersectionobserver never triggers.
       let maxHeightChanged = false;
-      let col = 0;
       for (const item of newItems) {
         const isAddedItem = addedItemsSet?.has(item);
-        for (; col < columns; col = (col + 1) % columns) {
-          if (columnHeights[col] < maxHeight || colsWithMaxHeight === columns) {
-            if (isAddedItem && !addToEnd) {
-              columnItems[col].unshift(item);
-            } else {
-              columnItems[col].push(item);
-            }
+        const minHeight = Math.min(...columnHeights);
+        const minHeightCol = columnHeights.indexOf(minHeight);
+        if (isAddedItem && !addToEnd) {
+          columnItems[minHeightCol].unshift(item);
+        } else {
+          columnItems[minHeightCol].push(item);
+        }
 
-            if (!columnsWithNew.has(col) || !maxHeightChanged) {
-              columnsWithNew.add(col);
-              initialVisibleItems.add(item);
-            } else if (isAddedItem) {
-              initialVisibleItems.add(item);
-            }
+        if (!columnsWithNew.has(minHeightCol) || !maxHeightChanged) {
+          columnsWithNew.add(minHeightCol);
+          initialVisibleItems.add(item);
+        } else if (isAddedItem) {
+          initialVisibleItems.add(item);
+        }
 
-            columnHeights[col] += estimateItemHeight
-              ? estimateItemHeight(item, avgHeight)
-              : avgHeight;
-            if (columnHeights[col] === maxHeight) {
-              colsWithMaxHeight += 1;
-            } else if (columnHeights[col] > maxHeight) {
-              maxHeight = columnHeights[col];
-              maxHeightChanged = true;
-              colsWithMaxHeight = 1;
-            }
-            break;
-          }
+        columnHeights[minHeightCol] += estimateItemHeight
+          ? estimateItemHeight(item, avgHeight)
+          : avgHeight;
+        if (!maxHeightChanged && columnHeights[minHeightCol] > initialMaxHeight) {
+          maxHeightChanged = true;
         }
       }
     }

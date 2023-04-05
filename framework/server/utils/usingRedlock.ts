@@ -24,6 +24,8 @@ export default async function usingRedlock(
     // todo: mid/easy free lock before exiting
     await redlock.using([lockName], timeout, async signal => {
       signal.addEventListener('abort', () => {
+        // todo: mid/easy don't exit for "Cannot extend an already-expired lock"
+
         ErrorLogger.fatal(signal.error, {
           ctx: `usingRedlock: lock "${lockName}" aborted`,
         })

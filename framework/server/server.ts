@@ -32,15 +32,15 @@ try {
   if (cluster.isMaster) {
     if (process.env.PRODUCTION) {
       await Promise.all([
-        initCheckPgExtensions(),
-        initCheckTimeZone(),
-        fetchEachModelOnce(),
+        withErrCtx(initCheckPgExtensions(), 'server: initCheckPgExtensions'),
+        withErrCtx(initCheckTimeZone(), 'server: initCheckTimeZone'),
+        withErrCtx(fetchEachModelOnce(), 'server: fetchEachModelOnce'),
       ]);
     } else {
       await redisFlushAll([...MODEL_NAMESPACES, PUB_SUB, RATE_LIMIT]);
-      wrapPromise(initCheckPgExtensions(), 'fatal', 'Check PG extensions');
-      wrapPromise(initCheckTimeZone(), 'fatal', 'Check timezone');
-      wrapPromise(fetchEachModelOnce(), 'fatal', 'Fetch models');
+      wrapPromise(initCheckPgExtensions(), 'fatal', 'server: initCheckPgExtensions');
+      wrapPromise(initCheckTimeZone(), 'fatal', 'server: initCheckTimeZone');
+      wrapPromise(fetchEachModelOnce(), 'fatal', 'server: fetchEachModelOnce');
     }
 
     if (NUM_CLUSTER_SERVERS > 1) {
@@ -57,9 +57,9 @@ try {
 
   if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
     // todo: low/mid share healthcheck state within cluster
-    startHealthchecks();
-    await startCronJobs();
-    scheduleRestartWorker();
+    withErrCtx(() => startHealthchecks(), 'server: startHealthchecks');
+    await withErrCtx(startCronJobs(), 'server: startCronjobs');
+    withErrCtx(() => scheduleRestartWorker(), 'server: scheduleRestartWorker');
 
     let sslKey = '';
     let sslCert = '';

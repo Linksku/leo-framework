@@ -68,5 +68,9 @@ module.exports = {
     'shorthand-property-no-redundant-values': null,
     'selector-attribute-quotes': null,
     'declaration-colon-newline-after': null,
+    'declaration-block-no-redundant-longhand-properties': [true, {
+      // Temporary because of low support
+      ignoreShorthands: ['inset'],
+    }],
   },
 };

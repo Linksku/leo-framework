@@ -10,6 +10,7 @@ const redisConfig = {
   password: process.env.REDIS_PASS,
   maxRetriesPerRequest: 3,
   commandTimeout: API_TIMEOUT / 2,
+  showFriendlyErrorStack: !process.env.PRODUCTION,
 };
 
 export function shouldIgnoreRedisError(err: any) {

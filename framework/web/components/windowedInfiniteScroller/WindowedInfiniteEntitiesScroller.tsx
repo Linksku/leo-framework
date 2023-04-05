@@ -1,5 +1,5 @@
-import type { PaginatedEntitiesApiName, ShouldAddCreatedEntity } from 'utils/hooks/useApi/useEntitiesPaginationApi';
-import useEntitiesPaginationApi from 'utils/hooks/useApi/useEntitiesPaginationApi';
+import type { PaginatedEntitiesApiName, ShouldAddCreatedEntity } from 'hooks/useApi/useEntitiesPaginationApi';
+import useEntitiesPaginationApi from 'hooks/useApi/useEntitiesPaginationApi';
 
 import type { ListItemRendererProps } from './WindowedInfiniteScrollerColumn';
 import WindowedInfiniteScrollerInner, { Props as InnerProps } from './WindowedInfiniteScrollerInner';

@@ -24,11 +24,13 @@ export default async function paginateMergeQueries<T extends QueryBuilder<Model>
 
   let mergedEntities = results.flatMap(r => r.entities);
   mergedEntities.sort((a, b) => {
-    for (let [idx, { order, nulls }] of orderByColumns.entries()) {
+    for (let i = 0; i < orderByColumns.length; i++) {
+      let { order, nulls } = orderByColumns[i];
+
       // @ts-ignore wontfix key hack
-      const aVal = a[`__cursorVal${idx}`];
+      const aVal = a[`__cursorVal${i}`];
       // @ts-ignore wontfix key hack
-      const bVal = b[`__cursorVal${idx}`];
+      const bVal = b[`__cursorVal${i}`];
       if (!nulls) {
         nulls = order === 'desc' ? 'last' : 'first';
       }

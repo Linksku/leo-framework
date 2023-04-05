@@ -27,26 +27,39 @@ export default async function getServersStatus(args?: Arguments | {
       val => Array.isArray(val.failing)
         && val.failing.every(
           (f: any) => f && typeof f === 'object'
-            && typeof f.name === 'string' && typeof f.numFails === 'number'
+            && typeof f.name === 'string'
+            && typeof f.numFails === 'number'
+            && typeof f.isStale === 'boolean'
             && (f.lastErr == null || typeof f.lastErr === 'string'),
         )
         && typeof val.time === 'string',
     );
 
     if (!args?.silent) {
-      const isOutdated = Date.now() - new Date(datum.time).getTime() > SERVER_STATUS_MAX_STALENESS;
+      const timeAgo = Date.now() - new Date(datum.time).getTime();
+      const isOutdated = timeAgo > SERVER_STATUS_MAX_STALENESS;
       if (isOutdated || datum.failing?.length) {
         console.log(`Server ${k}: ${isOutdated ? chalk.yellow('outdated') : ''}`);
         for (const service of datum.failing) {
-          const color = !isOutdated && service.numFails >= getMinFails(service.name) ? 'red' : 'yellow';
+          const color = !isOutdated && !service.skipped && !service.isStale
+            && service.numFails >= getMinFails(service.name)
+            ? 'red'
+            : 'yellow';
           let msg = `  ${chalk[color](service.name)}`;
+          if (service.isStale) {
+            msg += ' (stale)';
+          } else if (service.skipped) {
+            msg += ' (skipped)';
+          } else if (service.numFails < getMinFails(service.name)) {
+            msg += ` (fails: ${service.numFails})`;
+          }
           if (service.lastErr) {
             msg += `: ${service.lastErr}`;
           }
           console.log(msg);
         }
       } else {
-        console.log(`Server ${k}: ${chalk.green('healthy')}`);
+        console.log(`Server ${k}: ${chalk.green('healthy')} (${Math.round(timeAgo / 1000)}s ago)`);
       }
     }
 

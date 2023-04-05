@@ -1,4 +1,5 @@
-import useAuthTokenLS from 'utils/hooks/localStorage/useAuthTokenLS';
+import useAuthTokenLS from 'hooks/localStorage/useAuthTokenLS';
+import useCurrentUserIdLS from 'hooks/localStorage/useCurrentUserIdLS';
 import { setErrorLoggerUserId } from 'services/ErrorLogger';
 
 /*
@@ -16,12 +17,12 @@ const [
 ] = constate(
   function AuthStore() {
     const [authToken, setAuthToken, removeAuthToken] = useAuthTokenLS();
+    const [currentUserIdLS, setCurrentUserIdLS, removeCurrentUserIdLS] = useCurrentUserIdLS();
     const [{ currentUserId, authState }, setState] = useStateStable<{
       currentUserId: IUser['id'] | null,
       authState: AuthStateType,
     }>({
-      // todo: mid/easy store last currentUserId in localStorage
-      currentUserId: null,
+      currentUserId: currentUserIdLS,
       authState: authToken ? 'fetching' : 'out',
     });
     const [isReloadingAfterAuth, setIsReloadingAfterAuth] = useState(false);
@@ -39,16 +40,25 @@ const [
     }) => {
       if (newAuthToken && userId) {
         setAuthToken(newAuthToken);
+        setCurrentUserIdLS(userId);
         setState({ currentUserId: userId, authState: 'in' });
       } else {
         removeAuthToken();
+        removeCurrentUserIdLS();
         setState({ currentUserId: null, authState: 'out' });
       }
 
       setIsReloadingAfterAuth(true);
       window.location.href = redirectPath;
       catchAsync(Promise.reject(new Promise(NOOP)));
-    }, [setAuthToken, removeAuthToken, setState, catchAsync]);
+    }, [
+      setAuthToken,
+      removeAuthToken,
+      setState,
+      catchAsync,
+      setCurrentUserIdLS,
+      removeCurrentUserIdLS,
+    ]);
 
     const fetchedCurrentUser = useCallback((newCurrentUserId: IUser['id'] | null) => {
       setErrorLoggerUserId(newCurrentUserId);
@@ -56,9 +66,10 @@ const [
         currentUserId: newCurrentUserId,
         authState: newCurrentUserId ? 'in' : 'out',
       });
-    }, [setState]);
+      setCurrentUserIdLS(newCurrentUserId);
+    }, [setState, setCurrentUserIdLS]);
 
-    if (!process.env.PRODUCTION && !!currentUserId !== (authState === 'in')) {
+    if (!process.env.PRODUCTION && !currentUserId && authState === 'in') {
       throw new Error('AuthStore: invalid authState');
     }
 

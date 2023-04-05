@@ -46,3 +46,42 @@ defineApi(
     };
   },
 );
+
+defineApi(
+  {
+    name: 'registerPushNotifToken',
+    auth: true,
+    paramsSchema: {
+      type: 'object',
+      required: ['platform', 'deviceId', 'registrationToken'],
+      properties: {
+        platform: {
+          type: 'string',
+          enum: ['web', 'android', 'ios'],
+        },
+        deviceId: SchemaConstants.content,
+        registrationToken: SchemaConstants.content,
+      },
+      additionalProperties: false,
+    },
+  },
+  async function registerPushNotifTokenApi({
+    platform,
+    deviceId,
+    registrationToken,
+    currentUserId,
+    userAgent,
+  }: ApiHandlerParams<'registerPushNotifToken'>) {
+    await UserDevice.insert({
+      userId: currentUserId,
+      platform,
+      deviceId,
+      userAgent: userAgent ?? null,
+      registrationToken,
+    }, { onDuplicate: 'update' });
+
+    return {
+      data: null,
+    };
+  },
+);

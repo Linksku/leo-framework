@@ -1,6 +1,6 @@
 import cluster from 'cluster';
 
-import rand from 'utils/rand';
+import randInt from 'utils/randInt';
 
 export default function scheduleRestartWorker() {
   if (cluster.isMaster) {
@@ -9,5 +9,5 @@ export default function scheduleRestartWorker() {
 
   setTimeout(() => {
     cluster.worker?.kill();
-  }, rand(23 * 60 * 60 * 1000, 25 * 60 * 60 * 1000));
+  }, randInt(23 * 60 * 60 * 1000, 25 * 60 * 60 * 1000));
 }

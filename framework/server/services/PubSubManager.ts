@@ -1,6 +1,7 @@
 import { redisSub, redisPub } from 'services/redis';
 import getServerId from 'utils/getServerId';
 import { PUB_SUB } from 'consts/coreRedisNamespaces';
+import safeParseJson from 'utils/safeParseJson';
 
 type Message = {
   data: string,
@@ -79,12 +80,10 @@ const PubSubManager = {
     }
 
     const eventType = channel.slice(PUB_SUB.length + 1);
-    let msg: Message;
-    try {
-      msg = JSON.parse(msgStr);
-    } catch {
+    const msg = safeParseJson<Message>(msgStr);
+    if (!msg) {
       ErrorLogger.error(
-        new Error(`PubSubManager.handleMessage(${channel}): msg isn't JSON`),
+        new Error(`PubSubManager.handleMessage(${channel}): invalid msg`),
         { msgStr },
       );
       return;

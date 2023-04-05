@@ -1,3 +1,4 @@
+import type { TypeId } from 'pg-types';
 import Knex from 'knex';
 import pg from 'pg';
 import pgArray from 'postgres-array';
@@ -14,7 +15,7 @@ pg.types.setTypeParser(pg.types.builtins.INT8, str => {
 });
 
 // INT8[]
-pg.types.setTypeParser(1016, val => pgArray.parse(val, str => {
+pg.types.setTypeParser(1016 as TypeId, val => pgArray.parse(val, str => {
   const int = Number.parseInt(str, 10);
   if (int > Number.MAX_SAFE_INTEGER || int < Number.MIN_SAFE_INTEGER) {
     throw new Error(`PG parseInt: INT8 ${str} is too large.`);

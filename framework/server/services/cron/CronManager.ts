@@ -45,7 +45,7 @@ export function defineCronJob(
   if (!process.env.PRODUCTION && name.includes(':')) {
     throw new Error(`defineCronJob: "${name}" shouldn't contain colon`);
   }
-  if (Object.hasOwnProperty.call(cronConfigs, name)) {
+  if (Object.prototype.hasOwnProperty.call(cronConfigs, name)) {
     throw new Error(`defineCronJob: "${name}" already exists`);
   }
 

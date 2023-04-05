@@ -1,5 +1,6 @@
-import { useAnimatedValue } from 'utils/hooks/useAnimation';
-import { useAnimation } from 'utils/hooks/useAnimation';
+import { useAnimatedValue } from 'hooks/useAnimation';
+import { useAnimation } from 'hooks/useAnimation';
+import useWindowEvent from 'hooks/useWindowEvent';
 
 export const [
   UIFrameProvider,
@@ -42,6 +43,10 @@ export const [
     );
 
     const loadSidebar = useCallback(() => setSidebarLoaded(true), []);
+
+    useWindowEvent('popstate', useCallback(() => {
+      hideSidebar();
+    }, [hideSidebar]));
 
     return useMemo(() => ({
       sidebarLoaded,

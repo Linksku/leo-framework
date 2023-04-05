@@ -6,11 +6,12 @@ export default async function promiseObj<
 >(
   obj: Obj,
 ): Promise<Ret> {
-  const results = await Promise.all(TS.objValues(obj));
+  const entries = TS.objEntries(obj);
+  const results = await Promise.all(entries.map(pair => pair[1]));
 
   const newObj = {} as Ret;
-  for (const [i, k] of TS.objKeys(obj).entries()) {
-    newObj[k] = results[i];
+  for (let i = 0; i < entries.length; i++) {
+    newObj[entries[i][0]] = results[i];
   }
   return newObj;
 }

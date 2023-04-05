@@ -9,7 +9,7 @@ const sharedGlobals = require('./framework/shared/config/globals.cjs');
 const sharedAppGlobals = require('./app/shared/config/globals.cjs');
 
 // const isVsCode = !!process.env.VSCODE_PID || !!process.env.VSCODE_CWD;
-const extensions = ['.js', '.ts', '.tsx', '.cjs', '.mjs'];
+const extensions = ['.js', '.ts', '.tsx', '.cjs', '.mjs', '.json'];
 
 const config = {
   parser: '@typescript-eslint/parser',
@@ -72,6 +72,7 @@ const config = {
     'no-param-reassign': 0,
     'no-unused-expressions': 1, /* Temporarily disable until do expressions are supported. */
     'lines-between-class-members': 0,
+    'no-restricted-globals': 0,
     'no-restricted-syntax': [2, 'ForInStatement', 'WithStatement'],
     eqeqeq: [2, 'always', {
       null: 'ignore',
@@ -306,6 +307,7 @@ const config = {
     'unicorn/no-negated-condition': 0,
     'unicorn/switch-case-braces': [2, 'avoid'],
     'unicorn/no-array-push-push': 0,
+    'unicorn/no-for-loop': 0,
   },
   overrides: [
     {

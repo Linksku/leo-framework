@@ -23,7 +23,7 @@ export default async function monitorMZPrometheus() {
         new Error('monitorMZPrometheus: fetchMZPrometheusFailingSinkIds timed out'),
       );
     } catch (err) {
-      if (!(err instanceof Error) || err.message.includes('unknown catalog item')) {
+      if (!(err instanceof Error) || !err.message.includes('unknown catalog item')) {
         ErrorLogger.error(err, { ctx: 'monitorMZPrometheus' });
       }
     }

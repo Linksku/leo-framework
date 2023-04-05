@@ -1,6 +1,6 @@
 import { Freeze } from 'react-freeze';
 
-import { useAnimatedValue, useAnimation, DEFAULT_DURATION } from 'utils/hooks/useAnimation';
+import { useAnimatedValue, useAnimation, DEFAULT_DURATION } from 'hooks/useAnimation';
 import Swipeable from 'components/frame/Swipeable';
 import ErrorBoundary from 'components/ErrorBoundary';
 
@@ -40,6 +40,7 @@ export default function StackWrapOuter({
     }
   }, [slideIn, slideOut, animatedLeftPercent, isRouteActive, lastStackAnimatedVal]);
 
+  // todo: mid/easy swiping can get stuck at 1%
   return (
     <Freeze freeze={!isRouteVisible}>
       <Swipeable
@@ -60,7 +61,7 @@ export default function StackWrapOuter({
             // https://stackoverflow.com/q/75419337
             position: x => (x > 0 ? 'fixed' : 'absolute'),
             transform: x => `translateZ(0) translateX(${x}%)`,
-            boxShadow: x => `0 0 ${(100 - x) / 5}px rgb(0 0 0 / ${(100 - x) / 5}%)`,
+            boxShadow: x => `0 0 ${(100 - x) / 10}px rgb(0 0 0 / ${((100 - x) / 10) + 10}%)`,
           },
           { keyframes: [1] },
         )}

@@ -4,6 +4,13 @@ import { UniqueViolationError } from 'db-errors';
 import ucFirst from 'utils/ucFirst';
 import { PG_BT_PORT, MZ_PORT, PG_RR_PORT } from 'consts/infra';
 
+function _shouldLogErr(err: Error): boolean {
+  if (err instanceof UserFacingError && err.status === 469) {
+    return false;
+  }
+  return true;
+}
+
 function _getErrDetails(err: Error): { status: number; msg: string; } {
   const msg = err.message || err.toString();
 
@@ -73,8 +80,10 @@ export default function formatAndLogApiErrorResponse(
     });
     const { status, msg } = _getErrDetails(err);
 
-    const method = status < 500 ? 'warn' : 'error';
-    ErrorLogger[method](err, { status, msg });
+    if (_shouldLogErr(err)) {
+      const method = status < 500 ? 'warn' : 'error';
+      ErrorLogger[method](err, { status, msg });
+    }
 
     return {
       status,

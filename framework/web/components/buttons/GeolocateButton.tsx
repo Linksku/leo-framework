@@ -1,7 +1,7 @@
 import LocationSvg from 'fa5/svg/location-regular.svg';
 import { Geolocation } from '@capacitor/geolocation';
 
-import { API_TIMEOUT } from 'settings';
+import promiseTimeout from 'utils/promiseTimeout';
 
 import styles from './GeolocateButtonStyles.scss';
 
@@ -20,13 +20,19 @@ export default function GeolocateButton({
         try {
           const {
             coords: { latitude, longitude },
-          } = await Geolocation.getCurrentPosition({
-            timeout: API_TIMEOUT,
-          });
+          } = await promiseTimeout(
+            Geolocation.getCurrentPosition({
+              // Doesn't seem to work
+              timeout: 5000,
+            }),
+            5000,
+            new Error('Timed out'),
+          );
           onGeolocate(latitude, longitude);
-        } catch {
+        } catch (err) {
           showAlert({
-            title: 'Failed to get location.',
+            title: 'Failed to get location',
+            msg: err instanceof Error ? err.message : '',
           });
         }
       }}

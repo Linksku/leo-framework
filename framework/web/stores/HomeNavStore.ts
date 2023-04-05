@@ -1,4 +1,4 @@
-import useUpdatedState from 'utils/hooks/useUpdatedState';
+import useUpdatedState from 'hooks/useUpdatedState';
 import shallowEqual from 'utils/shallowEqual';
 import { useAddPopHandler } from './HistoryStore';
 

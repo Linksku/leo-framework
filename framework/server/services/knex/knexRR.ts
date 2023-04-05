@@ -72,7 +72,7 @@ const knexRR = ServiceContextLocalStorage.run(
       },
       warn(msg: any) {
         if (typeof msg !== 'string' || !msg.startsWith('Connection Error: KnexTimeoutError:')) {
-          printDebug(msg, 'warn', 'knexRR');
+          printDebug(msg, 'warn', { ctx: 'knexRR' });
         }
       },
     },

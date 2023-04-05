@@ -7,7 +7,7 @@ import ShareSvg from 'boxicons/svg/regular/bx-share-alt.svg';
 import { Share } from '@capacitor/share';
 
 import { HOME_URL } from 'settings';
-import useCopyText from 'utils/hooks/useCopyText';
+import useCopyText from 'hooks/useCopyText';
 
 import styles from './ShareSlideUpStyles.scss';
 

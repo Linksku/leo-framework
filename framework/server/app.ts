@@ -9,7 +9,7 @@ import * as Tracing from '@sentry/tracing';
 import apiRoutes from 'routes/apiRoutes';
 import sseRoute from 'routes/sseRoute';
 import { DOMAIN_NAME } from 'settings';
-import { getIsHealthy } from 'services/healthcheck/HealthcheckManager';
+import { isHealthy } from 'services/healthcheck/HealthcheckManager';
 import addMetaTags from 'helpers/addMetaTags';
 
 // todo: low/hard maybe switch to Fastify
@@ -37,22 +37,24 @@ app.disable('x-powered-by');
 app.use('/api', apiRoutes);
 app.use('/sse', sseRoute);
 
+let handleWildcardApi: (req: ExpressRequest, res: ExpressResponse) => Promise<void>;
 if (process.env.SERVER !== 'production') {
   app.use(express.static(
     path.resolve(`./build/${process.env.NODE_ENV}/web`),
     { dotfiles: 'allow', redirect: false, index: false },
   ));
 
-  app.get('*', async (req, res) => {
-    if (getIsHealthy()) {
+  handleWildcardApi = async (req, res) => {
+    if (isHealthy()) {
       const html = await fs.promises.readFile(path.resolve(`./build/${process.env.NODE_ENV}/web/index.html`));
       res.send(await addMetaTags(req, html.toString()));
     } else {
+      // todo: mid/mid show failing reason
       res
         .status(503)
         .sendFile(path.resolve(`./build/${process.env.NODE_ENV}/web/503.html`));
     }
-  });
+  };
 } else {
   app.all('*', (req, res, next) => {
     if (req.hostname !== DOMAIN_NAME && !req.hostname?.endsWith(`.${DOMAIN_NAME}`)) {
@@ -64,7 +66,6 @@ if (process.env.SERVER !== 'production') {
     }
   });
 
-  // todo: low/easy handle Express throwing on malformed urls
   app.use(express.static(
     path.resolve(`./build/${process.env.NODE_ENV}/web`),
     {
@@ -111,12 +112,12 @@ if (process.env.SERVER !== 'production') {
     }
   });
 
-  app.get('*', async (req, res) => {
+  handleWildcardApi = async (req, res) => {
     if (req.subdomains.length) {
       res.status(404).end();
       return;
     }
-    if (indexFile && getIsHealthy()) {
+    if (indexFile && isHealthy()) {
       res
         .setHeader(
           'Cache-Control',
@@ -129,15 +130,24 @@ if (process.env.SERVER !== 'production') {
         .setHeader('Cache-Control', 'public,max-age=0')
         .send(serviceUnavailableFile ?? '<p>Service temporarily unavailable</p>');
     }
-  });
+  };
 }
 
-// Express checks number of args
-app.use((err: Error, _req: ExpressRequest, res: ExpressResponse, _next: NextFunction) => {
-  if (!(err instanceof URIError)) {
-    ErrorLogger.error(err, { ctx: 'Express catch-all' });
+app.get('*', handleWildcardApi);
+
+app.use(async (
+  err: Error,
+  req: ExpressRequest,
+  res: ExpressResponse,
+  // Express checks number of args
+  _next: NextFunction,
+) => {
+  if (err instanceof URIError) {
+    await handleWildcardApi(req, res);
+    return;
   }
 
+  ErrorLogger.error(err, { ctx: 'Express catch-all' });
   res
     .status(400)
     .setHeader('Cache-Control', 'public,max-age=0')

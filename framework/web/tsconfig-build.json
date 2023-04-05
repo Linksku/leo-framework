@@ -1,7 +1,12 @@
 {
   "extends": "../../tsconfig-base.json",
   "compilerOptions": {
-    "lib": ["es2021", "dom", "dom.iterable"],
+    "lib": [
+      "es2021",
+      "dom",
+      "dom.iterable",
+      "webworker"
+    ],
     "jsx": "react",
     "paths": {
       /* "config/*": [

@@ -1,5 +1,5 @@
-import usePrevious from 'utils/hooks/usePrevious';
-import useUpdate from 'utils/hooks/useUpdate';
+import usePrevious from 'hooks/usePrevious';
+import useUpdate from 'hooks/useUpdate';
 
 import styles from './AlertsStyles.scss';
 

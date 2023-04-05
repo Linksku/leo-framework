@@ -1,5 +1,5 @@
 import type { Sharp, Metadata, FitEnum } from 'sharp';
-import { promises as fs } from 'fs';
+import { promises as fs, ReadStream } from 'fs';
 import sharp from 'sharp';
 import https from 'https';
 import http from 'http';
@@ -8,7 +8,8 @@ import getCroppedMediaDim from 'utils/media/getCroppedMediaDim';
 
 export default class UploadedImage {
   filePath: string;
-  img?: Sharp;
+  stream?: ReadStream | http.IncomingMessage;
+  sharp?: Sharp;
   metadata?: Metadata;
   newHeight = 0;
   newWidth = 0;
@@ -19,17 +20,18 @@ export default class UploadedImage {
 
   clone() {
     const img = new UploadedImage(this.filePath);
-    img.img = this.img?.clone();
+    img.stream = this.stream; // Maybe need to clone stream?
+    img.sharp = this.sharp?.clone();
     img.metadata = this.metadata;
     img.newHeight = this.newHeight;
     img.newWidth = this.newWidth;
     return img;
   }
 
-  async getImg() {
-    if (!this.img) {
+  async getImgStream() {
+    if (!this.stream) {
       if (this.filePath.startsWith('http:') || this.filePath.startsWith('https:')) {
-        const stream = await new Promise<http.IncomingMessage>(succ => {
+        this.stream = await new Promise<http.IncomingMessage>(succ => {
           (this.filePath.startsWith('http:') ? http.get : https.get)(
             this.filePath,
             stream2 => {
@@ -37,20 +39,25 @@ export default class UploadedImage {
             },
           );
         });
-
-        this.img = stream.pipe(sharp());
       } else {
         const handle = await fs.open(this.filePath);
-        const stream = handle.createReadStream();
-        this.img = stream.pipe(sharp());
+        this.stream = handle.createReadStream();
       }
     }
-    return this.img;
+    return this.stream;
+  }
+
+  async getSharpImg() {
+    if (!this.sharp) {
+      const stream = await this.getImgStream();
+      this.sharp = stream.pipe(sharp());
+    }
+    return TS.defined(this.sharp);
   }
 
   async getMetadata() {
     if (!this.metadata) {
-      const img = await this.getImg();
+      const img = await this.getSharpImg();
       this.metadata = await img.metadata();
     }
     return this.newHeight && this.newWidth
@@ -73,7 +80,7 @@ export default class UploadedImage {
     right: number,
     bot: number,
   }) {
-    const img = await this.getImg();
+    const img = await this.getSharpImg();
     const { height, width, orientation } = await this.getMetadata();
 
     if (!height || !width) {
@@ -135,7 +142,7 @@ export default class UploadedImage {
 
     this.newHeight = Math.round((100 - top - bot) / 100 * height);
     this.newWidth = Math.round((100 - left - right) / 100 * width);
-    this.img = img
+    this.sharp = img
       .extract({
         top: Math.round(top / 100 * height),
         left: Math.round(left / 100 * width),
@@ -154,7 +161,7 @@ export default class UploadedImage {
     maxRatio?: number,
     fit?: keyof FitEnum,
   }) {
-    const img = await this.getImg();
+    const img = await this.getSharpImg();
     const { height, width, orientation } = await this.getMetadata();
 
     if (!height || !width) {
@@ -173,7 +180,7 @@ export default class UploadedImage {
     this.newWidth = isRotated90Deg ? newHeight : newWidth;
 
     if (height !== newHeight || width !== newWidth) {
-      this.img = img
+      this.sharp = img
         .resize({
           height: newHeight,
           width: newWidth,
@@ -187,7 +194,7 @@ export default class UploadedImage {
   async convertToJpg({
     quality = 90,
   } = {}): Promise<Buffer> {
-    const img = await this.getImg();
+    const img = await this.getSharpImg();
 
     return img
       .withMetadata()

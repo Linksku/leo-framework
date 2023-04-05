@@ -8,34 +8,22 @@ const MSG_TYPES = new Set(['normal', 'success', 'highlight', 'info', 'warn', 'er
 
 type MsgType = typeof MSG_TYPES extends Set<infer U> ? U : never;
 
-function printDebug(
+export default function printDebug(
   val: any,
-  type?: MsgType,
-  details?: string,
-  printInProd?: 'always' | 'only' | 'never',
-): void;
-
-function printDebug(
-  val: any,
-  details?: string,
-): void;
-
-function printDebug(
-  val: any,
-  _type: any = 'normal',
-  _details: string | undefined = undefined,
-  _printInProd: 'always' | 'only' | 'never' = 'never',
+  type: MsgType = 'normal',
+  { details, ctx, prod = 'never' }: {
+    details?: string,
+    ctx?: string,
+    prod?: 'always' | 'only' | 'never',
+  } = {},
 ) {
   if (process.env.PRODUCTION) {
-    if (!process.env.IS_SERVER_SCRIPT && _printInProd === 'never') {
+    if (!process.env.IS_SERVER_SCRIPT && prod === 'never') {
       return;
     }
-  } else if (_printInProd === 'only') {
+  } else if (prod === 'only') {
     return;
   }
-
-  const type: MsgType = MSG_TYPES.has(_type) ? _type : 'normal';
-  const details = MSG_TYPES.has(_type) ? _details : null;
 
   let msg = formatErr(val);
   if (type === 'success') {
@@ -48,15 +36,15 @@ function printDebug(
     msg = chalk.redBright(msg);
   }
 
+  // todo: mid/mid date seems to go back sometimes
   const timeStr = dayjs().format('MM-DD HH:mm:ss');
   const serverId = getServerId();
+  const prefix = `[${timeStr}]${serverId ? `[${serverId}]` : ''}`;
   if (details) {
     // eslint-disable-next-line no-console
-    console.log(`[${timeStr}]${serverId ? `[${serverId}]` : ''} ${msg}:`, details);
+    console.log(`${prefix} ${msg}${ctx ? ` (${ctx})` : ''}:`, details);
   } else {
     // eslint-disable-next-line no-console
-    console.log(`[${timeStr}]${serverId ? `[${serverId}]` : ''} ${msg}`);
+    console.log(`${prefix} ${msg}${ctx ? ` (${ctx})` : ''}`);
   }
 }
-
-export default printDebug;

@@ -42,21 +42,19 @@ addHealthcheck('mzSinkTopics', {
 });
 
 addHealthcheck('mzSinkTopicMessages', {
-  deps: ['mzSinkTopics'],
+  deps: ['mzSinks', 'mzSinkTopics'],
   cb: async function mzSinkTopicMessagesHealthcheck() {
     if (await redisMaster.exists(RECREATE_MZ_SINKS_REDIS_KEY)) {
       return;
     }
 
-    const topics = await listKafkaTopics(new RegExp(`^${MZ_SINK_TOPIC_PREFIX}.+-consistency$`));
-    if (!topics.length) {
-      throw new Error('mzSinkTopicMessagesHealthcheck: no topics');
-    }
-
-    const failingTopics = await getKafkaTopicsWithoutMessages(topics, 60 * 1000);
-    if (failingTopics.length) {
+    const topics = await getKafkaTopicsWithoutMessages(
+      new RegExp(`^${MZ_SINK_TOPIC_PREFIX}.+-consistency$`),
+      60 * 1000,
+    );
+    if (topics.length) {
       throw getErr('mzSinkTopicMessagesHealthcheck: topics without messages', {
-        failingTopics,
+        topics,
       });
     }
   },

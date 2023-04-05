@@ -1,6 +1,11 @@
 import uniq from 'lodash/uniq';
 
-import paginateQuery, { OrderByColumns, PaginatedResponse, MAX_PER_PAGE } from './paginateQuery';
+import paginateQuery, {
+  OrderByColumns,
+  PaginatedResponse,
+  MAX_PER_PAGE,
+  EMPTY_PAGINATION,
+} from './paginateQuery';
 
 export default async function paginateSeqQueries<
   Queries extends {
@@ -13,6 +18,13 @@ export default async function paginateSeqQueries<
   limit: number = MAX_PER_PAGE,
   cursor = '0,',
 ): Promise<PaginatedResponse<QB['ModelType']>> {
+  if (!queries.length) {
+    if (process.env.PRODUCTION) {
+      return EMPTY_PAGINATION;
+    }
+    throw new Error('paginateSeqQueries: no queries.');
+  }
+
   const cursorSplitIdx = cursor.indexOf(',');
   let queryIdx = cursor ? TS.parseIntOrNull(cursor.slice(0, cursorSplitIdx)) : null;
   if (queryIdx === null || !queries[queryIdx]) {

@@ -34,7 +34,7 @@ export default new Kafka({
       [logLevel.NOTHING]: 'error' as const,
     }[entry.level];
     ErrorLogger[errorLoggerMethod](
-      new Error(`${entry.log.message}: ${entry.log.error}`),
+      new Error(`Kafka: ${entry.log.message}: ${entry.log.error}`),
       undefined,
       false,
     );

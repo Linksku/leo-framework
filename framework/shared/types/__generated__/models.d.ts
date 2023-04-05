@@ -32,6 +32,16 @@ interface IUserAuth extends IBaseModel {
   registerTime: Date;
 }
 
+interface IUserDevice extends IBaseModel {
+  id: number;
+  userId: number;
+  platform: 'web' | 'android' | 'ios';
+  deviceId: string;
+  lastSeenTime: Date;
+  userAgent: string | null;
+  registrationToken: string | null;
+}
+
 interface IUserMeta extends IBaseModel {
   id: number;
   userId: number;
@@ -45,6 +55,7 @@ type ModelType =
   | 'notif'
   | 'user'
   | 'userAuth'
+  | 'userDevice'
   | 'userMeta';
 
 type ModelInterfacesMap = {
@@ -53,6 +64,7 @@ type ModelInterfacesMap = {
   notif: INotif,
   user: IUser,
   userAuth: IUserAuth,
+  userDevice: IUserDevice,
   userMeta: IUserMeta,
 };
 
@@ -78,6 +90,12 @@ type ModelRelationsMap = {
     },
   },
   userAuth: {
+    user: {
+      modelType: 'user',
+      tsType: User,
+    },
+  },
+  userDevice: {
     user: {
       modelType: 'user',
       tsType: User,

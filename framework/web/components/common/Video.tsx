@@ -1,4 +1,9 @@
-import { gfycatRegex, videoRegex } from 'utils/isUrlVideo';
+import {
+  YOUTUBE_REGEX,
+  GFYCAT_REGEX,
+  REDDIT_VIDEO_REGEX,
+  VIDEO_REGEX,
+} from 'utils/isUrlVideo';
 import FixedRatioContainer, { Props as FixedRatioContainerProps } from 'components/common/FixedRatioContainer';
 
 import styles from './VideoStyles.scss';
@@ -15,12 +20,23 @@ export default function Video({ url, ...containerProps }: Props) {
     return null;
   }
 
-  const gfycatMatches = url.match(gfycatRegex);
-  if (gfycatMatches) {
+  let iframeSrc: string | null = null;
+  const ytMatches = url.match(YOUTUBE_REGEX);
+  if (ytMatches) {
+    iframeSrc = `https://www.youtube.com/embed/${ytMatches[1]}?autoplay=1`;
+  }
+  if (!iframeSrc) {
+    const gfycatMatches = url.match(GFYCAT_REGEX);
+    if (gfycatMatches) {
+      iframeSrc = `https://gfycat.com/ifr/${gfycatMatches[1]}`;
+    }
+  }
+
+  if (iframeSrc) {
     return (
       <FixedRatioContainer {...containerProps}>
         <iframe
-          src={`https://gfycat.com/ifr/${gfycatMatches[1]}`}
+          src={iframeSrc}
           frameBorder="0"
           scrolling="no"
           allowFullScreen
@@ -30,7 +46,11 @@ export default function Video({ url, ...containerProps }: Props) {
       </FixedRatioContainer>
     );
   }
-  if (videoRegex.test(url)) {
+
+  if (url.endsWith('.gifv')) {
+    url = `${url.slice(0, -'.gifv'.length)}.mp4`;
+  }
+  if (REDDIT_VIDEO_REGEX.test(url) || VIDEO_REGEX.test(url)) {
     const handleClick = () => {
       setShowControls(true);
       if (videoRef.current) {

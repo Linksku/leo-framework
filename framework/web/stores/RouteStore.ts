@@ -1,5 +1,5 @@
-import usePrevious from 'utils/hooks/usePrevious';
-import useUpdatedState from 'utils/hooks/useUpdatedState';
+import usePrevious from 'hooks/usePrevious';
+import useUpdatedState from 'hooks/useUpdatedState';
 
 export const [
   RouteProvider,
@@ -7,6 +7,7 @@ export const [
   useRouteMatches,
   useRouteQuery,
   useIsRouteActive,
+  useGetIsRouteActive,
   useInnerContainerRef,
 ] = constate(
   function RouteStore({
@@ -49,6 +50,8 @@ export const [
     const innerContainerRef = useRef<Memoed<HTMLDivElement>>(null);
 
     const isRouteActive = initialState.key === curState.key;
+    const latestRef = useLatest(isRouteActive);
+    const getIsRouteActive = useCallback(() => latestRef.current, [latestRef]);
     const wasRouteActive = usePrevious(isRouteActive);
     const wasFrozen = usePrevious(isFrozen);
     const frozenCount = useUpdatedState(
@@ -63,6 +66,7 @@ export const [
       routeOpts,
       setRouteOpts,
       isRouteActive,
+      getIsRouteActive,
       wasRouteActive,
       frozenCount,
       // Always true for now
@@ -77,6 +81,7 @@ export const [
       routeOpts,
       setRouteOpts,
       isRouteActive,
+      getIsRouteActive,
       wasRouteActive,
       frozenCount,
       isStackBot,
@@ -102,6 +107,9 @@ export const [
   },
   function IsRouteActive(val) {
     return val.isRouteActive;
+  },
+  function GetIsRouteActive(val) {
+    return val.getIsRouteActive;
   },
   function InnerContainerRef(val) {
     return val.innerContainerRef;

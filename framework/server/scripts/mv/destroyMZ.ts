@@ -1,7 +1,6 @@
 import type { Arguments } from 'yargs';
 
 import waitForKafkaConnectReady from 'utils/infra/waitForKafkaConnectReady';
-import withErrCtx from 'utils/withErrCtx';
 import initInfraWrap from 'utils/infra/initInfraWrap';
 import deleteMZSinkConnectors from './steps/deleteMZSinkConnectors';
 import deleteMZSinks from './steps/deleteMZSinks';

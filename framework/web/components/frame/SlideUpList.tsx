@@ -1,4 +1,4 @@
-import useEffectOncePerDeps from 'utils/hooks/useEffectOncePerDeps';
+import useEffectOncePerDeps from 'hooks/useEffectOncePerDeps';
 
 import styles from './SlideUpListStyles.scss';
 

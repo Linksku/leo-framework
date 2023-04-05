@@ -1,15 +1,15 @@
 import { flushSync } from 'react-dom';
 
-import useAuthTokenLS from 'utils/hooks/localStorage/useAuthTokenLS';
+import useAuthTokenLS from 'hooks/localStorage/useAuthTokenLS';
 import fetcher from 'core/fetcher';
 import ApiError from 'core/ApiError';
 import { API_URL } from 'settings';
-import isErrorResponse from 'utils/hooks/useApi/isErrorResponse';
-import useHandleApiEntities from 'utils/hooks/useApi/useHandleApiEntities';
-import useHandleErrorResponse from 'utils/hooks/useApi/useHandleErrorResponse';
-import extraApiProps from 'utils/hooks/useApi/extraApiProps';
+import isErrorResponse from 'hooks/useApi/isErrorResponse';
+import useHandleApiEntities from 'hooks/useApi/useHandleApiEntities';
+import useHandleErrorResponse from 'hooks/useApi/useHandleErrorResponse';
+import extraApiProps from 'hooks/useApi/extraApiProps';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
-import useDocumentEvent from 'utils/hooks/useDocumentEvent';
+import useDocumentEvent from 'hooks/useDocumentEvent';
 import TimeoutError from 'core/TimeoutError';
 
 const MIN_STALE_DURATION = 60 * 1000;

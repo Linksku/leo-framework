@@ -19,13 +19,14 @@ const jsVersion = Number.parseInt(
 );
 
 export default mergeReplaceArrays(baseConfig, {
-  entry: {
-    '../sw': path.resolve('./framework/web/sw.ts'),
-  },
   mode: 'production',
   output: {
     path: path.resolve('./build/production/web'),
-    filename: `js/[name].${jsVersion}.js`,
+    filename(pathData) {
+      return pathData.chunk.name === 'sw'
+        ? 'js/[name].js'
+        : `js/[name].${jsVersion}.js`;
+    },
     chunkFilename: `js/chunks/[name].${jsVersion}.js`,
   },
   module: {

@@ -32,7 +32,7 @@ export default function beforeQuery({
     printDebug(
       rc ? `${db.toUpperCase()} Query ${rc.path}` : `${db.toUpperCase()} Query`,
       'success',
-      knex.raw(sql, bindings).toString(),
+      { details: knex.raw(sql, bindings).toString() },
     );
 
     if (db === 'rr') {
@@ -50,7 +50,7 @@ export default function beforeQuery({
               printDebug(
                 rc ? `Slow RR Query ${rc.path}` : 'Slow RR Query',
                 'error',
-                `${sql}\n${plan}`,
+                { details: `${sql}\n${plan}` },
               );
             }
           },

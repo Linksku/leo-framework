@@ -102,6 +102,29 @@ declare global {
 
   type UserAuthClass = typeof UserAuth;
 
+  declare class UserDevice extends Entity implements IUserDevice {
+    declare static type: 'userDevice';
+    declare static Interface: IUserDevice;
+    declare static instanceType: UserDevice;
+    declare static schema: ModelSchema<IUserDevice>;
+    declare static cols: ModelColsMap<IUserDevice>;
+    declare static colsQuoted: ModelColsMap<IUserDevice>;
+    declare static primaryIndex: 'id';
+
+    declare cls: UserDeviceClass;
+    declare relations?: ModelRelationTypes<'userDevice'>;
+
+    declare id: number;
+    declare userId: number;
+    declare platform: 'web' | 'android' | 'ios';
+    declare deviceId: string;
+    declare lastSeenTime: Date;
+    declare userAgent: string | null;
+    declare registrationToken: string | null;
+  };
+
+  type UserDeviceClass = typeof UserDevice;
+
   declare class UserMeta extends Entity implements IUserMeta {
     declare static type: 'userMeta';
     declare static Interface: IUserMeta;

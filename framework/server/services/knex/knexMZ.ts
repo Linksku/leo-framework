@@ -67,7 +67,7 @@ const knexMZ = ServiceContextLocalStorage.run(
         if (typeof msg !== 'string' || (
           !msg.startsWith('Connection Error: KnexTimeoutError:')
             && !msg.startsWith('Connection Error: Connection ended unexpectedly'))) {
-          printDebug(msg, 'warn', 'knexMZ');
+          printDebug(msg, 'warn', { ctx: 'knexMZ' });
         }
       },
     },

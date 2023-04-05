@@ -11,19 +11,22 @@ type AnyCommand = {
 
 export default class RedisDataLoader<
   Command extends AnyCommand,
-  Key,
-  Ret,
+  Key = string,
+  Ret = Awaited<ReturnType<RedisCommander[Command]>>,
 > extends DataLoader<Key, Ret> {
   constructor(
     command: Command,
-    transformKey: (key: Key) => Parameters<RedisCommander[Command]>,
+    transformKey?: (key: Key) => Parameters<RedisCommander[Command]>,
   ) {
     super(
       async (keys: readonly Key[]) => {
         const pipeline = redis.pipeline();
         for (const k of keys) {
-          // @ts-ignore Redis type
-          pipeline[command](...transformKey(k));
+          if (transformKey) {
+            (pipeline[command] as AnyFunction)(...transformKey(k));
+          } else {
+            (pipeline[command] as AnyFunction)(k);
+          }
         }
         const results = await pipeline.exec();
         return TS.notNull(results).map(([err, res]) => {

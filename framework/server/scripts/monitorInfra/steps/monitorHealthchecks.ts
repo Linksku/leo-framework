@@ -13,9 +13,9 @@ export default async function monitorHealthchecks() {
   let failing = new Set<HealthcheckName>();
   let startTime = performance.now();
   // eslint-disable-next-line no-constant-condition
-  while (1) {
-    await pause(30 * 1000);
+  outer: while (1) {
     const iterationStartTime = performance.now();
+    await pause(30 * 1000);
 
     try {
       failing = await promiseTimeout(
@@ -28,10 +28,24 @@ export default async function monitorHealthchecks() {
     }
 
     if (failing.size) {
-      // Laptop was likely closed
+      // Laptop likely just unpaused
       if (!process.env.PRODUCTION
-        && performance.now() - iterationStartTime > GET_FAILING_TIMEOUT * 2) {
-        continue;
+        && performance.now() - iterationStartTime > GET_FAILING_TIMEOUT * 3) {
+        try {
+          for (let i = 0; i < 3; i++) {
+            await pause(30 * 1000);
+            failing = await promiseTimeout(
+              getFailingServices(true),
+              5 * 60 * 1000,
+              new Error('initCheckFailingHealthchecks: getFailingServices timed out'),
+            );
+            if (!failing.size) {
+              continue outer;
+            }
+          }
+        } catch (err) {
+          ErrorLogger.error(err, { ctx: 'monitorHealthchecks' });
+        }
       }
 
       if (failing.size === 1) {
@@ -50,7 +64,7 @@ export default async function monitorHealthchecks() {
       try {
         await retry(
           async () => {
-            await fixFailingInfra(failing);
+            await withErrCtx(fixFailingInfra(failing), 'monitorHealthchecks: fixFailingInfra');
             failing = await getFailingServices(true);
 
             if (failing.size === 1 && failing.has('mzUpdating')) {

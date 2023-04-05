@@ -12,6 +12,7 @@ export default React.memo(function ResetPasswordRoute() {
   });
   const { errors } = useFormState({ control });
   const showAlert = useShowAlert();
+  const authState = useAuthState();
 
   const { fetching, fetchApi: resetPassword, error: apiError } = useDeferredApi(
     'resetPassword',
@@ -31,6 +32,7 @@ export default React.memo(function ResetPasswordRoute() {
     },
   );
 
+  const disabled = fetching || authState === 'in';
   return (
     <StackWrapInner title="Reset Password">
       <div className={styles.container}>
@@ -46,7 +48,7 @@ export default React.memo(function ResetPasswordRoute() {
             registerOpts={{
               required: 'Email is required.',
             }}
-            disabled={fetching}
+            disabled={disabled}
             required
           />
 
@@ -56,7 +58,7 @@ export default React.memo(function ResetPasswordRoute() {
             Component="input"
             type="submit"
             fullWidth
-            disabled={fetching}
+            disabled={disabled}
           />
         </form>
 

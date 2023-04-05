@@ -1,8 +1,7 @@
 import retry from 'utils/retry';
 import listKafkaTopics from 'utils/infra/listKafkaTopics';
 import { MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
-import kafka from 'services/kafka';
-import rand from 'utils/rand';
+import createKafkaConsumer from 'utils/infra/createKafkaConsumer';
 import recreateMZSinks from 'scripts/mv/helpers/recreateMZSinks';
 import { INIT_INFRA_REDIS_KEY } from 'consts/infra';
 import { redisMaster } from 'services/redis';
@@ -14,13 +13,7 @@ export default async function monitorMZSinkTopics() {
 
   let topics: string[] = [];
   let lastMessageTimes = Object.create(null);
-  const consumer = kafka.consumer({ groupId: `${rand(0, Number.MAX_SAFE_INTEGER)}` });
-  consumer.on('consumer.crash', event => {
-    ErrorLogger.warn(
-      event.payload.error,
-      { ctx: 'monitorMZSinkTopics: consumer.crash' },
-    );
-  });
+  const consumer = createKafkaConsumer({ ctx: 'monitorMZSinkTopics' });
 
   async function handleFailingTopics() {
     const failingTopics = Object.entries(lastMessageTimes)
@@ -53,7 +46,7 @@ export default async function monitorMZSinkTopics() {
             ctx: 'monitorMZSinkTopics.handleFailingTopics',
           },
         );
-        printDebug('Recreated MZ sinks', 'success', undefined, 'always');
+        printDebug('Recreated MZ sinks', 'success', { prod: 'always' });
         lastMessageTimes = Object.create(null);
       }
     }
@@ -68,26 +61,43 @@ export default async function monitorMZSinkTopics() {
   }, 15 * 1000);
 
   let timer: NodeJS.Timeout | null = null;
-  async function connectConsumer() {
+  const unpauseTimers = new Set<NodeJS.Timeout>();
+
+  async function disconnectConsumer() {
     if (timer) {
       clearInterval(timer);
     }
 
-    topics = await listKafkaTopics(new RegExp(`^${MZ_SINK_TOPIC_PREFIX}.+-consistency$`));
-    await consumer.connect();
-    await consumer.subscribe({ topics });
+    for (const unpauseTimer of unpauseTimers) {
+      clearTimeout(unpauseTimer);
+    }
+    unpauseTimers.clear();
 
+    await consumer.disconnect();
+  }
+
+  async function connectConsumer() {
+    topics = await listKafkaTopics(new RegExp(`^${MZ_SINK_TOPIC_PREFIX}.+-consistency$`));
     try {
+      await consumer.connect();
+      await consumer.subscribe({ topics });
+
       await consumer.run({
-        eachMessage({ topic }) {
+        eachMessage({ topic, pause }) {
           lastMessageTimes[topic] = performance.now();
+          const unpause = pause();
+          const unpauseTimer = setTimeout(() => {
+            unpause();
+            unpauseTimers.delete(unpauseTimer);
+          }, MAX_TIMEOUT / 3);
+          unpauseTimers.add(unpauseTimer);
         },
       });
     } catch (err) {
       ErrorLogger.error(err, { ctx: 'monitorMZSinkTopics' });
       lastMessageTimes = Object.create(null);
 
-      await consumer.disconnect();
+      await disconnectConsumer();
       await pause(60 * 1000);
       await connectConsumer();
       return;
@@ -97,7 +107,7 @@ export default async function monitorMZSinkTopics() {
       try {
         const newTopics = await listKafkaTopics(new RegExp(`^${MZ_SINK_TOPIC_PREFIX}.+-consistency$`));
         if (newTopics.length > topics.length) {
-          await consumer.disconnect();
+          await disconnectConsumer();
           await connectConsumer();
         }
       } catch (err) {

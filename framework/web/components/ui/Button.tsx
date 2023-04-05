@@ -150,6 +150,7 @@ function Button(
         ...style,
       }}
       onClick={!disabled && onClick ? onClick : undefined}
+      disabled={disabled}
       {...props}
     >
       {inner}

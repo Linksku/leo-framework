@@ -46,18 +46,20 @@ export default class AjvValidator extends Validator {
     if (!validator(json)) {
       const rc = getRC();
       const error = validator.errors?.[0];
-      if (rc?.debug || (!process.env.PRODUCTION && !rc)) {
+      if (!process.env.PRODUCTION && (!rc || rc?.debug)) {
         if (error) {
           printDebug(error, 'error');
           if (error.instancePath) {
             const instancePath = trim(error.instancePath, '/').replaceAll('/', '.');
             const pathVal = at<any>(json, [instancePath])[0];
             // eslint-disable-next-line no-console
-            console.log(json);
             printDebug(
               'Instance value',
               'error',
-              `${pathVal} (${typeof pathVal})`,
+              {
+                ctx: `${pathVal}: ${typeof pathVal}`,
+                details: json,
+              },
             );
           }
         } else {

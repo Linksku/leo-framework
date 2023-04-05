@@ -24,10 +24,10 @@ yarn
 yarn build:types
 yarn dc restart server-script
 chmod -R 755 /etc/letsencrypt
-yarn dc --compatibility up -d
+yarn dc --compatibility up -d --remove-orphans --no-recreate
+yarn dc stop monitor-infra
 
 rm app/pgdumpBT.sql
 rm app/pgdumpRR.sql
-yarn dc stop monitor-infra
 yarn migrate:up
 yarn dc start monitor-infra

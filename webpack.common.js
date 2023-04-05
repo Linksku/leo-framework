@@ -28,6 +28,11 @@ const ENV_KEYS = [
   'GA_ID',
   'SENTRY_DSN_WEB',
   'SENTRY_DSN_SERVER',
+  'FIREBASE_ID',
+  'FIREBASE_KEY',
+  'FIREBASE_MESSAGING_SENDER_ID',
+  'FIREBASE_APP_ID',
+  'FIREBASE_WEB_PUSH_KEY',
 ];
 const ENV_OBJ = {};
 for (const k of ENV_KEYS) {

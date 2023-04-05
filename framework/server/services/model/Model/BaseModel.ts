@@ -206,12 +206,12 @@ class BaseModel extends ObjectionModel implements IBaseModel {
   static override get jsonSchema(): ModelJsonSchema {
     if (!this._jsonSchema) {
       const required: string[] = [];
-      for (const [prop, val] of TS.objEntries(this.schema)) {
+      for (const pair of TS.objEntries(this.schema)) {
         if (
-          (prop as string !== 'id' && !hasDefault(val as JsonSchema))
+          (pair[0] as string !== 'id' && !hasDefault(pair[1] as JsonSchema))
           || this.isMV
         ) {
-          required.push(prop);
+          required.push(pair[0]);
         }
       }
 

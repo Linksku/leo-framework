@@ -30,6 +30,7 @@ declare global {
   };
 
   type ApiHandlerParams<Name extends ApiName> = ApiNameToParams[Name] & {
+    userAgent?: string,
     currentUserId: EntityId | (Name extends AuthApiName ? never : undefined);
   };
 

@@ -7,6 +7,7 @@ export default function getAge(birthday: string | number | Date) {
     birthday = birthday.getTime();
   }
   if (!cache[birthday]) {
+    // todo: low/easy more efficient age calculation
     cache[birthday] = dayjs().diff(birthday, 'year');
   }
   return TS.defined(cache[birthday]);
