@@ -16,7 +16,9 @@ export default async function deleteKafkaConnector(name: string) {
 
   await retry(
     async () => {
-      const res2 = await fetchJson(`http://${KAFKA_CONNECT_HOST}:${KAFKA_CONNECT_PORT}/connectors/${name}`);
+      const res2 = await fetchJson(
+        `http://${KAFKA_CONNECT_HOST}:${KAFKA_CONNECT_PORT}/connectors/${name}`,
+      );
       if (res2.status !== 404) {
         throw new Error(
           res2.status >= 400 ? `Error status: ${res2.status}` : 'Not deleted',

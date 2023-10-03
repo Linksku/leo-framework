@@ -1,33 +1,27 @@
 import type DataLoader from 'dataloader';
 
+import { IS_PROFILING_API } from 'serverSettings';
 import createDataLoader from 'utils/createDataLoader';
 
-const dataLoaders: ObjectOf<DataLoader<
+const dataLoaders = new Map<string, DataLoader<
   ModelPartial<ModelClass>,
   Model | null
->> = Object.create(null);
+>>();
 
 export default function getModelDataLoader<T extends ModelClass>(Model: T): DataLoader<
   ModelPartial<T>,
   ModelInstance<T> | null
 > {
-  if (!dataLoaders[Model.type]) {
-    dataLoaders[Model.type] = createDataLoader(
+  if (!dataLoaders.has(Model.type)) {
+    dataLoaders.set(Model.type, createDataLoader(
       async (partials: readonly ModelPartial<T>[]) => {
         let query = modelQuery(Model);
         for (const partial of partials) {
-          query = query.orWhere(builder => {
-            for (const kv of TS.objEntries(partial)) {
-              builder = kv[1] === null
-                ? builder.whereNull(kv[0])
-                : builder.where(kv[0] as string, kv[1] as any);
-            }
-            return builder;
-          });
+          query = query.orWhere(partial);
         }
         const rows = await query;
 
-        if (!process.env.PRODUCTION) {
+        if (!process.env.PRODUCTION && !IS_PROFILING_API) {
           for (const row of rows) {
             row.$validate();
           }
@@ -50,7 +44,7 @@ export default function getModelDataLoader<T extends ModelClass>(Model: T): Data
         objKeys: true,
         maxBatchSize: 1000,
       },
-    );
+    ));
   }
-  return dataLoaders[Model.type] as DataLoader<ModelPartial<T>, ModelInstance<T> | null>;
+  return dataLoaders.get(Model.type) as DataLoader<ModelPartial<T>, ModelInstance<T> | null>;
 }

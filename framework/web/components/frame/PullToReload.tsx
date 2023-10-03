@@ -19,17 +19,23 @@ export default function PullToReload({
   ...props
 }: React.PropsWithChildren<Props>) {
   const { reloadSpinnerDeg, reloadPage } = useUIFrameStore();
-  const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
+  const [animationRef, animationStyle] = useAnimation<HTMLDivElement>(
+    reloadSpinnerDeg,
+    'PullToReload',
+  );
 
   const { ref, bindSwipe } = useSwipeNavigation<HTMLDivElement>({
+    duration: 500,
     elementDim: ELEM_DIM * 3,
     onNavigate: useCallback(() => {
       reloadPage();
     }, [reloadPage]),
-    setPercent: (p, durationPercent) => reloadSpinnerDeg.setVal(
-      p / 100 * MAX_DEG,
-      durationPercent * 500,
-    ),
+    setPercent(p, duration) {
+      reloadSpinnerDeg.setVal(
+        p / 100 * MAX_DEG,
+        duration,
+      );
+    },
     direction: 'down',
   });
 
@@ -43,15 +49,19 @@ export default function PullToReload({
       <div
         ref={mergeRefs(ref, animationRef)}
         style={animationStyle(
-          reloadSpinnerDeg,
           {
             transform(x) {
-              const remainingPercent = 1 - (x / MAX_DEG);
+              const remainingPercent = Math.max(0, 1 - (x / MAX_DEG));
               const temp = 1 - Math.max(0, remainingPercent ** 2);
               return `translateX(-50%) translateY(${(temp * 300) - 100}%) rotate(${x + 90}deg)`;
             },
           },
-          { easing: 'linear' },
+          {
+            stylesForFinalVal: {
+              0: { display: 'none' },
+            },
+            defaultEasing: 'linear',
+          },
         )}
         className={styles.reloadSpinner}
       >

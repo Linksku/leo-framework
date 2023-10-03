@@ -1,5 +1,6 @@
 import { defineApi, nameToApi } from 'services/ApiManager';
 import RequestContextLocalStorage from 'services/requestContext/RequestContextLocalStorage';
+import promiseTimeout from 'utils/promiseTimeout';
 import { API_TIMEOUT } from 'settings';
 import validateApiParams from './helpers/validateApiParams';
 import formatApiHandlerParams from './helpers/formatApiHandlerParams';
@@ -39,20 +40,34 @@ defineApi(
             oneOf: [
               {
                 type: 'object',
-                required: ['data'],
+                required: ['batchIdx', 'data'],
                 properties: {
                   _name: { type: 'string' },
-                  data: SchemaConstants.pojo.orNull(),
+                  batchIdx: SchemaConstants.nonNegInt,
+                  data: { type: 'object' },
                 },
                 additionalProperties: false,
               },
               {
                 type: 'object',
-                required: ['status', 'error'],
+                required: ['batchIdx', 'status', 'error'],
                 properties: {
                   _name: { type: 'string' },
+                  batchIdx: SchemaConstants.nonNegInt,
                   status: SchemaConstants.nonNegInt,
-                  error: SchemaConstants.pojo,
+                  error: {
+                    type: 'object',
+                    required: ['msg'],
+                    properties: {
+                      msg: { type: 'string' },
+                      stack: {
+                        type: 'array',
+                        items: { type: 'string' },
+                      },
+                      debugCtx: { type: 'object' },
+                    },
+                    additionalProperties: false,
+                  },
                 },
                 additionalProperties: false,
               },
@@ -64,7 +79,8 @@ defineApi(
     },
   },
   async function batchedApi({ apis, currentUserId, userAgent }: ApiHandlerParams<'batched'>, res) {
-    if ((!process.env.PRODUCTION && apis.length > 25) || apis.length > 50) {
+    if ((!process.env.PRODUCTION && apis.filter(api => api.name !== 'checkEntityExists').length > 25)
+      || apis.length > 50) {
       throw new Error('batchedApi: too many batched requests');
     }
 
@@ -76,14 +92,14 @@ defineApi(
         params: ApiParams<Name>,
       }) => RequestContextLocalStorage.run(
         {
-          ...TS.defined(rc),
+          ...(rc as RequestContext),
           path: `/batched.${name}`,
         },
         async () => {
           const startTime = performance.now();
           let result: ApiRouteRet<ApiName> | ApiErrorResponse;
           try {
-            const api = nameToApi[name] as ApiDefinition<Name>;
+            const api = nameToApi.get(name) as ApiDefinition<Name>;
             const { relations, ..._params } = fullParams;
             const params = _params as ApiNameToParams[Name];
             validateApiParams({
@@ -101,7 +117,11 @@ defineApi(
             });
             let ret = api.handler(handlerParams, res);
             if (ret instanceof Promise) {
-              ret = await ret;
+              ret = await promiseTimeout(
+                ret,
+                (API_TIMEOUT * 0.9) - (performance.now() - startTime),
+                new UserFacingError('Request timed out', 504),
+              );
             }
 
             if (performance.now() - startTime > API_TIMEOUT) {
@@ -117,7 +137,7 @@ defineApi(
             result = formatAndLogApiErrorResponse(err, 'batchedApi', name);
           }
 
-          if (performance.now() - startTime > 100) {
+          if (!process.env.PRODUCTION && performance.now() - startTime > 100) {
             printDebug(
               `Handler took ${Math.round(performance.now() - startTime)}ms (${rc?.numDbQueries ?? 0} DB requests)`,
               performance.now() - startTime > 500 ? 'error' : 'warn',
@@ -132,7 +152,7 @@ defineApi(
       ),
     ));
 
-    const allDeletedIds: ApiSuccessResponse<any>['deletedIds'] = {};
+    const allDeletedIds: ApiSuccessResponse<any>['deletedIds'] = Object.create(null);
     for (const r of results) {
       if (TS.hasProp(r, 'deletedIds')) {
         for (const pair of TS.objEntries(r.deletedIds)) {
@@ -145,17 +165,17 @@ defineApi(
     return {
       data: {
         results: results.map((r, idx) => {
-          if (process.env.PRODUCTION) {
-            return TS.hasProp(r, 'data') ? { data: r.data as any } : r;
-          }
-          return TS.hasProp(r, 'data')
+          const result = TS.hasProp(r, 'data')
             ? {
-              _name: apis[idx].name,
+              batchIdx: idx,
               data: r.data as any,
             }
+            : { ...r, batchIdx: idx };
+          return process.env.PRODUCTION
+            ? result
             : {
               _name: apis[idx].name,
-              ...r,
+              ...result,
             };
         }),
       },

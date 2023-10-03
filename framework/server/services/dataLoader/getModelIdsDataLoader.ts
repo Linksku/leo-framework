@@ -2,10 +2,12 @@ import type DataLoader from 'dataloader';
 
 import createDataLoader from 'utils/createDataLoader';
 
-const dataLoaders: ObjectOf<ObjectOf<DataLoader<
+type ModelIdsDataLoader = DataLoader<
   ModelPartial<ModelClass>,
   (number | string | (number | string)[])[]
->>> = Object.create(null);
+>;
+
+const dataLoaders = new Map<string, ObjectOf<ModelIdsDataLoader>>();
 
 export default function getModelIdsDataLoader<T extends ModelClass>(
   Model: T,
@@ -13,7 +15,7 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
   ModelPartial<T>,
   (number | string | (number | string)[])[]
 > {
-  const typeDataLoaders = TS.objValOrSetDefault(dataLoaders, Model.type, Object.create(null));
+  const typeDataLoaders = TS.mapValOrSetDefault(dataLoaders, Model.type, Object.create(null));
   const primaryIndex = Model.getPrimaryIndex();
   const primaryIndexArr = Array.isArray(primaryIndex) ? primaryIndex : [primaryIndex];
   const indexStr = primaryIndexArr.join(',');
@@ -43,7 +45,9 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
 
           if (Array.isArray(primaryIndex)) {
             return matchedRows.map(row => primaryIndex.map(col => {
-              if (!process.env.PRODUCTION && typeof row[col] !== 'number' && typeof row[col] !== 'string') {
+              if (!process.env.PRODUCTION
+                && typeof row[col] !== 'number'
+                && typeof row[col] !== 'string') {
                 throw getErr(
                   `getModelIdsDataLoader(${Model.type}): ${col} isn't a number or string`,
                   {

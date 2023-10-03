@@ -1,155 +1,242 @@
+import type { HomeTab } from 'config/homeTabs';
 import useUpdatedState from 'hooks/useUpdatedState';
+import usePreviousDifferent from 'hooks/usePreviousDifferent';
+import useShallowMemoArr from 'hooks/useShallowMemoArr';
+import { FIRST_ID, getPartsFromPath } from 'stores/HistoryStore';
+import { DEFAULT_PATH_PARTS } from 'config/homeTabs';
 import shallowEqual from 'utils/shallowEqual';
 import { useAddPopHandler } from './HistoryStore';
 
-type TabType = ValueOf<typeof HOME_TABS>;
+const HOME_TABS_SET = new Set<string>(Object.values(HOME_TABS));
+function _isPathHome(path: string | undefined): boolean {
+  if (!path) {
+    return false;
+  }
+  if (path === '/' || path === '') {
+    return true;
+  }
+  const pathParts = path.split('/', 2);
+  return HOME_TABS_SET.has(
+    pathParts[0] === '' ? pathParts[1] : pathParts[0],
+  );
+}
+
+const HomeNavState = {
+  // Allow immediate exit.
+  canExit: true,
+};
 
 export const [
   HomeNavProvider,
   useHomeNavStore,
   useHomeTab,
+  useHomeParts,
+  useIsHome,
+  useReplaceHome,
 ] = constate(
   function HomeNavStore() {
-    const ref = useRef<{
-      hasAttemptedExit: boolean,
-      doneFirstRender: boolean,
-    }>({
-      // Allow immediate exit.
-      hasAttemptedExit: true,
-      doneFirstRender: false,
-    });
-
     const {
-      prevState,
       curState,
-      didRefresh,
+      backState,
+      forwardState,
+      prevState,
+      nextState,
+      direction,
       navCountHack,
+      pushPath,
+      replacePath,
     } = useHistoryStore();
-    const addPopHandler = useAddPopHandler();
-    const showToast = useShowToast();
-    const pushPath = usePushPath();
-    const replacePath = useReplacePath();
-
-    const pathParts = useMemo(() => curState.path.replace(/^\/(.+?)\/?$/, '$1').split('/'), [curState.path]);
-    const prevPathParts = useMemo(
-      () => (prevState?.path ? prevState.path.replace(/^\/(.+?)\/?$/, '$1').split('/') : null),
-      [prevState?.path],
-    );
 
     const isHome = useMemo(
-      () => pathParts[0] === '' || pathParts[0].toUpperCase() in HOME_TABS,
-      [pathParts],
+      () => _isPathHome(curState.path),
+      [curState.path],
     );
-    const wasHome = useMemo(
-      () => !!prevPathParts
-        && (prevPathParts[0] === '' || prevPathParts[0].toUpperCase() in HOME_TABS),
-      [prevPathParts],
+    const isBackHome = useMemo(
+      () => _isPathHome(backState?.path),
+      [backState?.path],
     );
+    const isForwardHome = useMemo(
+      () => _isPathHome(forwardState?.path),
+      [forwardState?.path],
+    );
+    const isPrevHome = prevState === forwardState ? isForwardHome : isBackHome;
+    const isNextHome = nextState === forwardState ? isForwardHome : isBackHome;
 
-    const {
-      homeTab,
-      homeParts,
-      prevHomeTab,
-      prevHomeParts,
-    } = useUpdatedState<{
-      homeTab: TabType,
-      homeParts: Memoed<string[]>,
-      prevHomeTab: TabType,
-      prevHomeParts: Memoed<string[]>,
-    }>(
-      wasHome && prevPathParts
-        ? {
-          homeTab: (prevPathParts[0] || HOME_TABS.FEED) as TabType,
-          homeParts: prevPathParts.length >= 2 && prevPathParts[0]
-            ? markMemoed(prevPathParts.slice(1))
-            : EMPTY_ARR,
-          prevHomeTab: HOME_TABS.FEED,
-          prevHomeParts: EMPTY_ARR,
-        }
-        : {
-          homeTab: HOME_TABS.FEED,
-          homeParts: EMPTY_ARR,
-          prevHomeTab: HOME_TABS.FEED,
-          prevHomeParts: EMPTY_ARR,
-        },
+    // todo: low/mid fix flicker when going home -> stack -> home -> back
+    const homeState = useUpdatedState<HistoryState | null>(
+      null,
       s => {
-        if (isHome) {
-          if (pathParts[0] === '') {
-            return {
-              homeTab: HOME_TABS.FEED,
-              homeParts: EMPTY_ARR,
-              prevHomeTab: s.homeTab,
-              prevHomeParts: s.homeParts,
-            };
-          }
-
-          const areHomePartsSame = shallowEqual(pathParts.slice(1), s.homeParts);
-          if (pathParts[0] !== s.homeTab || !areHomePartsSame) {
-            return {
-              homeTab: pathParts[0] as TabType,
-              homeParts: pathParts.length >= 2
-                ? (areHomePartsSame ? s.homeParts : markMemoed(pathParts.slice(1)))
-                : EMPTY_ARR,
-              prevHomeTab: s.homeTab,
-              prevHomeParts: s.homeParts,
-            };
-          }
+        if (_isPathHome(curState.path)) {
+          return curState;
+        }
+        if (isBackHome) {
+          return backState;
+        }
+        if (isForwardHome) {
+          return forwardState;
         }
         return s;
       },
     );
+    const homePathParts = useMemo(() => {
+      if (!homeState?.path) {
+        return [];
+      }
+      return (homeState.path.startsWith('/') ? homeState.path.slice(1) : homeState.path)
+        .split('/');
+    }, [homeState?.path]);
+    const homeTab = homePathParts?.[0] === ''
+      ? HOME_TABS.FEED
+      : homePathParts?.[0] as HomeTab | undefined;
+    const homeParts = useShallowMemoArr(
+      homePathParts?.[0] && homePathParts?.length >= 2
+        ? homePathParts.slice(1)
+        : EMPTY_ARR,
+    );
+    const {
+      homeTab: prevHomeTab,
+      homeParts: prevHomeParts,
+    } = usePreviousDifferent({
+      homeTab,
+      homeParts,
+    }, true) ?? {};
 
+    const replaceHome = useLatest((
+      newHomeTab: HomeTab,
+      newParts?: string | string[],
+      newQuery: ObjectOf<string | number> | null = null,
+      newHash: string | null = null,
+    ) => {
+      if (!newParts) {
+        newParts = EMPTY_ARR;
+      } else if (typeof newParts === 'string') {
+        newParts = [newParts];
+      }
+
+      let newPath: string;
+      if (newHomeTab === DEFAULT_PATH_PARTS[0]
+        && newParts.every((part, idx) => part === DEFAULT_PATH_PARTS[idx + 1])) {
+        newPath = '/';
+      } else {
+        newPath = `/${newHomeTab}/${newParts.join('/')}`;
+      }
+
+      if (!isHome) {
+        pushPath(newPath, newQuery, newHash);
+        return;
+      }
+
+      const {
+        path,
+        queryStr,
+        hash,
+      } = getPartsFromPath(newPath, newQuery, newHash);
+      if (path === prevState?.path
+        && queryStr === prevState?.queryStr
+        && hash === prevState?.hash) {
+        if (direction === 'back') {
+          window.history.forward();
+        } else {
+          window.history.back();
+        }
+        return;
+      }
+      if (curState.id === FIRST_ID || !isPrevHome) {
+        pushPath(newPath, newQuery, newHash);
+        return;
+      }
+
+      const isOnlyTabChanging = newHomeTab !== homeTab
+        && shallowEqual(newParts, homeParts);
+      const prevIsOnlyTabChanging = homeTab !== prevHomeTab
+        && (prevState?.id === FIRST_ID || shallowEqual(homeParts, prevHomeParts));
+      if (isOnlyTabChanging && prevIsOnlyTabChanging) {
+        replacePath(newPath, newQuery, newHash);
+      } else {
+        pushPath(newPath, newQuery, newHash);
+      }
+    });
+
+    const addPopHandler = useAddPopHandler();
+    const showToast = useShowToast();
+    const latestPrevState = useLatest(prevState);
     useEffect(() => {
-      if (ref.current.hasAttemptedExit
-        && (homeTab !== HOME_TABS.FEED || !isHome)) {
-        ref.current.hasAttemptedExit = false;
+      if (!prevState
+        && HomeNavState.canExit
+        && (!isHome || homeTab !== HOME_TABS.FEED)) {
+        HomeNavState.canExit = false;
         addPopHandler(() => {
-          if (!ref.current.hasAttemptedExit && (homeTab === HOME_TABS.FEED && isHome)) {
+          if (!latestPrevState.current
+            && !HomeNavState.canExit
+            && (homeTab === HOME_TABS.FEED && isHome)) {
             showToast({
               msg: 'Tap again to exit',
             });
-            ref.current.hasAttemptedExit = true;
+            HomeNavState.canExit = true;
             return true;
           }
           return false;
         });
       }
-    }, [addPopHandler, showToast, curState, isHome, homeTab]);
+    }, [
+      prevState,
+      latestPrevState,
+      addPopHandler,
+      showToast,
+      isHome,
+      homeTab,
+    ]);
 
-    // Add home to history.
-    // todo: low/mid prevent forcing route rerender in homenavstore
-    useLayoutEffect(() => {
-      const { path, query, hash } = curState;
-      if (!ref.current.doneFirstRender && isHome && !didRefresh && path !== '/') {
-        replacePath('/', null);
-        pushPath(path, query, hash);
-        ref.current.doneFirstRender = true;
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
+    const deferredHomeTab = useDeferredValue(homeTab);
+    const deferredHomeParts = useDeferredValue(homeParts);
+    const deferredIsHome = useDeferredValue(isHome);
     return useMemo(() => ({
+      homeState,
       homeTab,
       prevHomeTab,
       homeParts,
       prevHomeParts,
       isHome,
-      wasHome,
+      isBackHome,
+      isForwardHome,
+      isPrevHome,
+      isNextHome,
+      replaceHome,
       navCountHack,
+      _deferredHomeTab: deferredHomeTab,
+      _deferredHomeParts: deferredHomeParts,
+      _deferredIsHome: deferredIsHome,
     }), [
+      homeState,
       homeTab,
       prevHomeTab,
       homeParts,
       prevHomeParts,
       isHome,
-      wasHome,
+      isBackHome,
+      isForwardHome,
+      isPrevHome,
+      isNextHome,
       navCountHack,
+      replaceHome,
+      deferredHomeTab,
+      deferredHomeParts,
+      deferredIsHome,
     ]);
   },
   function HomeNavStore(val) {
     return val;
   },
   function HomeTab(val) {
-    return val.homeTab;
+    return val._deferredHomeTab;
+  },
+  function HomeParts(val) {
+    return val._deferredHomeParts;
+  },
+  function IsHome(val) {
+    return val._deferredIsHome;
+  },
+  function ReplaceHome(val) {
+    return val.replaceHome;
   },
 );

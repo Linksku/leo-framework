@@ -1,24 +1,28 @@
-import { MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
+import { ENABLE_DBZ, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
 import type { Consumer } from 'kafkajs';
 
 import schemaRegistry from 'services/schemaRegistry';
 import { API_POST_TIMEOUT } from 'settings';
 import createKafkaConsumer from 'utils/infra/createKafkaConsumer';
+import listKafkaTopics from 'utils/infra/listKafkaTopics';
 
 type ConsumerSub = {
   match: [string, any][],
   resolvePromise: () => void,
   rejectPromise: (err: Error) => void,
-  timer: NodeJS.Timeout,
+  timeoutTimer: NodeJS.Timeout,
+};
+
+type ConsumerConfig = {
+  consumer: Consumer,
+  subscriptions: ConsumerSub[],
+  gotFirstMsg: boolean,
+  lastSubbedTime: number,
 };
 
 const consumerConfigs = Object.create(null) as Partial<Record<
   ModelType,
-  {
-    consumer: Consumer,
-    subscriptions: ConsumerSub[],
-    lastSubbed: number,
-  }
+  ConsumerConfig
 >>;
 
 // todo: mid/hard don't create a consumer for every server
@@ -32,31 +36,46 @@ export default async function waitForKafkaSinkMsg<
     timeout?: number,
   } = {},
 ): Promise<void> {
+  const createTimeoutTimer = (
+    consumerConfig: ConsumerConfig,
+    sub: ConsumerSub,
+  ) => setTimeout(() => {
+    const idx = consumerConfig.subscriptions.indexOf(sub);
+    if (idx >= 0) {
+      consumerConfig.subscriptions.splice(idx, 1);
+    }
+
+    sub.rejectPromise(new Error(
+      consumerConfig.gotFirstMsg
+        ? 'waitForKafkaSinkMsg: timed out'
+        : 'waitForKafkaSinkMsg: didn\'t receive first message',
+    ));
+  }, timeout);
+
   if (TS.hasProp(consumerConfigs, modelType)) {
     const consumerConfig = consumerConfigs[modelType];
-    consumerConfig.lastSubbed = performance.now();
+    consumerConfig.lastSubbedTime = performance.now();
     return new Promise((succ, fail) => {
       const sub: ConsumerSub = {
         match: Object.entries(partial),
         resolvePromise: succ,
         rejectPromise: fail,
-        timer: setTimeout(() => {
-          const idx = consumerConfig.subscriptions.indexOf(sub);
-          if (idx >= 0) {
-            consumerConfig.subscriptions.splice(idx, 1);
-          }
-          sub.rejectPromise(new Error('waitForKafkaSinkMsg: timed out'));
-        }, timeout),
+        timeoutTimer: 0 as unknown as NodeJS.Timeout,
       };
+      sub.timeoutTimer = createTimeoutTimer(consumerConfig, sub);
       consumerConfig.subscriptions.push(sub);
     });
   }
 
-  const consumer = createKafkaConsumer({ ctx: 'waitForKafkaSinkMsg' });
-  consumerConfigs[modelType] = {
+  const consumer = createKafkaConsumer({
+    ctx: 'waitForKafkaSinkMsg',
+    allowAutoTopicCreation: false,
+  });
+  const newConsumerConfig = consumerConfigs[modelType] = {
     consumer,
-    subscriptions: [],
-    lastSubbed: performance.now(),
+    subscriptions: [] as ConsumerSub[],
+    gotFirstMsg: false,
+    lastSubbedTime: performance.now(),
   };
 
   consumer.on('consumer.crash', event => {
@@ -67,17 +86,39 @@ export default async function waitForKafkaSinkMsg<
   });
 
   try {
+    let modelTopic = `${MZ_SINK_TOPIC_PREFIX}${modelType}`;
+    if (!ENABLE_DBZ) {
+      const topics = await listKafkaTopics(`${modelTopic}-`);
+      if (!process.env.PRODUCTION && topics.length > 1) {
+        throw getErr('waitForKafkaSinkMsg: too many topics', { topics });
+      }
+      if (!topics.length) {
+        throw new Error('waitForKafkaSinkMsg: missing topics');
+      }
+      modelTopic = topics[0];
+    }
     await consumer.connect();
-    await consumer.subscribe({ topic: `${MZ_SINK_TOPIC_PREFIX}${modelType}` });
+    await consumer.subscribe({
+      topic: modelTopic,
+    });
 
     await consumer.run({
       async eachMessage({ topic, message }) {
-        if (!message.value) {
+        const msgModel = (
+          ENABLE_DBZ
+            ? topic.slice(MZ_SINK_TOPIC_PREFIX.length)
+            : topic.slice(MZ_SINK_TOPIC_PREFIX.length).split('-')[0]
+        ) as ModelType;
+        const consumerConfig = consumerConfigs[msgModel];
+
+        if (!consumerConfig || !message.value) {
           return;
         }
+        consumerConfig.gotFirstMsg = true;
 
-        const modelType2 = topic.slice(MZ_SINK_TOPIC_PREFIX.length) as ModelType;
-        const consumerConfig = consumerConfigs[modelType2];
+        if (!process.env.PRODUCTION && !consumerConfig) {
+          throw new Error(`waitForKafkaSinkMsg: missing consumerConfig for ${msgModel}`);
+        }
         if (!consumerConfig?.subscriptions.length) {
           return;
         }
@@ -92,7 +133,7 @@ export default async function waitForKafkaSinkMsg<
           }
 
           sub.resolvePromise();
-          clearTimeout(sub.timer);
+          clearTimeout(sub.timeoutTimer);
           consumerConfig.subscriptions.splice(i, 1);
           i--;
         }
@@ -113,21 +154,15 @@ export default async function waitForKafkaSinkMsg<
     throw err;
   }
 
-  const newConsumerConfig = consumerConfigs[modelType];
   if (newConsumerConfig) {
     return new Promise((succ, fail) => {
       const sub: ConsumerSub = {
         match: Object.entries(partial),
         resolvePromise: succ,
         rejectPromise: fail,
-        timer: setTimeout(() => {
-          const idx = newConsumerConfig.subscriptions.indexOf(sub);
-          if (idx >= 0) {
-            newConsumerConfig.subscriptions.splice(idx, 1);
-          }
-          sub.rejectPromise(new Error('waitForKafkaSinkMsg: timed out'));
-        }, timeout),
+        timeoutTimer: 0 as unknown as NodeJS.Timeout,
       };
+      sub.timeoutTimer = createTimeoutTimer(newConsumerConfig, sub);
       newConsumerConfig.subscriptions.push(sub);
     });
   }

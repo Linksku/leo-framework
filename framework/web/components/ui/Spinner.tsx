@@ -1,5 +1,3 @@
-import { PRIMARY_COLOR } from 'consts/ui';
-
 import styles from './SpinnerStyles.scss';
 
 type Props = {
@@ -12,11 +10,18 @@ type Props = {
 const startTime = performance.now();
 
 export default function Spinner({
-  color = PRIMARY_COLOR,
+  color,
   dimRem = 6.4,
   verticalMargin = 5,
   fadeInDuration = 1000,
 }: Props) {
+  const inner = (
+    <div
+      style={{
+        borderWidth: `${Math.max(0.2, dimRem / 10)}rem`,
+      }}
+    />
+  );
   return (
     <div
       className={cx(styles.spinner, {
@@ -31,10 +36,10 @@ export default function Spinner({
         animationDuration: `${fadeInDuration}ms`,
       }}
     >
-      <div />
-      <div />
-      <div />
-      <div />
+      {inner}
+      {inner}
+      {inner}
+      {inner}
     </div>
   );
 }

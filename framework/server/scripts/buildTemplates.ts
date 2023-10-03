@@ -1,7 +1,7 @@
 import fs from 'fs';
 import ejs from 'ejs';
 import path from 'path';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import childProcess from 'child_process';
 
 import {
@@ -21,7 +21,9 @@ export default async function buildTemplates() {
     .filter(file => file.endsWith('.ejs') && !file.startsWith('/partials/'))
     .map(async file => {
       const resolvedInPath = path.resolve(`./framework/web/templates/${file}`);
-      const resolvedOutPath = path.resolve(`./build/${process.env.NODE_ENV}/web/${file.replace(/\.ejs$/, '.html')}`);
+      const resolvedOutPath = path.resolve(
+        `./build/${process.env.NODE_ENV}/web/${file.replace(/\.ejs$/, '.html')}`,
+      );
 
       const template = await fs.promises.readFile(resolvedInPath);
 

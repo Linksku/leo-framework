@@ -5,9 +5,7 @@ type _EntryType<T extends ObjectOf<any>> = {
 function objEntries<Obj extends ObjectOf<any>>(
   obj: Obj,
   keepUndefined?: false,
-): _EntryType<{
-  [K in keyof Obj]-?: Exclude<Obj[K], undefined>;
-}>[];
+): _EntryType<OmitOptional<Obj>>[];
 
 function objEntries<
   Obj extends ObjectOf<any>,

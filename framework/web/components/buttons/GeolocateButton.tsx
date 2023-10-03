@@ -7,10 +7,12 @@ import styles from './GeolocateButtonStyles.scss';
 
 type Props = {
   onGeolocate: ((lat: number, lng: number) => void),
+  color?: string,
 };
 
 export default function GeolocateButton({
   onGeolocate,
+  color,
 }: Props) {
   const showAlert = useShowAlert();
 
@@ -30,15 +32,31 @@ export default function GeolocateButton({
           );
           onGeolocate(latitude, longitude);
         } catch (err) {
+          let msg = '';
+          if (err instanceof GeolocationPositionError) {
+            msg = err.code === GeolocationPositionError.PERMISSION_DENIED
+              ? 'Geolocation request was denied. To fix this, please enable location permissions for the app and try again.'
+              : 'Location temporarily unavailable.';
+          } else if (err instanceof Error && err.message) {
+            msg = err.message;
+          } else {
+            ErrorLogger.warn(
+              err instanceof Error
+                ? getErr(err, { ctx: 'GeolocateButton' })
+                : getErr('Geolocation error', { ctx: 'GeolocateButton', err }),
+            );
+          }
+
           showAlert({
             title: 'Failed to get location',
-            msg: err instanceof Error ? err.message : '',
+            msg,
           });
         }
       }}
       className={styles.svg}
+      style={{ color }}
       role="button"
-      tabIndex={-1}
+      tabIndex={0}
     />
   );
 }

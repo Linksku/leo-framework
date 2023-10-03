@@ -2,7 +2,8 @@ import type { Page } from 'objection';
 import type { Knex } from 'knex';
 import { QueryBuilder as BaseQueryBuilder } from 'objection';
 // @ts-ignore Objection is missing type
-import { KnexOperation } from 'objection/lib/queryBuilder/operations/KnexOperation';
+import { KnexOperation } from 'objection/lib/queryBuilder/operations/KnexOperation.js';
+import unzip from 'lodash/unzip.js';
 
 import formatTsquery from 'utils/db/formatTsquery';
 import { AGGREGATE_FUNCTIONS } from 'consts/pg';
@@ -42,6 +43,7 @@ export interface CustomQueryBuilderMethods {
   joinLateral(table: Knex.Raw | BaseQueryBuilder<any>): this;
   leftJoinLateral(table: Knex.Raw | BaseQueryBuilder<any>): this;
   tableSample(type: 'bernoulli' | 'system' | 'system_rows', arg: number): this;
+  asOfNow(): this;
 }
 
 function validateLateral(
@@ -62,7 +64,9 @@ function validateLateral(
         : [TS.last(op.args)];
       const stringCol = rightVals.find(val => typeof val === 'string' && /^"?\w+"?\."?\w+"?$/.test(val));
       if (stringCol) {
-        throw new Error(`joinLateral(${modelType}, ${lateralModelType}): maybe "${stringCol}" should be raw column instead of string`);
+        throw new Error(
+          `joinLateral(${modelType}, ${lateralModelType}): maybe "${stringCol}" should be raw column instead of string`,
+        );
       }
     }
 
@@ -72,6 +76,8 @@ function validateLateral(
     }
   }
 }
+
+const COL_REGEX = /^"?\w+"?\."?(\w+)"?/;
 
 // Note: Materialize doesn't support random() yet
 export default class CustomQueryBuilder<M extends Model, R = M[]>
@@ -88,7 +94,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     const limit = TS.parseIntOrNull(val);
 
     if (typeof limit !== 'number' || limit < 1) {
-      throw new Error(`CustomQueryBuilder.limit: "${val}" isn't number.`);
+      throw new Error(`CustomQueryBuilder.limit: invalid value "${val}"`);
     }
 
     // @ts-ignore Objection type is wrong
@@ -101,7 +107,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     alias?: string,
   ): this {
     if (!alias) {
-      const matches = col.match(/^"?\w+"?\."?(\w+)"?/);
+      const matches = col.match(COL_REGEX);
       if (matches) {
         alias = matches[1];
       }
@@ -148,6 +154,12 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     query: string,
     config = 'simple',
   ): this {
+    if (!process.env.PROCESS && config === 'simple' && /[A-Z]/.test(query)) {
+      throw new Error(
+        `tsquery(${TS.getAs<ModelClass>(this, '_modelClass').type}.${col}): simple tsquery is all lowercase`,
+      );
+    }
+
     return this.whereRaw(
       'to_tsvector(?, ??) @@ ?::tsquery',
       [config, col, formatTsquery(query)],
@@ -159,6 +171,12 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     query: string,
     config = 'simple',
   ): this {
+    if (!process.env.PROCESS && config === 'simple' && /[A-Z]/.test(query)) {
+      throw new Error(
+        `orTsquery(${TS.getAs<ModelClass>(this, '_modelClass').type}.${col}): simple tsquery is all lowercase`,
+      );
+    }
+
     return this.orWhereRaw(
       'to_tsvector(?, ??) @@ ?::tsquery',
       [config, col, formatTsquery(query)],
@@ -194,7 +212,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
       throw new Error('CustomQueryBuilder.fromValues: missing data');
     }
     const numRows = data[0].rows.length;
-    if (!data.every(d => d.rows.length === numRows)) {
+    if (data.some(d => d.rows.length !== numRows)) {
       throw new Error('CustomQueryBuilder.fromValues: rows have different lengths');
     }
 
@@ -215,18 +233,17 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     return this.from(raw(
       `
         (values ${
-          Array.from({ length: numRows })
-            .map((_, idx) => (
-              idx === 0
-                ? `(${data.map(d => `?::${d.dataType}`).join(',')})`
-                : `(${data.map(_ => '?').join(',')})`
-            ))
-            .join(',')
+          Array.from(
+            { length: numRows },
+            (_, idx) => (idx === 0
+              ? `(${data.map(d => `?::${d.dataType}`).join(',')})`
+              : `(${data.map(_ => '?').join(',')})`),
+          ).join(',')
         })
         ??(${data.map(_ => '??')})
       `,
       [
-        ...data.flatMap(d => d.rows),
+        ...unzip(data.map(d => d.rows)).flat(),
         alias,
         ...data.map(d => d.col),
       ],
@@ -234,6 +251,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
   }
 
   // Note: useful in MZ for top per group.
+  // todo: low/easy warn if no alias
   joinLateral(table: Knex.Raw | BaseQueryBuilder<any>): this {
     validateLateral('inner', TS.getAs<ModelClass>(this, '_modelClass').type, table);
 
@@ -258,5 +276,13 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
   // Note: system_rows isn't completely random, some rows will be returned together
   tableSample(type: 'bernoulli' | 'system' | 'system_rows', numRows: number): this {
     return this.from(raw(`?? tablesample ${type}(?)`, [this.modelClass().tableName, numRows]));
+  }
+
+  asOfNow(): this {
+    // @ts-ignore Objection is missing type
+    return this.addOperation(
+      new KnexOperation('offset'),
+      [raw('0 AS OF now()'), { skipBinding: true }],
+    );
   }
 }

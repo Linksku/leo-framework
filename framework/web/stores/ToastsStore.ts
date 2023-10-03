@@ -8,6 +8,11 @@ const DEFAULT_CLOSE_AFTER = 3000;
 
 let _nextToastId = 0;
 
+const ToastsState = {
+  hideToastTimer: null as number | null,
+  removeToastTimer: null as number | null,
+};
+
 export const [
   ToastsProvider,
   useToastsStore,
@@ -21,18 +26,14 @@ export const [
       toast: null as Toast | null,
       isHiding: false,
     });
-    const ref = useRef({
-      hideToastTimer: null as number | null,
-      removeToastTimer: null as number | null,
-    });
 
     const hideToast = useCallback(() => {
       setState({ isHiding: true });
 
-      if (ref.current.removeToastTimer !== null) {
-        clearTimeout(ref.current.removeToastTimer);
+      if (ToastsState.removeToastTimer !== null) {
+        clearTimeout(ToastsState.removeToastTimer);
       }
-      ref.current.removeToastTimer = window.setTimeout(() => {
+      ToastsState.removeToastTimer = window.setTimeout(() => {
         setState({ toast: null, isHiding: false });
       }, 200);
     }, [setState]);
@@ -53,10 +54,10 @@ export const [
         isHiding: false,
       });
 
-      if (ref.current.hideToastTimer !== null) {
-        clearTimeout(ref.current.hideToastTimer);
+      if (ToastsState.hideToastTimer !== null) {
+        clearTimeout(ToastsState.hideToastTimer);
       }
-      ref.current.hideToastTimer = window.setTimeout(
+      ToastsState.hideToastTimer = window.setTimeout(
         hideToast,
         closeAfter ?? DEFAULT_CLOSE_AFTER,
       );

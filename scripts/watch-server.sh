@@ -27,9 +27,9 @@ touch build/$NODE_ENV/server-script/monitorInfra.js
 
 rebuild_server="nodemon -e js,cjs,ts \
   --watch webpack.server.$NODE_ENV.js --watch webpack.server.js --watch webpack.common.js \
-  --watch framework/server/config/globals.cjs --watch app/server/config/globals.cjs \
-  --watch framework/shared/config/globals.cjs --watch app/shared/config/globals.cjs \
+  --watch app/shared/types/__generated__/globals.d.ts \
   --watch app/server/types/__generated__/globals.d.ts \
+  --watch app/server/types/__generated__/allModels.cjs \
   --watch framework/shared/settings.js \
   --watch package.json --watch yarn.lock --watch babel.config.cjs \
   -x \"MINIMIZE=0 node --experimental-specifier-resolution=node --no-warnings node_modules/webpack/bin/webpack.js -w \\
@@ -37,9 +37,9 @@ rebuild_server="nodemon -e js,cjs,ts \
 rebuild_monitor="nodemon -e js,cjs,ts \
   --watch webpack.server-script.$NODE_ENV.js \
   --watch webpack.server.$NODE_ENV.js --watch webpack.server.js --watch webpack.common.js \
-  --watch framework/server/config/globals.cjs --watch app/server/config/globals.cjs \
-  --watch framework/shared/config/globals.cjs --watch app/shared/config/globals.cjs \
+  --watch app/shared/types/__generated__/globals.d.ts \
   --watch app/server/types/__generated__/globals.d.ts \
+  --watch app/server/types/__generated__/allModels.d.ts \
   --watch framework/shared/settings.js \
   --watch package.json --watch yarn.lock --watch babel.config.cjs \
   -x \"MINIMIZE=0 SERVER_SCRIPT_PATH=framework/server/scripts/monitorInfra \\

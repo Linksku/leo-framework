@@ -6,6 +6,8 @@ import styles from './useFloatingActionButtonStyles.scss';
 export default function useFloatingActionButton({
   Svg,
   hideType,
+  anchorTo = 'bottom',
+  visibilityOffset = '0',
   boxShadow,
   svgClassName,
   className,
@@ -13,11 +15,16 @@ export default function useFloatingActionButton({
 }: {
   Svg: React.SVGFactory,
   hideType?: 'scrollOut' | 'scrollIn',
+  anchorTo?: 'top' | 'bottom',
+  visibilityOffset?: string,
   boxShadow?: string,
   svgClassName?: string,
 } & Parameters<typeof Button>[0]) {
-  const animatedOpacity = useAnimatedValue(hideType ? 0 : 100);
-  const [animationRef, animationStyle] = useAnimation<HTMLAnchorElement>();
+  const animatedOpacity = useAnimatedValue(
+    hideType ? 0 : 100,
+    { debugName: 'FAB' },
+  );
+  const [animationRef, animationStyle] = useAnimation<HTMLAnchorElement>(animatedOpacity, 'FAB');
   const showButton = useCallback(() => {
     animatedOpacity.setVal(100);
   }, [animatedOpacity]);
@@ -35,8 +42,16 @@ export default function useFloatingActionButton({
 
   return {
     visibilityDiv: useMemo(
-      () => <div ref={visibilityRef} />,
-      [visibilityRef],
+      () => (
+        <div
+          ref={visibilityRef}
+          className={styles.visibilityDiv}
+          style={{
+            height: visibilityOffset,
+          }}
+        />
+      ),
+      [visibilityRef, visibilityOffset],
     ),
     btn: (
       <Button
@@ -46,16 +61,25 @@ export default function useFloatingActionButton({
         leftSvgClassName={svgClassName}
         style={{
           ...animationStyle(
-            animatedOpacity,
             {
               filter: x => `opacity(${x}%)`,
-              display: x => (x < 1 ? 'none' : 'block'),
+              ...(anchorTo === 'top' ? null : {
+                // Temp fix for useAnimation overriding transform
+                transform: _ => 'translateY(-100%)',
+              }),
             },
-            { keyframes: [1] },
+            {
+              stylesForFinalVal: {
+                0: { display: 'none' },
+              },
+            },
           ),
           boxShadow,
         }}
-        className={cx(styles.btn, className)}
+        className={cx(styles.btn, className, {
+          [styles.fromTop]: anchorTo === 'top',
+          [styles.fromBottom]: anchorTo === 'bottom',
+        })}
       />
     ),
   };

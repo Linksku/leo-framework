@@ -10,11 +10,10 @@ export default function getPartialAllUniqueIndexes<T extends ModelClass>(
       : [];
   }
 
-  const keysSet = new Set(keys);
   const ret: ModelIndex<T>[] = [];
   outer: for (const index of Model.getUniqueIndexes()) {
     for (const col of index) {
-      if (!keysSet.has(col)) {
+      if (!keys.includes(col)) {
         continue outer;
       }
     }

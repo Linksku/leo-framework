@@ -14,10 +14,16 @@ export default async function runHealthchecksOnce(args?: Arguments | {
 }) {
   const healthchecks = getHealthcheckConfigs();
 
-  const results = {} as Record<HealthcheckName, boolean>;
+  const results = Object.create(null) as Record<HealthcheckName, boolean>;
   const printResults: (() => void)[] = Array.from({ length: Object.keys(healthchecks).length });
   let nextPrintIdx = 0;
   await Promise.all(TS.objEntries(healthchecks).map(([name, config], idx) => limiter(async () => {
+    if (config.disabled
+      || (config.onlyForDebug && !process.env.SERVER_SCRIPT_PATH?.endsWith('/runHealthchecksOnce'))) {
+      printResults[idx] = NOOP;
+      return;
+    }
+
     try {
       await promiseTimeout(
         config.cb(),

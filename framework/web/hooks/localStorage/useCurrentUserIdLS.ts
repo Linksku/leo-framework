@@ -1,6 +1,6 @@
-import useLocalStorage from 'hooks/useLocalStorage';
+import { useLocalStorage } from 'hooks/useStorage';
 
-const validator = markMemoed((val: unknown) => val === null || (typeof val === 'number' && val > 0));
+const validator = markStable((val: unknown) => val === null || (typeof val === 'number' && val > 0));
 
 export default function useCurrentUserIdLS() {
   return useLocalStorage<number | null>(

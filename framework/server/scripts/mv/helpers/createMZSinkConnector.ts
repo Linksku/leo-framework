@@ -1,9 +1,9 @@
-import merge from 'lodash/merge';
+import merge from 'lodash/merge.js';
 
 import ucFirst from 'utils/ucFirst';
 import fetchJson from 'utils/fetchJson';
 import generateUuid from 'utils/generateUuid';
-import { MZ_SINK_CONNECTOR_PREFIX, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
+import { ENABLE_DBZ, MZ_SINK_CONNECTOR_PREFIX, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
 import {
   SCHEMA_REGISTRY_PORT,
   INTERNAL_DOCKER_HOST,
@@ -21,7 +21,7 @@ const BASE_KAFKA_CONNECT_CONFIG = {
   'value.converter.schema.registry.url': `http://schema-registry:${SCHEMA_REGISTRY_PORT}`,
   'insert.mode': 'upsert',
   'delete.enabled': 'true',
-  'auto.create': 'true',
+  'auto.create': 'false',
   'auto.evolve': 'false',
   'errors.retry.timeout': -1,
   'max.retries': 100, // 5min
@@ -31,6 +31,7 @@ const BASE_KAFKA_CONNECT_CONFIG = {
   'pk.mode': 'record_key',
 };
 
+// todo: high/hard sometimes all healthchecks pass, but no data get written to sink topics
 export default async function createMZSinkConnector({
   name,
   replicaTable,
@@ -51,7 +52,10 @@ export default async function createMZSinkConnector({
     'PUT',
     {
       ...BASE_KAFKA_CONNECT_CONFIG,
-      'topics.regex': `^${MZ_SINK_TOPIC_PREFIX}${name}$`,
+      'topics.regex': ENABLE_DBZ
+        ? `^${MZ_SINK_TOPIC_PREFIX}${name}$`
+        // Sync with waitForKafkaSinkMsg
+        : `^${MZ_SINK_TOPIC_PREFIX}${name}-[a-zA-Z0-9-]+$`,
       'table.name.format': replicaTable,
       'pk.fields': Array.isArray(primaryKey) ? primaryKey.join(',') : primaryKey,
       transforms: transforms.join(','),

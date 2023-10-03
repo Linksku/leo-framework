@@ -1,4 +1,9 @@
-import type { Sharp, Metadata, FitEnum } from 'sharp';
+import type {
+  Sharp,
+  SharpOptions,
+  Metadata,
+  FitEnum,
+} from 'sharp';
 import { promises as fs, ReadStream } from 'fs';
 import sharp from 'sharp';
 import https from 'https';
@@ -9,20 +14,30 @@ import getCroppedMediaDim from 'utils/media/getCroppedMediaDim';
 export default class UploadedImage {
   filePath: string;
   stream?: ReadStream | http.IncomingMessage;
+  sharpOptions?: SharpOptions;
   sharp?: Sharp;
   metadata?: Metadata;
   newHeight = 0;
   newWidth = 0;
 
-  constructor(filePath: string) {
+  constructor(filePath: string, sharpOptions?: SharpOptions) {
     this.filePath = filePath;
+    this.sharpOptions = sharpOptions;
   }
 
-  clone() {
+  clone(newOptions?: SharpOptions) {
+    if (!process.env.PRODUCTION && !this.stream) {
+      ErrorLogger.warn(new Error('UploadedImage.clone: haven\'t read file yet, pointless clone()'));
+    }
+
     const img = new UploadedImage(this.filePath);
     img.stream = this.stream; // Maybe need to clone stream?
-    img.sharp = this.sharp?.clone();
-    img.metadata = this.metadata;
+    img.sharpOptions = {
+      ...this.sharpOptions,
+      ...newOptions,
+    };
+    img.sharp = newOptions ? undefined : this.sharp?.clone();
+    img.metadata = newOptions ? undefined : this.metadata;
     img.newHeight = this.newHeight;
     img.newWidth = this.newWidth;
     return img;
@@ -50,7 +65,10 @@ export default class UploadedImage {
   async getSharpImg() {
     if (!this.sharp) {
       const stream = await this.getImgStream();
-      this.sharp = stream.pipe(sharp());
+      this.sharp = stream.pipe(sharp({
+        animated: true,
+        ...this.sharpOptions,
+      }));
     }
     return TS.defined(this.sharp);
   }
@@ -66,7 +84,19 @@ export default class UploadedImage {
         height: this.newHeight,
         width: this.newWidth,
       }
-      : this.metadata;
+      : {
+        ...this.metadata,
+        height: this.metadata.pageHeight ?? this.metadata.height,
+      };
+  }
+
+  async isAnimated() {
+    if (this.sharpOptions?.animated === false || this.sharpOptions?.pages === 1) {
+      return false;
+    }
+
+    const metadata = await this.getMetadata();
+    return metadata.pages && metadata.pages > 1;
   }
 
   async crop({
@@ -88,7 +118,7 @@ export default class UploadedImage {
     }
     if (top < 0 || left < 0 || right < 0 || bot < 0
       || top + bot > 90 || left + right > 90) {
-      throw new Error('UploadedImage.crop: nvalid crop');
+      throw new Error('UploadedImage.crop: invalid crop');
     }
 
     const oldTop = top;
@@ -190,22 +220,39 @@ export default class UploadedImage {
     }
   }
 
-  // todo: mid/mid export images as webp
-  async convertToJpg({
+  async getOutput({
     quality = 90,
-  } = {}): Promise<Buffer> {
-    const img = await this.getSharpImg();
+  } = {}): Promise<{
+    buffer: Buffer,
+    format: 'webp' | 'jpeg',
+    extension: 'webp' | 'jpg',
+  }> {
+    let img = await this.getSharpImg();
+    const isAnimated = await this.isAnimated();
 
-    return img
+    img = img
       .withMetadata()
       .flatten({
         background: { r: 255, g: 255, b: 255 },
-      })
-      .toFormat('jpeg')
-      .jpeg({
-        quality,
-        progressive: true,
-      })
-      .toBuffer();
+      });
+    img = isAnimated
+      ? img
+        // webp doesn't have enough support, e.g. AWS Rekognition
+        .toFormat('webp')
+        .webp({
+          quality,
+          effort: isAnimated ? 0 : 4,
+        })
+      : img
+        .toFormat('jpeg')
+        .jpeg({
+          quality,
+          progressive: true,
+        });
+    return {
+      buffer: await img.toBuffer(),
+      format: isAnimated ? 'webp' : 'jpeg',
+      extension: isAnimated ? 'webp' : 'jpg',
+    };
   }
 }

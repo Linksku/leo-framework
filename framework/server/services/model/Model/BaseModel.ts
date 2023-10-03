@@ -1,10 +1,11 @@
-import type { JSONSchemaDefinition } from 'objection';
+import type { JSONSchemaDefinition, ModelOptions } from 'objection';
 import { Model as ObjectionModel } from 'objection';
 
 import { formatModelPojo, parseModel } from 'utils/models/formatModelPartials';
 import modelInstanceToPojo from 'utils/models/modelInstanceToPojo';
 import isSchemaNullable from 'utils/models/isSchemaNullable';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
+import { IS_PROFILING_API } from 'serverSettings';
 import { ModelRelationsSpecs, getRelationsMap, ModelRelationsMap } from '../helpers/modelRelations';
 import AjvValidator from './AjvValidator';
 import CustomQueryBuilder from './CustomQueryBuilder';
@@ -54,7 +55,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     return this.tableName;
   }
 
-  static schema = {} as ModelSchema<IBaseModel>;
+  static schema = Object.create(null) as ModelSchema<IBaseModel>;
 
   static getSchema<T extends ModelClass>(this: T): ModelSchema<T['Interface']> {
     return this.schema as ModelSchema<T['Interface']>;
@@ -136,7 +137,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
 
   static _uniqueIndexes: ModelIndex<ModelClass>[] | undefined;
 
-  // todo: low/easy add memoize decorator
+  // todo: low/mid add memoize decorator
   static getUniqueIndexes<T extends ModelClass>(this: T): ModelIndex<T>[] {
     if (!this._uniqueIndexes) {
       this._uniqueIndexes = this.uniqueIndexes.map(
@@ -178,15 +179,23 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     return this.primaryIndex as ModelIndex<T>;
   }
 
-  static relations: ModelRelationsSpecs = {};
+  static relations: ModelRelationsSpecs = Object.create(null);
 
   static _relationsMap: ModelRelationsMap | undefined;
 
   static get relationsMap(): ModelRelationsMap {
     if (!this._relationsMap) {
-      this._relationsMap = getRelationsMap(this as ModelClass, this.relations);
+      this._relationsMap = getRelationsMap(this as RRModelClass, this.relations);
     }
     return this._relationsMap;
+  }
+
+  static create<T extends ModelClass>(
+    this: T,
+    json: Partial<T['Interface']>,
+    opt?: ModelOptions,
+  ): ModelInstance<T> {
+    return super.fromJson(json, opt) as ModelInstance<T>;
   }
 
   /*
@@ -218,7 +227,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
       this._jsonSchema = {
         type: 'object',
         required,
-        properties: this.schema as Record<string, JSONSchemaDefinition>,
+        properties: this.schema as unknown as Record<string, JSONSchemaDefinition>,
         additionalProperties: false,
       };
     }
@@ -310,7 +319,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
       ent[pair[0]] = pair[1];
     }
 
-    if (!process.env.PRODUCTION) {
+    if (!process.env.PRODUCTION && !IS_PROFILING_API) {
       ent.$validate();
     }
 
@@ -329,11 +338,11 @@ class BaseModel extends ObjectionModel implements IBaseModel {
   }
 
   $toApiJson<T extends Model>(this: T): ModelSerializedForApi {
-    const Model = this.constructor as T['cls'];
+    const Model = this.constructor as RRModelClass;
     const { extras, includedRelations } = this;
 
     const obj = modelInstanceToPojo(this, false);
-    const formatted = formatModelPojo<ModelClass>(Model, obj);
+    const formatted = formatModelPojo<RRModelClass>(Model, obj);
     return deepFreezeIfDev(this.$formatApiJson({
       type: Model.type,
       id: this.getId(),

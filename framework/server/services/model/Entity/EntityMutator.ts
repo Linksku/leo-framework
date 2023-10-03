@@ -1,5 +1,5 @@
 import type { Knex } from 'knex';
-import fromPairs from 'lodash/fromPairs';
+import fromPairs from 'lodash/fromPairs.js';
 
 import modelsCache from 'services/cache/modelsCache';
 import modelIdsCache from 'services/cache/modelIdsCache';
@@ -189,6 +189,9 @@ export default class EntityMutator extends BaseEntity {
       trx?: Knex.Transaction
     } = {},
   ): Promise<EntityInstance<T> | null> {
+    if (!this.deleteable) {
+      throw new Error(`${this.name}.delete: not deleteable.`);
+    }
     validateUniquePartial(this, partial);
 
     const rows = await entityQuery(this, trx ?? knexBT)
@@ -227,6 +230,9 @@ export default class EntityMutator extends BaseEntity {
       trx?: Knex.Transaction
     } = {},
   ): Promise<EntityInstance<T>[]> {
+    if (!this.deleteable) {
+      throw new Error(`${this.name}.deleteAll: not deleteable.`);
+    }
     if (!process.env.PRODUCTION) {
       validateNotUniquePartial(this, partial);
     }

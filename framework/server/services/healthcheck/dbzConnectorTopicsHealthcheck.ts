@@ -1,13 +1,16 @@
-import { DBZ_TOPIC_UPDATEABLE_PREFIX, DBZ_TOPIC_INSERT_ONLY_PREFIX } from 'consts/mz';
+import { ENABLE_DBZ, DBZ_TOPIC_UPDATEABLE_PREFIX, DBZ_TOPIC_INSERT_ONLY_PREFIX } from 'consts/mz';
 import EntityModels from 'services/model/allEntityModels';
 import listKafkaTopics from 'utils/infra/listKafkaTopics';
 import { addHealthcheck } from './HealthcheckManager';
 
-// todo: high/mid debug dbz not creating topic messages
+const TOPICS_REGEX = new RegExp(`^(${DBZ_TOPIC_UPDATEABLE_PREFIX}|${DBZ_TOPIC_INSERT_ONLY_PREFIX})`);
+
+// Note: dbz may not create topic messages even if healthcheck passes
 addHealthcheck('dbzConnectorTopics', {
+  disabled: !ENABLE_DBZ,
   cb: async function dbzConnectorTopicsHealthcheck() {
     // todo: high/hard also check time of last message
-    const topics = await listKafkaTopics(new RegExp(`^(${DBZ_TOPIC_UPDATEABLE_PREFIX}|${DBZ_TOPIC_INSERT_ONLY_PREFIX})`));
+    const topics = await listKafkaTopics(TOPICS_REGEX);
     if (!topics.length) {
       throw new Error('dbzConnectorTopicsHealthcheck: no topics');
     }

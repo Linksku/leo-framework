@@ -1,5 +1,6 @@
 import fetchJson from 'utils/fetchJson';
 import { KAFKA_CONNECT_HOST, KAFKA_CONNECT_PORT } from 'consts/infra';
+import retry from 'utils/retry';
 
 export type ConnectorStatus = {
   name: string,
@@ -32,13 +33,20 @@ async function fetchKafkaConnectors(
     status: number;
   } | undefined;
   try {
-    response = await fetchJson(`http://${KAFKA_CONNECT_HOST}:${KAFKA_CONNECT_PORT}/connectors${expand ? `?expand=${expand}` : ''}`);
+    await retry(
+      async () => {
+        response = await fetchJson(
+          `http://${KAFKA_CONNECT_HOST}:${KAFKA_CONNECT_PORT}/connectors${expand ? `?expand=${expand}` : ''}`,
+        );
+      },
+      {
+        timeout: 60 * 1000,
+        interval: 10 * 1000,
+        ctx: `fetchKafkaConnectors(${prefix})`,
+      },
+    );
   } catch (err) {
-    if (err instanceof Error && err.message.includes('fetch failed')) {
-      // pass
-    } else if (err instanceof Error) {
-      throw getErr(err, { ctx: `fetchKafkaConnectors(${prefix})` });
-    } else {
+    if (!(err instanceof Error && err.message.includes('fetch failed'))) {
       throw err;
     }
   }

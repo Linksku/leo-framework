@@ -8,7 +8,7 @@ export default async function deleteRRSubscriptions() {
   await deleteRRSubscription(RR_SUB_ALL_TABLES);
   await deleteBTReplicationSlot(BT_SLOT_RR);
 
-  const remainingSubs = await knexRR('pg_subscription')
+  const remainingSubs = await knexRR<{ subname: string }>('pg_subscription')
     .select('subname');
   if (remainingSubs.length) {
     throw getErr(

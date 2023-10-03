@@ -36,7 +36,7 @@ function filterModels(models: ModelsArr) {
   });
 }
 
-export default async function getAllModels(): Promise<{
+export default async function getModelsWithPaths(): Promise<{
   appModels: ModelsArr,
   frameworkModels: ModelsArr,
 }> {
@@ -45,10 +45,10 @@ export default async function getAllModels(): Promise<{
     frameworkModelPaths: readdirRecursive(path.resolve('./framework/server/models')),
   });
   appModelPaths = appModelPaths
-    .filter(p => p.endsWith('.ts') && !p.endsWith('Mixin.ts'))
+    .filter(p => p.endsWith('.ts') && !p.startsWith('_') && !p.endsWith('Mixin.ts'))
     .sort();
   frameworkModelPaths = frameworkModelPaths
-    .filter(p => p.endsWith('.ts') && !p.endsWith('Mixin.ts'))
+    .filter(p => p.endsWith('.ts') && !p.startsWith('_') && !p.endsWith('Mixin.ts'))
     .sort();
 
   return {

@@ -47,9 +47,13 @@ module.exports = {
       ],
       ignore: [
         'css3-cursors-newer',
+        'css3-cursors-grab',
         'css-touch-action',
-        'pointer',
+        // Sass nesting
+        'css-nesting',
+        'css-focus-visible',
       ],
+      ignorePartialSupport: true,
     }],
     'at-rule-empty-line-before': null,
     'value-keyword-case': null,
@@ -62,15 +66,22 @@ module.exports = {
     'scss/at-mixin-pattern': lowerCamelCase,
     'scss/percent-placeholder-pattern': lowerCamelCase,
     'keyframes-name-pattern': lowerCamelCase,
-    'string-quotes': 'single',
     'scss/dollar-variable-empty-line-before': null,
     'scss/double-slash-comment-empty-line-before': null,
     'shorthand-property-no-redundant-values': null,
     'selector-attribute-quotes': null,
     'declaration-colon-newline-after': null,
+    'length-zero-no-unit': [true, {
+      ignoreFunctions: [
+        /^var$/,
+        /^--/,
+      ],
+    }],
     'declaration-block-no-redundant-longhand-properties': [true, {
       // Temporary because of low support
       ignoreShorthands: ['inset'],
     }],
+    // Temporary because of low support
+    'media-feature-range-notation': 'prefix',
   },
 };

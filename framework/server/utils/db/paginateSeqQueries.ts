@@ -1,4 +1,4 @@
-import uniq from 'lodash/uniq';
+import uniq from 'lodash/uniq.js';
 
 import paginateQuery, {
   OrderByColumns,
@@ -7,6 +7,7 @@ import paginateQuery, {
   EMPTY_PAGINATION,
 } from './paginateQuery';
 
+// Note: queries don't have to return unique rows, but duplicates may cause rerenders
 export default async function paginateSeqQueries<
   Queries extends {
     query: QueryBuilder<Model>,
@@ -15,8 +16,15 @@ export default async function paginateSeqQueries<
   QB extends Queries[number]['query'],
 >(
   queries: Queries,
-  limit: number = MAX_PER_PAGE,
-  cursor = '0,',
+  {
+    limit = MAX_PER_PAGE,
+    exactLimit = false,
+    cursor = '0,',
+  }: {
+    limit?: number,
+    exactLimit?: boolean,
+    cursor?: string,
+  },
 ): Promise<PaginatedResponse<QB['ModelType']>> {
   if (!queries.length) {
     if (process.env.PRODUCTION) {
@@ -31,21 +39,23 @@ export default async function paginateSeqQueries<
     throw new Error('paginateSeqQueries: invalid cursor.');
   }
 
-  let curCursor: string | undefined = cursor
+  const initialCursor: string | undefined = cursor
     ? cursor.slice(cursorSplitIdx + 1) || undefined
     : undefined;
   let res = await paginateQuery(queries[queryIdx].query, queries[queryIdx].orderBy, {
     limit,
-    cursor: curCursor,
+    cursor: initialCursor,
   });
 
-  while (res.data.items.length < limit / 2 && queryIdx < queries.length - 1) {
+  while (
+    res.data.items.length < (exactLimit ? limit : limit / 2)
+    && queryIdx < queries.length - 1
+  ) {
     if (!process.env.PRODUCTION && !res.data.hasCompleted) {
       throw new Error('paginateSeqQueries: query should be completed.');
     }
 
     queryIdx++;
-    curCursor = undefined;
     const prevRes = res;
 
     // eslint-disable-next-line no-await-in-loop
@@ -54,24 +64,22 @@ export default async function paginateSeqQueries<
       queries[queryIdx].orderBy,
       {
         limit: limit - res.data.items.length,
-        cursor: curCursor,
+        cursor: undefined,
       },
     );
     res.entities.unshift(...prevRes.entities);
     res.data.items = uniq([...prevRes.data.items, ...res.data.items]);
   }
 
-  if (!res.data.hasCompleted) {
-    if (!process.env.PRODUCTION && !res.data.cursor) {
-      throw new Error('paginateSeqQueries: result is missing cursor.');
-    }
-    res.data.cursor = `${queryIdx},${res.data.cursor}`;
-    return res;
-  }
-
   if (queryIdx < queries.length - 1) {
     res.data.cursor = `${queryIdx + 1},`;
     res.data.hasCompleted = false;
+    return res;
   }
+
+  if (!process.env.PRODUCTION && !res.data.hasCompleted && !res.data.cursor) {
+    throw new Error('paginateSeqQueries: result is missing cursor.');
+  }
+  res.data.cursor = `${queryIdx},${res.data.cursor}`;
   return res;
 }

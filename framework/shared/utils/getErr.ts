@@ -5,7 +5,7 @@ export default function getErr<T>(
     : never
   ),
   debugDetails: ObjectOf<any>,
-) {
+): T extends Error ? T : Error {
   let err: Error;
   let stackLines: string[] = [];
   if (typeof msgOrErr === 'string') {
@@ -44,5 +44,5 @@ export default function getErr<T>(
 
   err.stack = stackLines.join('\n');
   err.debugCtx = newDebugCtx;
-  return err;
+  return err as T extends Error ? T : Error;
 }

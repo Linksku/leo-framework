@@ -1,7 +1,7 @@
 import ajv from 'services/ajv';
 
 const apis = [] as ApiDefinition<any>[];
-export const nameToApi = {} as ObjectOf<ApiDefinition<any>>;
+export const nameToApi = new Map<string, ApiDefinition<any>>();
 
 export function defineApi<Name extends ApiName>(
   config: ApiConfig<Name>,
@@ -15,7 +15,7 @@ export function defineApi<Name extends ApiName>(
     handler,
   };
   apis.push(api);
-  nameToApi[config.name] = api;
+  nameToApi.set(config.name, api);
 }
 
 export function getApis(): Readonly<ApiDefinition<any>[]> {

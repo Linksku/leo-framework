@@ -1,6 +1,6 @@
 import type { Arguments } from 'yargs';
 import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
+import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 
 import { updateMigrationState } from './helpers/migrationState';
 import { getMigration, getPrevMigration } from './helpers/migrationFiles';
@@ -13,7 +13,7 @@ export default async function migrateDown(params: Arguments) {
     throw new TypeError('migrateDown: invalid migration file name');
   }
   const parts = filename.split('/');
-  filename = parts[parts.length - 1];
+  filename = parts.at(-1);
   if (filename.endsWith('.ts')) {
     filename = filename.slice(0, -3);
   }

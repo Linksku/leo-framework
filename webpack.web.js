@@ -1,14 +1,14 @@
 import path from 'path';
-import mapValues from 'lodash/mapValues';
+import mapValues from 'lodash/mapValues.js';
 import webpack from 'webpack';
 
-import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
+import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
 import globals from './framework/web/config/globals.cjs';
 import globalsSrc from './app/web/config/globals.cjs';
 import sharedGlobals from './framework/shared/config/globals.cjs';
 import sharedGlobalsSrc from './app/shared/config/globals.cjs';
-import baseConfig from './webpack.common';
-import { ASSETS_URL } from './framework/shared/settings';
+import baseConfig from './webpack.common.js';
+import { ASSETS_URL } from './framework/shared/settings.js';
 
 const WEB_ROOT = path.resolve('./framework/web');
 const WEB_SRC_ROOT = path.resolve('./app/web');

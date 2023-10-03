@@ -8,8 +8,12 @@ export default async function alterTable({ isMV, table, cb }: {
   table: string,
   cb: (builder: Knex.CreateTableBuilder) => void,
 }) {
-  if (!isMV) {
-    await knexBT.schema.alterTable(table, cb);
+  try {
+    if (!isMV) {
+      await knexBT.schema.alterTable(table, cb);
+    }
+    await knexRR.schema.alterTable(table, cb);
+  } catch (err) {
+    throw getErr(err, { ctx: 'alterTable', table });
   }
-  await knexRR.schema.alterTable(table, cb);
 }

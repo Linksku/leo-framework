@@ -9,12 +9,7 @@ defineApi(
   {
     method: 'get',
     name: 'sseOtp',
-    // todo: low/easy add empty obj schema constant
-    paramsSchema: {
-      type: 'object',
-      properties: {},
-      additionalProperties: false,
-    },
+    paramsSchema: SchemaConstants.emptyObj,
     dataSchema: {
       type: 'object',
       required: ['otp'],

@@ -1,27 +1,27 @@
 type ApiEntityId = number | string;
 
 type ModelSerializedForApi = {
-  type: ModelType,
+  type: RRModelType,
   id: ApiEntityId,
   extras?: ObjectOf<any>,
   includedRelations?: string[],
 };
 
-type ApiRelationConfig = Memoed<{
+type ApiRelationConfig = {
   name: string,
   relationType: ModelRelationType,
-  fromModel: ModelType,
+  fromModel: RRModelType,
   fromCol: string,
-  toModel: ModelType,
+  toModel: RRModelType,
   toCol: string,
   through?: {
-    model: ModelType,
+    model: RRModelType,
     from: string,
     to: string,
   },
-}>;
+};
 
-type ApiRelationConfigs = Partial<Record<ModelType, ObjectOf<ApiRelationConfig>>>;
+type ApiRelationConfigs = Partial<Record<RRModelType, ObjectOf<ApiRelationConfig>>>;
 
 type ApiSuccessResponse<Name extends ApiName> = {
   status: 200,
@@ -29,9 +29,9 @@ type ApiSuccessResponse<Name extends ApiName> = {
   entities: ModelSerializedForApi[],
   createdEntities?: ModelSerializedForApi[],
   updatedEntities?: ModelSerializedForApi[],
-  deletedIds?: Partial<Record<ModelType, EntityId[]>>,
+  deletedIds?: Partial<Record<RRModelType, ApiEntityId[]>>,
   meta?: {
-    dateProps?: Partial<Record<ModelType, string[]>>,
+    dateProps?: Partial<Record<RRModelType, string[]>>,
     relationConfigs?: ApiRelationConfigs,
   },
 };
@@ -49,13 +49,16 @@ type ApiErrorResponse = {
 
 type ApiResponse<Name extends ApiName> = ApiSuccessResponse<Name> | ApiErrorResponse;
 
-type ApiAllRelations = Partial<{
-  [T in ModelType]: keyof ModelRelationTypes<T> extends never
-    ? never
-    : (keyof ModelRelationTypes<T> & string)[];
+// Maybe "T in RRModelType as keyof AllModelRelationsMap[T] extends never ? never : T"
+type _ApiAllRelations = Partial<{
+  [T in RRModelType]: (keyof AllModelRelationsMap[T] & string)[];
 }>;
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface ApiAllRelations extends _ApiAllRelations {}
+
 type ApiParams<Name extends ApiName> = ApiNameToParams[Name] & {
+  // todo: low/mid clean up relations error
   relations?: ApiAllRelations,
 };
 

@@ -1,4 +1,4 @@
-import cloneDeep from 'lodash/cloneDeep';
+import cloneDeep from 'lodash/cloneDeep.js';
 import dayjs from 'dayjs';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 
@@ -42,7 +42,7 @@ export default function modelInstanceToPojo<T extends ModelClass>(
   const Model = instance.constructor as T;
   const fullSchema = Model.getSchema();
 
-  const obj: ModelPartial<T> = {};
+  const obj = Object.create(null) as ModelPartial<T>;
   for (const k of TS.objKeys(fullSchema)) {
     if (!TS.hasProp(instance, k)) {
       continue;
@@ -50,7 +50,7 @@ export default function modelInstanceToPojo<T extends ModelClass>(
 
     let val = instance[k] as any;
     if (val instanceof Buffer) {
-      val = val.toString('utf8').replace(/\0/g, '');
+      val = val.toString('utf8').replaceAll('\0', '');
     }
 
     if (!process.env.PRODUCTION) {

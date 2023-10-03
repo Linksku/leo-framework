@@ -4,11 +4,10 @@ import fs from 'fs';
 import express from 'express';
 import compression from 'compression';
 import * as Sentry from '@sentry/node';
-import * as Tracing from '@sentry/tracing';
 
 import apiRoutes from 'routes/apiRoutes';
 import sseRoute from 'routes/sseRoute';
-import { DOMAIN_NAME } from 'settings';
+import { DEFAULT_ASSETS_CACHE_TTL, DOMAIN_NAME } from 'settings';
 import { isHealthy } from 'services/healthcheck/HealthcheckManager';
 import addMetaTags from 'helpers/addMetaTags';
 
@@ -21,7 +20,7 @@ if (process.env.PRODUCTION) {
       ...TS.defined(Sentry.getCurrentHub().getClient()).getOptions(),
       integrations: [
         new Sentry.Integrations.Http({ tracing: true }),
-        new Tracing.Integrations.Express({ app }),
+        new Sentry.Integrations.Express({ app }),
       ],
     }),
   );
@@ -45,8 +44,10 @@ if (process.env.SERVER !== 'production') {
   ));
 
   handleWildcardApi = async (req, res) => {
-    if (isHealthy()) {
-      const html = await fs.promises.readFile(path.resolve(`./build/${process.env.NODE_ENV}/web/index.html`));
+    if (isHealthy(!process.env.PRODUCTION)) {
+      const html = await fs.promises.readFile(path.resolve(
+        `./build/${process.env.NODE_ENV}/web/index.html`,
+      ));
       res.send(await addMetaTags(req, html.toString()));
     } else {
       // todo: mid/mid show failing reason
@@ -69,7 +70,7 @@ if (process.env.SERVER !== 'production') {
   app.use(express.static(
     path.resolve(`./build/${process.env.NODE_ENV}/web`),
     {
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: DEFAULT_ASSETS_CACHE_TTL,
       dotfiles: 'allow',
       redirect: false,
       index: false,

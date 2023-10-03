@@ -18,8 +18,12 @@ export default async function dropIndex({
     name = getIndexName(TS.defined(table), cols);
   }
 
-  await Promise.all([
-    knexBT.raw('DROP INDEX IF EXISTS ??', [name]),
-    knexRR.raw('DROP INDEX IF EXISTS ??', [name]),
-  ]);
+  try {
+    await Promise.all([
+      knexBT.raw('DROP INDEX IF EXISTS ??', [name]),
+      knexRR.raw('DROP INDEX IF EXISTS ??', [name]),
+    ]);
+  } catch (err) {
+    throw getErr(err, { ctx: 'dropIndex', table, cols });
+  }
 }

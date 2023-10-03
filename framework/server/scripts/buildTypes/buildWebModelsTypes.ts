@@ -1,19 +1,18 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 
 import models, { frameworkModels } from 'services/model/allModels';
 
 function getOutput(forFramework: boolean) {
-  const filteredModels = forFramework
+  let filteredModels = forFramework
     ? frameworkModels
     : models;
+  filteredModels = filteredModels.filter(m => m.isRR);
 
-  return `${filteredModels.map(m => `type ${m.Model.name} = Entity & I${m.Model.name};`).join('\n')}
-
-// Use EntityTypeToInstance, EntityInstancesMap[ModelType] creates a union of all entities
+  return `// Use EntityTypeToInstance, EntityInstancesMap[ModelType] creates a union of all entities
 type EntityInstancesMap = {
-${filteredModels.map(m => `  ${m.Model.type}: ${m.Model.name};`).join('\n')}
+${filteredModels.map(m => `  ${m.Model.type}: BaseEntity & I${m.Model.name};`).join('\n')}
 };
 `;
 }

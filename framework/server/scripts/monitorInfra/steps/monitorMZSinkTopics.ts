@@ -1,6 +1,6 @@
 import retry from 'utils/retry';
 import listKafkaTopics from 'utils/infra/listKafkaTopics';
-import { MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
+import { MZ_SINK_TOPIC_PREFIX, MZ_SINK_CONSISTENCY_TOPIC_REGEX } from 'consts/mz';
 import createKafkaConsumer from 'utils/infra/createKafkaConsumer';
 import recreateMZSinks from 'scripts/mv/helpers/recreateMZSinks';
 import { INIT_INFRA_REDIS_KEY } from 'consts/infra';
@@ -53,12 +53,12 @@ export default async function monitorMZSinkTopics() {
 
     setTimeout(() => {
       wrapPromise(handleFailingTopics(), 'error', 'monitorMZSinkTopics.handleFailingTopics');
-    }, 15 * 1000);
+    }, 10 * 1000);
   }
 
   setTimeout(() => {
     wrapPromise(handleFailingTopics(), 'error', 'monitorMZSinkTopics.handleFailingTopics');
-  }, 15 * 1000);
+  }, 10 * 1000);
 
   let timer: NodeJS.Timeout | null = null;
   const unpauseTimers = new Set<NodeJS.Timeout>();
@@ -77,7 +77,11 @@ export default async function monitorMZSinkTopics() {
   }
 
   async function connectConsumer() {
-    topics = await listKafkaTopics(new RegExp(`^${MZ_SINK_TOPIC_PREFIX}.+-consistency$`));
+    topics = await listKafkaTopics(MZ_SINK_CONSISTENCY_TOPIC_REGEX);
+    if (!topics.length) {
+      throw new Error('monitorMZSinkTopics: no topics');
+    }
+
     try {
       await consumer.connect();
       await consumer.subscribe({ topics });
@@ -105,7 +109,7 @@ export default async function monitorMZSinkTopics() {
 
     timer = setInterval(async () => {
       try {
-        const newTopics = await listKafkaTopics(new RegExp(`^${MZ_SINK_TOPIC_PREFIX}.+-consistency$`));
+        const newTopics = await listKafkaTopics(MZ_SINK_CONSISTENCY_TOPIC_REGEX);
         if (newTopics.length > topics.length) {
           await disconnectConsumer();
           await connectConsumer();

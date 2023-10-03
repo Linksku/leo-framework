@@ -3,11 +3,12 @@
 }
 
 .tab {
+  display: block;
   flex-basis: 0;
   flex-grow: 1;
   text-align: center;
   padding: 1rem 0;
-  border-bottom: 1px solid #aaa;
+  border-bottom: 0.5px solid #aaa;
   color: $fadedTextColor;
 
   &:active {

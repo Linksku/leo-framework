@@ -1,4 +1,5 @@
 import StackWrapInner from 'components/frame/stack/StackWrapInner';
+import Form from 'components/common/Form';
 import HookFormErrors from 'components/HookFormErrors';
 
 import styles from './ResetPasswordVerifyRouteStyles.scss';
@@ -39,7 +40,7 @@ export default React.memo(function ResetPasswordVerifyRoute() {
       <div className={styles.container}>
         <HookFormErrors errors={errors} additionalError={apiError} />
 
-        <form
+        <Form
           onSubmit={handleSubmit(data => verifyResetPassword(data))}
           className={styles.form}
         >
@@ -54,17 +55,16 @@ export default React.memo(function ResetPasswordVerifyRoute() {
               maxLength: { value: 64, message: 'Password too long.' },
             }}
             disabled={fetching}
-            required
             placeholder="••••••••"
           />
 
           <Button
-            Component="input"
+            Element="input"
             type="submit"
-            value="Save"
-            disabled={fetching}
+            value={fetching ? 'Saving' : 'Save'}
+            disabled={fetching || !token || !userId}
           />
-        </form>
+        </Form>
 
         <p><Link href="/login">Log In</Link></p>
       </div>

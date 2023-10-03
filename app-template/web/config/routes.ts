@@ -6,4 +6,4 @@ const routes = [
   },
 ];
 
-export default routes as Memoed<(typeof routes)[number]>[];
+export default routes as Stable<(typeof routes)[number]>[];

@@ -4,8 +4,8 @@ import { defineConfig } from 'cypress';
 import webpackPreprocessor from '@cypress/webpack-preprocessor';
 import Chance from 'chance';
 
-import webpackConfig from './webpack.common';
-import { HOME_URL } from './framework/shared/settings';
+import webpackConfig from './webpack.common.js';
+import { HOME_URL } from './framework/shared/settings.js';
 
 const chance = new Chance();
 
@@ -19,18 +19,22 @@ export default defineConfig({
     ],
     supportFile: 'framework/tests/support/e2e.ts',
     setupNodeEvents(on) {
+      // todo: low/hard add test db, seeding, etc
       on('before:run', async () => {
-        const email = `cypress+${chance.hash({ length: 10 })}@example.com`;
+        const authFixturePath = path.resolve('./framework/tests/fixtures/auth.json');
+        if (!await fs.stat(authFixturePath)) {
+          const email = `cypress+${chance.hash({ length: 10 })}@example.com`;
 
-        // eslint-disable-next-line no-console
-        console.log(`Using test user: ${email}`);
-        await fs.writeFile(
-          path.resolve('./framework/tests/fixtures/auth.json'),
-          JSON.stringify({
-            email,
-            password: chance.hash({ length: 16 }),
-          }, null, 2),
-        );
+          // eslint-disable-next-line no-console
+          console.log(`Using test user: ${email}`);
+          await fs.writeFile(
+            authFixturePath,
+            JSON.stringify({
+              email,
+              password: chance.hash({ length: 16 }),
+            }, null, 2),
+          );
+        }
       });
 
       on(

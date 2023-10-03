@@ -8,78 +8,75 @@ export const [
   useGoBackStack,
 ] = constate(
   function StacksNavStore() {
-    let stackBot: HistoryState | null = null;
-    let stackTop: HistoryState | null = null;
-    let stackActive: HistoryState | null = null;
-
     const {
-      prevState,
       curState,
-      direction,
-      didRefresh,
+      forwardState,
+      backState,
+      prevState,
+      addHomeToHistory,
     } = useHistoryStore();
-    const { isHome, wasHome } = useHomeNavStore();
-    const pushPath = usePushPath();
-    const replacePath = useReplacePath();
-    const lastStackAnimatedVal = useRef<AnimatedValue | null>(null);
+    const {
+      isHome,
+      isForwardHome,
+      isPrevHome,
+    } = useHomeNavStore();
+    const stackToAnimatedVal = useRef<WeakMap<HistoryState, AnimatedValue>>(new WeakMap());
 
-    if (didRefresh) {
-      stackBot = curState;
-    } else if (isHome) {
-      stackBot = curState;
-      if (!wasHome) {
-        // Stack -> home.
-        stackTop = prevState;
+    const curStack = curState;
+    let backStack: HistoryState | null = null;
+    let forwardStack: HistoryState | null = null;
+    if (isHome) {
+      if (prevState && !isPrevHome) {
+        forwardStack = prevState;
+      } else if (forwardState && !isForwardHome) {
+        // Home -> home -> stack
+        forwardStack = forwardState;
       }
-    } else if (wasHome) {
-      // Home -> stack.
-      stackBot = prevState;
-      stackTop = curState;
-      stackActive = stackTop;
-    } else if (direction === 'forward') {
-      stackBot = prevState;
-      stackTop = curState;
-      stackActive = stackTop;
-    } else if (direction === 'back') {
-      stackBot = curState;
-      stackTop = prevState;
     } else {
-      // Page load
-      stackBot = curState;
+      backStack = backState;
+
+      if (!isForwardHome) {
+        forwardStack = forwardState;
+      }
     }
 
-    const hasPrevState = !!prevState;
-    const goBackStack = useCallback(() => {
-      if (!hasPrevState) {
-        replacePath('/', null);
-        pushPath(curState.path, curState.query, curState.hash);
+    const hasBackState = !!backState;
+    const goBackStack = useLatest(() => {
+      if (!hasBackState) {
+        addHomeToHistory();
       }
 
       if (!isHome) {
         window.history.back();
       }
-    }, [hasPrevState, pushPath, replacePath, isHome, curState]);
+    });
 
-    const goForwardStack = useCallback(() => {
-      if (!isHome && (direction === 'forward' || !wasHome)) {
-        window.history.forward();
+    const hasForwardStack = !!forwardStack;
+    const shouldForwardStackGoForward = !isForwardHome;
+    const goForwardStack = useLatest(() => {
+      if (hasForwardStack) {
+        if (shouldForwardStackGoForward) {
+          window.history.forward();
+        } else {
+          window.history.back();
+        }
       }
-    }, [isHome, direction, wasHome]);
+    });
 
     return useMemo(() => ({
-      stackBot,
-      stackTop,
-      stackActive: stackActive ?? stackBot,
+      curStack,
+      backStack,
+      forwardStack,
       goBackStack,
       goForwardStack,
-      lastStackAnimatedVal,
+      stackToAnimatedVal,
     }), [
-      stackBot,
-      stackTop,
-      stackActive,
+      curStack,
+      backStack,
+      forwardStack,
       goBackStack,
       goForwardStack,
-      lastStackAnimatedVal,
+      stackToAnimatedVal,
     ]);
   },
   function StacksNavStore(val) {

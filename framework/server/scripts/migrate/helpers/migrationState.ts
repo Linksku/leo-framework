@@ -8,8 +8,9 @@ type MigrationState = {
   },
 };
 
-// todo: mid/mid combine __migration__ and mzTest into a "global config" table
+// todo: low/mid combine __migration__ and mzTest into a "global config" table
 export async function getMigrationState(): Promise<MigrationState> {
+  // todo: low/mid specify shared types for each table
   const data = await knexBT('__migration__')
     .select('*')
     .first();

@@ -1,10 +1,13 @@
 import ChevronLeftSvg from 'fa5/svg/chevron-left-regular.svg';
 
+import type { HandleClickLink } from 'components/ui/Link';
 import { useGoBackStack } from 'stores/StacksNavStore';
+import { useIsRouteActive } from 'stores/RouteStore';
+import { APP_NAME } from 'settings';
 
 import styles from './StackWrapInnerTopBarStyles.scss';
 
-type BtnProps = Memoed<Omit<Parameters<typeof Button>[0], 'onClick'>>;
+type BtnProps = Stable<Omit<Parameters<typeof Button>[0], 'onClick'>>;
 
 function renderBtn({
   onClick,
@@ -13,7 +16,7 @@ function renderBtn({
   svgDim,
   isLeft,
 }: {
-  onClick?: React.MouseEventHandler,
+  onClick?: HandleClickLink,
   btnProps?: BtnProps,
   Svg?: React.SVGFactory,
   svgDim?: number,
@@ -35,16 +38,14 @@ function renderBtn({
   }
   if (Svg) {
     return (
-      <div
+      <Link
         className={cx(styles.btnWrap, styles.svgBtnWrap, {
           [styles.rightBtnWrap]: !isLeft,
         })}
         onClick={onClick}
-        role="button"
-        tabIndex={-1}
       >
         <Svg style={{ height: `${svgDim}rem`, width: `${svgDim}rem` }} />
-      </div>
+      </Link>
     );
   }
   return null;
@@ -53,7 +54,7 @@ function renderBtn({
 type Props = {
   title?: string,
   hideBackBtn?: boolean,
-  onRightBtnClick?: Memoed<React.MouseEventHandler>,
+  onRightBtnClick?: Stable<HandleClickLink>,
   rightBtnProps?: BtnProps,
   RightSvg?: React.SVGFactory,
   rightSvgDim?: number,
@@ -76,6 +77,15 @@ export default React.memo(function StackWrapInnerTopBar({
   bindSwipe,
 }: Props) {
   const goBackStack = useGoBackStack();
+  const isRouteActive = useIsRouteActive();
+
+  useEffect(() => {
+    if (isRouteActive) {
+      document.title = title === APP_NAME || !title
+        ? APP_NAME
+        : `${title} · ${APP_NAME}`;
+    }
+  }, [isRouteActive, title]);
 
   return (
     <div
@@ -86,7 +96,7 @@ export default React.memo(function StackWrapInnerTopBar({
         {!hideBackBtn && renderBtn({
           Svg: ChevronLeftSvg,
           svgDim: 1.8,
-          onClick: () => goBackStack(),
+          onClick: () => goBackStack.current(),
           isLeft: true,
         })}
         <h1

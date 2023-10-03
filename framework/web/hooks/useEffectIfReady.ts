@@ -1,7 +1,7 @@
 export default function useEffectIfReady(
   // eslint-disable-next-line @typescript-eslint/ban-types
   cb: Function,
-  deps: MemoDependencyList,
+  deps: StableDependencyList,
   isReady: boolean,
 ) {
   useEffect(() => {

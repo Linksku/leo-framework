@@ -2,8 +2,6 @@ type ObjectOf<T> = Partial<Record<string, T>>;
 
 type ValueOf<T extends ObjectOf<any>> = T[(keyof T) & string];
 
-type Nullable<T> = { [P in keyof T]: T[P] | null };
-
 type Nullish<T> = T | null | undefined;
 
 type DeepReadonly<T> = T extends Primitive ? T
@@ -29,7 +27,14 @@ type Mutable<T> = T extends Primitive ? T
 
 type StrictlyEmptyObj = Record<string, never>;
 
-type Primitive = string | number | bigint | boolean | symbol | null | undefined;
+type Primitive =
+  | string
+  | number
+  | bigint
+  | boolean
+  | symbol
+  | null
+  | undefined;
 
 // Not comprehensive.
 type BuiltInObjects =
@@ -55,6 +60,7 @@ type Json = JsonPrimitive | JsonObj | JsonArr;
 
 type AnyFunction = (...args: any[]) => any;
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 interface Constructor<T> extends Function { new (...args: any[]): T; }
 
 type RequiredKeys<T> = {
@@ -99,10 +105,42 @@ type AllKeys<T> = T extends unknown ? keyof T : never;
 
 type IsNarrowKey<K extends PropertyKey> =
   string extends K ? false
+  : boolean extends K ? false
   : number extends K ? false
+  : bigint extends K ? false
   : symbol extends K ? false
   : true;
 
+type Wide<T> =
+  T extends string ? string
+  : T extends boolean ? boolean
+  : T extends number ? number
+  : T extends bigint ? bigint
+  : T extends symbol ? symbol
+  : never;
+
 type Merge<First, Second> = Omit<First, Extract<keyof First, keyof Second>> & Second;
 
-type Exact<A, B> = A & Record<Exclude<keyof B, keyof A>, never>;
+type NoExtraProps<Expected, Obj> = Expected & (
+  Obj extends ObjectOf<never>
+    ? unknown
+    : Record<Exclude<keyof Obj, keyof Expected>, never>
+);
+
+type OmitOptional<T> = {
+  [P in keyof T]-?: Exclude<T[P], undefined>;
+};
+
+type OmitNever<T> = {
+  [K in keyof T as T[K] extends never ? never : K]: T[K];
+};
+
+// https://stackoverflow.com/a/57683652
+type Expand<T> = T extends Primitive ? T
+  : T extends Set<infer U> ? Set<Expand<U>>
+  : T extends Map<infer K, infer V> ? Map<K, Expand<V>>
+  : T extends BuiltInObjects ? T
+  : (keyof T) extends never ? T
+  : T extends infer O ? {
+    [K in keyof O]: K extends 'prototype' ? O[K] : Expand<O[K]>
+  } : never;

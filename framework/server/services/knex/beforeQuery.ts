@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { IS_PROFILING_API } from 'serverSettings';
 
 export default function beforeQuery({
   db,
@@ -11,8 +12,18 @@ export default function beforeQuery({
   sql?: string,
   bindings: any,
 }) {
+  const sqlLower = sql?.toLowerCase()?.trim();
+  if (db === 'rr' && sqlLower && (
+    sqlLower.startsWith('insert ')
+      || sqlLower.startsWith('update ')
+      || sqlLower.startsWith('delete ')
+  )) {
+    printDebug('beforeQuery: writes not allow in read-replica', 'error');
+  }
+
   if (process.env.PRODUCTION
     || process.env.IS_SERVER_SCRIPT
+    || IS_PROFILING_API
     || !sql
     || sql.startsWith('explain ')) {
     return;
@@ -23,7 +34,7 @@ export default function beforeQuery({
     // todo: low/mid fix numDbQueries
     rc.numDbQueries++;
 
-    if (rc.profiling) {
+    if (rc.loadTesting) {
       return;
     }
   }

@@ -7,9 +7,9 @@ export default async function createRRSubscription() {
   const startTime = performance.now();
   await createBTReplicationSlot(BT_SLOT_RR);
 
-  const result = await knexRR('pg_subscription')
+  const result = await knexRR<{ subname: string }>('pg_subscription')
     .select(raw('1'))
-    .where('subname', RR_SUB_ALL_TABLES);
+    .where({ subname: RR_SUB_ALL_TABLES });
   if (!result.length) {
     printDebug('Creating replica subscriptions', 'highlight');
     await knexRR.raw(`
@@ -22,5 +22,8 @@ export default async function createRRSubscription() {
       )
     `);
   }
-  printDebug(`Created replica subscriptions after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `Created replica subscriptions after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

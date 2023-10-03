@@ -12,6 +12,7 @@ type MergeObjects<T1, T2> = (
   }
 );
 
+// Assumes objs are immutable
 export default function deepMergeObjs<T1, T2>(
   obj1: T1,
   obj2: T2,
@@ -34,7 +35,7 @@ export default function deepMergeObjs<T1, T2>(
       : obj2;
   }
   if (typeof obj1 === 'object' && typeof obj2 === 'object') {
-    const newObj = {} as MergeObjects<T1, T2>;
+    const newObj = Object.create(null) as MergeObjects<T1, T2>;
     for (const k of Object.keys(obj1)) {
       if (!allowOverride && (k in obj2)) {
         throw new Error(`deepMergeObjs: disallowed overriding "${k}"`);

@@ -2,13 +2,13 @@ import shallowEqual from 'utils/shallowEqual';
 import useUpdatedState from 'hooks/useUpdatedState';
 
 export default process.env.PRODUCTION
-  ? function useDeepMemoObj<T>(obj: T) {
+  ? function useShallowMemoObj<T>(obj: T) {
     return useUpdatedState(
       obj,
       s => (shallowEqual(s, obj) ? s : obj),
-    ) as MemoDeep<T>;
+    ) as StableDeep<T>;
   }
-  : function useDeepMemoObj<T>(obj: T) {
+  : function useShallowMemoObj<T>(obj: T) {
     const ref = useRef({
       numRenders: 0,
       numUpdates: 0,
@@ -32,5 +32,5 @@ export default process.env.PRODUCTION
     return useUpdatedState(
       obj,
       s => (shallowEqual(s, obj) ? s : obj),
-    ) as MemoDeep<T>;
+    ) as StableDeep<T>;
   };

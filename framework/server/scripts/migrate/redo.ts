@@ -1,6 +1,6 @@
 import { getMigrationState } from './helpers/migrationState';
 import { getMigration } from './helpers/migrationFiles';
-import syncDbAfterMigration from './helpers/syncDbAfterMigration';
+import syncMVsAfterMigration from './helpers/syncMVsAfterMigration';
 
 export default async function migrationRedo() {
   const { rollback } = await getMigrationState();
@@ -38,7 +38,7 @@ export default async function migrationRedo() {
   }
 
   if (filesRan.length && !hadError) {
-    await syncDbAfterMigration();
+    await syncMVsAfterMigration();
   }
 
   printDebug(`Reran ${filesRan.length} migrations`, 'success');

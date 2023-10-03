@@ -1,6 +1,11 @@
 import EntityModels from 'services/model/allEntityModels';
 import knexBT from 'services/knex/knexBT';
-import { BT_PUB_UPDATEABLE, BT_PUB_INSERT_ONLY, BT_PUB_ALL_TABLES } from 'consts/mz';
+import {
+  ENABLE_DBZ,
+  BT_PUB_UPDATEABLE,
+  BT_PUB_INSERT_ONLY,
+  BT_PUB_ALL_TABLES,
+} from 'consts/mz';
 import fetchBTPublications from '../helpers/fetchBTPublications';
 
 function getPublicationTables(models: EntityClass[]) {
@@ -24,12 +29,12 @@ export default async function createBTPublications() {
   for (const model of EntityModels) {
     await knexBT.raw(`
       ALTER TABLE "${model.tableName}"
-      REPLICA IDENTITY DEFAULT
+      REPLICA IDENTITY ${ENABLE_DBZ ? 'DEFAULT' : 'FULL'}
     `);
   }
   const pubnames = await fetchBTPublications();
 
-  if (updateableModels.length && !pubnames.includes(BT_PUB_UPDATEABLE)) {
+  if (ENABLE_DBZ && updateableModels.length && !pubnames.includes(BT_PUB_UPDATEABLE)) {
     printDebug('Creating updateable tables publication', 'highlight');
     await knexBT.raw(`
       CREATE PUBLICATION "${BT_PUB_UPDATEABLE}"
@@ -44,7 +49,7 @@ export default async function createBTPublications() {
     `);
   } */
 
-  if (insertOnlyModels.length && !pubnames.includes(BT_PUB_INSERT_ONLY)) {
+  if (ENABLE_DBZ && insertOnlyModels.length && !pubnames.includes(BT_PUB_INSERT_ONLY)) {
     printDebug('Creating insert-only publication', 'highlight');
     await knexBT.raw(`
       CREATE PUBLICATION "${BT_PUB_INSERT_ONLY}"
@@ -63,5 +68,8 @@ export default async function createBTPublications() {
     `);
   }
 
-  printDebug(`Created publications after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `Created publications after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

@@ -25,5 +25,6 @@ export const API_URL = '';
 export const API_TIMEOUT = 10 * 1000;
 export const API_POST_TIMEOUT = 20 * 1000;
 export const DEFAULT_COOKIES_TTL = 90 * 24 * 60 * 60 * 1000;
+export const DEFAULT_ASSETS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 export const NOREPLY_EMAIL = `noreply@${process.env.DOMAIN_NAME}`;
 export const SUPPORT_EMAIL = `support@${process.env.DOMAIN_NAME}`;

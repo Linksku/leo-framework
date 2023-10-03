@@ -2,19 +2,11 @@
   "extends": "../../tsconfig-base.json",
   "compilerOptions": {
     "paths": {
-      /* "config/*": [
-        "app/server/config/*",
-        "app/shared/config/*",
-      ], */
       "*": [
         "framework/server/*",
         "framework/shared/*",
       ],
     },
-    "rootDirs": [
-      ".",
-      "../shared",
-    ],
     "types": [
       "webpack-env",
       "node",

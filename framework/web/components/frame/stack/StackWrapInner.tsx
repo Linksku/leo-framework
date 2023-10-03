@@ -7,26 +7,31 @@ import { useInnerContainerRef } from 'stores/RouteStore';
 import styles from './StackWrapInnerStyles.scss';
 
 type Props = {
-  className?: string,
-  bodyClassName?: string,
+  greyBackground?: boolean,
+  bottomColor?: string,
   bottomBar?: ReactElement,
   noScrollbar?: boolean,
+  className?: string,
+  bodyClassName?: string,
 } & Parameters<typeof StackWrapInnerTopBar>[0];
 
 export default function StackWrapInner({
   children,
-  className,
-  bodyClassName,
+  greyBackground,
+  bottomColor,
   bottomBar,
   noScrollbar,
+  className,
+  bodyClassName,
   ...props
 }: React.PropsWithChildren<Props>) {
   const innerContainerRef = useInnerContainerRef();
 
   return (
     <div
-      ref={innerContainerRef}
-      className={cx(styles.container, className)}
+      className={cx(styles.container, className, {
+        [styles.greyBackground]: greyBackground,
+      })}
     >
       <div className={styles.topBarWrap}>
         <PullToReloadDeferred>
@@ -35,34 +40,37 @@ export default function StackWrapInner({
       </div>
 
       <div
+        ref={innerContainerRef}
         className={cx(styles.body, {
           [styles.withScrollbar]: !noScrollbar,
         }, bodyClassName)}
       >
-        <ErrorBoundary>
-          <React.Suspense fallback={<LoadingRoute />}>
-            {noScrollbar
-              ? children
-              : (
-                <div className={styles.withScrollbarInner}>
-                  {children}
-                </div>
-              )}
-          </React.Suspense>
+        <ErrorBoundary
+          renderLoading={() => <LoadingRoute />}
+        >
+          {noScrollbar
+            ? children
+            : (
+              <div className={styles.withScrollbarInner}>
+                {children}
+              </div>
+            )}
+          <div
+            className={styles.bottomSpacer}
+            style={{
+              backgroundColor: bottomColor,
+            }}
+          />
         </ErrorBoundary>
       </div>
 
-      {bottomBar
-        ? (
-          <div className={styles.bottomBarWrap}>
-            <div className={styles.bottomBarInner}>
-              {bottomBar}
-            </div>
+      {bottomBar && (
+        <div className={styles.bottomBarWrap}>
+          <div className={styles.bottomBarInner}>
+            {bottomBar}
           </div>
-        )
-        : (
-          <div className={styles.bottomSpacer} />
-        )}
+        </div>
+      )}
     </div>
   );
 }

@@ -22,7 +22,7 @@ const [
       currentUserId: IUser['id'] | null,
       authState: AuthStateType,
     }>({
-      currentUserId: currentUserIdLS,
+      currentUserId: authToken ? currentUserIdLS : null,
       authState: authToken ? 'fetching' : 'out',
     });
     const [isReloadingAfterAuth, setIsReloadingAfterAuth] = useState(false);
@@ -66,11 +66,18 @@ const [
         currentUserId: newCurrentUserId,
         authState: newCurrentUserId ? 'in' : 'out',
       });
-      setCurrentUserIdLS(newCurrentUserId);
-    }, [setState, setCurrentUserIdLS]);
+      if (newCurrentUserId) {
+        setCurrentUserIdLS(newCurrentUserId);
+      } else {
+        removeCurrentUserIdLS();
+      }
+    }, [setState, setCurrentUserIdLS, removeCurrentUserIdLS]);
 
-    if (!process.env.PRODUCTION && !currentUserId && authState === 'in') {
-      throw new Error('AuthStore: invalid authState');
+    if (!process.env.PRODUCTION && (
+      (!currentUserId && authState === 'in')
+      || (currentUserId && authState === 'out')
+    )) {
+      ErrorLogger.error(new Error('AuthStore: invalid authState'));
     }
 
     return useMemo(() => ({

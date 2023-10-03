@@ -74,18 +74,18 @@ export default {
     rc: Nullish<RequestContext>,
     Model: T,
     partial: ModelPartial<T>,
-  ): Promise<ModelInstance<T> | null> {
+  ): Promise<Readonly<ModelInstance<T>> | null> {
     const uniqueIndex = getPartialUniqueIndex(Model, partial);
     if (!uniqueIndex) {
       return null;
     }
 
     const cacheKey = getModelCacheKey(Model, uniqueIndex, partial);
-    const fromRedis = (await redisCache.getWithRc(
+    const fromRedis = await redisCache.getWithRc(
       rc,
       cacheKey,
       !Model.cacheable,
-    )) as Nullish<ModelInstance<T>>;
+    );
     if (fromRedis !== undefined) {
       return fromRedis;
     }

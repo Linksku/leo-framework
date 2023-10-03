@@ -1,85 +1,133 @@
-import useEntityByField from 'hooks/entities/useEntityByField';
+import { getEntitiesState } from 'stores/EntitiesStore';
+import useEntitiesByUniqueField from 'hooks/entities/useEntitiesByUniqueField';
 import { API_TIMEOUT } from 'settings';
-import useShallowMemoObj from 'hooks/useShallowMemoObj';
+import useShallowMemoArr from 'hooks/useShallowMemoArr';
 import useRelationConfig from 'hooks/entities/useRelationConfig';
+import { useHadRouteBeenActive, useIsRouteVisible } from 'stores/RouteStore';
+import isDebug from 'utils/isDebug';
+import useEntityByUniqueFields from './useEntityByUniqueFields';
 
 const warnedRelations = new Set<string>();
 
-// todo: low/mid improve perf by removing useEntityByField
+function useCheckRelationExists(
+  entityType: EntityType,
+  entityId: Nullish<EntityId | EntityId[]>,
+  entity: Entity | null,
+  relationName: string,
+) {
+  const timerRef = useRef<number | undefined>();
+
+  let isRouteVisible = true;
+  let hadBeenActive = true;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    isRouteVisible = useIsRouteVisible();
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    hadBeenActive = useHadRouteBeenActive();
+  } catch {}
+
+  const shouldCheck = hadBeenActive
+    && isRouteVisible
+    && entityId
+    && entity
+    && !entity.includedRelations?.some(r => r === relationName || r.startsWith(`${relationName}.`));
+  const id = Array.isArray(entityId) ? entityId.join(',') : entityId;
+  const key = `${entityType}, ${id}, ${relationName}`;
+  const err = new Error(`useRelation(${key}): missing relation`);
+  const checkRelationExists = useDynamicCallback(() => {
+    if (!shouldCheck || !id) {
+      return;
+    }
+
+    const newEntity = getEntitiesState().get(entityType)?.get(id);
+    if (!warnedRelations.has(key)) {
+      if (newEntity && !newEntity.includedRelations?.some(
+        r => r === relationName || r.startsWith(`${relationName}.`),
+      )) {
+        ErrorLogger.warn(err);
+      }
+      warnedRelations.add(key);
+    }
+  });
+
+  useEffect(() => {
+    if (!shouldCheck) {
+      return undefined;
+    }
+
+    timerRef.current = setTimeout(() => checkRelationExists(), API_TIMEOUT);
+
+    return () => {
+      clearTimeout(timerRef.current);
+    };
+  }, [shouldCheck, checkRelationExists]);
+}
+
+// todo: low/mid improve perf by removing useEntitiesByUniqueField
 export default function useRelation<
   T extends EntityType,
-  RelationName extends string & keyof EntityRelationTypes<T>,
-  RelationType extends Defined<EntityRelationTypes<T>[RelationName]>,
+  RelationName extends string & keyof EntityRelationTypes[T],
+  RelationType extends Defined<EntityRelationTypes[T][RelationName]>,
 >(
   entityType: T,
-  entityId: Nullish<EntityId | (string | number)[]>,
+  entityId: Nullish<EntityId | EntityId[]>,
   relationName: RelationName,
-): Nullish<Memoed<RelationType>> {
+): Nullish<Stable<RelationType>> {
   const entity = useEntity(entityType, entityId);
   const relationConfig = useRelationConfig(entityType, relationName);
 
-  if (!process.env.PRODUCTION) {
+  if (!process.env.PRODUCTION && isDebug) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { entitiesRef } = useEntitiesStore();
-
-    if (entityId
-      && entity
-      && !entity.includedRelations?.some(r => r === relationName || r.startsWith(`${relationName}.`))) {
-      setTimeout(() => {
-        const id = Array.isArray(entityId) ? entityId.join(',') : entityId;
-        const newEntity = entitiesRef.current[entityType]?.[id];
-        const key = `${entityType}, ${entityId}, ${relationName}`;
-        if (!warnedRelations.has(key)) {
-          if (newEntity && !newEntity.includedRelations?.some(
-            r => r === relationName || r.startsWith(`${relationName}.`),
-          )) {
-            ErrorLogger.warn(new Error(`useRelation(${key}): missing relation`));
-          }
-          warnedRelations.add(key);
-        }
-      }, API_TIMEOUT);
-    }
+    useCheckRelationExists(
+      entityType,
+      entityId,
+      entity,
+      relationName,
+    );
   }
 
-  const throughEntities = useEntityByField(
+  // Note: this doesn't support anything but 1:1 yet
+  const throughFromCol = relationConfig?.through?.from ?? 'ENTITY_FIELD_HACK';
+  const throughFromVal = relationConfig && entity
+    // @ts-ignore wontfix entity key
+    && entity[relationConfig.fromCol];
+  const throughEntity = useEntityByUniqueFields(
     relationConfig?.through?.model ?? null,
-    relationConfig?.through?.from ?? 'ENTITY_FIELD_HACK',
-  );
-  const throughEntity = entity && relationConfig
-    ? throughEntities[
-      // @ts-ignore wontfix key error
-      entity[
-        relationConfig.fromCol
-      ]
-    ]
-    : undefined;
-  const relatedEntities = useEntityByField(
-    relationConfig?.toModel ?? null,
-    relationConfig?.toCol ?? 'ENTITY_FIELD_HACK',
+    useMemo(
+      () => (throughFromVal
+        ? {
+          [throughFromCol]: throughFromVal,
+        }
+        : null),
+      [throughFromCol, throughFromVal],
+    ),
   );
 
-  let related: Nullish<Memoed<RelationType>>;
+  const relatedEntities = useEntitiesByUniqueField(
+    relationConfig?.toModel ?? null,
+    (relationConfig?.toCol ?? 'ENTITY_FIELD_HACK') as keyof Entity,
+  );
+  let related: Nullish<Stable<RelationType>>;
   if (!entity || !relationConfig) {
     related = null;
   } else if (relationConfig.through && throughEntity) {
     // @ts-ignore wontfix key error
     const toCol = throughEntity[relationConfig.through.to];
     related = (Array.isArray(toCol)
-      ? toCol.map(col => relatedEntities[col])
-      : relatedEntities[
-        toCol
-      ]) as Memoed<RelationType>;
+      ? toCol.map(col => relatedEntities.get(col))
+      : relatedEntities.get(toCol)) as Stable<RelationType>;
   } else if (!relationConfig.through) {
     // @ts-ignore wontfix key error
-    const fromCol = entity[relationConfig.fromCol];
+    const fromCol = entity[
+      relationConfig.fromCol
+    ];
     related = (Array.isArray(fromCol)
-      ? fromCol.map(col => relatedEntities[col])
-      : relatedEntities[
-        fromCol
-      ]) as Memoed<RelationType>;
+      ? fromCol.map(col => relatedEntities.get(col))
+      : relatedEntities.get(fromCol)) as Stable<RelationType>;
   } else {
     related = undefined;
   }
 
-  return useShallowMemoObj(related);
+  const memoedArr = useShallowMemoArr(Array.isArray(related) ? related : null);
+  return (memoedArr ?? related) as Stable<RelationType>;
 }

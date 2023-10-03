@@ -7,14 +7,6 @@ export default function useLogLifecycle(name: string) {
   numUnmounts.current = 1;
 
   useEffect(() => {
-    if (numRenders.current === 1) {
-      // eslint-disable-next-line no-console
-      console.log(`render ${name}`);
-    }
-    numRenders.current++;
-  });
-
-  useEffect(() => {
     if (numMounts.current === 1) {
       // eslint-disable-next-line no-console
       console.log(`mount ${name}`);
@@ -29,4 +21,12 @@ export default function useLogLifecycle(name: string) {
       numUnmounts.current++;
     };
   }, [name]);
+
+  useEffect(() => {
+    if (numRenders.current === 1) {
+      // eslint-disable-next-line no-console
+      console.log(`render ${name}`);
+    }
+    numRenders.current++;
+  });
 }

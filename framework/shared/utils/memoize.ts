@@ -5,14 +5,14 @@ export default function memoize<T extends AnyFunction>(
   fn: T,
   expiration?: number,
 ): T {
-  const singleArgCache = Object.create(null) as ObjectOf<{
+  const singleArgCache = new Map<string, {
     val: any,
     cacheTime: number,
-  }>;
-  const multiArgsCache = Object.create(null) as ObjectOf<{
+  }>();
+  const multiArgsCache = new Map<string, {
     val: any,
     cacheTime: number,
-  }>;
+  }>();
   const boundFn = fn.bind(this);
 
   return ((...args) => {
@@ -22,25 +22,27 @@ export default function memoize<T extends AnyFunction>(
 
     if (args.length <= 1) {
       const key = args.length === 0 ? noArgsSymbol : args[0];
-      let cached = singleArgCache[key];
+      let cached = singleArgCache.get(key);
       if (!cached
         || (expiration && performance.now() - cached.cacheTime >= expiration)) {
-        singleArgCache[key] = cached = {
+        cached = {
           val: boundFn(key),
           cacheTime: performance.now(),
         };
+        singleArgCache.set(key, cached);
       }
       return cached.val;
     }
 
     const key = JSON.stringify(args);
-    let cached = multiArgsCache[key];
+    let cached = multiArgsCache.get(key);
     if (!cached
       || (expiration && performance.now() - cached.cacheTime >= expiration)) {
-      multiArgsCache[key] = cached = {
+      cached = {
         val: boundFn(key),
         cacheTime: performance.now(),
       };
+      multiArgsCache.set(key, cached);
     }
     return cached.val;
   }) as T;

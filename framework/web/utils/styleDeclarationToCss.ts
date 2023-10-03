@@ -1,5 +1,7 @@
+const STYLE_REGEX = /([\da-z]|(?=[A-Z]))([A-Z])/g;
+
 export default function styleDeclarationToCss(
-  style: keyof React.CSSProperties,
+  style: string,
 ): string {
-  return style.replace(/([\da-z]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase();
+  return style.replaceAll(STYLE_REGEX, '$1-$2').toLowerCase();
 }

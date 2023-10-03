@@ -21,7 +21,7 @@ export default function shortenCssClass(filePath) {
       try {
         cssClasses = fs.readFileSync(path.resolve(filePath)).toJSON();
       } catch {
-        cssClasses = {};
+        cssClasses = Object.create(null);
       }
 
       process.on('exit', () => {
@@ -30,8 +30,8 @@ export default function shortenCssClass(filePath) {
     }
 
     const baseName = path.parse(loaderContext.resourcePath).name;
-    let className = localIdentName.replace(/\[name]/gi, baseName);
-    className = className.replace(/\[local]/gi, localName);
+    let className = localIdentName.replaceAll(/\[name]/gi, baseName);
+    className = className.replaceAll(/\[local]/gi, localName);
     if (!cssClasses[className]) {
       cssClasses[className] = intToChars(nextInt);
       nextInt++;

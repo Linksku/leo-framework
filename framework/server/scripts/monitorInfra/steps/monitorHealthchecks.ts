@@ -4,6 +4,7 @@ import type { HealthcheckName } from 'services/healthcheck/HealthcheckManager';
 import retry from 'utils/retry';
 import promiseTimeout from 'utils/promiseTimeout';
 import { getFailingServices, fixFailingInfra } from 'scripts/fixInfra';
+import recreateMZ from 'scripts/recreateMZ';
 
 const GET_FAILING_TIMEOUT = 5 * 60 * 1000;
 
@@ -12,14 +13,13 @@ export default async function monitorHealthchecks() {
 
   let failing = new Set<HealthcheckName>();
   let startTime = performance.now();
-  // eslint-disable-next-line no-constant-condition
   outer: while (1) {
     const iterationStartTime = performance.now();
     await pause(30 * 1000);
 
     try {
       failing = await promiseTimeout(
-        getFailingServices(true),
+        getFailingServices(false, true),
         GET_FAILING_TIMEOUT,
         new Error('monitorHealthchecks: getFailingServices timed out'),
       );
@@ -27,7 +27,8 @@ export default async function monitorHealthchecks() {
       ErrorLogger.error(err, { ctx: 'monitorHealthchecks' });
     }
 
-    if (failing.size) {
+    if (failing.size
+      && !(failing.size === 1 && failing.has('mzSinkPrometheus'))) {
       // Laptop likely just unpaused
       if (!process.env.PRODUCTION
         && performance.now() - iterationStartTime > GET_FAILING_TIMEOUT * 3) {
@@ -62,14 +63,24 @@ export default async function monitorHealthchecks() {
       );
 
       try {
+        let isFirstRun = true;
         await retry(
           async () => {
-            await withErrCtx(fixFailingInfra(failing), 'monitorHealthchecks: fixFailingInfra');
+            if (isFirstRun) {
+              await withErrCtx(fixFailingInfra(failing), 'monitorHealthchecks: fixFailingInfra');
+            } else {
+              await withErrCtx(recreateMZ({
+                forceDeleteDBZConnectors: true,
+                deleteMZSources: true,
+                deleteMZSinkConnectors: true,
+              }), 'monitorHealthchecks: recreateMZ');
+            }
+            isFirstRun = false;
             failing = await getFailingServices(true);
 
             if (failing.size === 1 && failing.has('mzUpdating')) {
               await pause(60 * 1000);
-              failing = await getFailingServices();
+              failing = await getFailingServices(true);
             }
 
             if (failing.size) {
@@ -92,7 +103,9 @@ export default async function monitorHealthchecks() {
         startTime = performance.now();
         printDebug('Monitoring after fixing healthchecks', 'highlight');
       } catch (err) {
-        const level = err instanceof ExecutionError || err instanceof ResourceLockedError ? 'error' : 'fatal';
+        const level = err instanceof ExecutionError || err instanceof ResourceLockedError
+          ? 'error'
+          : 'fatal';
         await ErrorLogger[level](err, { ctx: 'monitorHealthchecks' });
       }
     }

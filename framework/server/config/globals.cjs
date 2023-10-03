@@ -23,7 +23,7 @@ const globals = {
 };
 
 for (const model of frameworkModels) {
-  if (model.replicaTable !== null) {
+  if (model.isRR) {
     const cls = path.basename(model.path, '.ts');
     globals[cls] = [`./${model.path.slice(0, -3)}`, 'default'];
   }

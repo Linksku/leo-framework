@@ -1,7 +1,7 @@
 import checkMZUpdating from 'scripts/mv/helpers/checkMZUpdating';
 import { addHealthcheck } from './HealthcheckManager';
 
-// todo: mid/mid split mzUpdatingHealthcheck into steps
+// todo: low/mid split mzUpdatingHealthcheck into steps
 addHealthcheck('mzUpdating', {
   deps: [
     'pgBT',

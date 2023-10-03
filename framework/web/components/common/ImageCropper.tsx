@@ -7,14 +7,15 @@ import styles from './ImageCropperStyles.scss';
 export default function ImageCropper({
   url,
   ratio,
+  fixedCropRatio,
   onSetCrop,
-  minHeightPercent = 40,
-  minWidthPercent = 40,
+  minDimPercent = 40,
   alt,
   disabled,
 }: {
   url: string,
   ratio: number,
+  fixedCropRatio?: number,
   onSetCrop: ({
     top,
     left,
@@ -26,14 +27,16 @@ export default function ImageCropper({
     right: number,
     bot: number,
   }) => void,
-  minHeightPercent?: number,
-  minWidthPercent?: number,
+  minDimPercent?: number,
   alt?: string,
   disabled?: boolean,
 }) {
   const [
     {
-      top, left, right, bot,
+      top,
+      left,
+      right,
+      bot,
     },
     setPos,
   ] = useState({
@@ -43,15 +46,39 @@ export default function ImageCropper({
     bot: 0,
   });
   const imgRef = useRef<HTMLImageElement | null>(null);
+  useEffect(() => {
+    if (imgRef.current && fixedCropRatio) {
+      const boundingRect = imgRef.current?.getBoundingClientRect();
+      const imgRatio = boundingRect.width / boundingRect.height;
+      if (imgRatio > fixedCropRatio) {
+        const offset = (boundingRect.width - (fixedCropRatio * boundingRect.height)) / 2;
+        setPos({
+          top: 0,
+          left: offset / boundingRect.width * 100,
+          right: offset / boundingRect.width * 100,
+          bot: 0,
+        });
+      } else if (fixedCropRatio > imgRatio) {
+        const offset = (boundingRect.height - (boundingRect.width / fixedCropRatio)) / 2;
+        setPos({
+          top: offset / boundingRect.height * 100,
+          left: 0,
+          right: 0,
+          bot: offset / boundingRect.height * 100,
+        });
+      }
+    }
+  }, [url, fixedCropRatio]);
   const topLeftRef = useRef<HTMLDivElement | null>(null);
   const topRightRef = useRef<HTMLDivElement | null>(null);
   const botLeftRef = useRef<HTMLDivElement | null>(null);
   const botRightRef = useRef<HTMLDivElement | null>(null);
 
+  // todo: low/mid check if useDrag cb should have useCallback
   const bindCropped = useDrag(
     ({ delta, last }) => {
       const img = imgRef.current;
-      if (!img) {
+      if (!img || !img.offsetWidth || !img.offsetHeight) {
         return;
       }
 
@@ -69,15 +96,20 @@ export default function ImageCropper({
         deltaY = bot * img.offsetHeight / 100;
       }
       const newPos = {
-        top: top + Math.round(deltaY / img.offsetHeight * 100),
-        left: left + Math.round(deltaX / img.offsetWidth * 100),
-        right: right - Math.round(deltaX / img.offsetWidth * 100),
-        bot: bot - Math.round(deltaY / img.offsetHeight * 100),
+        top: top + (deltaY / img.offsetHeight * 100),
+        left: left + (deltaX / img.offsetWidth * 100),
+        right: right - (deltaX / img.offsetWidth * 100),
+        bot: bot - (deltaY / img.offsetHeight * 100),
       };
 
       setPos(newPos);
       if (last) {
-        onSetCrop(newPos);
+        onSetCrop({
+          top: Math.round(newPos.top),
+          left: Math.round(newPos.left),
+          right: Math.round(newPos.right),
+          bot: Math.round(newPos.bot),
+        });
       }
     },
     {
@@ -87,42 +119,89 @@ export default function ImageCropper({
 
   function useDragCorner(hProp: 'left' | 'right', vProp: 'top' | 'bottom') {
     return useDrag(
-      ({ xy, last }) => {
+      ({ xy: [x, y], last }) => {
         const img = imgRef.current;
-        if (!img) {
+        if (!img || !img.offsetWidth || !img.offsetHeight) {
           return;
         }
+
         const boundingRect = img.getBoundingClientRect();
+        const minDim = img.offsetHeight < img.offsetWidth
+          ? minDimPercent / 100 * img.offsetHeight * (fixedCropRatio ?? 1)
+          : minDimPercent / 100 * img.offsetWidth / (fixedCropRatio ?? 1);
         const newPos = {
           top: vProp === 'top'
-            ? Math.round(Math.max(0, Math.min(
-              100 - minHeightPercent - bot,
-              (xy[1] - boundingRect.top) / img.offsetHeight * 100,
-            )))
+            ? Math.max(0, Math.min(
+              100 - bot - (minDim / img.offsetHeight * 100),
+              (y - boundingRect.top) / img.offsetHeight * 100,
+            ))
             : top,
           left: hProp === 'left'
-            ? Math.round(Math.max(0, Math.min(
-              100 - minWidthPercent - right,
-              (xy[0] - boundingRect.left) / img.offsetWidth * 100,
-            )))
+            ? Math.max(0, Math.min(
+              100 - right - (minDim / img.offsetWidth * 100),
+              (x - boundingRect.left) / img.offsetWidth * 100,
+            ))
             : left,
           right: hProp === 'right'
-            ? Math.round(Math.max(0, Math.min(
-              100 - minWidthPercent - left,
-              (boundingRect.right - xy[0]) / img.offsetWidth * 100,
-            )))
+            ? Math.max(0, Math.min(
+              100 - left - (minDim / img.offsetWidth * 100),
+              (boundingRect.right - x) / img.offsetWidth * 100,
+            ))
             : right,
           bot: vProp === 'bottom'
-            ? Math.round(Math.max(0, Math.min(
-              100 - minHeightPercent - top,
-              (boundingRect.bottom - xy[1]) / img.offsetHeight * 100,
-            )))
+            ? Math.max(0, Math.min(
+              100 - top - (minDim / img.offsetHeight * 100),
+              (boundingRect.bottom - y) / img.offsetHeight * 100,
+            ))
             : bot,
         };
 
+        const newHeight = (100 - newPos.top - newPos.bot) / 100 * img.offsetHeight;
+        const newWidth = (100 - newPos.left - newPos.right) / 100 * img.offsetWidth;
+        if (fixedCropRatio && newHeight && newWidth / newHeight !== fixedCropRatio) {
+          if (vProp === 'top') {
+            newPos.top = Math.max(
+              0,
+              100 - newPos.bot
+                - (newWidth / fixedCropRatio / img.offsetHeight * 100),
+            );
+            if (newPos.top === 0) {
+              const newHeight2 = (100 - newPos.top - newPos.bot) / 100 * img.offsetHeight;
+              if (hProp === 'left') {
+                newPos.left = 100 - newPos.right
+                  - (newHeight2 * fixedCropRatio / img.offsetWidth * 100);
+              } else {
+                newPos.right = 100 - newPos.left
+                  - (newHeight2 * fixedCropRatio / img.offsetWidth * 100);
+              }
+            }
+          } else {
+            newPos.bot = Math.max(
+              0,
+              100 - newPos.top
+                - (newWidth / fixedCropRatio / img.offsetHeight * 100),
+            );
+            if (newPos.bot === 0) {
+              const newHeight2 = (100 - newPos.top - newPos.bot) / 100 * img.offsetHeight;
+              if (hProp === 'left') {
+                newPos.left = 100 - newPos.right
+                  - (newHeight2 * fixedCropRatio / img.offsetWidth * 100);
+              } else {
+                newPos.right = 100 - newPos.left
+                  - (newHeight2 * fixedCropRatio / img.offsetWidth * 100);
+              }
+            }
+          }
+        }
+
         setPos(newPos);
         if (last) {
-          onSetCrop(newPos);
+          onSetCrop({
+            top: Math.round(newPos.top),
+            left: Math.round(newPos.left),
+            right: Math.round(newPos.right),
+            bot: Math.round(newPos.bot),
+          });
         }
       },
       {
@@ -141,7 +220,11 @@ export default function ImageCropper({
       ref={ref => {
         ref?.addEventListener('touchStart', e => e.stopPropagation(), { capture: true });
       }}
-      onPointerDown={e => e.stopPropagation()}
+      onPointerDown={e => {
+        if (!disabled) {
+          e.stopPropagation();
+        }
+      }}
     >
       <FixedRatioContainer
         ratio={ratio}
@@ -162,6 +245,7 @@ export default function ImageCropper({
             right: `${right}%`,
             bottom: `${bot}%`,
             touchAction: top || left || right || bot ? 'none' : undefined,
+            boxShadow: disabled ? 'none' : undefined,
           }}
           {...(top || left || right || bot ? bindCropped() : null)}
         >

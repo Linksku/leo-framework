@@ -18,8 +18,12 @@ export default async function renameIndex(oldName: string, {
     name = getIndexName(TS.defined(table), cols);
   }
 
-  await Promise.all([
-    knexBT.raw('ALTER INDEX IF EXISTS ?? RENAME TO ??', [oldName, name]),
-    knexRR.raw('ALTER INDEX IF EXISTS ?? RENAME TO ??', [oldName, name]),
-  ]);
+  try {
+    await Promise.all([
+      knexBT.raw('ALTER INDEX IF EXISTS ?? RENAME TO ??', [oldName, name]),
+      knexRR.raw('ALTER INDEX IF EXISTS ?? RENAME TO ??', [oldName, name]),
+    ]);
+  } catch (err) {
+    throw getErr(err, { ctx: 'renameIndex', cols });
+  }
 }

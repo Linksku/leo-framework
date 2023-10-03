@@ -7,13 +7,15 @@ import styles from './MediaFileInputStyles.scss';
 
 type Props = {
   mediaType: 'image' | 'video' | 'both',
-  defaultUrl?: string | null,
-  inputProps?: React.InputHTMLAttributes<HTMLInputElement>,
+  defaultUrl?: Nullish<string>,
+  defaultRatio?: Nullish<number>,
+  inputProps?: Stable<React.InputHTMLAttributes<HTMLInputElement>>,
   renderPreview: (props: {
-    file: Memoed<File> | null,
+    file: Stable<File> | null,
     isLoadingImg: boolean,
     imgUrl: string | null,
     imgAspectRatio: number,
+    onClearField: () => void,
   }) => ReactElement,
   className?: string,
   label?: string,
@@ -21,12 +23,14 @@ type Props = {
   name?: string,
   register?: UseFormRegister<any>,
   registerOpts?: RegisterOptions<any>,
+  disabled?: boolean,
 };
 
 // todo: high/veryhard edit uploaded image
 function MediaFileInput({
   mediaType,
   defaultUrl,
+  defaultRatio,
   inputProps,
   renderPreview,
   className,
@@ -35,15 +39,16 @@ function MediaFileInput({
   name,
   register,
   registerOpts,
+  disabled,
 }: Props, ref?: React.ForwardedRef<HTMLInputElement>) {
-  if (!process.env.PRODUCTION && register && !clearField) {
-    throw new Error('clearField is required for react-hook-form.');
+  if (!process.env.PRODUCTION && register && inputProps?.required && !registerOpts?.required) {
+    throw new Error('Select: use registerOpts.required');
   }
 
   const [{ file, imgUrl, imgAspectRatio }, setState] = useStateStable({
     file: null as File | null,
-    imgUrl: null as string | null,
-    imgAspectRatio: 1,
+    imgUrl: defaultUrl ?? null,
+    imgAspectRatio: defaultRatio ?? 1,
   });
   const isImg = (mediaType === 'image' || mediaType === 'both') && file?.type.startsWith('image/');
   const lastImgRef = useRef(null as File | null);
@@ -99,6 +104,13 @@ function MediaFileInput({
           isLoadingImg: !!(isImg && file && !imgUrl),
           imgUrl,
           imgAspectRatio,
+          onClearField() {
+            setState({
+              file: null,
+              imgUrl: null,
+              imgAspectRatio: 1,
+            });
+          },
         })}
         <input
           {...registerProps}
@@ -113,10 +125,9 @@ function MediaFileInput({
           }}
           type="file"
           accept={
-            // todo: low/easy accepted types not working in Windows
             mediaType === 'both'
-              ? 'image/*,video/*;capture=camera'
-              : (mediaType === 'image' ? 'image/*;capture=camera' : 'video/*;capture=camera')
+              ? 'image/*,video/*,capture=camera'
+              : (mediaType === 'image' ? 'image/*,capture=camera' : 'video/*,capture=camera')
           }
           onChange={event => {
             const newFile = event.target.files?.[0];
@@ -142,9 +153,10 @@ function MediaFileInput({
             }
           }}
           className={styles.input}
+          disabled={disabled}
           {...inputProps}
         />
-        {clearField && (file || defaultUrl) && (
+        {clearField && (file || defaultUrl) && !disabled && (
           <div
             className={styles.delete}
             onClick={event => {
@@ -159,7 +171,7 @@ function MediaFileInput({
               clearField();
             }}
             role="button"
-            tabIndex={-1}
+            tabIndex={0}
           >
             <TimesSvg />
           </div>

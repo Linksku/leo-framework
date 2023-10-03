@@ -7,13 +7,13 @@ export default function shallowEqual(objA: any, objB: any) {
   if (objA === null || objB === null) {
     return false;
   }
-  if (Array.isArray(objA) && Array.isArray(objA)) {
+  if (Array.isArray(objA) && Array.isArray(objB)) {
     if (objA.length !== objB.length) {
       return false;
     }
 
-    for (const [i, v] of objA.entries()) {
-      if (v !== objB[i]) {
+    for (let i = 0; i < objA.length; i++) {
+      if (objA[i] !== objB[i]) {
         return false;
       }
     }

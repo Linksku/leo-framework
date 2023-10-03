@@ -6,8 +6,10 @@ export const [
   useRouteStore,
   useRouteMatches,
   useRouteQuery,
+  useGetRouteState,
   useIsRouteActive,
-  useGetIsRouteActive,
+  useHadRouteBeenActive,
+  useIsRouteVisible,
   useInnerContainerRef,
 ] = constate(
   function RouteStore({
@@ -17,19 +19,32 @@ export const [
     isFrozen,
   }: {
     routeConfig: RouteConfig,
-    matches: Memoed<string[]>,
+    matches: Stable<string[]>,
     initialHistoryState: HistoryState,
     isFrozen: boolean,
   }) {
     const {
       curState,
-      prevState,
-      direction,
-      isReplaced,
-    } = useHistoryStore();
-    const { stackBot, stackTop } = useStacksNavStore();
-    const { homeParts } = useHomeNavStore();
-    const [initialState] = useState({
+      backState,
+      forwardState,
+    } = useDeferredValue(useHistoryStore());
+    const {
+      curStack,
+      backStack,
+      forwardStack,
+    } = useDeferredValue(useStacksNavStore());
+    const {
+      isHome,
+      isBackHome,
+      isForwardHome,
+      homeTab,
+      homeParts,
+    } = useDeferredValue(useHomeNavStore());
+
+    const isCurStack = initialHistoryState.key === curStack?.key;
+    const isBackStack = initialHistoryState.key === backStack?.key;
+    const isForwardStack = initialHistoryState.key === forwardStack?.key;
+    const [routeState, setRouteState] = useState(() => ({
       historyState: initialHistoryState,
       key: initialHistoryState.key,
       path: initialHistoryState.path,
@@ -37,56 +52,102 @@ export const [
       queryStr: initialHistoryState.queryStr,
       hash: initialHistoryState.hash,
       id: initialHistoryState.id,
-      prevState,
-      direction,
-      isReplaced,
+      backState: isCurStack
+        ? backState
+        : (isForwardStack ? curState : null),
+      forwardState: isCurStack
+        ? forwardState
+        : (isBackStack ? curState : null),
+      isHome: isCurStack
+        ? isHome
+        : (isBackStack ? isBackHome : isForwardHome),
+      homeTab,
       homeParts,
-    });
+      // Note: don't include "direction"/"prevState" here, they change based on navigation
+    }));
+    useEffect(() => {
+      // If this route wasn't curStack on first render, then some state might be wrong
+      if (isCurStack
+        && (routeState.backState !== backState
+          || routeState.forwardState !== forwardState
+          || routeState.homeTab !== homeTab
+          || routeState.homeParts !== homeParts)) {
+        setRouteState(s => ({
+          ...s,
+          backState,
+          forwardState,
+          homeTab,
+          homeParts,
+        }));
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isCurStack]);
+
     const [routeOpts, setRouteOpts] = useStateStable({
       disableBackSwipe: false,
       ...routeConfig.opts,
     });
     // HomeWrapInner or StackWrapInner
-    const innerContainerRef = useRef<Memoed<HTMLDivElement>>(null);
+    const innerContainerRef = useRef<Stable<HTMLDivElement>>(null);
 
-    const isRouteActive = initialState.key === curState.key;
-    const latestRef = useLatest(isRouteActive);
-    const getIsRouteActive = useCallback(() => latestRef.current, [latestRef]);
+    const isRouteActive = routeState.key === curState.key;
     const wasRouteActive = usePrevious(isRouteActive);
+    const hadRouteBeenActive = useUpdatedState(
+      isRouteActive,
+      s => s || isRouteActive,
+    );
+    const isRouteVisible = true; // Temp
+
     const wasFrozen = usePrevious(isFrozen);
     const frozenCount = useUpdatedState(
       0,
       s => s + (isFrozen === wasFrozen ? 0 : 1),
     );
-    const isStackBot = initialState.key === stackBot?.key;
-    const isStackTop = initialState.key === stackTop?.key;
+
+    const latestRouteState = useLatest(routeState);
+    const getRouteState = useCallback(() => latestRouteState.current, [latestRouteState]);
+
+    const deferredIsRouteActive = useDeferredValue(isRouteActive);
+    const deferredHadRouteBeenActive = useDeferredValue(hadRouteBeenActive);
+    const deferredIsRouteVisible = useDeferredValue(isRouteVisible);
     const obj = useMemo(() => ({
       routeConfig,
       matches,
       routeOpts,
       setRouteOpts,
-      isRouteActive,
-      getIsRouteActive,
-      wasRouteActive,
-      frozenCount,
-      // Always true for now
-      isRouteVisible: isStackBot || isStackTop,
-      isStackBot,
-      isStackTop,
       innerContainerRef,
-      ...initialState,
+      isCurStack,
+      isBackStack,
+      isForwardStack,
+      isRouteActive,
+      wasRouteActive,
+      hadRouteBeenActive,
+      isRouteVisible,
+      frozenCount,
+      ...routeState,
+      getRouteState,
+      _deferredIsRouteActive: deferredIsRouteActive,
+      _deferredHadRouteBeenActive: deferredHadRouteBeenActive,
+      _deferredIsRouteVisible: deferredIsRouteVisible,
     }), [
       routeConfig,
       matches,
       routeOpts,
       setRouteOpts,
+      innerContainerRef,
+      isCurStack,
+      isBackStack,
+      isForwardStack,
       isRouteActive,
-      getIsRouteActive,
       wasRouteActive,
+      hadRouteBeenActive,
       frozenCount,
-      isStackBot,
-      isStackTop,
-      initialState,
+      isRouteVisible,
+      routeState,
+      getRouteState,
+      deferredIsRouteActive,
+      deferredHadRouteBeenActive,
+      deferredIsRouteVisible,
     ]);
 
     if (!process.env.PRODUCTION && typeof window !== 'undefined' && isRouteActive) {
@@ -105,11 +166,17 @@ export const [
   function RouteQuery(val) {
     return val.query;
   },
-  function IsRouteActive(val) {
-    return val.isRouteActive;
+  function GetRouteState(val) {
+    return val.getRouteState;
   },
-  function GetIsRouteActive(val) {
-    return val.getIsRouteActive;
+  function IsRouteActive(val) {
+    return val._deferredIsRouteActive;
+  },
+  function HadRouteBeenActive(val) {
+    return val._deferredHadRouteBeenActive;
+  },
+  function IsRouteVisible(val) {
+    return val._deferredIsRouteVisible;
   },
   function InnerContainerRef(val) {
     return val.innerContainerRef;

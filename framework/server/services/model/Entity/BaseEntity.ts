@@ -17,6 +17,8 @@ class BaseEntity extends BaseModel implements IBaseEntity {
 
   static override cacheable = true;
 
+  static deleteable = false;
+
   declare static cols: ModelColsMap<IBaseEntity>;
 
   declare static colsQuoted: ModelColsMap<IBaseEntity>;

@@ -1,7 +1,7 @@
 export default function useWindowEvent<T extends keyof WindowEventMap>(
   eventType: T,
-  cb: Memoed<(event: WindowEventMap[T]) => any>,
-  opts?: boolean | Memoed<AddEventListenerOptions>,
+  cb: Stable<(event: WindowEventMap[T]) => any>,
+  opts?: boolean | Stable<AddEventListenerOptions>,
 ) {
   useEffect(() => {
     window.addEventListener(eventType, cb, opts);

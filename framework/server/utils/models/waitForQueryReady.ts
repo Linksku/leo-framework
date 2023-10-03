@@ -24,7 +24,8 @@ export default async function waitForQueryReady(
     lastErr = null;
     try {
       // eslint-disable-next-line no-await-in-loop
-      const rows = await query.clone();
+      const rows = await query.clone()
+        .timeout(Math.max(10, maxWaitTime - (performance.now() - startTime)));
       if (rows.length) {
         return true;
       }

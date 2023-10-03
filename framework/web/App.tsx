@@ -1,17 +1,16 @@
 import Router from 'Router';
 import ErrorBoundary from 'components/ErrorBoundary';
+import ErrorPage from 'components/ErrorPage';
 import useTimeComponentPerf from 'hooks/useTimeComponentPerf';
 import LoadingRoute from 'routes/LoadingRoute';
 
 import { AlertsProvider } from 'stores/AlertsStore';
 import { ApiProvider } from 'stores/ApiStore';
 import { AuthProvider } from 'stores/AuthStore';
+import { BatchImagesLoadProvider } from 'stores/BatchImagesLoadStore';
 import { EntitiesProvider } from 'stores/EntitiesStore';
-import { GlobalMemoProvider } from 'stores/GlobalMemoStore';
-import { GlobalStateProvider } from 'stores/GlobalStateStore';
 import { HistoryProvider } from 'stores/HistoryStore';
 import { HomeNavProvider } from 'stores/HomeNavStore';
-import { NotifsProvider } from 'stores/NotifsStore';
 import { RelationsProvider } from 'stores/RelationsStore';
 import { SseProvider } from 'stores/SseStore';
 import { SlideUpProvider } from 'stores/SlideUpStore';
@@ -26,8 +25,6 @@ export default function App() {
   let router = <Router />;
   for (const Component of [
     // Lib
-    GlobalMemoProvider,
-    GlobalStateProvider,
     HistoryProvider,
 
     // Core UI
@@ -35,6 +32,7 @@ export default function App() {
     SlideUpProvider,
     ToastsProvider,
     UIFrameProvider,
+    BatchImagesLoadProvider,
 
     // Core data
     EntitiesProvider,
@@ -44,7 +42,6 @@ export default function App() {
 
     // Other data
     SseProvider,
-    NotifsProvider,
 
     // Nav
     HomeNavProvider,
@@ -57,10 +54,16 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <React.Suspense fallback={<LoadingRoute />}>
-        {router}
-      </React.Suspense>
+    <ErrorBoundary
+      renderLoading={() => <LoadingRoute />}
+      renderError={msg => (
+        <ErrorPage
+          title="Error"
+          content={msg}
+        />
+      )}
+    >
+      {router}
     </ErrorBoundary>
   );
 }

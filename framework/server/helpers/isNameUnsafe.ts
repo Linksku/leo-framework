@@ -11,19 +11,17 @@ const unsafeWords = new Set(
 );
 
 // Names that may be allowed for adult content.
-export default function isNameUnsafe(name: string | string[]) {
-  const words = typeof name === 'string'
-    ? tokenizeString(name)
-    : name;
+export default function isNameUnsafe(name: string) {
+  for (const subStr of unsafeSubStrs) {
+    if (name.includes(subStr)) {
+      return true;
+    }
+  }
 
+  const words = tokenizeString(name);
   for (const w of words) {
     if (unsafeWords.has(w)) {
       return true;
-    }
-    for (const subStr of unsafeSubStrs) {
-      if (w.includes(subStr)) {
-        return true;
-      }
     }
   }
 

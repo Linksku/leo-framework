@@ -10,15 +10,16 @@ const limiter = pLimit(3);
 addHealthcheck('rrMVs', {
   deps: ['pgRR'],
   cb: async function rrMVsHealthcheck() {
-    let isMZAvailable = false;
     try {
       await promiseTimeout(
         showMzSystemRows('SHOW SOURCES'),
         10 * 1000,
         new Error('rrMVsHealthcheck: MZ not available'),
       );
-      isMZAvailable = true;
-    } catch {}
+    } catch {
+      // MZ is down
+      return;
+    }
 
     const tablesMissingData: string[] = [];
     await Promise.all(
@@ -26,14 +27,22 @@ addHealthcheck('rrMVs', {
         .filter(model => model.getReplicaTable())
         .map(model => limiter(async () => {
           try {
-            const hasRRRows = await rawSelect('rr', 'SELECT 1 FROM ?? LIMIT 1', [model.tableName]);
-            if (hasRRRows.rows.length || !isMZAvailable) {
+            const hasRRRows = await rawSelect(
+              'SELECT 1 FROM ?? LIMIT 1',
+              [model.tableName],
+              { db: 'rr' },
+            );
+            if (hasRRRows.rows.length) {
               return;
             }
 
             try {
               // todo: low/easy cache hasMZRows
-              const hasMZRows = await rawSelect('rr', 'SELECT 1 FROM ?? LIMIT 1 AS OF now()', [model.tableName]);
+              const hasMZRows = await rawSelect(
+                'SELECT 1 FROM ?? LIMIT 1 AS OF now()',
+                [model.tableName],
+                { db: 'mz' },
+              );
               if (hasMZRows.rows.length) {
                 tablesMissingData.push(model.type);
               }

@@ -1,4 +1,4 @@
-import uniq from 'lodash/uniq';
+import uniq from 'lodash/uniq.js';
 
 import MaterializedViewModels from 'services/model/allMaterializedViewModels';
 import getModelRecursiveDeps from 'utils/models/getModelRecursiveDeps';

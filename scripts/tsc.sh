@@ -8,4 +8,4 @@ rm -f app/server/tsconfig.tsbuildinfo
 rm -f app/web/tsconfig.tsbuildinfo
 rm -f scripts/tsconfig.tsbuildinfo
 
-tsc --build
+tsc --build || exit 1

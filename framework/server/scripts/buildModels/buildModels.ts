@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 
 import getModelsWithPaths, { ModelsArr } from './getModelsWithPaths';
 
@@ -15,12 +15,15 @@ function getOutput({
   forFramework: boolean,
   isCjs: boolean,
 }) {
+  frameworkModels.sort((a, b) => a.Model.name.localeCompare(b.Model.name));
+  appModels.sort((a, b) => a.Model.name.localeCompare(b.Model.name));
+
   const out = `const frameworkModels${isCjs ? '' : ': any[]'} = [
 ${frameworkModels.map(model => `  {
     type: '${model.Model.type}',
     path: 'framework/server/models/${model.path}',
     ${isCjs ? '// ' : ''}Model: require('../../${forFramework ? '' : '../../framework/server/'}models/${model.path.slice(0, -3)}').default,
-    replicaTable: ${model.Model.getReplicaTable() ? `'${model.Model.getReplicaTable()}'` : 'null'},
+    isRR: ${model.Model.getReplicaTable() || model.Model.isVirtual ? 'true' : 'false'},
   },
 `).join('')}];
 
@@ -29,7 +32,7 @@ ${appModels.map(model => `  {
     type: '${model.Model.type}',
     path: 'app/server/models/${model.path}',
     ${isCjs ? '// ' : ''}Model: require('../../models/${model.path.slice(0, -3)}').default,
-    replicaTable: ${model.Model.getReplicaTable() ? `'${model.Model.getReplicaTable()}'` : 'null'},
+    isRR: ${model.Model.getReplicaTable() || model.Model.isVirtual ? 'true' : 'false'},
   },
 `).join('')}];
 `;

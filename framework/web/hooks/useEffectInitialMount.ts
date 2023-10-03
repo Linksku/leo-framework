@@ -1,4 +1,4 @@
-export default function useEffectInitialMount(cb: () => void, deps: MemoDependencyList) {
+export default function useEffectInitialMount(cb: () => void) {
   const hasRun = useRef(false);
 
   useEffect(() => {
@@ -12,5 +12,5 @@ export default function useEffectInitialMount(cb: () => void, deps: MemoDependen
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, []);
 }

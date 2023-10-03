@@ -1,8 +1,10 @@
 import { useSyncExternalStore } from 'react';
 
+import type { EntitiesMap } from 'stores/EntitiesStore';
+import { getEntitiesState } from 'stores/EntitiesStore';
 import { API_TIMEOUT } from 'settings';
-import useShallowMemoObj from 'hooks/useShallowMemoObj';
 import useTimeout from 'hooks/useTimeout';
+import useShallowMemoArr from 'hooks/useShallowMemoArr';
 
 function useEntitiesArr<T extends EntityType>(
   entityType: T,
@@ -12,7 +14,7 @@ function useEntitiesArr<T extends EntityType>(
     throwIfMissing?: boolean,
     allowMissing?: boolean,
   },
-): Memoed<(Memoed<TypeToEntity<T>> | null)[]>;
+): Stable<(Entity<T> | null)[]>;
 
 function useEntitiesArr<T extends EntityType>(
   entityType: T,
@@ -22,7 +24,7 @@ function useEntitiesArr<T extends EntityType>(
     throwIfMissing?: boolean,
     allowMissing?: boolean,
   },
-): Memoed<Memoed<TypeToEntity<T>>[]>;
+): Stable<Entity<T>[]>;
 
 function useEntitiesArr<T extends EntityType>(
   entityType: T,
@@ -42,30 +44,31 @@ function useEntitiesArr<T extends EntityType>(
     [ids.join('|')],
   );
 
-  const { entitiesRef, addEntityListener } = useEntitiesStore();
+  const { addEntityListener } = useEntitiesStore();
+  const entitiesState = getEntitiesState();
   const allEntities = useSyncExternalStore(
     useCallback(cb => {
       if (!entityType) {
         return NOOP;
       }
 
-      const unsubs = stableIds.flatMap(id => [
-        addEntityListener('load', entityType, id, cb),
+      const unsubs = stableIds.flatMap(id => TS.filterNulls([
+        entitiesState.get(entityType)
+          ? null
+          : addEntityListener('load', entityType, id, cb),
         addEntityListener('create', entityType, id, cb),
         addEntityListener('update', entityType, id, cb),
         addEntityListener('delete', entityType, id, cb),
-      ]);
+      ]));
       return () => {
         for (const unsub of unsubs) {
           unsub();
         }
       };
-    }, [addEntityListener, entityType, stableIds]),
+    }, [entitiesState, addEntityListener, entityType, stableIds]),
     () => (entityType
-      ? (
-        entitiesRef.current[entityType] || EMPTY_OBJ
-      ) as Memoed<ObjectOf<Memoed<TypeToEntity<T>>>>
-      : EMPTY_OBJ),
+      ? (entitiesState.get(entityType) as EntitiesMap<Entity<T>> | undefined)
+      : undefined),
   );
 
   const [waited, setWaited] = useState(false);
@@ -74,7 +77,7 @@ function useEntitiesArr<T extends EntityType>(
     useTimeout(
       useCallback(() => {
         if (!opts.allowMissing && !waited
-          && stableIds.some(id => !allEntities?.[id])) {
+          && stableIds.some(id => !allEntities?.get(id))) {
           setWaited(true);
         }
       }, [opts.allowMissing, waited, stableIds, allEntities]),
@@ -84,20 +87,20 @@ function useEntitiesArr<T extends EntityType>(
   }
 
   if (opts.throwIfMissing) {
-    const missingIdx = ids.findIndex(id => !allEntities?.[id]);
+    const missingIdx = ids.findIndex(id => !allEntities?.get(id));
     if (missingIdx >= 0) {
       throw new Error(`Entities array missing ${entityType} ${ids[missingIdx]}`);
     }
   } else if (!process.env.PRODUCTION && !opts.allowMissing && waited) {
-    const missingIdx = ids.findIndex(id => !allEntities?.[id]);
+    const missingIdx = ids.findIndex(id => !allEntities?.get(id));
     if (missingIdx >= 0) {
       ErrorLogger.warn(new Error(`useEntitiesArr: missing ${entityType} ${ids[missingIdx]}`));
     }
   }
 
-  const entitiesArr = ids.map(id => allEntities?.[id] ?? null);
+  const entitiesArr = ids.map(id => allEntities?.get(id) ?? null);
   // Can't use useMemo because other ids in allEntities can change
-  return useShallowMemoObj(
+  return useShallowMemoArr(
     opts.nullIfMissing ? entitiesArr : TS.filterNulls(entitiesArr),
   );
 }

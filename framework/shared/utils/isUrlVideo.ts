@@ -1,4 +1,4 @@
-export const YOUTUBE_REGEX = /^https?:\/\/(?:[^/]+\.)?(?:youtube\.com\/(?:v\/|u\/\w\/|embed\/|watch\?v=)|youtu\.be)([^#&?]{10,12})/i;
+export const YOUTUBE_REGEX = /^https?:\/\/(?:[^/]+\.)?(?:youtube\.com\/(?:v\/|u\/\w\/|embed\/|watch\?v=)|youtu\.be\/)([^#&?/]{10,12})/i;
 
 export const GFYCAT_REGEX = /^https?:\/\/(?:[^/]+\.)?gfycat\.com\/(\w+)/i;
 

@@ -1,8 +1,9 @@
 .container {
   position: relative;
+  margin-bottom: 1.5rem;
 }
 
-.open .input {
+.openInput {
   input,
   span {
     border-bottom: none;

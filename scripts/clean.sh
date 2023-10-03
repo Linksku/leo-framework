@@ -1,6 +1,5 @@
 #!/bin/bash
 
-rm -rf build/*
 rm -rf node_modules/.build
 rm -rf node_modules/.cache
 rm -f .eslintcache

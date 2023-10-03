@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
 
 import 'services/firebase';
@@ -21,17 +23,24 @@ if (process.env.SERVER !== 'production') {
 
 const messaging = getMessaging();
 onBackgroundMessage(messaging, payload => {
-  // eslint-disable-next-line no-console
-  console.log('FCM bg message:', JSON.parse(JSON.stringify(payload)));
-
   const dataStr = payload.data?.data;
+
+  let msg: any = dataStr;
+  if (!process.env.PRODUCTION && dataStr) {
+    try {
+      msg = JSON.parse(dataStr);
+    } catch {}
+  }
+  // eslint-disable-next-line no-console
+  console.log('FCM bg message:', msg);
+
   if (!dataStr) {
     return;
   }
 
   FcmBroadcastChannel.postMessage(dataStr);
 
-  if (process.env.SERVER !== 'production') {
+  if (process.env.SERVER === 'production') {
     const data = safeParseJson<{
       data: {
         title: string,

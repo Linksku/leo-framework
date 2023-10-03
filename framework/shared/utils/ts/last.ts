@@ -13,7 +13,7 @@ function last<T>(
 function last<T>(
   arr: T[],
 ): T | undefined {
-  return arr[arr.length - 1];
+  return arr.at(-1);
 }
 
 export default last;

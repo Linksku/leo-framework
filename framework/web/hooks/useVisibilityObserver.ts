@@ -1,4 +1,4 @@
-import useMountedState from 'hooks/useMountedState';
+import useGetIsMounted from 'hooks/useGetIsMounted';
 
 import useLatest from 'hooks/useLatest';
 
@@ -7,20 +7,20 @@ export default function useVisibilityObserver<T extends HTMLElement | undefined>
     onVisible,
     onHidden,
   }: {
-    onVisible?: Memoed<() => void>,
-    onHidden?: Memoed<() => void>,
+    onVisible?: Stable<() => void>,
+    onHidden?: Stable<() => void>,
   },
   opts?: IntersectionObserverInit,
-): Memoed<React.RefCallback<T>> {
+): Stable<React.RefCallback<T>> {
   const cbRef = useLatest({
     onVisible,
     onHidden,
   });
-  const isMounted = useMountedState();
+  const getIsMounted = useGetIsMounted();
   const elemRef = useRef<T>();
   const observerRef = useRef(useConst(() => new IntersectionObserver(
     entries => {
-      if (!isMounted()) {
+      if (!getIsMounted()) {
         return;
       }
 

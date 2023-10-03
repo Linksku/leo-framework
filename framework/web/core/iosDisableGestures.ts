@@ -1,13 +1,10 @@
 import isStandalone from 'utils/isStandalone';
-
-// From Chrome device mode
-const CLICK_MAX_WAIT = 700;
-// Approx from trial and error
-const IOS_NEAR_EDGE_PX = 30;
+import isIOS from 'utils/isIOS';
+import { IOS_EDGE_SWIPE_PX, CLICK_MAX_WAIT } from 'consts/ui';
 
 export default function iosDisableGestures() {
   const ua = navigator.userAgent.toLowerCase();
-  const shouldDisable = /\b(iphone|ipad|ipod)\b/.test(ua)
+  const shouldDisable = isIOS()
     // Note: FF, Opera, Brave don't need disabling
     && (isStandalone || /\b(safari|chrome|edgios|duckduckgo)\b/.test(ua));
   if (!shouldDisable) {
@@ -28,8 +25,8 @@ export default function iosDisableGestures() {
 
   reactRoot.addEventListener('touchstart', e => {
     if ([...e.touches].some(
-      touch => touch.pageX <= IOS_NEAR_EDGE_PX
-        || touch.pageX >= window.innerWidth - IOS_NEAR_EDGE_PX,
+      touch => touch.pageX <= IOS_EDGE_SWIPE_PX
+        || touch.pageX >= window.innerWidth - IOS_EDGE_SWIPE_PX,
     )) {
       isTouching = true;
       startTime = performance.now();

@@ -1,6 +1,8 @@
 import yaml from 'js-yaml';
 import os from 'os';
-import _ from 'lodash';
+import omit from 'lodash/omit.js';
+
+import './framework/server/helpers/initDotenv.cjs';
 
 if (!process.env.SERVER || !process.env.NODE_ENV) {
   throw new Error('Env vars not set.');
@@ -31,29 +33,25 @@ function expose(...ports) {
 }
 
 // Arbitrary unit
-const RESOURCE_LIMITS = {
-  zookeeper: {
-    cpus: 0.5,
-    memory: 0.5,
-  },
+export const RESOURCE_LIMITS = {
   broker: {
-    cpus: 12,
-    memory: 8,
+    cpus: 6,
+    memory: 4,
   },
   'schema-registry': {
-    cpus: 1,
-    memory: 1,
+    cpus: 0.5,
+    memory: 2,
   },
   connect: {
-    cpus: 4,
-    memory: 8,
+    cpus: 2,
+    memory: 6,
   },
   'control-center': {
     cpus: 2,
     memory: 2,
   },
   materialize: {
-    cpus: 12,
+    cpus: 16,
     memory: 8,
   },
   'materialize-dashboard': {
@@ -65,8 +63,8 @@ const RESOURCE_LIMITS = {
     memory: 2,
   },
   'monitor-infra': {
-    cpus: 1,
-    memory: 1,
+    cpus: 2,
+    memory: 2,
   },
   server: {
     cpus: 4,
@@ -82,18 +80,21 @@ const RESOURCE_LIMITS = {
   },
 };
 
-const CPU_UNITS_SUM = Object.values(_.omit(RESOURCE_LIMITS, OMIT_SERVICES))
-  .reduce((sum, val) => sum + val.cpus, 0);
-const MEMORY_UNITS_SUM = Object.values(_.omit(RESOURCE_LIMITS, OMIT_SERVICES))
-  .reduce((sum, val) => sum + val.memory, 0);
-const NUM_CORES = os.cpus().length;
+const maxCpuPercent = process.env.MAX_CPU_PERCENT
+  ? (Number.parseInt(process.env.MAX_CPU_PERCENT, 10) ?? 100)
+  : 100;
+const NUM_CORES = os.cpus().length * maxCpuPercent / 100;
 const TOTAL_MEMORY = os.totalmem() / 1024 / 1024 / 1024;
 const RESOURCE_MULTIPLIER = 1.5;
 
-function getResourceLimits(service) {
-  const cpus = (RESOURCE_LIMITS[service].cpus / CPU_UNITS_SUM)
+const totalCpuUnits = Object.values(omit(RESOURCE_LIMITS, OMIT_SERVICES))
+  .reduce((sum, val) => sum + val.cpus, 0);
+const totalMemoryUnits = Object.values(omit(RESOURCE_LIMITS, OMIT_SERVICES))
+  .reduce((sum, val) => sum + val.memory, 0);
+export function getResourceLimits(service) {
+  const cpus = (RESOURCE_LIMITS[service].cpus / totalCpuUnits)
     * RESOURCE_MULTIPLIER * NUM_CORES;
-  const memory = (RESOURCE_LIMITS[service].memory / MEMORY_UNITS_SUM)
+  const memory = (RESOURCE_LIMITS[service].memory / totalMemoryUnits)
     * RESOURCE_MULTIPLIER * TOTAL_MEMORY;
   return {
     cpus: `${Math.round(cpus * 100) / 100}`,
@@ -101,40 +102,24 @@ function getResourceLimits(service) {
   };
 }
 
-const services = {
-  zookeeper: {
-    image: 'bitnami/zookeeper:3.8',
-    container_name: 'zookeeper',
-    ...expose(2181),
-    restart: 'always',
-    environment: {
-      ALLOW_ANONYMOUS_LOGIN: true,
-      DISABLE_WELCOME_MESSAGE: true,
-      ZOO_LOG_LEVEL: 'WARN',
-    },
-    deploy: {
-      resources: {
-        limits: getResourceLimits('zookeeper'),
-      },
-    },
-  },
+const SERVICES = {
   broker: {
-    image: 'bitnami/kafka:3.3.1',
+    image: 'bitnami/kafka:3.4.0',
     container_name: 'broker',
-    depends_on: [
-      'zookeeper',
-    ],
     ...expose(9092),
     restart: 'always',
     environment: {
-      DISABLE_WELCOME_MESSAGE: true,
       KAFKA_BROKER_ID: 1,
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: 'PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT',
-      KAFKA_CFG_LISTENERS: 'PLAINTEXT://:29092,EXTERNAL://:9092',
+      KAFKA_KRAFT_CLUSTER_ID: 'ZmNiZmU5YzA3OTVkNGQ2Yj', // random
+      KAFKA_CFG_PROCESS_ROLES: 'broker,controller',
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: 'PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT',
+      KAFKA_CFG_LISTENERS: 'PLAINTEXT://:29092,EXTERNAL://:9092,CONTROLLER://:9093',
       KAFKA_CFG_ADVERTISED_LISTENERS: 'PLAINTEXT://broker:29092,EXTERNAL://localhost:9092',
-      KAFKA_CFG_ZOOKEEPER_CONNECT: 'zookeeper:2181',
       ALLOW_PLAINTEXT_LISTENER: true,
       KAFKA_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081',
+      // loglevel probably doesn't do anything
+      KAFKA_LOG4J_ROOT_LOGLEVEL: 'WARN',
+      KAFKA_TOOLS_LOG4J_LOGLEVEL: 'WARN',
     },
     healthcheck: {
       test: [
@@ -155,11 +140,8 @@ const services = {
     },
   },
   'schema-registry': {
-    image: 'confluentinc/cp-schema-registry:7.3.0',
+    image: 'confluentinc/cp-schema-registry:7.4.0',
     container_name: 'schema-registry',
-    depends_on: [
-      'broker',
-    ],
     ...expose(8081),
     restart: 'always',
     environment: {
@@ -167,6 +149,13 @@ const services = {
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092',
       SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081',
       SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: 'WARN',
+      SCHEMA_REGISTRY_TOOLS_LOG4J_LOGLEVEL: 'WARN',
+    },
+    healthcheck: {
+      test: ['CMD-SHELL', 'curl -f http://localhost:8081 || exit 1'],
+      interval: '10s',
+      timeout: '10s',
+      retries: 30,
     },
     deploy: {
       resources: {
@@ -207,7 +196,6 @@ const services = {
       CONNECT_PRODUCER_INTERCEPTOR_CLASSES: 'io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor',
       CONNECT_CONSUMER_INTERCEPTOR_CLASSES: 'io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor',
       CONNECT_PLUGIN_PATH: '/usr/share/java,/usr/share/confluent-hub-components,/opt/kafka-connectors',
-      CONNECT_LOG4J_LOGGERS: 'org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=ERROR',
       CONNECT_LOG4J_ROOT_LOGLEVEL: 'WARN',
       CONNECT_TOOLS_LOG4J_LOGLEVEL: 'WARN',
     },
@@ -224,7 +212,7 @@ const services = {
     },
   },
   'control-center': {
-    image: 'confluentinc/cp-enterprise-control-center:7.3.0',
+    image: 'confluentinc/cp-enterprise-control-center:7.4.0',
     container_name: 'control-center',
     depends_on: [
       'broker',
@@ -265,13 +253,12 @@ const services = {
     ],
     ...expose(6875),
     restart: 'always',
-    // --workers 1
+    // --workers 1 is faster, but might not scale
     command: `
       -D /var/lib/mzdata
       --disable-telemetry
       --introspection-frequency off
-      ${process.env.PRODUCTION ? '' : '--logical-compaction-window 1s'}
-      ${process.env.PRODUCTION ? '' : '--differential-idle-merge-effort 1000'}
+      --workers 1
       --log-filter WARN
     `,
     healthcheck: {
@@ -308,7 +295,7 @@ const services = {
     },
   },
   redis: {
-    image: 'redis:7.0.5',
+    image: 'redis:7.0.11',
     container_name: 'redis',
     ...expose(6379),
     restart: 'always',
@@ -446,7 +433,7 @@ const services = {
   },
 };
 
-const filteredServices = _.omit(services, OMIT_SERVICES);
+const filteredServices = omit(SERVICES, OMIT_SERVICES);
 if (!process.env.JS_VERSION) {
   // eslint-disable-next-line no-console
   console.log(yaml.dump({

@@ -28,23 +28,25 @@ yarn app
 
 ### Set Up Database ###
 
-1. Create 2 Postgres databases: normal and read-replica.
-
-2. Edit `env` and `.env`.
-
-3. Add to pg_hba.conf
+1. Add to pg_hba.conf
 ```
 host  all  all  0.0.0.0/0  scram-sha-256
+host  all  all  ::/0  scram-sha-256
 ```
 
-4. Add to postgresql.conf:
+2. Add to postgresql.conf:
 ```
 listen_addresses = '*'
 wal_level = logical
-wal_writer_delay = 10ms
+wal_writer_delay = 50ms
 max_wal_senders = 100
 max_replication_slots = 100
+max_connections = 200
 ```
+
+3. Create 2 Postgres databases: normal and read-replica. Install PostGIS in RR.
+
+4. Edit `env`, `.env`, and `firebaseAdminKey.json`.
 
 5. Run `yarn ss db/recreateInfra`
 

@@ -3,4 +3,4 @@ import Entity from 'services/model/Entity';
 
 export default Object.values(allModels)
   .map(model => model.Model)
-  .filter(model => model.prototype instanceof Entity) as EntityClass[];
+  .filter(Model => TS.extends(Model, Entity)) as EntityClass[];

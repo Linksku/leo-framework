@@ -6,26 +6,32 @@
   left: 0;
   right: 0;
   z-index: $zIndexDropdown;
-  max-height: 50vh;
-  min-height: 150px;
+  max-height: calc(var(--vh100, 100vh) * 0.5);
   background-color: #fff;
-  border-bottom: 1px solid color.mix($primaryColor, $inputBorderColor, $weight: 33%);
+  border-bottom: 0.5px solid color.mix($primaryColor, $inputBorderColor, $weight: 33%);
   border-bottom-left-radius: $inputBorderRadius;
   border-bottom-right-radius: $inputBorderRadius;
   overflow: hidden;
 }
 
 .dropdownInner {
+  @extend %hideScrollbar;
+
   overflow-y: auto;
   touch-action: pan-y;
-  max-height: 70vh;
+  max-height: calc(var(--vh100, 100vh) * 0.7);
 }
 
 .option {
   padding: $inputPadding;
   color: $inputColor;
-  border-left: 1px solid color.mix($primaryColor, $inputBorderColor, $weight: 33%);
-  border-right: 1px solid color.mix($primaryColor, $inputBorderColor, $weight: 33%);
+  border-left: 0.5px solid color.mix($primaryColor, $inputBorderColor, $weight: 33%);
+  border-right: 0.5px solid color.mix($primaryColor, $inputBorderColor, $weight: 33%);
+
+  &:last-child {
+    border-bottom-left-radius: $inputBorderRadius;
+    border-bottom-right-radius: $inputBorderRadius;
+  }
 }
 
 .nullState {

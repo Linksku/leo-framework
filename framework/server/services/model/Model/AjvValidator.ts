@@ -1,13 +1,13 @@
 import type { ValidatorArgs } from 'objection';
 import type { ValidateFunction, ErrorObject } from 'ajv';
 import { Validator } from 'objection';
-import at from 'lodash/at';
-import trim from 'lodash/trim';
+import at from 'lodash/at.js';
+import trim from 'lodash/trim.js';
 
 import ajv from 'services/ajv';
 
-function formatError(error: ErrorObject | undefined, Model: ModelClass): string {
-  const errorPath = error?.instancePath
+function getAjvError(Model: ModelClass, obj: JsonObj, err: ErrorObject): Error {
+  const errorPath = err.instancePath
     ?.replace(/^[^/A-Za-z]/, '')
     .split('/')
     .filter(Boolean);
@@ -15,22 +15,33 @@ function formatError(error: ErrorObject | undefined, Model: ModelClass): string 
   if (errorPath?.length) {
     debugErrParts.push(`${errorPath.join('.')}`);
   }
-  if (error?.message) {
-    debugErrParts.push(`${error.message.toLowerCase()}`);
+  if (err.message) {
+    debugErrParts.push(`${err.message.toLowerCase()}`);
   }
-  if (error?.keyword === 'additionalProperties' && error?.params.additionalProperty) {
-    debugErrParts.push(`"${error.params.additionalProperty}"`);
+  if (err.keyword === 'additionalProperties' && err.params.additionalProperty) {
+    debugErrParts.push(`"${err.params.additionalProperty}"`);
   }
   if (!debugErrParts.length) {
     debugErrParts.push('invalid value');
   }
-  return `${Model.name}: ${debugErrParts.join(' ')}.`;
+
+  const instancePath = trim(err.instancePath, '/').replaceAll('/', '.');
+  const instanceVal = at<any>(obj, [instancePath])[0];
+  return getErr(
+    `${Model.name}: ${debugErrParts.join(' ')}`,
+    instancePath
+      ? {
+        instancePath: err.instancePath,
+        instanceVal,
+      }
+      : {},
+  );
 }
 
 export default class AjvValidator extends Validator {
   Model: ModelClass;
-  validator: ValidateFunction;
-  patchValidator: ValidateFunction;
+  validator: ValidateFunction<IBaseModel>;
+  patchValidator: ValidateFunction<IBaseModel>;
 
   constructor(Model: ModelClass) {
     super();
@@ -51,14 +62,14 @@ export default class AjvValidator extends Validator {
           printDebug(error, 'error');
           if (error.instancePath) {
             const instancePath = trim(error.instancePath, '/').replaceAll('/', '.');
-            const pathVal = at<any>(json, [instancePath])[0];
+            const instanceVal = at<any>(json, [instancePath])[0];
             // eslint-disable-next-line no-console
             printDebug(
               'Instance value',
               'error',
               {
-                ctx: `${pathVal}: ${typeof pathVal}`,
-                details: json,
+                ctx: `${instanceVal}: ${typeof instanceVal}`,
+                details: JSON.stringify(json),
               },
             );
           }
@@ -67,7 +78,9 @@ export default class AjvValidator extends Validator {
         }
       }
 
-      throw new Error(formatError(error, this.Model));
+      throw error
+        ? getAjvError(this.Model, json, error)
+        : new Error(`${this.Model.type}: unknown AJV error`);
     }
 
     return json;

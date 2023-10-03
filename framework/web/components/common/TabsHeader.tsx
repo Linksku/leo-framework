@@ -1,10 +1,11 @@
+import type { HandleClickLink } from 'components/ui/Link';
 import styles from './TabsHeaderStyles.scss';
 
 type Props = {
   tabs: {
     key: string,
     name: string,
-    onClick: React.MouseEventHandler,
+    onClick: HandleClickLink,
   }[],
   activeTab?: string,
 };
@@ -16,17 +17,15 @@ export default function TabsHeader({
   return (
     <div className={styles.tabs}>
       {tabs.map(tab => (
-        <div
+        <Link
           key={tab.key}
           className={cx(styles.tab, {
             [styles.tabActive]: tab.key === activeTab,
           })}
           onClick={tab.onClick}
-          role="button"
-          tabIndex={-1}
         >
           {tab.name}
-        </div>
+        </Link>
       ))}
     </div>
   );

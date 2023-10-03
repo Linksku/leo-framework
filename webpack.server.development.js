@@ -2,9 +2,9 @@ import CopyPlugin from 'copy-webpack-plugin';
 import path from 'path';
 import nodeExternals from 'webpack-node-externals';
 
-import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
-import baseConfig from './webpack.server';
-import transformWebpackCopied from './scripts/helpers/transformWebpackCopied';
+import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
+import baseConfig from './webpack.server.js';
+import transformWebpackCopied from './scripts/helpers/transformWebpackCopied.js';
 
 if (process.env.NODE_ENV !== 'development') {
   throw new Error('NODE_ENV isn\'t development');

@@ -3,23 +3,32 @@ In server/, Entity is an instance of a model.
 In web/, Entity is a pojo
 */
 
-type EntityType = ModelType;
+type EntityType = RRModelType;
 
 type EntityId = ApiEntityId;
 
 type NumericEntityId = number;
 
-type Entity = Memoed<ModelSerializedForApi>;
+interface BaseEntity extends Stable<ModelSerializedForApi> {
+  __isModel: true;
+}
 
 type EntityClass = never;
 
-type TypeToEntity<T extends EntityType> = EntityType extends T ? Entity
+type Entity<T extends EntityType = EntityType> = EntityType extends T
+  ? BaseEntity
   : EntityInstancesMap[T];
 
 type EntityTypeToInterface<T extends EntityType> = ModelInterfacesMap[T];
 
-type EntityRelationTypes<T extends EntityType> = AllModelRelationsMap[T] extends any
-  ? {
-    [K in keyof AllModelRelationsMap[T]]: AllModelRelationsMap[T][K]['tsType'];
-  }
-  : never;
+type EntityRelationTypes = {
+  [T in keyof AllModelRelationsMap]: keyof AllModelRelationsMap[T] extends any
+    ? {
+      [K in keyof AllModelRelationsMap[T]]: AllModelRelationsMap[T][K]['tsType'] extends any[]
+        ? EntityInstancesMap[AllModelRelationsMap[T][K]['modelType']][]
+        : AllModelRelationsMap[T][K]['tsType'] extends null
+          ? null
+          : EntityInstancesMap[AllModelRelationsMap[T][K]['modelType']];
+    }
+    : never;
+};

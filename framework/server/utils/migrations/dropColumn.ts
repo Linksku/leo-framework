@@ -6,17 +6,21 @@ export default async function dropColumn({ isMV, table, col }: {
   table: string,
   col: string,
 }) {
-  if (!isMV && await knexBT.schema.hasColumn(table, col)) {
-    await knexBT.raw(
-      'ALTER TABLE ?? DROP COLUMN ?? CASCADE',
-      [table, col],
-    );
-  }
+  try {
+    if (!isMV && await knexBT.schema.hasColumn(table, col)) {
+      await knexBT.raw(
+        'ALTER TABLE ?? DROP COLUMN ?? CASCADE',
+        [table, col],
+      );
+    }
 
-  if (await knexRR.schema.hasColumn(table, col)) {
-    await knexRR.raw(
-      'ALTER TABLE ?? DROP COLUMN ?? CASCADE',
-      [table, col],
-    );
+    if (await knexRR.schema.hasColumn(table, col)) {
+      await knexRR.raw(
+        'ALTER TABLE ?? DROP COLUMN ?? CASCADE',
+        [table, col],
+      );
+    }
+  } catch (err) {
+    throw getErr(err, { ctx: 'dropColumn', table, col });
   }
 }

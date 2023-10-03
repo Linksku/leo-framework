@@ -1,7 +1,5 @@
-import omit from 'lodash/omit';
-
 import type { ModelConfig } from './createModelClass';
-import MaterializedView, { MaterializedViewClass } from './MaterializedView';
+import MaterializedView from './MaterializedView';
 import composeModelConfigs from './helpers/composeModelConfigs';
 import { processModelConfig } from './createModelClass';
 import buildClass from './buildClass';
@@ -9,9 +7,9 @@ import buildClass from './buildClass';
 type MaterializedViewConfigStaticProps = {
   replicaTable?: Nullish<string>,
   mzIndexes?: (string | string[])[],
-  MVQueryDeps: MaterializedViewClass[],
-  getMVQuery: () => QueryBuilder<MaterializedView>,
-  extendMVQuery?: ((query: QueryBuilder<MaterializedView>) => QueryBuilder<MaterializedView>)[],
+  MVQueryDeps: ModelClass[],
+  getMVQuery: () => QueryBuilder<Model>,
+  extendMVQuery?: ((query: QueryBuilder<Model>) => QueryBuilder<Model>)[],
 };
 
 export type MaterializedViewConfig<
@@ -23,18 +21,27 @@ export type MaterializedViewConfig<
 > = ModelConfig<Type, StaticProps, Props>
   & MaterializedViewConfigStaticProps;
 
-export function processMaterializedViewConfig<Config extends MaterializedViewConfig<ModelType>>(
-  config: Config,
-): Pick<Config, keyof ModelConfig<any>> {
+export function processMaterializedViewConfig<Config extends MaterializedViewConfig<ModelType>>({
+  replicaTable,
+  mzIndexes,
+  MVQueryDeps,
+  getMVQuery,
+  extendMVQuery,
+  ...config
+}: Config): Pick<Config, keyof ModelConfig<any>> {
   if (!config.type.endsWith('MV')) {
     throw new Error(`processMaterializedViewConfig(${config.type}): type must end in "MV".`);
   }
-  if (config.replicaTable === null) {
+  if (replicaTable === null) {
     if (config.normalIndexes) {
-      throw new Error(`processMaterializedViewConfig(${config.type}): normal indexes not needed if there's no replica table.`);
+      throw new Error(
+        `processMaterializedViewConfig(${config.type}): normal indexes not needed if there's no replica table.`,
+      );
     }
     if (config.uniqueIndexes && config.uniqueIndexes.length > 1) {
-      throw new Error(`processMaterializedViewConfig(${config.type}): multiple unique indexes not needed if there's no replica table.`);
+      throw new Error(
+        `processMaterializedViewConfig(${config.type}): multiple unique indexes not needed if there's no replica table.`,
+      );
     }
     if (config.cacheable) {
       throw new Error(`processMaterializedViewConfig(${config.type}): cache not needed if there's no replica table.`);
@@ -42,19 +49,14 @@ export function processMaterializedViewConfig<Config extends MaterializedViewCon
   }
 
   return {
-    ...omit(config, [
-      'replicaTable',
-      'mzIndexes',
-      'MVQueryDeps',
-      'getMVQuery',
-      'extendMVQuery',
-    ]),
+    ...config,
+    uniqueIndexes: config.uniqueIndexes ?? ['id'],
     staticProps: {
-      replicaTable: config.replicaTable,
-      mzIndexes: config.mzIndexes,
-      MVQueryDeps: config.MVQueryDeps,
-      getMVQuery: config.getMVQuery,
-      extendMVQuery: config.extendMVQuery,
+      replicaTable,
+      mzIndexes,
+      MVQueryDeps,
+      getMVQuery,
+      extendMVQuery,
       ...config.staticProps,
     },
   };

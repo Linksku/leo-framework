@@ -1,17 +1,24 @@
 import type { OptsWithoutSet, OptsWithSet } from './useEntitiesByFields';
 import useEntitiesByFields from './useEntitiesByFields';
 
-function useEntitiesByField<T extends EntityType>(
-  type: T | null,
-  field: string,
-  opts?: OptsWithoutSet<T>
-): Memoed<ObjectOf<TypeToEntity<T>[]>>;
-
-function useEntitiesByField<T extends EntityType, F extends keyof TypeToEntity<T>>(
+function useEntitiesByField<
+  T extends EntityType,
+  F extends keyof Entity<T>,
+>(
   type: T | null,
   field: F,
-  opts?: OptsWithSet<T>
-): Memoed<ObjectOf<Set<TypeToEntity<T>[F]>>>;
+  opts?: OptsWithoutSet<T>
+): Stable<Map<Entity<T>[F], Stable<Entity<T>[]>>>;
+
+function useEntitiesByField<
+  T extends EntityType,
+  F extends keyof Entity<T>,
+  FieldForSet extends keyof Entity<T>,
+>(
+  type: T | null,
+  field: F,
+  opts: OptsWithSet<T, FieldForSet>
+): Stable<Map<Entity<T>[F], Stable<Set<Entity<T>[FieldForSet]>>>>;
 
 function useEntitiesByField<T extends EntityType>(
   type: T | null,

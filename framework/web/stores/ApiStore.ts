@@ -1,16 +1,19 @@
 import { flushSync } from 'react-dom';
+import equal from 'fast-deep-equal';
 
 import useAuthTokenLS from 'hooks/localStorage/useAuthTokenLS';
 import fetcher from 'core/fetcher';
 import ApiError from 'core/ApiError';
 import { API_URL } from 'settings';
-import isErrorResponse from 'hooks/useApi/isErrorResponse';
-import useHandleApiEntities from 'hooks/useApi/useHandleApiEntities';
-import useHandleErrorResponse from 'hooks/useApi/useHandleErrorResponse';
-import extraApiProps from 'hooks/useApi/extraApiProps';
+import isErrorResponse from 'hooks/api/isErrorResponse';
+import useHandleApiEntities from 'hooks/api/useHandleApiEntities';
+import useHandleErrorResponse from 'hooks/api/useHandleErrorResponse';
+import extraApiProps from 'hooks/api/extraApiProps';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 import useDocumentEvent from 'hooks/useDocumentEvent';
 import TimeoutError from 'core/TimeoutError';
+import omit from 'utils/omit';
+import safeParseJson from 'utils/safeParseJson';
 
 const MIN_STALE_DURATION = 60 * 1000;
 const MAX_STALE_DURATION = 3 * 60 * 60 * 1000;
@@ -19,20 +22,38 @@ export type UseApiState<Name extends ApiName> = {
   apiId: string,
   data: ApiData<Name> | null,
   fetching: boolean,
-  error: any,
+  error: Error | null,
   isFirstTime: boolean,
+  addedEntityIds: Stable<EntityId[]>,
+  deletedEntityIds: Stable<Set<EntityId>>,
 };
+
+type Pagination = {
+  initialCursor: string | null,
+  curCursor: string | null,
+  addedEntityIds: Stable<EntityId[]>,
+  deletedEntityIds: Stable<Set<EntityId>>,
+  unsubHandleCreateEntity: (() => void) | null,
+  unsubHandleDeleteEntity: (() => void) | null,
+};
+
+export type ShouldAddCreatedEntity<T extends EntityType>
+  = Stable<(ent: Entity<T>) => boolean> | true;
 
 type ActiveApi<Name extends ApiName> = {
   name: Name,
   params: ApiParams<Name>,
   id: string,
-  cacheKey?: string,
+  pagination: Pagination | null,
+  refetchKey?: string,
   cachedData: ApiData<Name> | null,
+  prevCachedData?: ApiData<Name> | null,
   cachedError: Error | null,
   fetching: boolean,
   lastFetched: number,
   refetchOnFocus: boolean,
+  refetchIfStale: boolean,
+  showToastOnError: boolean,
   subs: {
     state: UseApiState<Name>,
     update: () => void,
@@ -41,8 +62,26 @@ type ActiveApi<Name extends ApiName> = {
   }[],
 };
 
-function _getApiId(name: ApiName, params: ApiParams<ApiName>) {
-  return `${name},${params === EMPTY_OBJ ? '{}' : JSON.stringify(params)}`;
+const ApiState = {
+  activeApis: new Map<string, ActiveApi<any>>(),
+  batchTimer: null as number | null,
+  batchedRequests: [] as {
+    name: ApiName,
+    params: ApiParams<ApiName>,
+    id: string,
+  }[],
+};
+
+function _getApiId(
+  name: ApiName,
+  params: ApiParams<ApiName>,
+  initialCursor?: string,
+) {
+  return [
+    name,
+    params === EMPTY_OBJ ? '{}' : JSON.stringify(params),
+    initialCursor ?? '',
+  ].join(',');
 }
 
 export const [
@@ -50,34 +89,176 @@ export const [
   useApiStore,
 ] = constate(
   function ApiStore() {
-    const ref = useRef({
-      activeApis: Object.create(null) as ObjectOf<ActiveApi<any>>,
-      batchTimer: null as number | null,
-      batchedRequests: [] as {
-        name: ApiName,
-        params: ApiParams<ApiName>,
-        id: string,
-      }[],
-    });
     const [authToken] = useAuthTokenLS();
     const handleErrorResponse = useHandleErrorResponse();
     const catchAsync = useCatchAsync();
     const handleApiEntities = useHandleApiEntities();
+    const { addEntityListener } = useEntitiesStore();
+
+    const handleResponseBatch = useCallback(({
+      api,
+      response,
+      fetchErr,
+      fetchNextBatch,
+    }: {
+      api: ActiveApi<any>,
+      response: StableDeep<ApiResponse<any>> | null,
+      fetchErr?: Error,
+      fetchNextBatch: () => Promise<void>,
+    }) => {
+      if (fetchErr || isErrorResponse(response)) {
+        const status = response?.status;
+        const err = fetchErr ?? getErr(
+          new ApiError(
+            status === 503 || (status && status >= 520)
+              ? 'Server temporarily unavailable.'
+              : 'Unknown error occurred while fetching data.',
+            status,
+          ),
+          {
+            ctx: `ApiStore.handleResponseBatch(${api.name})`,
+            apiName: api.name,
+            status,
+            stack: (response as ApiErrorResponse).error.stack?.join('\n'),
+          },
+        );
+        handleErrorResponse(err, api.showToastOnError);
+
+        if (api.pagination && api.cachedData) {
+          (api.cachedData as PaginatedApiRet).hasCompleted = true;
+        }
+
+        api.cachedError = err;
+        api.fetching = false;
+        for (const sub of api.subs) {
+          if (!api.pagination) {
+            sub.state.data = null;
+          }
+          sub.state.error = err;
+          sub.state.fetching = false;
+          sub.state.isFirstTime = false;
+          sub.onError?.(err);
+          sub.update();
+        }
+      } else {
+        if (api.pagination) {
+          const oldData = api.cachedData as PaginatedApiRet | undefined;
+          if (oldData) {
+            api.pagination.curCursor = oldData.cursor ?? null;
+          }
+
+          const newData = response.data as PaginatedApiRet;
+          if (!process.env.PRODUCTION && new Set(newData.items).size !== newData.items.length) {
+            throw new Error(
+              `ApiStore.handleResponseBatch(${api.name}): duplicate ids: ${newData.items.join(',')}`,
+            );
+          }
+
+          const oldItems = oldData?.items ?? EMPTY_ARR;
+          const oldItemsSet = new Set(oldItems);
+          const newItems = newData.items.filter(item => !oldItemsSet.has(item));
+          if (!process.env.PRODUCTION && newData.items.length - newItems.length > 1) {
+            ErrorLogger.warn(new Error(
+              `"${api.name}" api: ${newData.items.length - newItems.length}/${newData.items.length} are duplicates (cursor: "${api.pagination.curCursor}")`,
+            ));
+          }
+
+          if (!newItems.length
+            && newData.cursor !== oldData?.cursor
+            && !ApiState.batchedRequests.some(b => b.id === api.id)) {
+            // Note: if no new items, scroller won't trigger fetchNextPage
+            ApiState.batchedRequests.push({
+              name: api.name,
+              params: omit(api.params, 'cursor'),
+              id: api.id,
+            });
+
+            if (!ApiState.batchTimer) {
+              ApiState.batchTimer = window.setTimeout(() => {
+                catchAsync(
+                  fetchNextBatch(),
+                  `ApiStore.handleResponseBatch(${api.name})`,
+                );
+              }, 0);
+            }
+          }
+
+          const hasCompleted = newData.hasCompleted
+            || !newData.cursor
+            // Possibly bug refetching an earlier page
+            || !!(oldData?.hasCompleted && !newItems.length)
+            || newData.cursor === oldData?.cursor;
+          if (newItems.length
+            || newData.cursor !== oldData?.cursor
+            || hasCompleted !== oldData?.hasCompleted) {
+            const combinedData: PaginatedApiRet = {
+              items: newItems.length
+                ? [...oldItems, ...newItems]
+                : oldItems,
+              cursor: newData.cursor,
+              hasCompleted,
+            };
+            api.cachedData = combinedData;
+
+            api.pagination.addedEntityIds = markStable(api.pagination.addedEntityIds
+              .filter(id => !newItems.includes(id)));
+          }
+        } else if (api.cachedData && equal(api.cachedData, response.data)) {
+          // pass
+        } else if (equal(api.prevCachedData, response.data)) {
+          api.cachedData = api.prevCachedData;
+        } else {
+          api.cachedData = response.data;
+        }
+
+        api.cachedError = null;
+        api.fetching = false;
+        for (const sub of api.subs) {
+          sub.state.data = api.cachedData;
+          sub.state.error = null;
+          sub.state.fetching = false;
+          sub.state.isFirstTime = false;
+          sub.onFetch?.(api.cachedData);
+          sub.update();
+        }
+      }
+    }, [handleErrorResponse, catchAsync]);
 
     const fetchNextBatch = useCallback(async () => {
-      if (!ref.current.batchedRequests.length) {
+      if (!ApiState.batchedRequests.length) {
         return;
       }
-      ref.current.batchTimer = null;
-      const curBatch = [...ref.current.batchedRequests];
-      ref.current.batchedRequests = [];
-      for (const [idx, b] of curBatch.entries()) {
-        const api = ref.current.activeApis[b.id];
+
+      ApiState.batchTimer = null;
+      const curBatch = [...ApiState.batchedRequests];
+      ApiState.batchedRequests = [];
+      for (let i = 0; i < curBatch.length; i++) {
+        const api = ApiState.activeApis.get(curBatch[i].id);
         if (api && !api.fetching) {
           api.fetching = true;
           api.lastFetched = performance.now();
+
+          const cachedData = api.cachedData as PaginatedApiRet | undefined;
+          const cursor = (
+            cachedData?.hasCompleted && !api.cachedError
+              ? api.pagination?.curCursor
+              : cachedData?.cursor
+          ) ?? api.pagination?.initialCursor;
+          if (cursor) {
+            if (!process.env.PRODUCTION && TS.hasProp(curBatch[i].params, 'cursor')) {
+              throw new Error(
+                'ApiStore.fetchNextBatch: existing cursor in params',
+              );
+            }
+
+            curBatch[i].params = {
+              ...curBatch[i].params,
+              // @ts-ignore low-pri
+              cursor,
+            };
+          }
         } else {
-          curBatch.splice(idx, 1);
+          curBatch.splice(i, 1);
         }
       }
       if (!curBatch.length) {
@@ -85,7 +266,7 @@ export const [
       }
 
       for (const b of curBatch) {
-        const api = TS.defined(ref.current.activeApis[b.id]);
+        const api = TS.defined(ApiState.activeApis.get(b.id));
         for (const sub of api.subs) {
           if (!sub.state.fetching) {
             sub.state.fetching = true;
@@ -94,184 +275,181 @@ export const [
         }
       }
 
-      const { name, params } = curBatch[0];
-      let fullResponse: MemoDeep<ApiResponse<any>>;
-      let successResponse: MemoDeep<ApiSuccessResponse<any>>;
-      let status: number;
-      const isBatched = curBatch.length > 1;
+      const remainingBatchIdx = new Set(curBatch.map((_, idx) => idx));
+      let fetchErr: Error | undefined;
       try {
-        const { data: _fullResponse, status: _status } = isBatched
-          ? await fetcher.get(
-            `${API_URL}/api/batched`,
-            {
-              params: process.env.PRODUCTION
-                ? JSON.stringify({
-                  apis: curBatch.map(b => ({
-                    name: b.name,
-                    params: b.params,
-                  })),
-                })
-                : `{"apis":[{
+        const { stream, status } = await fetcher.getStream(
+          `${API_URL}/api/stream`,
+          {
+            apis: process.env.PRODUCTION
+              ? JSON.stringify(curBatch.map(b => ({
+                name: b.name,
+                params: b.params,
+              })))
+              : `[{
 ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
-  "params": ${JSON.stringify(b.params)}`).join('\n},{\n')}
-}]}`,
-              ...extraApiProps,
-            },
-            {
-              authToken,
-              priority: 'high',
-            },
-          )
-          : await fetcher.get(
-            `${API_URL}/api/${name}`,
-            {
-              params: JSON.stringify(params),
-              ...extraApiProps,
-            },
-            {
-              authToken,
-              priority: 'high',
-            },
-          );
-        fullResponse = _fullResponse as MemoDeep<ApiResponse<any>>;
-        status = _status;
+"params": ${JSON.stringify(b.params)}`).join('\n},{\n')}
+}]`,
+            ...extraApiProps,
+          },
+          {
+            authToken,
+            priority: 'high',
+          },
+        );
 
-        if (isErrorResponse(fullResponse)) {
-          if (!process.env.PRODUCTION && fullResponse.error.stack) {
-            // eslint-disable-next-line no-console
-            console.error(fullResponse.error.stack.join('\n'));
-          }
-
+        if (!stream) {
           throw getErr(
             new ApiError(
-              fullResponse.error.msg
-                || (status === 503 || status >= 520
-                  ? 'Server temporarily unavailable.'
-                  : 'Unknown error occurred while fetching data.'),
-              fullResponse.status ?? status,
+              status === 503 || status >= 520
+                ? 'Server temporarily unavailable.'
+                : 'Unknown error occurred while fetching data.',
+              status,
             ),
             {
-              ...fullResponse.error.debugCtx,
               ctx: 'ApiStore.fetchNextBatch',
-              apiName: isBatched ? 'batched' : name,
-              batchedNames: isBatched ? curBatch.map(v => v.name).join(',') : undefined,
-              status: fullResponse.status ?? status,
-              ...(fullResponse.error.stack && { stack: fullResponse.error.stack }),
+              batchedApis: curBatch.map(v => v.name).join(','),
+              status,
             },
           );
-        } else {
-          successResponse = fullResponse;
         }
 
-        if (isBatched && successResponse.data.results.length !== curBatch.length) {
-          const err = new Error('ApiStore.fetchNextBatch: response has wrong length.');
-          ErrorLogger.error(err);
-          throw err;
-        }
-      } catch (_err) {
-        const err = _err instanceof ApiError || _err instanceof TimeoutError
-          ? _err
-          : getErr(
-            'ApiStore.fetchNextBatch: unknown API error occurred.',
-            {
-              apiName: isBatched ? 'batched' : name,
-              batchedNames: isBatched ? curBatch.map(v => v.name).join(',') : undefined,
-              err: _err,
-            },
-          );
-
-        handleErrorResponse(err);
-
-        for (const b of curBatch) {
-          const api = ref.current.activeApis[b.id];
-          if (api) {
-            api.cachedData = null;
-            api.cachedError = err;
-            api.fetching = false;
-            for (const sub of api.subs) {
-              sub.state.data = null;
-              sub.state.error = err;
-              sub.state.fetching = false;
-              sub.state.isFirstTime = false;
-              sub.onError?.(err);
-              sub.update();
-            }
+        let fullResponse = '';
+        let prevDelimiterIdx = 0;
+        const decoder = new TextDecoder();
+        while (true) {
+          // eslint-disable-next-line no-await-in-loop
+          const { value, done } = await stream.read();
+          if (done) {
+            break;
           }
-        }
-        return;
-      }
 
-      // Flush setState in onFetch together with useSyncExternalStore in useEntity
-      flushSync(() => {
-        handleApiEntities(successResponse);
+          fullResponse += decoder.decode(value, { stream: true });
+          let delimiterIdx = fullResponse.indexOf('\f', prevDelimiterIdx);
+          if (delimiterIdx < 0) {
+            continue;
+          }
 
-        const results: MemoDeep<ApiErrorResponse | Pick<ApiSuccessResponse<any>, 'data'>>[]
-          = deepFreezeIfDev(isBatched
-            ? successResponse.data.results
-            : [successResponse]);
+          const responses: {
+            batchIdx: number,
+            api: ActiveApi<any>,
+            response: StableDeep<ApiResponse<any>> | null,
+            hasHandler: boolean,
+          }[] = [];
+          while (delimiterIdx >= 0) {
+            const json = fullResponse.slice(prevDelimiterIdx, delimiterIdx);
+            const parsed = safeParseJson<{
+              batchIdx: number,
+              result: StableDeep<ApiResponse<ApiName>>
+            }>(
+              json,
+              val => val && typeof val === 'object'
+                && typeof val.batchIdx === 'number'
+                && !!val.result,
+            );
+            if (parsed) {
+              const { batchIdx, result: response } = parsed;
+              const batch = curBatch[batchIdx];
+              const api = ApiState.activeApis.get(batch.id) as ActiveApi<any>;
 
-        for (const [idx, result] of results.entries()) {
-          const curApi = curBatch[idx];
-          const api = ref.current.activeApis[curApi.id];
-          if (isErrorResponse(result)) {
-            if (!process.env.PRODUCTION && result?.error.stack) {
-              // eslint-disable-next-line no-console
-              console.error(result.error.stack.join('\n'));
+              responses.push({
+                batchIdx,
+                api,
+                response,
+                hasHandler: api.subs.some(sub => !!sub.onFetch || !!sub.onError),
+              });
+            } else if (!process.env.PRODUCTION) {
+              throw getErr('ApiStore.fetchNextBatch: invalid json', {
+                json: json.length > 200
+                  ? `${json.slice(0, 100)}...${json.slice(-100)}`
+                  : json,
+              });
             }
 
-            const resultStatus = result.status ?? status;
-            const err = getErr(
-              new ApiError(
-                resultStatus === 503 || resultStatus >= 520
-                  ? 'Server temporarily unavailable.'
-                  : 'Unknown error occurred while fetching data.',
-                resultStatus,
-              ),
-              {
-                ctx: 'ApiStore.fetchNextBatch',
-                apiName: isBatched ? `batched(${curApi.name})` : name,
-                status: fullResponse.status ?? status,
-              },
-            );
-            handleErrorResponse(err);
+            prevDelimiterIdx = delimiterIdx + 1;
+            delimiterIdx = fullResponse.indexOf('\f', prevDelimiterIdx);
+          }
 
-            if (api) {
-              api.cachedData = null;
-              api.cachedError = err;
-              api.fetching = false;
-              for (const sub of api.subs) {
-                sub.state.data = null;
-                sub.state.error = err;
-                sub.state.fetching = false;
-                sub.state.isFirstTime = false;
-                sub.onError?.(err);
-                sub.update();
+          flushSync(() => {
+            for (const { batchIdx, response } of responses) {
+              remainingBatchIdx.delete(batchIdx);
+              if (response && !isErrorResponse(response)) {
+                handleApiEntities(response);
               }
             }
-          } else if (api) {
-            api.cachedData = result.data;
-            api.cachedError = null;
-            api.fetching = false;
-            for (const sub of api.subs) {
-              sub.state.data = result.data;
-              sub.state.error = null;
-              sub.state.fetching = false;
-              sub.state.isFirstTime = false;
-              sub.onFetch?.(result.data);
-              sub.update();
+
+            for (const { api, response, hasHandler } of responses) {
+              if (!hasHandler) {
+                handleResponseBatch({
+                  api,
+                  response,
+                  fetchNextBatch,
+                });
+              }
             }
-          }
+          });
+
+          // Flush setState in onFetch together with useSyncExternalStore in useEntity
+          flushSync(() => {
+            for (const { api, response, hasHandler } of responses) {
+              if (hasHandler) {
+                handleResponseBatch({
+                  api,
+                  response,
+                  fetchNextBatch,
+                });
+              }
+            }
+          });
         }
-      });
-    }, [authToken, handleApiEntities, handleErrorResponse]);
+      } catch (err) {
+        // todo: mid/mid retry fetching on error
+        fetchErr = err instanceof ApiError || err instanceof TimeoutError
+          ? err
+          : getErr(
+            'Unknown API error occurred.',
+            {
+              ctx: 'ApiStore.fetchNextBatch',
+              batchedApis: curBatch.map(b => b.name).join(','),
+              err,
+            },
+          );
+      }
+
+      if (remainingBatchIdx.size) {
+        fetchErr ??= getErr(
+          'Unknown API error occurred.',
+          {
+            ctx: 'ApiStore.fetchNextBatch',
+            batchedApis: [...remainingBatchIdx]
+              .map(idx => curBatch[idx].name).join(','),
+          },
+        );
+
+        flushSync(() => {
+          for (const batchIdx of remainingBatchIdx) {
+            const batch = curBatch[batchIdx];
+            handleResponseBatch({
+              api: ApiState.activeApis.get(batch.id) as ActiveApi<any>,
+              response: null,
+              fetchErr,
+              fetchNextBatch,
+            });
+          }
+        });
+      }
+    }, [authToken, handleApiEntities, handleResponseBatch]);
 
     const clearCache = useCallback((apiIdOrName: string, params?: any) => {
       const apiId = params ? _getApiId(apiIdOrName as ApiName, params) : apiIdOrName;
-      const api = ref.current.activeApis[apiId];
+      const api = ApiState.activeApis.get(apiId);
       if (!api) {
         return;
       }
 
+      if (api.cachedData) {
+        api.prevCachedData = api.cachedData;
+      }
       api.cachedData = null;
       api.cachedError = null;
     }, []);
@@ -282,17 +460,22 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
       _apiId?: string,
     ) => {
       const apiId = _apiId ?? _getApiId(name, params);
-      if (!ref.current.batchedRequests.some(b => b.id === apiId)) {
-        ref.current.batchedRequests.push({
-          name,
-          params,
-          id: apiId,
-        });
+      if (ApiState.batchedRequests.some(b => b.id === apiId)) {
+        return;
       }
 
-      if (!ref.current.batchTimer) {
-        ref.current.batchTimer = window.setTimeout(() => {
-          catchAsync(fetchNextBatch(), 'ApiStore.fetchNextBatch');
+      ApiState.batchedRequests.push({
+        name,
+        params,
+        id: apiId,
+      });
+
+      if (!ApiState.batchTimer) {
+        ApiState.batchTimer = window.setTimeout(() => {
+          catchAsync(
+            fetchNextBatch(),
+            'ApiStore.fetchNextBatch',
+          );
         }, 0);
       }
     }, [catchAsync, fetchNextBatch]);
@@ -307,86 +490,153 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
       queueBatchedRequest(name, params, apiId);
     }, [clearCache, queueBatchedRequest]);
 
-    const getApiState = useCallback(<Name extends ApiName>(
+    const fetchNextPage = useCallback(<Name extends ApiName>(
       name: Name,
       params: ApiParams<Name>,
-      shouldFetch: boolean,
+      initialCursor?: string,
     ) => {
-      const apiId = _getApiId(name, params);
-      const api = ref.current.activeApis[apiId];
-      const hasValidApi = api && api.lastFetched + MIN_STALE_DURATION > performance.now();
+      const apiId = _getApiId(name, params, initialCursor);
+      const api = ApiState.activeApis.get(apiId);
+      if (api && !api.pagination) {
+        throw new Error(`ApiStore.fetchNextPage(${name}): API not paginated`);
+      }
+      queueBatchedRequest(name, params, apiId);
+    }, [queueBatchedRequest]);
+
+    const getApiState = useCallback(<Name extends ApiName>({
+      name,
+      params,
+      initialCursor,
+      refetchKey,
+      shouldFetch,
+    }: {
+      name: Name,
+      params: ApiParams<Name>,
+      initialCursor?: string,
+      refetchKey?: string,
+      shouldFetch?: boolean,
+    }): UseApiState<Name> => {
+      const apiId = _getApiId(name, params, initialCursor);
+      const api = ApiState.activeApis.get(apiId);
+      const hasValidApi = api
+        && (!refetchKey || refetchKey === api.refetchKey)
+        && api.lastFetched + MIN_STALE_DURATION > performance.now();
       return {
         apiId,
         data: hasValidApi
           ? api.cachedData as ApiData<Name>
           : null,
-        fetching: api?.fetching || shouldFetch,
+        fetching: api?.fetching
+          || (!!shouldFetch && (!hasValidApi || !api.cachedData)),
         error: hasValidApi
           ? api.cachedError
           : null,
         isFirstTime: !hasValidApi || (!api.cachedData && !api.cachedError),
+        addedEntityIds: api?.pagination?.addedEntityIds ?? EMPTY_ARR,
+        deletedEntityIds: api?.pagination?.deletedEntityIds ?? markStable(new Set()),
       };
     }, []);
 
     const subscribeApiHandlers = useCallback(<Name extends ApiName>({
       name,
       params,
-      key,
+      isPaginated,
+      refetchKey,
       state,
-      update: update2,
+      update: updateSub,
       onFetch,
       onError,
-      refetchOnFocus,
+      initialCursor,
+      shouldAddCreatedEntity,
+      shouldRemoveDeletedEntity = true,
+      paginationEntityType,
+      addEntitiesToEnd,
+      refetchOnFocus = true,
+      refetchIfStale = true,
+      showToastOnError = true,
     }: {
       name: Name,
       params: ApiParams<Name>,
-      key?: string,
+      isPaginated?: boolean,
+      refetchKey?: string,
       state: UseApiState<Name>,
       update: () => void,
       onFetch?: (results: ApiData<Name>) => void,
       onError?: (err: Error) => void,
+      initialCursor?: string,
+      shouldAddCreatedEntity?: ShouldAddCreatedEntity<EntityType>,
+      shouldRemoveDeletedEntity?: boolean,
+      paginationEntityType?: EntityType,
+      addEntitiesToEnd?: boolean,
       refetchOnFocus?: boolean,
+      refetchIfStale?: boolean,
+      showToastOnError?: boolean,
     }): () => void => {
-      const apiId = _getApiId(name, params);
-      const api = TS.objValOrSetDefault(ref.current.activeApis, apiId, {
-        name,
-        params,
-        id: apiId,
-        cacheKey: key,
-        cachedData: null,
-        cachedError: null,
-        fetching: false,
-        lastFetched: Number.MIN_SAFE_INTEGER,
-        subs: [],
-        refetchOnFocus: true,
-      });
-      if (refetchOnFocus) {
-        api.refetchOnFocus = true;
+      const apiId = _getApiId(name, params, initialCursor);
+      if (!ApiState.activeApis.has(apiId)) {
+        ApiState.activeApis.set(apiId, {
+          name,
+          params,
+          id: apiId,
+          pagination: isPaginated
+            ? {
+              initialCursor: initialCursor ?? null,
+              curCursor: null,
+              addedEntityIds: EMPTY_ARR,
+              deletedEntityIds: markStable(new Set<ApiEntityId>()),
+              unsubHandleCreateEntity: null,
+              unsubHandleDeleteEntity: null,
+            }
+            : null,
+          refetchKey,
+          cachedData: null,
+          cachedError: null,
+          fetching: false,
+          lastFetched: Number.MIN_SAFE_INTEGER,
+          subs: [],
+          refetchOnFocus,
+          refetchIfStale,
+          showToastOnError,
+        });
+      }
+      const api = ApiState.activeApis.get(apiId) as ActiveApi<Name>;
+
+      if (refetchOnFocus !== api.refetchOnFocus) {
+        if (!process.env.PRODUCTION) {
+          throw new Error(`ApiStore.subscribeApiHandlers(${name}): refetchOnFocus changed`);
+        }
+        api.refetchOnFocus = false;
+      }
+      if (refetchIfStale !== api.refetchIfStale) {
+        if (!process.env.PRODUCTION) {
+          throw new Error(`ApiStore.subscribeApiHandlers(${name}): refetchIfStale changed`);
+        }
+        api.refetchIfStale = true;
       }
 
       const sub = {
         state,
-        update: update2,
+        update: updateSub,
         onFetch,
         onError,
       };
       api.subs.push(sub);
 
-      if ((key && key !== api.cacheKey)
-        || api.lastFetched + MIN_STALE_DURATION < performance.now()
-        || (!api.cachedData && !api.cachedError)) {
+      if ((refetchKey && refetchKey !== api.refetchKey)
+        || (api.refetchIfStale && api.lastFetched + MIN_STALE_DURATION < performance.now())
+        || (!api.cachedData && !api.cachedError && !api.fetching)) {
         if (api.lastFetched > Number.MIN_SAFE_INTEGER) {
           clearCache(apiId);
         }
 
-        api.cacheKey = key;
+        api.refetchKey = refetchKey;
         queueBatchedRequest(name, params, apiId);
       } else if (api.cachedError) {
         onError?.(api.cachedError);
         if (state.data || state.error !== api.cachedError) {
           state.data = null;
           state.error = api.cachedError;
-          update2();
+          updateSub();
         }
       } else if (api.cachedData) {
         // Note: onFetch needs to call setState
@@ -394,12 +644,59 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
         if (state.error || state.data !== api.cachedData) {
           state.data = api.cachedData;
           state.error = null;
-          update2();
+          updateSub();
+        }
+      } else if (api.fetching) {
+        state.fetching = true;
+        updateSub();
+      }
+
+      if (isPaginated && paginationEntityType) {
+        const pagination = TS.notNull(api.pagination);
+
+        if (shouldAddCreatedEntity && !pagination.unsubHandleCreateEntity) {
+          // Note: idk how to handle callers with different shouldAddCreatedEntity
+          pagination.unsubHandleCreateEntity = addEntityListener(
+            'create',
+            paginationEntityType,
+            (ent: Entity) => {
+              if ((shouldAddCreatedEntity === true || shouldAddCreatedEntity?.(ent))
+                && !(api.cachedData as PaginatedApiRet | null)?.items.includes(ent.id)
+                && !pagination.addedEntityIds.includes(ent.id)) {
+                pagination.addedEntityIds = addEntitiesToEnd
+                  ? markStable([...pagination.addedEntityIds, ent.id])
+                  : markStable([ent.id, ...pagination.addedEntityIds]);
+
+                for (const sub2 of api.subs) {
+                  sub2.state.addedEntityIds = pagination.addedEntityIds;
+                  sub2.update();
+                }
+              }
+            },
+          );
+        }
+
+        if (shouldRemoveDeletedEntity && !pagination.unsubHandleDeleteEntity) {
+          pagination.unsubHandleDeleteEntity = addEntityListener(
+            'delete',
+            paginationEntityType,
+            (ent: Entity) => {
+              if (!pagination.deletedEntityIds.has(ent.id)) {
+                pagination.deletedEntityIds = markStable(new Set(pagination.deletedEntityIds));
+                pagination.deletedEntityIds.add(ent.id);
+
+                for (const sub2 of api.subs) {
+                  sub2.state.deletedEntityIds = pagination.deletedEntityIds;
+                  sub2.update();
+                }
+              }
+            },
+          );
         }
       }
 
       return () => {
-        const api2 = ref.current.activeApis[apiId];
+        const api2 = ApiState.activeApis.get(apiId);
         if (api2) {
           const idx = api2.subs.indexOf(sub);
           if (idx >= 0) {
@@ -407,35 +704,76 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
           }
         }
       };
-    }, [clearCache, queueBatchedRequest]);
+    }, [clearCache, queueBatchedRequest, addEntityListener]);
+
+    const subscribeApiState = useCallback(<Name extends ApiName>({
+      name,
+      params,
+      initialCursor,
+      state,
+      update,
+    }: {
+      name: Name,
+      params: ApiParams<Name>,
+      initialCursor?: string,
+      state: UseApiState<Name>,
+      update: () => void,
+    }) => {
+      const apiId = _getApiId(name, params, initialCursor);
+      const api = ApiState.activeApis.get(apiId);
+      const sub = {
+        state,
+        update,
+      };
+      api?.subs.push(sub);
+
+      return () => {
+        const api2 = ApiState.activeApis.get(apiId);
+        if (api2) {
+          const idx = api2.subs.indexOf(sub);
+          if (idx >= 0) {
+            api2.subs.splice(idx, 1);
+          }
+        }
+      };
+    }, []);
 
     const mutateApiCache = useCallback(<Name extends ApiName>(name: Name) => (
       data: ApiNameToData[Name],
       params: ApiParams<Name>,
     ) => {
       const apiId = _getApiId(name, params);
-      const api = ref.current.activeApis[apiId];
+      const api = ApiState.activeApis.get(apiId);
       if (api) {
-        api.cachedData = deepFreezeIfDev(data);
+        if (api.cachedData && equal(api.cachedData, data)) {
+          // pass
+        } else if (equal(api.prevCachedData, data)) {
+          api.cachedData = api.prevCachedData;
+        } else {
+          api.cachedData = deepFreezeIfDev(data);
+        }
         api.cachedError = null;
         api.lastFetched = performance.now();
         for (const sub of api.subs) {
-          sub.state.data = data;
+          sub.state.data = api.cachedData;
           sub.state.error = null;
           sub.state.isFirstTime = false;
           sub.update();
         }
       } else if (!process.env.PRODUCTION) {
-        ErrorLogger.warn(new Error(`ApiStore.mutateApiCache(${name}): attempted to mutate inactive API`));
+        ErrorLogger.warn(new Error(
+          `ApiStore.mutateApiCache(${name}): attempted to mutate inactive API`,
+        ));
       }
     }, []);
 
     useEffect(() => {
       const clearCacheTimer = window.setInterval(() => {
-        for (const api of TS.objValues(ref.current.activeApis)) {
-          if (!api.subs.length) {
+        for (const api of ApiState.activeApis.values()) {
+          if (!api.refetchIfStale || !api.subs.length) {
             continue;
           }
+
           if (api.lastFetched + MAX_STALE_DURATION < performance.now()) {
             refetch(api.name, api.params, api.id);
           } else if (api.lastFetched + MIN_STALE_DURATION < performance.now()) {
@@ -454,7 +792,7 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
         return;
       }
 
-      for (const api of TS.objValues(ref.current.activeApis)) {
+      for (const api of ApiState.activeApis.values()) {
         if (!api.refetchOnFocus || !api.subs.length) {
           continue;
         }
@@ -468,14 +806,18 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
     return useMemo(() => ({
       clearCache,
       refetch,
+      fetchNextPage,
       getApiState,
       subscribeApiHandlers,
+      subscribeApiState,
       mutateApiCache,
     }), [
       clearCache,
       refetch,
+      fetchNextPage,
       getApiState,
       subscribeApiHandlers,
+      subscribeApiState,
       mutateApiCache,
     ]);
   },

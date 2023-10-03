@@ -8,16 +8,6 @@ interface IMzTestMV extends IBaseModel {
   version: number;
 }
 
-interface INotif extends IBaseModel {
-  id: number;
-  notifType: string;
-  userId: number;
-  groupingId: number;
-  time: Date;
-  params: JsonObj;
-  hasRead: boolean;
-}
-
 interface IUser extends IBaseModel {
   id: number;
   email: string;
@@ -52,7 +42,14 @@ interface IUserMeta extends IBaseModel {
 type ModelType =
   | 'mzTest'
   | 'mzTestMV'
-  | 'notif'
+  | 'user'
+  | 'userAuth'
+  | 'userDevice'
+  | 'userMeta';
+
+type RRModelType =
+  | 'mzTest'
+  | 'mzTestMV'
   | 'user'
   | 'userAuth'
   | 'userDevice'
@@ -61,7 +58,6 @@ type ModelType =
 type ModelInterfacesMap = {
   mzTest: IMzTest,
   mzTestMV: IMzTestMV,
-  notif: INotif,
   user: IUser,
   userAuth: IUserAuth,
   userDevice: IUserDevice,
@@ -73,38 +69,32 @@ type ModelRelationsMap = {
   },
   mzTestMV: {
   },
-  notif: {
-  },
   user: {
     userMeta: {
       modelType: 'userMeta',
-      tsType: UserMeta[],
+      tsType: IUserMeta[],
     },
     userAuth: {
       modelType: 'userAuth',
-      tsType: UserAuth | null,
-    },
-    notifs: {
-      modelType: 'notif',
-      tsType: Notif[],
+      tsType: IUserAuth | null,
     },
   },
   userAuth: {
     user: {
       modelType: 'user',
-      tsType: User,
+      tsType: IUser,
     },
   },
   userDevice: {
     user: {
       modelType: 'user',
-      tsType: User,
+      tsType: IUser,
     },
   },
   userMeta: {
     user: {
       modelType: 'user',
-      tsType: User,
+      tsType: IUser,
     },
   },
 };

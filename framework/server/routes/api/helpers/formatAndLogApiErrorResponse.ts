@@ -5,10 +5,7 @@ import ucFirst from 'utils/ucFirst';
 import { PG_BT_PORT, MZ_PORT, PG_RR_PORT } from 'consts/infra';
 
 function _shouldLogErr(err: Error): boolean {
-  if (err instanceof UserFacingError && err.status === 469) {
-    return false;
-  }
-  return true;
+  return !(err instanceof UserFacingError) || err.status !== 469;
 }
 
 function _getErrDetails(err: Error): { status: number; msg: string; } {

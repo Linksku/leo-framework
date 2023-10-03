@@ -6,7 +6,7 @@ import rand from 'utils/rand';
 import randInt from 'utils/randInt';
 import { defineCronJob } from 'services/cron/CronManager';
 import PubSubManager from 'services/PubSubManager';
-import { NUM_CLUSTER_SERVERS } from 'serverSettings';
+import { IS_PROFILING_API, NUM_CLUSTER_SERVERS } from 'serverSettings';
 import { HEALTHCHECK } from 'consts/coreRedisNamespaces';
 import getServerId from 'utils/getServerId';
 import { redisMaster } from 'services/redis';
@@ -35,11 +35,35 @@ export type HealthcheckName =
   | 'redis'
   | 'bullCron';
 
+export const MZ_DBZ_HEALTHCHECKS: HealthcheckName[] = [
+  'replicationSlots',
+  'dbzConnectors',
+  'dbzConnectorTopics',
+];
+
+export const MZ_HEALTHCHECKS: HealthcheckName[] = [
+  'mzSources',
+  'mzSourceRows',
+  'mzViews',
+  'mzSinks',
+  'mzSinkPrometheus',
+];
+
+export const MZ_DOWNSTREAM_HEALTHCHECKS: HealthcheckName[] = [
+  'mzSinkTopics',
+  'mzSinkTopicMessages',
+  'mzSinkConnectors',
+  'rrMVs',
+  'mzUpdating',
+];
+
 // todo: high/mid monitor error logs
 
 type HealthcheckConfig = {
+  disabled?: boolean,
   deps?: HealthcheckName[],
   cb: () => Promise<void>,
+  onlyForDebug?: boolean,
   runOnAllServers?: boolean,
   resourceUsage: 'high' | 'mid' | 'low',
   stability: 'high' | 'mid' | 'low',
@@ -58,7 +82,7 @@ export type RedisServerStatus = {
   time: string,
 };
 
-const START_FAILING = process.env.PRODUCTION;
+const START_FAILING = process.env.PRODUCTION && process.env.SERVER === 'production';
 export const SERVER_STATUS_MAX_STALENESS = 60 * 1000;
 
 const healthchecks = Object.create(null) as Record<HealthcheckName, HealthcheckConfig>;
@@ -97,8 +121,19 @@ function _getDuration(name: HealthcheckName, passing: boolean) {
   return config.timeout + Math.max(interval, 1000);
 }
 
+function _isStale(name: HealthcheckName) {
+  if (!lastRunTime[name]) {
+    return true;
+  }
+  return performance.now() - lastRunTime[name]
+    >= Math.max(5 * 60 * 1000, _getDuration(name, true) * 2);
+}
+
 // todo: low/easy maybe change fail count to fail duration
 export function getMinFails(name: HealthcheckName) {
+  if (!healthchecks[name]) {
+    return Number.POSITIVE_INFINITY;
+  }
   return Math.max(2, Math.ceil(2 * 60 * 1000 / _getDuration(name, true)));
 }
 
@@ -115,6 +150,7 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
     );
     skipped[name] = true;
   } else {
+    skipped[name] = false;
     try {
       await promiseTimeout(
         config.cb(),
@@ -122,9 +158,12 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
         new Error(`Healthcheck: ${name} timed out`),
       );
 
-      if (numFails[name] >= getMinFails(name)) {
+      const prevNumFails = numFails[name];
+      numFails[name] = 0;
+      lastErr[name] = null;
+      if (prevNumFails >= getMinFails(name)) {
         const numUnhealthy = TS.objEntries(numFails).filter(
-          pair => pair[0] !== name && pair[1] >= getMinFails(pair[0]),
+          pair => pair[1] >= getMinFails(pair[0]),
         ).length;
         printDebug(
           `Healthcheck ${name} healthy (${numUnhealthy} unhealthy)`,
@@ -132,7 +171,6 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
           { prod: 'always' },
         );
       }
-      numFails[name] = 0;
     } catch (err) {
       if (!process.env.PRODUCTION && performance.now() - startTime > config.timeout * 2) {
         // Process was likely paused
@@ -160,7 +198,11 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
 
   const interval = _getDuration(name, numFails[name] < getMinFails(name)) - config.timeout;
   setTimeout(
-    () => wrapPromise(_runHealthcheckAllServers(name), 'error', `HealthcheckManager._runHealthcheckAllServers(${name})`),
+    () => wrapPromise(
+      _runHealthcheckAllServers(name),
+      'error',
+      `HealthcheckManager._runHealthcheckAllServers(${name})`,
+    ),
     Math.round(rand(interval * 0.9, interval * 1.1)),
   );
 }
@@ -178,6 +220,7 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
     );
     skipped[name] = true;
   } else {
+    skipped[name] = false;
     try {
       await promiseTimeout(
         config.cb(),
@@ -185,8 +228,10 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
         new Error(`Healthcheck: ${name} timed out`),
       );
 
-      if (numFails[name] >= getMinFails(name)) {
-        numFails[name] = 0;
+      const prevNumFails = numFails[name];
+      numFails[name] = 0;
+      lastErr[name] = null;
+      if (prevNumFails >= getMinFails(name)) {
         const numUnhealthy = TS.objEntries(numFails).filter(
           pair => pair[1] >= getMinFails(pair[0]),
         ).length;
@@ -203,7 +248,6 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
         });
       }
 
-      numFails[name] = 0;
       PubSubManager.publish(
         `HealthcheckManager.${name}.numFails`,
         '0',
@@ -257,21 +301,37 @@ export function addHealthcheck(name: HealthcheckName, config: HealthcheckConfig)
   }
 
   healthchecks[name] = config;
-  numFails[name] = START_FAILING ? getMinFails(name) : 0;
-  skipped[name] = false;
-  lastRunTime[name] = 0;
-  lastErr[name] = START_FAILING ? new Error(`HealthcheckManager.addHealthcheck: ${name} hasn't run yet`) : null;
+  if (!config.disabled && !config.onlyForDebug) {
+    numFails[name] = START_FAILING ? getMinFails(name) : 0;
+    skipped[name] = false;
+    lastRunTime[name] = 0;
+    lastErr[name] = START_FAILING
+      ? new Error(`HealthcheckManager.addHealthcheck: ${name} hasn't run yet`)
+      : null;
+  }
 }
 
 export function startHealthchecks() {
   hasStarted = true;
 
+  if (IS_PROFILING_API) {
+    return;
+  }
+
   for (const [name, config] of TS.objEntries(healthchecks)) {
+    if (config.disabled || config.onlyForDebug) {
+      continue;
+    }
+
     if (config.runOnAllServers) {
       setTimeout(() => {
         ServiceContextLocalStorage.run(
           createServiceContext(`HealthcheckManager:${name}`),
-          () => wrapPromise(_runHealthcheckAllServers(name), 'error', `HealthcheckManager._runHealthcheckAllServers(${name})`),
+          () => wrapPromise(
+            _runHealthcheckAllServers(name),
+            'error',
+            `HealthcheckManager._runHealthcheckAllServers(${name})`,
+          ),
         );
       }, randInt(0, 60 * 1000));
     } else {
@@ -308,11 +368,6 @@ export function startHealthchecks() {
 
   setInterval(() => {
     if (!Object.values(lastRunTime).every(Boolean)) {
-      wrapPromise(
-        redisMaster.unlink(`${HEALTHCHECK}:status`),
-        'warn',
-        'HealthcheckManager: redis.unlink',
-      );
       return;
     }
 
@@ -322,8 +377,7 @@ export function startHealthchecks() {
           name: pair[0],
           numFails: pair[1],
           skipped: skipped[pair[0]],
-          isStale: performance.now() - (lastRunTime[pair[0]] ?? 0)
-            >= _getDuration(pair[0], true) * 2,
+          isStale: _isStale(pair[0]),
           lastErr: lastErr[pair[0]] ? formatError(lastErr[pair[0]]) : null,
         }))
         .filter(status => status.numFails || status.isStale),
@@ -363,28 +417,40 @@ async function _updateLocked() {
 // eslint-disable-next-line unicorn/prefer-top-level-await
 wrapPromise(_updateLocked(), 'fatal', 'HealthcheckManager._updateLocked');
 
-export function isHealthy(): boolean {
+export function isHealthy(allowMzFailures?: boolean): boolean {
   if (!hasStarted) {
     throw new Error('HealthcheckManager.isHealthy: haven\'t started');
   }
-  if (isLocked) {
+  if (isLocked && !allowMzFailures) {
     return false;
   }
+
   const failingHealthchecks = TS.objEntries(numFails)
-    .filter(
-      pair => pair[1] >= getMinFails(pair[0])
-        || performance.now() - (lastRunTime[pair[0]] ?? 0) >= _getDuration(pair[0], true) * 2,
-    );
-  const notSkippedFailing = failingHealthchecks.filter(pair => !skipped[pair[0]]);
-  const onlyFailingHealthcheck = notSkippedFailing[0];
-  if (notSkippedFailing.length === 1
-    && ['mzSinkPrometheus', 'mzSinkTopicMessages'].includes(onlyFailingHealthcheck[0])
-    && performance.now() - (lastRunTime[onlyFailingHealthcheck[0]] ?? 0)
-      < _getDuration(onlyFailingHealthcheck[0], true) * 2
-    && onlyFailingHealthcheck[1] < getMinFails(onlyFailingHealthcheck[0]) * 3) {
+    .filter(pair => pair[1] >= getMinFails(pair[0]) || (lastRunTime[pair[0]] && _isStale(pair[0])));
+  if (!failingHealthchecks.length) {
     return true;
   }
-  return !failingHealthchecks.length;
+
+  const notSkippedFailing = failingHealthchecks.filter(pair => !skipped[pair[0]]);
+  if (notSkippedFailing.length === 1) {
+    const onlyFailingHealthcheck = notSkippedFailing[0];
+    // Too unstable
+    if (['mzSinkPrometheus', 'mzSinkTopicMessages'].includes(onlyFailingHealthcheck[0])
+      && !_isStale(onlyFailingHealthcheck[0])
+      && onlyFailingHealthcheck[1] < getMinFails(onlyFailingHealthcheck[0]) * 3) {
+      return true;
+    }
+  }
+
+  if (allowMzFailures && failingHealthchecks.every(
+    pair => MZ_DBZ_HEALTHCHECKS.includes(pair[0])
+      || MZ_HEALTHCHECKS.includes(pair[0])
+      || MZ_DOWNSTREAM_HEALTHCHECKS.includes(pair[0]),
+  )) {
+    return true;
+  }
+
+  return false;
 }
 
 export function getFailingHealthchecks() {
@@ -392,10 +458,7 @@ export function getFailingHealthchecks() {
     throw new Error('HealthcheckManager.getFailingHealthchecks: haven\'t started');
   }
   return TS.objEntries(numFails)
-    .filter(
-      pair => pair[1] >= getMinFails(pair[0])
-        || performance.now() - (lastRunTime[pair[0]] ?? 0) >= _getDuration(pair[0], true) * 2,
-    )
+    .filter(pair => pair[1] >= getMinFails(pair[0]) || _isStale(pair[0]))
     .map(pair => pair[0]);
 }
 

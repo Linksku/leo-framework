@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 
 import webGlobals from '../../../web/config/globals.cjs';
 import webAppGlobals from '../../../../app/web/config/globals.cjs';

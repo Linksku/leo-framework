@@ -7,7 +7,7 @@ import {
 } from 'consts/mz';
 
 export default async function fetchBTPublications() {
-  const rows = await knexBT('pg_publication')
+  const rows = await knexBT<{ pubname: string }>('pg_publication')
     .select('pubname')
     .where(builder => builder
       .whereIn('pubname', [BT_PUB_UPDATEABLE, BT_PUB_INSERT_ONLY, BT_PUB_ALL_TABLES])

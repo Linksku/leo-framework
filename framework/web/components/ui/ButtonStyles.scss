@@ -3,6 +3,7 @@
   fill: #fff;
   height: 1.8rem;
   width: 1.8rem;
+  transition: fill 0.2s;
 }
 
 .leftSvgWithLabel {
@@ -14,11 +15,13 @@
 }
 
 .btn {
+  @extend %oneLine;
+
   padding: 0.4rem 0.8rem;
   line-height: 2.4rem;
   background-color: $primaryColor;
   color: #fff;
-  border: 1px solid transparent;
+  border: 1px solid $primaryColor;
   margin: 0;
   border-radius: 5px;
   overflow: visible;
@@ -28,10 +31,11 @@
   flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
+  text-align: center;
   font-size: 1.6rem;
   text-decoration: none;
   outline: none;
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, color 0.2s;
 
   p & {
     color: #fff;
@@ -50,11 +54,13 @@
   &.disabled,
   &.disabled:active {
     background-color: #ccc;
-    color: #eee;
+    border-color: transparent;
+    color: #fff;
+    text-shadow: 0 0 1px rgb(0 0 0 / 20%);
 
     .leftSvg,
     .rightSvg {
-      fill: #eee;
+      fill: #fff;
     }
   }
 

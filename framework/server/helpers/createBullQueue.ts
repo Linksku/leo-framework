@@ -5,6 +5,7 @@ import BullQueueContextLocalStorage, { createBullQueueContext } from 'services/B
 import { REDIS_HOST, REDIS_PORT } from 'consts/infra';
 import { BULL } from 'consts/coreRedisNamespaces';
 import { shouldIgnoreRedisError } from 'services/redis';
+import { IS_PROFILING_API } from 'serverSettings';
 
 export function wrapProcessJob<T extends Job<any>>(
   processJob: (job: T) => Promise<void>,
@@ -49,6 +50,10 @@ export default function createBullQueue<T>(name: string, opts?: QueueOptions) {
       { name, jobId: job.id },
     ));
   });
+
+  if (IS_PROFILING_API) {
+    wrapPromise(queue.pause(), 'warn', `createBullQueue(${name}): pause`);
+  }
 
   return queue;
 }

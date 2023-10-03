@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import type { MaterializedViewConfig } from './createMaterializedViewClass';
 import BaseInputMaterializedView from './InputMaterializedView';
 import composeModelConfigs from './helpers/composeModelConfigs';
@@ -17,28 +15,31 @@ export type InputMaterializedViewConfig<
   StaticProps extends ObjectOf<any> = {},
   // eslint-disable-next-line @typescript-eslint/ban-types
   Props extends ObjectOf<any> = {},
-> = SetOptional<MaterializedViewConfig<Type, StaticProps, Props>, 'MVQueryDeps'>
+> = Omit<MaterializedViewConfig<Type, StaticProps, Props>, 'MVQueryDeps'>
+  & {
+    MVQueryDeps: never,
+  }
   & InputMaterializedViewConfigStaticProps;
 
 export function processInputMaterializedViewConfig<
   Config extends InputMaterializedViewConfig<ModelType>,
->(
-  config: Config,
-): Pick<Config, keyof MaterializedViewConfig<any>> & {
-    MVQueryDeps: ModelClass[],
-    getMVQuery: () => QueryBuilder<Model>,
-  } {
-  if (config.BTClass == null) {
+>({
+  BTClass,
+  ...config
+}: Config): Pick<Config, keyof MaterializedViewConfig<any>> & {
+  MVQueryDeps: ModelClass[],
+} {
+  if (BTClass == null) {
     throw new Error(`processInputMaterializedViewConfig(${config.type}): missing BTClass.`);
   }
 
   return {
-    ...omit(config, [
-      'BTClass',
-    ]),
-    MVQueryDeps: (config.MVQueryDeps
-      ? [...config.MVQueryDeps, config.BTClass]
-      : [config.BTClass]),
+    ...config,
+    MVQueryDeps: [BTClass],
+    staticProps: {
+      BTClass,
+      ...config.staticProps,
+    },
   };
 }
 

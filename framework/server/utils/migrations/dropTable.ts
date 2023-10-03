@@ -6,10 +6,14 @@ export default async function dropTable({ isMV, onlyBT, table }: {
   onlyBT?: boolean,
   table: string,
 }) {
-  if (!isMV) {
-    await knexBT.raw('DROP TABLE IF EXISTS ?? CASCADE', [table]);
-  }
-  if (!onlyBT) {
-    await knexRR.raw('DROP TABLE IF EXISTS ?? CASCADE', [table]);
+  try {
+    if (!isMV) {
+      await knexBT.raw('DROP TABLE IF EXISTS ?? CASCADE', [table]);
+    }
+    if (!onlyBT) {
+      await knexRR.raw('DROP TABLE IF EXISTS ?? CASCADE', [table]);
+    }
+  } catch (err) {
+    throw getErr(err, { ctx: 'dropTable', table });
   }
 }

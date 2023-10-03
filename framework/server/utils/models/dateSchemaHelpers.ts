@@ -74,7 +74,7 @@ export function unserializeDateProp(
   key: string,
   val: any,
 ): any {
-  if (val != null && getDateProps(schema).has(key)) {
+  if (val != null && getDateProps(schema).has(key) && val != null) {
     return dayjs(val).toDate();
   }
   return val;
@@ -86,8 +86,10 @@ export function unserializeDateProps(
 ): ObjectOf<any> {
   const dateProps = getDateProps(schema);
   for (const key of dateProps) {
-    const val = obj[key] as Date | Dayjs;
-    obj[key] = dayjs(val).toDate();
+    const val = obj[key] as Nullish<Date | Dayjs>;
+    if (val != null) {
+      obj[key] = dayjs(val).toDate();
+    }
   }
   return obj;
 }

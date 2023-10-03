@@ -35,6 +35,9 @@ export default async function createDBZInsertOnlyConnector() {
       },
     });
 
-    printDebug(`Created DBZ insert-only connector after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+    printDebug(
+      `Created DBZ insert-only connector after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+      'success',
+    );
   }
 }

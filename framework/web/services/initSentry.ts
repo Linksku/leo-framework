@@ -1,14 +1,14 @@
 import {
   init,
+  BrowserTracing,
   configureScope,
   withScope,
   captureException,
 } from '@sentry/browser';
-import { Integrations } from '@sentry/tracing';
 
 init({
   dsn: process.env.SENTRY_DSN_WEB,
-  integrations: [new Integrations.BrowserTracing()],
+  integrations: [new BrowserTracing()],
   tracesSampleRate: 1, // process.env.PRODUCTION ? 0.01 : 1,
 });
 

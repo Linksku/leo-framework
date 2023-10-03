@@ -1,0 +1,44 @@
+diff --git a/node_modules/knex/lib/formatter/wrappingFormatter.js b/node_modules/knex/lib/formatter/wrappingFormatter.js
+index c9fe7ec..6725ddc 100644
+--- a/node_modules/knex/lib/formatter/wrappingFormatter.js
++++ b/node_modules/knex/lib/formatter/wrappingFormatter.js
+@@ -51,6 +51,8 @@ const operators = transform(
+     ['?', '\\?'],
+     ['?|', '\\?|'],
+     ['?&', '\\?&'],
++    'is distinct from',
++    'is not distinct from',
+   ],
+   (result, key) => {
+     if (Array.isArray(key)) {
+diff --git a/node_modules/knex/lib/query/querybuilder.js b/node_modules/knex/lib/query/querybuilder.js
+index 94dfa9f..3d20ce9 100644
+--- a/node_modules/knex/lib/query/querybuilder.js
++++ b/node_modules/knex/lib/query/querybuilder.js
+@@ -749,7 +749,7 @@ class Builder extends EventEmitter {
+   }
+ 
+   // Adds a `order by` clause to the query.
+-  orderBy(column, direction, nulls = '') {
++  orderBy(column, direction, nulls) {
+     if (Array.isArray(column)) {
+       return this._orderByArray(column);
+     }
+diff --git a/node_modules/knex/lib/query/querycompiler.js b/node_modules/knex/lib/query/querycompiler.js
+index ca79dac..3370b24 100644
+--- a/node_modules/knex/lib/query/querycompiler.js
++++ b/node_modules/knex/lib/query/querycompiler.js
+@@ -435,9 +435,12 @@ class QueryCompiler {
+           this.bindingsHolder
+         );
+       } else {
++        const isLateral = join.joinType.endsWith('lateral');
++        const joinType = isLateral ? join.joinType.slice(0, -7) : join.joinType;
+         sql +=
+-          join.joinType +
++          joinType +
+           ' join ' +
++          (isLateral ? 'lateral ' : '') +
+           wrap_(
+             table,
+             undefined,

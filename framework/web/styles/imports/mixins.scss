@@ -47,7 +47,7 @@
 }
 
 @mixin retina {
-  // stylelint-disable-next-line plugin/no-unsupported-browser-features, media-feature-name-no-vendor-prefix
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features, media-feature-name-no-vendor-prefix, media-feature-range-notation
   @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
     @content;
   }

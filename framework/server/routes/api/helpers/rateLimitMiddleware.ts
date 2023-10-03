@@ -9,9 +9,10 @@ const PER_IP_MULTIPLIER = 10;
 
 export default function rateLimitMiddleware(reqsPerMin: number) {
   const POINTS_PER_REQ = PER_IP_MULTIPLIER;
+  // Note: there's a bug where Redis expiration sometimes becomes much higher than 1min
   const rateLimiter = new RateLimiterRedis({
     storeClient: redisClient,
-    keyPrefix: RATE_LIMIT,
+    keyPrefix: `${RATE_LIMIT}:api`,
     points: reqsPerMin * POINTS_PER_REQ,
     duration: 60,
   });
@@ -21,12 +22,12 @@ export default function rateLimitMiddleware(reqsPerMin: number) {
     res: ExpressResponse,
     next: NextFunction,
   ) => {
-    if (!process.env.PRODUCTION && req.query?.PROFILING) {
+    if (!process.env.PRODUCTION && req.query?.LOAD_TESTING) {
       next();
       return;
     }
 
-    const batchedMultiplier = req.path === '/batched' ? 3 : 1;
+    const batchedMultiplier = req.path === '/batched' || req.path === '/stream' ? 3 : 1;
     try {
       await promiseObj({
         perId: rateLimiter.consume(req.ip, POINTS_PER_REQ / PER_IP_MULTIPLIER * batchedMultiplier),

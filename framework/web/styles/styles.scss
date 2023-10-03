@@ -3,12 +3,7 @@
 
 @import './imports/cssVariables';
 @import './imports/keyframes';
-@import './vendors/fonts';
 @import './imports/elements';
-
-:global(.oneLine) {
-  @extend %oneLine;
-}
 
 :global(#react) {
   visibility: visible;

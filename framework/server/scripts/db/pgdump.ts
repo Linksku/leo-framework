@@ -1,7 +1,8 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import fromPairs from 'lodash/fromPairs';
-import trimEnd from 'lodash/trimEnd';
+import fromPairs from 'lodash/fromPairs.js';
+import trimEnd from 'lodash/trimEnd.js';
+import isEqual from 'lodash/isEqual.js';
 
 import EntityModels from 'services/model/allEntityModels';
 import MaterializedViewModels from 'services/model/allMaterializedViewModels';
@@ -20,7 +21,6 @@ import {
   PG_RR_PORT,
   PG_RR_SCHEMA,
 } from 'consts/infra';
-import shallowEqual from 'utils/shallowEqual';
 
 type Tables = ObjectOf<{
   cols: ObjectOf<string>,
@@ -32,13 +32,25 @@ type Tables = ObjectOf<{
   uniqueIndexes: {
     name: string,
     primary: boolean,
-    cols: string[],
+    cols: {
+      name: string,
+      nulls: string,
+    }[],
     expression: string,
   }[],
   normalIndexes: {
     name: string,
-    cols: string[],
+    cols: {
+      name: string,
+      nulls: string,
+    }[],
     expression: string,
+  }[],
+  foreignKeys: {
+    name: string,
+    col: string,
+    expression: string,
+    references: [string, string],
   }[],
 }>;
 
@@ -83,13 +95,14 @@ function parseTables(lines: string[]) {
       if (tables[tableName]) {
         printError(`Duplicate "${tableName}"`);
       }
-      tableCols = {};
+      tableCols = Object.create(null);
       tableLines = [];
       tables[tableName] = {
         cols: tableCols,
         lines: tableLines,
         uniqueIndexes: [],
         normalIndexes: [],
+        foreignKeys: [],
       };
     } else {
       return true;
@@ -99,17 +112,37 @@ function parseTables(lines: string[]) {
 
   // Parse constraints
   lines = lines.filter(line => {
-    const match = line.match(/^\s*ALTER TABLE (?:ONLY )?(?:\w+\.)?"?(\w+)"? ADD CONSTRAINT "?(\w+)"? (\w+) KEY \(([^)]+)\)/);
+    const match = line.match(
+      /^\s*ALTER TABLE (?:ONLY )?(?:\w+\.)?"?(\w+)"? ADD CONSTRAINT "?(\w+)"? (\w+) KEY \(([^)]+)\)\s*(?:REFERENCES (?:"?\w+"?\.)?([^)]+\)))?/,
+    );
     const table = match && tables[match[1]];
     if (table) {
       if (match[3] === 'PRIMARY') {
         table.uniqueIndexes.unshift({
           name: match[2],
           primary: true,
-          cols: match[4].replaceAll(/"/g, '').split(',').map(col => col.trim()),
+          cols: match[4].replaceAll('"', '').split(',')
+            .map(col => col.trim()).map(col => {
+              const idx = col.indexOf(' ');
+              return {
+                name: idx > 0 ? col.slice(0, idx) : col,
+                nulls: idx > 0 ? col.slice(idx + 1) : 'ASC NULLS FIRST',
+              };
+            }),
           expression: match[4],
         });
-      } else if (match[3] !== 'FOREIGN') {
+      } else if (match[3] === 'FOREIGN') {
+        const references = match[5]
+          .replace(')', '')
+          .replaceAll('"', '')
+          .split('(') as [string, string];
+        table.foreignKeys.unshift({
+          name: match[2],
+          col: match[4].replaceAll('"', '').trim(),
+          expression: match[4],
+          references,
+        });
+      } else {
         printError(`Unhandled key "${line}"`);
       }
       return false;
@@ -122,21 +155,35 @@ function parseTables(lines: string[]) {
 
   // Parse indexes
   lines = lines.filter(line => {
-    const match = line.match(/^\s*CREATE (\w+ )?INDEX "?(\w+)"? ON (?:\w+\.)?"?(\w+)"? USING (\w+ \((.+?)\))( WHERE .+)?( NULLS NOT DISTINCT)?;$/);
+    const match = line.match(
+      /^\s*CREATE (\w+ )?INDEX "?(\w+)"? ON (?:\w+\.)?"?(\w+)"? USING (\w+ \((.+?)\))( WHERE .+)?( NULLS NOT DISTINCT)?;$/,
+    );
     const table = match && tables[match[3]];
     if (table) {
-      const cols = match[5].replaceAll(/"/g, '').split(',').map(col => col.trim());
+      const cols = match[5].replaceAll('"', '').split(',').map(col => col.trim());
       if (match[1] === 'UNIQUE ') {
         table.uniqueIndexes.push({
           name: match[2],
           primary: false,
-          cols,
+          cols: cols.map(col => {
+            const idx = col.indexOf(' ');
+            return {
+              name: idx > 0 ? col.slice(0, idx) : col,
+              nulls: idx > 0 ? col.slice(idx + 1) : 'ASC NULLS FIRST',
+            };
+          }),
           expression: match[4],
         });
       } else {
         table.normalIndexes.push({
           name: match[2],
-          cols,
+          cols: cols.map(col => {
+            const idx = col.indexOf(' ');
+            return {
+              name: idx > 0 ? col.slice(0, idx) : col,
+              nulls: idx > 0 ? col.slice(idx + 1) : 'ASC NULLS FIRST',
+            };
+          }),
           expression: match[4],
         });
       }
@@ -226,24 +273,57 @@ function verifyModels(
       if (error) {
         printError(`Column "${tableName}.${col}" ${error}.`);
       }
+
+      if (isBT
+        && col !== 'id'
+        && Model.relations[col]
+        && !table.foreignKeys.some(fk => fk.col === col)) {
+        printError(`Column "${tableName}.${col}" needs a foreign key.`);
+      }
     }
 
-    const allTableIndexesSet = new Set([
-      ...table.normalIndexes.map(index => index.cols.join(',')),
-      ...table.uniqueIndexes.map(index => index.cols.join(',')),
-    ]);
-    if (allTableIndexesSet.size !== table.normalIndexes.length + table.uniqueIndexes.length) {
-      printError(`Table "${tableName}" has duplicate index.`);
+    const allTableIndexesArr = [
+      ...table.normalIndexes.map(index => index.cols.map(
+        col => `${col.name} ${col.nulls}`,
+      ).join(',')),
+      ...table.uniqueIndexes.map(index => index.cols.map(
+        col => `${col.name} ${col.nulls}`,
+      ).join(',')),
+    ];
+    const allTableIndexesSet = new Set(allTableIndexesArr);
+    if (allTableIndexesSet.size !== allTableIndexesArr.length) {
+      const duplicates = allTableIndexesArr
+        .filter((val, idx) => allTableIndexesArr.indexOf(val) !== idx);
+      printError(`Table "${tableName}" has duplicate indexes: ${duplicates.join(', ')}`);
     }
 
-    if (!isBT) {
+    // Verify normal indexes
+    if (isBT) {
+      for (const index of table.normalIndexes) {
+        let found = false;
+        for (const fk of table.foreignKeys) {
+          if (index.cols.some(col => col.name === fk.col)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          printError(`Table "${tableName}" has extra normal index "${index.name}.`);
+        }
+
+        if (index.name !== getIndexName(Model.tableName, index.cols.map(col => col.name))) {
+          printError(`Table "${tableName}" has wrong index name "${index.name}".`);
+        }
+      }
+    } else {
       const normalIndexes = Model.getNormalIndexes().map(index => ({
         name: getIndexName(Model.tableName, index),
-        cols: index.map(
-          col => (isColDescNullsLast(Model, col)
-            ? `${col} DESC NULLS LAST`
-            : col),
-        ),
+        cols: index.map(col => ({
+          name: col,
+          nulls: isColDescNullsLast(Model, col)
+            ? 'DESC NULLS LAST'
+            : 'ASC NULLS FIRST',
+        })),
       }));
       const expressionIndexes = Model.expressionIndexes.map(index => ({
         name: index.name ?? getIndexName(Model.tableName, index.cols ?? index.col),
@@ -252,7 +332,7 @@ function verifyModels(
 
       for (const index of normalIndexes) {
         if (!table.normalIndexes.some(
-          index2 => index2.name === index.name && shallowEqual(index2.cols, index.cols),
+          index2 => index2.name === index.name && isEqual(index2.cols, index.cols),
         )) {
           printError(`Table "${tableName}" is missing index "${index.name}".`);
         }
@@ -267,7 +347,7 @@ function verifyModels(
       for (const index of table.normalIndexes) {
         if (
           !normalIndexes.some(
-            index2 => index2.name === index.name && shallowEqual(index2.cols, index.cols),
+            index2 => index2.name === index.name && isEqual(index2.cols, index.cols),
           )
           && !expressionIndexes.some(
             index2 => index2.name === index.name && index2.expression === index.expression,
@@ -278,21 +358,23 @@ function verifyModels(
       }
     }
 
-    const uniqueIndexesRaw = !isBT && Model.prototype instanceof Entity
-      ? (Model as EntityClass).getUniqueIndexesForRR()
+    // Verify unique indexes
+    const uniqueIndexesRaw = !isBT && TS.extends(Model, Entity)
+      ? Model.getUniqueIndexesForRR()
       : Model.getUniqueIndexes();
     const uniqueIndexes = uniqueIndexesRaw.map((index, idx) => ({
       name: getIndexName(Model.tableName, index),
-      cols: index.map(
-        col => (idx !== 0 && isColDescNullsLast(Model, col)
-          ? `${col} DESC NULLS LAST`
-          : col),
-      ),
+      cols: index.map(col => ({
+        name: col,
+        nulls: idx !== 0 && isColDescNullsLast(Model, col)
+          ? 'DESC NULLS LAST'
+          : 'ASC NULLS FIRST',
+      })),
     }));
 
     for (const [i, index] of uniqueIndexes.entries()) {
       const tableIndex = table.uniqueIndexes.find(
-        index2 => index2.name === index.name && shallowEqual(index2.cols, index.cols),
+        index2 => index2.name === index.name && isEqual(index2.cols, index.cols),
       );
       if (!tableIndex) {
         printError(`Table "${tableName}" is missing unique index "${index.name}".`);
@@ -302,9 +384,30 @@ function verifyModels(
     }
     for (const index of table.uniqueIndexes) {
       if (!uniqueIndexes.some(
-        index2 => index2.name === index.name && shallowEqual(index2.cols, index.cols),
+        index2 => index2.name === index.name && isEqual(index2.cols, index.cols),
       )) {
         printError(`Table "${tableName}" has extra unique index "${index.name}".`);
+      }
+    }
+
+    // Verify foreign keys
+    if (isBT && TS.extends(Model, Entity)) {
+      for (const fk of table.foreignKeys) {
+        if (Model.deleteable
+          && !table.normalIndexes.some(idx => idx.cols[0]?.name === fk.col)
+          && !table.uniqueIndexes.some(idx => idx.cols[0]?.name === fk.col)) {
+          printError(`"${tableName}.${fk.col}" is missing index for foreign key "${fk.name}".`);
+        }
+
+        const referenceTable = TS.defined(tables[fk.references[0]]);
+        const referenceCol = fk.references[1];
+        if (!referenceTable.uniqueIndexes.some(idx => idx.cols[0]?.name === referenceCol)) {
+          printError(`Table "${fk.references[0]}" is missing unique index on "${referenceCol}" referenced by "${fk.name}".`);
+        }
+
+        if (fk.name !== `${tableName}_${fk.col}_fk`) {
+          printError(`Table "${tableName}" has wrong foreign key name "${fk.name}".`);
+        }
       }
     }
   }
@@ -382,7 +485,7 @@ async function dumpDb({
     throw new Error('pgdump: no output');
   }
   const lines = data
-    .replaceAll(/\nCREATE SCHEMA /g, '\nCREATE SCHEMA IF NOT EXISTS ')
+    .replaceAll('\nCREATE SCHEMA ', '\nCREATE SCHEMA IF NOT EXISTS ')
     // .replaceAll(/\nCREATE TABLE /g, '\nCREATE TABLE IF NOT EXISTS ')
     .replaceAll(/(\n\n\s*ALTER TABLE [^;]+)\s*\n\s*([^;]+;)/g, '$1 $2')
     .split('\n')
@@ -396,16 +499,15 @@ CREATE EXTENSION IF NOT EXISTS postgis SCHEMA "${PG_RR_SCHEMA}";
 
 CREATE EXTENSION IF NOT EXISTS tsm_system_rows SCHEMA "${PG_RR_SCHEMA}";`);
   }
+
+  const tables = parseTables(lines);
+  verifyModels(tables, models, isBT);
+  reorderColumns(tables, models, lines);
+
   await fs.writeFile(
     path.resolve(`./app/${outFile}.sql`),
     lines.join('\n'),
   );
-
-  const tables = parseTables(lines);
-
-  verifyModels(tables, models, isBT);
-
-  reorderColumns(tables, models, lines);
 }
 
 export default async function pgdump() {

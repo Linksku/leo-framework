@@ -1,6 +1,9 @@
 import type { UserDragConfig } from '@use-gesture/core/types';
 import { useDrag } from '@use-gesture/react';
 
+import { CLICK_MAX_WAIT } from 'consts/ui';
+import { DEFAULT_DURATION } from './useAnimation';
+
 const NEAR_EDGE_PX = 30;
 // Copied the following values from use-gesture
 const MAX_SWIPE_DURATION = 250;
@@ -22,7 +25,7 @@ function _shouldSwipeNavigate({
   }[],
   directionMultiplier: number,
 }) {
-  if (distToEdge < NEAR_EDGE_PX || movedPercent >= 100) {
+  if (movedPercent >= 100) {
     return true;
   }
 
@@ -33,15 +36,18 @@ function _shouldSwipeNavigate({
       || (swipeMoves[idx + 1].x - move.x) * directionMultiplier >= 0,
   );
 
-  if (swipeMoves.length < 2) {
+  if (!TS.notEmpty(swipeMoves) || swipeMoves.length < 2) {
     return false;
   }
-  const lastMove = swipeMoves[swipeMoves.length - 1];
+  const lastMove = swipeMoves.at(-1);
 
   for (const firstMove of swipeMoves.slice(0, -1)) {
     const dx = (lastMove.x - firstMove.x) * directionMultiplier;
     if (dx < MIN_SWIPE_PX) {
       continue;
+    }
+    if (distToEdge < NEAR_EDGE_PX && dx > NEAR_EDGE_PX) {
+      return true;
     }
 
     const dt = lastMove.time - firstMove.time;
@@ -53,27 +59,103 @@ function _shouldSwipeNavigate({
   return false;
 }
 
+// touchmove/pointermove isn't sensitive enough to detect swipes too close to the edge
+const MIN_DIST_FROM_EDGE = 10;
+// Hacky fix for Chrome click not firing: https://bugs.chromium.org/p/chromium/issues/detail?id=1141207
+function _simulateClickAfterSwipeHack() {
+  const handleTouchstart = (touchStartEvent: TouchEvent) => {
+    const startTouch = touchStartEvent.touches.item(0);
+    if (!startTouch || touchStartEvent.touches.length > 1) {
+      return;
+    }
+    const startX = startTouch.pageX;
+    const startY = startTouch.pageY;
+    if (startX < MIN_DIST_FROM_EDGE
+      || startY < MIN_DIST_FROM_EDGE
+      || startX > window.innerWidth - MIN_DIST_FROM_EDGE
+      || startY > window.innerHeight - MIN_DIST_FROM_EDGE) {
+      return;
+    }
+
+    let isValid = true;
+    const handleTouchmove = (e: TouchEvent) => {
+      const touch = e.touches.item(0);
+      if (!touch || e.touches.length > 1
+        || Math.sqrt(((touch.pageX - startX) ** 2) + ((touch.pageY - startY) ** 2)) > 5) {
+        isValid = false;
+        window.removeEventListener('touchmove', handleTouchmove);
+      }
+    };
+
+    const handleTouchend = (e: TouchEvent) => {
+      const { target } = e;
+      if (!isValid || !target) {
+        return;
+      }
+
+      e.preventDefault();
+      setTimeout(() => {
+        target.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+        }));
+      }, 0);
+    };
+
+    // Bug didn't occur
+    const handleMouseDown = () => {
+      window.removeEventListener('touchmove', handleTouchmove);
+      window.removeEventListener('touchend', handleTouchend);
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      if (!process.env.PRODUCTION && isValid && (e.pageX || e.pageY)) {
+        ErrorLogger.error(new Error('_simulateClickAfterSwipeHack: real click event fired'));
+      }
+    };
+
+    // Event order: touchstart, touchmove, touchend, mousedown, click
+    window.addEventListener('touchmove', handleTouchmove);
+    window.addEventListener('touchend', handleTouchend, { once: true });
+    window.addEventListener('mousedown', handleMouseDown, { once: true });
+    window.addEventListener('click', handleClick, { once: true });
+
+    setTimeout(() => {
+      window.removeEventListener('touchmove', handleTouchmove);
+      window.removeEventListener('touchend', handleTouchend);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('click', handleClick);
+    }, CLICK_MAX_WAIT);
+  };
+
+  window.addEventListener('touchstart', handleTouchstart, { once: true });
+  setTimeout(() => {
+    window.removeEventListener('touchstart', handleTouchstart);
+  }, 2000);
+}
+
 type Direction = 'up' | 'left' | 'down' | 'right';
 export type Props<T extends HTMLElement> = {
   direction: Direction | 'horizontal' | 'vertical',
+  duration?: number,
   onStart?: ((direction: Direction) => void) | null,
   onNavigate?: (direction: Direction) => void | null,
-  setPercent: (animationPercent: number, durationPercent: number, direction: Direction) => void,
-  enabled?: boolean,
+  setPercent: (animationPercent: number, duration: number, direction: Direction) => void,
+  disabled?: boolean,
   elementDim?: number,
   elementRef?: React.MutableRefObject<T | null>,
   getElement?: (direction: Direction) => T | null,
-  maxSwipeStartDist?: number,
+  maxSwipeStartDist?: number | [number | undefined, number | undefined]
   dragOpts?: UserDragConfig,
 };
 
-// todo: mid/mid cancel previous animation on drag
 export default function useSwipeNavigation<T extends HTMLElement>({
   direction,
+  duration = DEFAULT_DURATION,
   onStart,
   onNavigate,
   setPercent,
-  enabled = true,
+  disabled,
   elementDim,
   elementRef,
   getElement,
@@ -82,8 +164,8 @@ export default function useSwipeNavigation<T extends HTMLElement>({
 }: Props<T>) {
   const axis = direction === 'left' || direction === 'right' || direction === 'horizontal' ? 'x' : 'y';
   const elemDimProp = axis === 'x' ? 'offsetWidth' : 'offsetHeight';
-  const windowDimProp = axis === 'x' ? 'innerWidth' : 'innerHeight';
   const axisIdx = axis === 'x' ? 0 : 1;
+  const windowDim = useWindowSize()[axis === 'x' ? 'width' : 'height'];
 
   const ref = useRef({
     lastMoves: [] as {
@@ -93,7 +175,6 @@ export default function useSwipeNavigation<T extends HTMLElement>({
     lastDelta: 0,
     lastSetPercentTime: Number.NEGATIVE_INFINITY,
     dim: null as number | null,
-    windowDim: null as number | null,
     curDirection: null as 'up' | 'left' | 'down' | 'right' | null,
   });
   const elementRef2 = useRef<T | null>(null);
@@ -102,6 +183,7 @@ export default function useSwipeNavigation<T extends HTMLElement>({
     xy,
     movement,
     delta,
+    velocity,
     first,
     last,
     cancel,
@@ -109,12 +191,15 @@ export default function useSwipeNavigation<T extends HTMLElement>({
     event,
     tap,
   }) => {
+    // Note: useDrag can get into a state where `last` is never true, so animation gets stuck
     if (canceled) {
       return;
     }
-    if (!enabled || tap || (
+    if (disabled || tap || (
       first
         && event.target instanceof HTMLElement
+        && event.target === document.activeElement
+        // todo: low/mid enable swiping on textarea
         && ['INPUT', 'TEXTAREA'].includes(event.target.tagName)
         && !['submit', 'button'].includes(event.target.getAttribute('type') ?? '')
     )) {
@@ -134,7 +219,7 @@ export default function useSwipeNavigation<T extends HTMLElement>({
     }
     const curDirection = TS.notNull(ref.current.curDirection);
 
-    if (first || !ref.current.dim || !ref.current.windowDim) {
+    if (first || !ref.current.dim) {
       const elem = getElement?.(curDirection)
         ?? elementRef?.current
         ?? elementRef2?.current;
@@ -146,22 +231,28 @@ export default function useSwipeNavigation<T extends HTMLElement>({
       }
 
       ref.current.dim = elementDim ?? TS.notNull(elem)[elemDimProp];
-      ref.current.windowDim = window[windowDimProp];
     }
     const x = xy[axisIdx];
     const mx = movement[axisIdx];
     const directionMultiplier = curDirection === 'right' || curDirection === 'down'
       ? 1
       : -1;
-    if (first && maxSwipeStartDist && (
-      (directionMultiplier === 1 && x > maxSwipeStartDist)
-      || (directionMultiplier === -1 && ref.current.dim - x > maxSwipeStartDist)
-    )) {
-      cancel?.();
-      return;
-    }
-
     if (first) {
+      const maxSwipeStartDist1 = Array.isArray(maxSwipeStartDist)
+        ? maxSwipeStartDist[0]
+        : maxSwipeStartDist;
+      const maxSwipeStartDist2 = Array.isArray(maxSwipeStartDist)
+        ? maxSwipeStartDist[1]
+        : maxSwipeStartDist;
+      if ((maxSwipeStartDist1 && directionMultiplier === 1
+          && x > maxSwipeStartDist1)
+        || (maxSwipeStartDist2 && directionMultiplier === -1
+          && ref.current.dim - x > maxSwipeStartDist2)
+      ) {
+        cancel?.();
+        return;
+      }
+
       onStart?.(curDirection);
     }
 
@@ -184,74 +275,63 @@ export default function useSwipeNavigation<T extends HTMLElement>({
     ref.current.lastDelta = delta[axisIdx];
 
     if (last) {
+      const distToEdge = Math.min(
+        ref.current.dim,
+        Math.max(0, directionMultiplier === 1 ? windowDim - x : x),
+      );
+      const percentToEdge = distToEdge / ref.current.dim;
       if (_shouldSwipeNavigate({
-        distToEdge: directionMultiplier === 1 ? ref.current.windowDim - x : x,
+        distToEdge,
         movedPercent: swipePercent,
         lastMoves: ref.current.lastMoves,
         directionMultiplier,
       })) {
-        setPercent(100, 1 - (swipePercent / 100), curDirection);
+        let remainingDuration = duration * percentToEdge;
+        if (velocity[axisIdx]) {
+          remainingDuration = Math.min(
+            remainingDuration,
+            (ref.current.dim * percentToEdge) / velocity[axisIdx],
+          );
+        }
+        setPercent(
+          100,
+          Math.max(duration / 5, remainingDuration),
+          curDirection,
+        );
         onNavigate?.(curDirection);
       } else {
-        setPercent(0, swipePercent / 100, curDirection);
+        let animationDuration = (1 - percentToEdge) * duration;
+        if (velocity[axisIdx]) {
+          animationDuration = Math.min(
+            animationDuration,
+            ref.current.dim * (1 - percentToEdge) / velocity[axisIdx],
+          );
+        }
+        setPercent(
+          0,
+          Math.max(duration / 5, animationDuration),
+          curDirection,
+        );
       }
 
-      // Hacky fix for Chrome click not firing: https://bugs.chromium.org/p/chromium/issues/detail?id=1141207
-      const swipeEndTime = performance.now();
-      window.addEventListener('touchend', () => {
-        let startX: number | undefined;
-        let startY: number | undefined;
-        const handleTouchstart = (e: TouchEvent) => {
-          const touch = e.touches?.item(e.touches.length - 1);
-          startX = touch?.pageX;
-          startY = touch?.pageY;
-        };
-
-        let lastX: number | undefined;
-        let lastY: number | undefined;
-        const handleTouchmove = (e: TouchEvent) => {
-          const touch = e.touches?.item(e.touches.length - 1);
-          lastX = touch?.pageX;
-          lastY = touch?.pageY;
-        };
-
-        const handleTouchend = (e: TouchEvent) => {
-          if (performance.now() - swipeEndTime < 2000
-            && startX
-            && startY
-            && (!lastX || Math.abs(lastX - startX) < 5)
-            && (!lastY || Math.abs(lastY - startY) < 5)) {
-            setTimeout(() => {
-              e.target?.dispatchEvent(new Event('click', {
-                bubbles: true,
-                cancelable: true,
-              }));
-            }, 0);
-          }
-        };
-
-        window.addEventListener('touchstart', handleTouchstart, { once: true });
-        window.addEventListener('touchmove', handleTouchmove, { once: true });
-        window.addEventListener('touchend', handleTouchend, { once: true });
-
-        window.addEventListener('mousedown', () => {
-          window.removeEventListener('touchstart', handleTouchstart);
-          window.removeEventListener('touchmove', handleTouchmove);
-          window.removeEventListener('touchend', handleTouchend);
-        }, { once: true });
-      }, { once: true });
-    } else if (performance.now() - ref.current.lastSetPercentTime > 10) {
+      window.addEventListener('touchend', _simulateClickAfterSwipeHack);
+      setTimeout(() => {
+        window.removeEventListener('touchend', _simulateClickAfterSwipeHack);
+      }, 500);
+    } else if (performance.now() - ref.current.lastSetPercentTime > 1000 / 120) {
       ref.current.lastSetPercentTime = performance.now();
-      setPercent(swipePercent, 0.2, curDirection);
+      setPercent(
+        swipePercent,
+        duration / 10,
+        curDirection,
+      );
     }
   }, {
     ...dragOpts,
     axis,
     filterTaps: true,
-    axisThreshold: {
-      mouse: MIN_SWIPE_PX,
-      touch: MIN_SWIPE_PX,
-    },
+    tapsThreshold: 1,
+    // Note: no axisThreshold because it feels laggy
   });
 
   return {

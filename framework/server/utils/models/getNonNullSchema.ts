@@ -3,7 +3,9 @@ export default function getNonNullSchema(schema: JsonSchema) {
     ? schema.anyOf.find(s => s.type !== 'null')
     : schema;
   const nonNullType = nonNullSchema?.type
-    ? (Array.isArray(nonNullSchema.type) ? nonNullSchema.type.find(t => t !== 'null') : nonNullSchema.type)
+    ? (Array.isArray(nonNullSchema.type)
+      ? nonNullSchema.type.find(t => t !== 'null')
+      : nonNullSchema.type)
     : nonNullSchema;
   return {
     nonNullSchema,

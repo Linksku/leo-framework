@@ -5,6 +5,8 @@ import {
   VIDEO_REGEX,
 } from 'utils/isUrlVideo';
 import FixedRatioContainer, { Props as FixedRatioContainerProps } from 'components/common/FixedRatioContainer';
+import useEnterRoute from 'hooks/useEnterRoute';
+import { useIsRouteActive } from 'stores/RouteStore';
 
 import styles from './VideoStyles.scss';
 
@@ -15,6 +17,32 @@ type Props = {
 export default function Video({ url, ...containerProps }: Props) {
   const [showControls, setShowControls] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const ytRef = useRef<HTMLIFrameElement | null>(null);
+  const [initialIsRouteActive] = useState(useIsRouteActive());
+
+  useEnterRoute(useCallback(() => {
+    if (videoRef.current) {
+      wrapPromise(videoRef.current.play(), 'warn');
+    }
+    if (ytRef.current) {
+      ytRef.current.contentWindow?.postMessage(
+        '{"event":"command","func":"playVideo","args":""}',
+        '*',
+      );
+    }
+
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+      if (ytRef.current) {
+        ytRef.current.contentWindow?.postMessage(
+          '{"event":"command","func":"pauseVideo","args":""}',
+          '*',
+        );
+      }
+    };
+  }, []));
 
   if (!url) {
     return null;
@@ -23,7 +51,7 @@ export default function Video({ url, ...containerProps }: Props) {
   let iframeSrc: string | null = null;
   const ytMatches = url.match(YOUTUBE_REGEX);
   if (ytMatches) {
-    iframeSrc = `https://www.youtube.com/embed/${ytMatches[1]}?autoplay=1`;
+    iframeSrc = `https://www.youtube.com/embed/${ytMatches[1]}?autoplay=${initialIsRouteActive ? '1' : '0'}&enablejsapi=1`;
   }
   if (!iframeSrc) {
     const gfycatMatches = url.match(GFYCAT_REGEX);
@@ -36,10 +64,12 @@ export default function Video({ url, ...containerProps }: Props) {
     return (
       <FixedRatioContainer {...containerProps}>
         <iframe
+          ref={ytMatches ? ytRef : null}
           src={iframeSrc}
           frameBorder="0"
           scrolling="no"
           allowFullScreen
+          loading="lazy"
           title="Post Video"
           className={styles.video}
         />
@@ -62,7 +92,7 @@ export default function Video({ url, ...containerProps }: Props) {
         <video
           ref={videoRef}
           src={url}
-          autoPlay
+          autoPlay={initialIsRouteActive}
           playsInline
           loop
           controls={showControls}

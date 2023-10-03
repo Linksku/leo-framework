@@ -1,10 +1,11 @@
 import usePrevious from 'hooks/usePrevious';
 
 // Render everything else before running a slow function for display
+// Different from useDeferredValue for initial render
 export default function useMemoDeferred<T>(
-  defaultValue: Memoed<T>,
-  cb: Memoed<() => T>,
-): Memoed<T> {
+  defaultValue: Stable<T>,
+  cb: Stable<() => T>,
+): Stable<T> {
   const [value, setValue] = useState<T>(defaultValue);
 
   useEffect(() => {

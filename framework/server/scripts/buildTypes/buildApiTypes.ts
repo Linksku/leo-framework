@@ -2,7 +2,7 @@ import type { JSONSchema4 } from 'json-schema';
 import { compile } from 'json-schema-to-typescript';
 import { promises as fs } from 'fs';
 import path from 'path';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 
 import ucFirst from 'utils/ucFirst';
 import 'routes/apiRoutes';
@@ -27,7 +27,7 @@ export default async function buildApiTypes() {
         },
       );
       paramsInterfaces.push(`interface ${ucFirst(api.config.name)}ApiParams {
-${fields.split('\n').slice(1, -2).join('\n').replace(/"/g, '\'')}
+${fields.split('\n').slice(1, -2).join('\n').replaceAll('"', '\'')}
 }
 `);
     }
@@ -43,7 +43,7 @@ ${fields.split('\n').slice(1, -2).join('\n').replace(/"/g, '\'')}
         },
       );
       dataInterfaces.push(`interface ${ucFirst(api.config.name)}ApiData {
-${fields.split('\n').slice(1, -2).join('\n').replace(/"/g, '\'')}
+${fields.split('\n').slice(1, -2).join('\n').replaceAll('"', '\'')}
 }
 `);
     }

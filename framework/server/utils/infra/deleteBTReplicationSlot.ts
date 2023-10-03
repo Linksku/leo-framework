@@ -6,7 +6,10 @@ export default async function deleteBTReplicationSlot(name: string) {
 
   await retry(
     async () => {
-      const activeSlots = await knexBT('pg_replication_slots')
+      const activeSlots = await knexBT<{
+        slot_name: string,
+        active_pid: number,
+      }>('pg_replication_slots')
         .select(['slot_name', 'active_pid'])
         .whereNotNull('active_pid')
         .whereLike('slot_name', name);
@@ -31,7 +34,7 @@ export default async function deleteBTReplicationSlot(name: string) {
     );
   } */
 
-  await knexBT('pg_replication_slots')
+  await knexBT<{ slot_name: string }>('pg_replication_slots')
     .select(raw('pg_drop_replication_slot(slot_name)'))
     .whereLike('slot_name', name);
 }

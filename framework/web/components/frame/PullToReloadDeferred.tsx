@@ -1,8 +1,8 @@
 import type { Props } from './PullToReload';
 
-const PullToReload = React.lazy(
-  async () => import(/* webpackChunkName: 'deferred' */ './PullToReload'),
-);
+const PullToReload = React.lazy(async () => import(
+  /* webpackChunkName: 'deferred' */ './PullToReload'
+));
 
 export default function PullToReloadDeferred({
   children,

@@ -1,43 +1,64 @@
-const defaultRoutes = [
+const defaultRoutes: [
+  RouteConfig['pattern'],
+  (() => Promise<{ default: React.ComponentType<any> | React.NamedExoticComponent<any> }>),
+  Omit<
+    RouteConfig,
+    'pattern' | 'importComponent' | 'Component' | 'regexPrefix'
+  >?,
+][] = [
   // Unauth.
-  {
-    pattern: '/login',
-    Component: React.lazy(async () => import(/* webpackChunkName: 'LoginRoute' */ 'routes/LoginRoute')),
-  },
-  {
-    pattern: '/register',
-    Component: React.lazy(async () => import(/* webpackChunkName: 'RegisterRoute' */ 'routes/RegisterRoute')),
-  },
-  {
-    pattern: '/resetpassword',
-    Component: React.lazy(async () => import(/* webpackChunkName: 'ResetPasswordRoute' */ 'routes/ResetPasswordRoute')),
-  },
-  {
-    pattern: '/resetpasswordverify',
-    Component: React.lazy(async () => import(/* webpackChunkName: 'ResetPasswordVerifyRoute' */ 'routes/ResetPasswordVerifyRoute')),
-  },
+  [
+    '/login',
+    () => import(
+      /* webpackChunkName: 'LoginRoute' */ 'routes/LoginRoute'
+    ),
+  ],
+  [
+    '/register',
+    () => import(
+      /* webpackChunkName: 'RegisterRoute' */ 'routes/RegisterRoute'
+    ),
+  ],
+  [
+    '/resetpassword',
+    () => import(
+      /* webpackChunkName: 'ResetPasswordRoute' */ 'routes/ResetPasswordRoute'
+    ),
+  ],
+  [
+    '/resetpasswordverify',
+    () => import(
+      /* webpackChunkName: 'ResetPasswordVerifyRoute' */ 'routes/ResetPasswordVerifyRoute'
+    ),
+  ],
 
   // TOS.
-  {
-    pattern: '/tos/privacy',
-    Component: React.lazy(async () => import(/* webpackChunkName: 'PrivacyPolicyRoute' */ 'routes/tos/PrivacyPolicyRoute')),
-  },
-  {
-    pattern: '/tos/terms',
-    Component: React.lazy(async () => import(/* webpackChunkName: 'TermsOfServiceRoute' */ 'routes/tos/TermsOfServiceRoute')),
-  },
-  {
-    pattern: '/tos/cookie',
-    Component: React.lazy(async () => import(/* webpackChunkName: 'CookiePolicyRoute' */ 'routes/tos/CookiePolicyRoute')),
-  },
+  [
+    '/tos/privacy',
+    () => import(
+      /* webpackChunkName: 'PrivacyPolicyRoute' */ 'routes/tos/PrivacyPolicyRoute'
+    ),
+  ],
+  [
+    '/tos/terms',
+    () => import(
+      /* webpackChunkName: 'TermsOfServiceRoute' */ 'routes/tos/TermsOfServiceRoute'
+    ),
+  ],
+  [
+    '/tos/cookie',
+    () => import(
+      /* webpackChunkName: 'CookiePolicyRoute' */ 'routes/tos/CookiePolicyRoute'
+    ),
+  ],
 
   // 404.
-  {
-    pattern: /.*/,
-    Component: React.lazy(async () => import(/* webpackChunkName: 'NotFoundRoute' */ 'routes/NotFoundRoute')),
-  },
+  [
+    /.*/,
+    () => import(
+      /* webpackChunkName: 'NotFoundRoute' */ 'routes/NotFoundRoute'
+    ),
+  ],
 ];
 
-export default defaultRoutes as Memoed<MemoObjShallow<
-  (typeof defaultRoutes)[number]
->>[] as RouteConfig[];
+export default defaultRoutes;

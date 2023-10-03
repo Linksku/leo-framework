@@ -1,0 +1,121 @@
+.wrap {
+  padding: 0;
+
+  + .wrap {
+    margin-top: 1.5rem;
+  }
+}
+
+.card {
+  background-color: #fff;
+  padding: 1rem $containerPadding;
+  box-shadow: 0 0 1px $separatorColor;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  overflow: hidden;
+
+  @include gtLg {
+    padding: 1.2rem $containerPadding * 1.2;
+  }
+}
+
+.firstElem {
+  margin-top: 0;
+}
+
+.minWidthLg {
+  @include gtLg {
+    & {
+      padding: 0 0.5rem;
+    }
+
+    .card {
+      border-radius: 0.8rem;
+    }
+
+    .firstElem {
+      margin-top: 0.8rem;
+    }
+  }
+}
+
+.minWidthMd {
+  @include gtMd {
+    & {
+      padding: 0 0.5rem;
+    }
+
+    .card {
+      border-radius: 0.8rem;
+    }
+
+    .firstElem {
+      margin-top: 0.8rem;
+    }
+  }
+}
+
+.minWidthSm {
+  @include gtSm {
+    & {
+      padding: 0 0.5rem;
+    }
+
+    .card {
+      border-radius: 0.8rem;
+    }
+
+    .firstElem {
+      margin-top: 0.8rem;
+    }
+  }
+}
+
+.minWidthXs {
+  @include gtXs {
+    & {
+      padding: 0 0.5rem;
+    }
+
+    .card {
+      border-radius: 0.8rem;
+    }
+
+    .firstElem {
+      margin-top: 0.8rem;
+    }
+  }
+}
+
+.maxWidthLg {
+  @include gtLg {
+    & {
+      padding: 0;
+    }
+  }
+}
+
+.maxWidthMd {
+  @include gtMd {
+    & {
+      padding: 0;
+    }
+  }
+}
+
+.maxWidthSm {
+  @include gtSm {
+    & {
+      padding: 0;
+    }
+  }
+}
+
+.maxWidthXs {
+  @include gtXs {
+    & {
+      padding: 0;
+    }
+  }
+}

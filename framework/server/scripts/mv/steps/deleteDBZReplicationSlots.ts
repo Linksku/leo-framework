@@ -1,12 +1,19 @@
 import deleteBTReplicationSlot from 'utils/infra/deleteBTReplicationSlot';
-import { BT_SLOT_DBZ_UPDATEABLE, BT_SLOT_DBZ_INSERT_ONLY } from 'consts/mz';
+import { BT_SLOT_DBZ_UPDATEABLE, BT_SLOT_DBZ_INSERT_ONLY, BT_CDC_SLOT_PREFIX } from 'consts/mz';
 import knexBT from 'services/knex/knexBT';
 
 export default async function deleteDBZReplicationSlots() {
-  await deleteBTReplicationSlot(BT_SLOT_DBZ_UPDATEABLE);
-  await deleteBTReplicationSlot(BT_SLOT_DBZ_INSERT_ONLY);
+  const existingSlots = await knexBT<{ slot_name: string }>('pg_replication_slots')
+    .select('slot_name');
+  await Promise.all([
+    deleteBTReplicationSlot(BT_SLOT_DBZ_UPDATEABLE),
+    deleteBTReplicationSlot(BT_SLOT_DBZ_INSERT_ONLY),
+    ...existingSlots
+      .filter(slot => slot.slot_name.startsWith(BT_CDC_SLOT_PREFIX))
+      .map(slot => deleteBTReplicationSlot(slot.slot_name)),
+  ]);
 
-  const remainingSlots = await knexBT('pg_replication_slots')
+  const remainingSlots = await knexBT<{ slot_name: string }>('pg_replication_slots')
     .select('slot_name');
   if (remainingSlots.length) {
     throw getErr(

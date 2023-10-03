@@ -1,36 +1,47 @@
-type ObjArr<T extends EntityType> = Partial<{
-  [k: string]: Memoed<Memoed<TypeToEntity<T>>[]> | ObjArr<T>;
-}>;
+type ArrMap<T extends EntityType> = Map<
+  string | number,
+  Stable<Entity<T>[]> | ArrMap<T>
+>;
 
-type ObjSet<T extends EntityType> = Partial<{
-  [k: string]: Memoed<Set<Memoed<any>>> | ObjSet<T>;
-}>;
+type SetMap<T extends EntityType> = Map<
+  string | number,
+  Stable<Set<any>> | SetMap<T>
+>;
 
 export type OptsWithoutSet<T extends EntityType> = {
-  sortField?: keyof TypeToEntity<T>,
+  sortField?: keyof Entity<T>,
   sortDirection?: 'desc' | 'asc',
   fieldForSet?: never,
 };
 
-export type OptsWithSet<T extends EntityType> = {
-  sortField?: keyof TypeToEntity<T>,
+export type OptsWithSet<T extends EntityType, FieldForSet = keyof Entity<T>> = {
+  sortField?: keyof Entity<T>,
   sortDirection?: 'desc' | 'asc',
-  fieldForSet: keyof TypeToEntity<T>,
+  fieldForSet: FieldForSet,
 };
 
 type RetArr<
   T extends EntityType,
   Fields extends readonly any[],
-> = Fields extends readonly [any, ...infer R]
-  ? Memoed<ObjectOf<RetArr<T, R>>>
-  : Memoed<TypeToEntity<T>[]>;
+> = Fields extends readonly [infer F, ...infer R]
+  ? Stable<Map<
+    // @ts-ignore entity field
+    Entity<T>[F],
+    RetArr<T, R>
+  >>
+  : Stable<Entity<T>[]>;
 
 type RetSet<
   T extends EntityType,
   Fields extends readonly any[],
-> = Fields extends readonly [any, ...infer R]
-  ? Memoed<ObjectOf<RetSet<T, R>>>
-  : Memoed<Set<any>>;
+  FieldForSet extends keyof Entity<T>,
+> = Fields extends readonly [infer F, ...infer R]
+  ? Stable<Map<
+    // @ts-ignore entity field
+    Entity<T>[F],
+    RetSet<T, R, FieldForSet>
+  >>
+  : Stable<Set<FieldForSet>>;
 
 function useEntitiesByFields<T extends EntityType, Fields extends readonly string[]>(
   type: T | null,
@@ -38,44 +49,50 @@ function useEntitiesByFields<T extends EntityType, Fields extends readonly strin
   opts?: OptsWithoutSet<T>,
 ): RetArr<T, Fields>;
 
-function useEntitiesByFields<T extends EntityType, Fields extends readonly string[]>(
+function useEntitiesByFields<
+  T extends EntityType,
+  Fields extends readonly string[],
+  FieldForSet extends keyof Entity<T>,
+>(
   type: T | null,
   fields: Fields,
-  opts?: OptsWithSet<T>,
-): RetSet<T, Fields>;
+  opts: OptsWithSet<T, FieldForSet>,
+): RetSet<T, Fields, FieldForSet>;
 
 function useEntitiesByFields<
   T extends EntityType,
-  Fields extends readonly (keyof TypeToEntity<T>)[],
+  Fields extends readonly (keyof Entity<T>)[],
 >(
   type: T | null,
   fields: Fields,
   { sortField, sortDirection, fieldForSet }: OptsWithoutSet<T> | OptsWithSet<T> = {},
 ) {
   const entities = useAllEntities(type);
-  const entitiesByFields = useGlobalMemo(
+  return useGlobalMemo(
     `useEntitiesByFields:${type},${fields.join(', ')}`,
     () => {
-      const obj = Object.create(null) as ObjArr<T> | ObjSet<T>;
-      for (const e of TS.objValues(entities)) {
+      const obj = new Map() as ArrMap<T> | SetMap<T>;
+      for (const ent of entities.values()) {
         let obj2 = obj;
         for (const field of fields.slice(0, -1)) {
           // Maybe change to use a symbol for null.
-          const tmp = e[field] === null ? 'null' : e[field];
+          const tmp = ent[field] === null ? 'null' : ent[field];
           const val = process.env.PRODUCTION
             ? tmp as string | number
             : TS.assertType<string | number>(
               tmp,
               v => typeof v === 'string' || typeof v === 'number',
             );
-          if (!obj2[val]) {
-            obj2[val] = Object.create(null);
-          }
-          obj2 = obj2[val] as ObjArr<T> | ObjSet<T>;
+          obj2 = TS.mapValOrSetDefault(
+            obj2,
+            val,
+            new Map(),
+          );
         }
 
-        const lastField = fields[fields.length - 1];
-        const tmp = (e as any)[lastField] === null ? 'null' : (e as any)[lastField];
+        const lastField = fields.at(-1);
+        // @ts-ignore entity field
+        const tmp = ent[lastField] === null ? 'null' : ent[lastField];
         const lastVal = process.env.PRODUCTION
           ? tmp as string | number
           : TS.assertType<string | number>(
@@ -83,41 +100,41 @@ function useEntitiesByFields<
             v => typeof v === 'string' || typeof v === 'number',
           );
         if (fieldForSet) {
-          const tempSet = (obj2[lastVal] ?? new Set()) as Memoed<Set<Memoed<any>>>;
-          obj2[lastVal] = tempSet;
-          tempSet.add(e[fieldForSet]);
+          const setMap = obj2 as Map<string | number, Stable<Set<any>>>;
+          const tempSet = setMap.get(lastVal) ?? (new Set() as Stable<Set<any>>);
+          setMap.set(lastVal, tempSet);
+          tempSet.add(ent[fieldForSet]);
         } else {
-          const tempArr = (obj2[lastVal] ?? []) as Memoed<Memoed<TypeToEntity<T>>[]>;
-          obj2[lastVal] = tempArr;
-          tempArr.push(e);
+          const arrMap = obj2 as Map<string | number, Stable<Entity<T>[]> >;
+          const tempArr = arrMap.get(lastVal) ?? ([] as unknown as Stable<Entity<T>[]>);
+          arrMap.set(lastVal, tempArr);
+          tempArr.push(ent);
         }
       }
 
       if (!fieldForSet && sortField) {
         const multiplier = sortDirection === 'desc' ? -1 : 1;
-        const stack = [obj as ObjArr<T>];
+        const stack = [obj as Stable<Entity<T>[]> | ArrMap<T>];
         while (stack.length) {
           const obj2 = stack.shift();
-          if (Array.isArray(obj2)) {
+          if (obj2 instanceof Map) {
+            for (const val of obj2.values()) {
+              stack.push(val);
+            }
+          } else if (obj2) {
             obj2.sort((a, b) => (
               a[sortField] > b[sortField]
                 ? multiplier
                 : -1 * multiplier
             ));
-          } else if (obj2) {
-            for (const val of Object.values(obj2)) {
-              stack.push(val as ObjArr<T>);
-            }
           }
         }
       }
 
-      return obj as RetArr<T, Fields> | RetSet<T, Fields>;
+      return obj as RetArr<T, Fields> | RetSet<T, Fields, keyof Entity<T>>;
     },
     [entities, fields.join(',')],
   );
-
-  return entitiesByFields;
 }
 
 export default useEntitiesByFields;

@@ -9,9 +9,11 @@ export type Alert = {
   closeAfter: number | null,
   showOk: boolean,
   okText: string | null,
-  onOk: (() => void) | null,
+  okBtnProps: Parameters<typeof Button>[0] | null,
+  onOk: (() => boolean | void | Promise<boolean | void>) | null,
   showCancel: boolean,
   cancelText: string | null,
+  cancelBtnProps: Parameters<typeof Button>[0] | null,
   onCancel: (() => void) | null,
   onClose: (() => void) | null,
 };
@@ -34,14 +36,16 @@ export const [
       msg = '',
       textAlign = 'center',
       closeable = true,
-      closeAfter = null as number | null,
+      closeAfter = null,
       showOk = true,
       okText = 'OK',
-      onOk = null as (() => void) | null,
+      okBtnProps = null,
+      onOk = null,
       showCancel = false,
       cancelText = 'Cancel',
-      onCancel = null as (() => void) | null,
-      onClose = null as (() => void) | null,
+      cancelBtnProps = null,
+      onCancel = null,
+      onClose = null,
     }: Partial<Omit<Alert, 'id'>>) => {
       const alertId = _nextAlertId;
       _nextAlertId++;
@@ -49,15 +53,19 @@ export const [
       setAlerts(arr => [...arr, {
         id: alertId,
         title,
-        msg,
+        msg: typeof msg === 'string'
+          ? msg
+          : React.cloneElement(msg, { key: alertId }),
         textAlign,
         closeable,
         closeAfter,
         showOk,
         okText,
+        okBtnProps,
         onOk,
         showCancel,
         cancelText,
+        cancelBtnProps,
         onClose,
         onCancel,
       }]);
@@ -79,9 +87,9 @@ export const [
       }
     }, [setAlerts, addPopHandler]);
 
-    const showConfirm = useCallback(async (
+    const showConfirm = useCallback((
       props: Partial<Omit<Alert, 'id'>>,
-    ) => new Promise(succ => {
+    ) => new Promise<boolean>(succ => {
       showAlert({
         onOk() {
           succ(true);
@@ -93,20 +101,21 @@ export const [
       });
     }), [showAlert]);
 
-    const hideFirstAlert = useCallback(() => {
-      setAlerts(arr => arr.slice(1));
+    const hideLastAlert = useCallback(() => {
+      setAlerts(arr => arr.slice(0, -1));
     }, [setAlerts]);
 
+    const hasAlerts = alerts.length > 0;
     useEffect(() => {
-      shownRef.current = !!alerts.length;
-    }, [alerts.length]);
+      shownRef.current = hasAlerts;
+    }, [hasAlerts]);
 
     return useMemo(() => ({
       alerts,
       showAlert,
       showConfirm,
-      hideFirstAlert,
-    }), [alerts, showAlert, showConfirm, hideFirstAlert]);
+      hideLastAlert,
+    }), [alerts, showAlert, showConfirm, hideLastAlert]);
   },
   function AlertsStore(val) {
     return val;

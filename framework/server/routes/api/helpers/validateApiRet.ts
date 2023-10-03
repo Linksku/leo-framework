@@ -18,7 +18,10 @@ export default function validateApiRet<Name extends ApiName>({
   if (!process.env.PRODUCTION && Object.keys(ret).some(
     k => !TS.inArray(k, ['data', 'entities', 'createdEntities', 'updatedEntities', 'deletedIds']),
   )) {
-    throw new UserFacingError(`validateApiRet: ${api.config.name} contains extra keys: ${Object.keys(ret).join(', ')}`, 500);
+    throw new UserFacingError(
+      `validateApiRet: ${api.config.name} contains extra keys: ${Object.keys(ret).join(', ')}`,
+      500,
+    );
   }
 
   if (ret.entities) {

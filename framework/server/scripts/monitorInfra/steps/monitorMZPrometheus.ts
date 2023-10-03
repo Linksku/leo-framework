@@ -6,12 +6,11 @@ import { redisMaster } from 'services/redis';
 import fetchMZPrometheusFailingSinkIds from '../helpers/fetchMZPrometheusFailingSinkIds';
 import recreateFailingPrometheusMZSinks from '../helpers/recreateFailingPrometheusMZSinks';
 
-const LOOP_INTERVAL = 15 * 1000;
+const LOOP_INTERVAL = 10 * 1000;
 
 export default async function monitorMZPrometheus() {
   printDebug('Monitoring MZ Prometheus', 'highlight');
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     await pause(LOOP_INTERVAL);
 
@@ -33,12 +32,16 @@ export default async function monitorMZPrometheus() {
       let isInitializingInfra = false;
       try {
         const { errorsTableResult, redisResult } = await promiseObj({
-          errorsTableResult: rawSelect('mz', `
-            SELECT 1
-            FROM mz_tables
-            WHERE name = ?
-            LIMIT 1
-          `, [MZ_SINK_KAFKA_ERRORS_TABLE]),
+          errorsTableResult: rawSelect(
+            `
+              SELECT 1
+              FROM mz_tables
+              WHERE name = ?
+              LIMIT 1
+            `,
+            [MZ_SINK_KAFKA_ERRORS_TABLE],
+            { db: 'mz' },
+          ),
           redisResult: redisMaster.exists(INIT_INFRA_REDIS_KEY),
         });
         hasMZKafkaErrorsTable = !!errorsTableResult.rows.length;

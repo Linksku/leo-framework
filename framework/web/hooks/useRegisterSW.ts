@@ -24,7 +24,7 @@ export default function useRegisterSW() {
       'warn',
       'useRegisterSW',
     );
-  }, [lastSWVersion, setSWVersion]);
+  });
 
   return registration;
 }

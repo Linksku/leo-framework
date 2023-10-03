@@ -7,8 +7,13 @@ const limiter = pLimit(10);
 export default async function paginateMergeQueries<T extends QueryBuilder<Model>>(
   queries: T[],
   orderByColumns: OrderByColumns,
-  limit: number = MAX_PER_PAGE,
-  cursor: Nullish<string> = undefined,
+  {
+    limit = MAX_PER_PAGE,
+    cursor,
+  }: {
+    limit?: number,
+    cursor: Nullish<string>,
+  },
 ): Promise<PaginatedResponse<T['ModelType']>> {
   if (!process.env.PRODUCTION && queries.length > 100) {
     throw new Error(`paginateMergeQueries: ${queries.length} > 100 queries`);
@@ -44,7 +49,9 @@ export default async function paginateMergeQueries<T extends QueryBuilder<Model>
       if (bVal === null) {
         return nulls === 'last' ? 1 : -1;
       }
-      return aVal < bVal ? -1 : 1;
+      return order === 'desc'
+        ? (aVal < bVal ? 1 : -1)
+        : (aVal < bVal ? -1 : 1);
     }
     return 0;
   });
@@ -63,7 +70,7 @@ export default async function paginateMergeQueries<T extends QueryBuilder<Model>
 
   const lastRowCursorVals = mergedEntities.length
     ? orderByColumns.map((_, idx) => {
-      const lastRow = mergedEntities[mergedEntities.length - 1];
+      const lastRow = mergedEntities.at(-1);
       // @ts-ignore wontfix key hack
       return lastRow[`__cursorVal${idx}`] ?? null;
     })

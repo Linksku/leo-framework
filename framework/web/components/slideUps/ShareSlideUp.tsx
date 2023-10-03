@@ -11,7 +11,7 @@ import useCopyText from 'hooks/useCopyText';
 
 import styles from './ShareSlideUpStyles.scss';
 
-const BTNS: [
+const SOCIAL_BTNS: [
   string,
   string,
   React.SVGFactory,
@@ -45,10 +45,14 @@ const BTNS: [
 
 type Props = {
   path: string,
+  hideSocialBtns?: boolean,
 };
 
 // todo mid/mid add title/image to share slideup
-export default function ShareSlideUp({ path }: Props) {
+export default function ShareSlideUp({
+  path,
+  hideSocialBtns,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const hideSlideUp = useHideSlideUp();
   const copyText = useCopyText();
@@ -58,7 +62,6 @@ export default function ShareSlideUp({ path }: Props) {
   return (
     <div className={styles.container}>
       <Input
-        className={styles.input}
         ref={inputRef}
         value={url}
         readOnly
@@ -68,6 +71,7 @@ export default function ShareSlideUp({ path }: Props) {
             copyText(url);
           }
         }}
+        marginBottom="0.5rem"
       />
       <div
         onClick={() => {
@@ -75,12 +79,12 @@ export default function ShareSlideUp({ path }: Props) {
         }}
         className={styles.listItem}
         role="button"
-        tabIndex={-1}
+        tabIndex={0}
       >
         <CopySvg />
         Copy URL
       </div>
-      {BTNS.map(([name, template, Svg, fill]) => (
+      {!hideSocialBtns && SOCIAL_BTNS.map(([name, template, Svg, fill]) => (
         <Link
           key={name}
           href={template.replace('%url%', encodeURIComponent(url))}
@@ -107,10 +111,10 @@ export default function ShareSlideUp({ path }: Props) {
         }}
         className={styles.listItem}
         role="button"
-        tabIndex={-1}
+        tabIndex={0}
       >
         <ShareSvg />
-        Open Native Sharing
+        Open Share Dialog
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import usePrevious from 'hooks/usePrevious';
 import useUpdate from 'hooks/useUpdate';
+import ErrorBoundary from 'components/ErrorBoundary';
 
 import styles from './AlertsStyles.scss';
 
@@ -8,24 +9,10 @@ export default React.memo(function Alerts() {
     isHiding: false,
     hideTimer: -1,
   });
-  const { alerts, hideFirstAlert } = useAlertsStore();
+  const { alerts, hideLastAlert } = useAlertsStore();
   const disabled = !alerts.length;
   const prevAlerts = usePrevious(alerts);
   const update = useUpdate();
-
-  const {
-    title,
-    msg,
-    textAlign,
-    closeable,
-    showOk,
-    okText,
-    onOk,
-    showCancel,
-    cancelText,
-    onCancel,
-    onClose,
-  } = alerts[0] ?? prevAlerts?.[0] ?? {};
 
   const closedAllAlerts = !!prevAlerts?.length && !alerts.length;
   useEffect(() => {
@@ -43,21 +30,50 @@ export default React.memo(function Alerts() {
     }
   }, [closedAllAlerts, alerts, update]);
 
-  if (!alerts.length && !prevAlerts?.length && !ref.current.isHiding) {
+  const curAlert = alerts.at(-1) ?? prevAlerts?.at(-1);
+  if (!curAlert) {
     return null;
   }
 
+  const {
+    title,
+    msg,
+    textAlign,
+    closeable,
+    showOk,
+    okText,
+    okBtnProps,
+    onOk,
+    showCancel,
+    cancelText,
+    cancelBtnProps,
+    onCancel,
+    onClose,
+  } = curAlert;
+
   function hideAlert() {
     onClose?.();
-    hideFirstAlert();
+    hideLastAlert();
   }
 
   const handleOk = () => {
     if (disabled) {
       return;
     }
-    onOk?.();
-    hideAlert();
+    const ret = onOk?.();
+    if (ret instanceof Promise) {
+      ret
+        .then(ret2 => {
+          if (ret2 !== false) {
+            hideAlert();
+          }
+        })
+        .catch(err => {
+          ErrorLogger.warn(err);
+        });
+    } else if (ret !== false) {
+      hideAlert();
+    }
   };
 
   const handleCancel = () => {
@@ -83,7 +99,11 @@ export default React.memo(function Alerts() {
         role="dialog"
       >
         {title && <h2 className={styles.title}>{title}</h2>}
-        {msg && <div className={styles.msg}>{msg}</div>}
+        {msg && (
+          <ErrorBoundary>
+            <div className={styles.msg}>{msg}</div>
+          </ErrorBoundary>
+        )}
 
         {closeable && (showOk || showCancel) && (
           <div className={styles.btns}>
@@ -93,6 +113,7 @@ export default React.memo(function Alerts() {
                 onClick={handleOk}
                 disabled={disabled}
                 fullWidth
+                {...okBtnProps}
               />
             )}
             {closeable && showOk && showCancel && (
@@ -105,6 +126,7 @@ export default React.memo(function Alerts() {
                 disabled={disabled}
                 fullWidth
                 outline
+                {...cancelBtnProps}
               />
             )}
           </div>

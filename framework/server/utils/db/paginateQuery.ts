@@ -52,17 +52,17 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
     keepCursorVals?: boolean,
   },
 ): Promise<PaginatedResponse<T['ModelType']>> {
+  const Model = (query as any)._modelClass as ModelClass;
   if (!process.env.PRODUCTION) {
-    const { tableName } = (query as any)._modelClass as ModelClass;
     if (!TS.hasProp(query, '_operations')) {
-      throw new Error(`paginateQuery(${tableName}): _operations field is expected on query.`);
+      throw new Error(`paginateQuery(${Model.tableName}): _operations field is expected on query.`);
     }
     const operations = query._operations as { name: string }[];
     if (operations.some(op => op.name === 'orderByRaw' || op.name === 'orderBy')) {
-      throw new Error(`paginateQuery(${tableName}): query already has orderby.`);
+      throw new Error(`paginateQuery(${Model.tableName}): query already has orderby.`);
     }
     if (!operations.some(op => op.name === 'select')) {
-      throw new Error(`paginateQuery(${tableName}): select is required.`);
+      throw new Error(`paginateQuery(${Model.tableName}): select is required.`);
     }
   }
 
@@ -77,12 +77,12 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
       throw new Error('paginateQuery: invalid cursor.');
     }
 
-    query = query.where(builder => {
+    query = query.where((builder: QueryBuilder<Model, Model[]>) => {
       builder = builder.whereRaw('0=1');
       for (let i = 0; i < orderByColumns.length; i++) {
         const { column, order } = orderByColumns[i];
 
-        builder = builder.orWhere(builder2 => {
+        builder = builder.orWhere((builder2: QueryBuilder<Model, Model[]>) => {
           for (let j = 0; j < i; j++) {
             builder2 = builder2.where(
               orderByColumns[j].column,
@@ -110,7 +110,9 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
 
     query = query
       .select({
-        [`__cursorVal${i}`]: column,
+        [`__cursorVal${i}`]: typeof column === 'string' && !column.includes('.')
+          ? `${Model.tableName}.${column}`
+          : column,
       });
     if (order === 'desc' && nulls === undefined) {
       nulls = 'last';
@@ -129,7 +131,7 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
   );
   const lastRowCursorVals = entities.length
     ? orderByColumns.map((_, idx) => {
-      const lastRow = entities[entities.length - 1];
+      const lastRow = entities.at(-1);
       // @ts-ignore wontfix key hack
       return lastRow[`__cursorVal${idx}`] ?? null;
     })
@@ -148,7 +150,8 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
     }
 
     const cursorCols = entities.map(
-      e => Array.from({ length: orderByColumns.length }).map(
+      e => Array.from(
+        { length: orderByColumns.length },
         // @ts-ignore wontfix key hack
         (_, idx) => e[`__cursorVal${idx}`],
       ).join(','),

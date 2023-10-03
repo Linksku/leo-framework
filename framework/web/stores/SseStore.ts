@@ -1,39 +1,48 @@
 import SseEventEmitter from 'services/SseEventEmitter';
 import FcmBroadcastChannel from 'services/FcmBroadcastChannel';
 import serializeSseEvent, { unserializeSseEvent } from 'utils/serializeSseEvent';
-import { API_URL } from 'settings';
-import useHandleApiEntities from 'hooks/useApi/useHandleApiEntities';
+import { API_TIMEOUT, API_URL } from 'settings';
+import useHandleApiEntities from 'hooks/api/useHandleApiEntities';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 import { useThrottle } from 'utils/throttle';
 import safeParseJson from 'utils/safeParseJson';
+import isDebug from 'utils/isDebug';
+import getUrlParams from 'utils/getUrlParams';
+
+const SseState = {
+  subscriptions: new Map<
+    string,
+    {
+      serializedEventName: string;
+      name: string,
+      params: Stable<JsonObj>
+      numSubscribers: number,
+    }
+  >(),
+  readyState: EventSource.CLOSED as number,
+  numReconnects: 0,
+  lastReconnectTime: 0,
+  reconnectTimer: 0,
+  subscribeTimer: null as number | null,
+  unsubscribeTimer: null as number | null,
+  // Vars below are tied to 1 EventSource instance.
+  source: null as EventSource | null,
+  queuedSubs: new Set<string>(),
+  queuedUnsubs: new Set<string>(),
+  sessionId: null as string | null,
+  shownOfflineToast: false,
+  offlineToastTimer: null as number | null,
+};
 
 export const [
   SseProvider,
   useSseStore,
 ] = constate(
   function SseStore() {
-    const ref = useRef({
-      subscriptions: Object.create(null) as ObjectOf<{
-        serializedEventName: string;
-        name: string,
-        params: Memoed<JsonObj>
-        numSubscribers: number,
-      }>,
-      readyState: EventSource.CLOSED as number,
-      numReconnects: 0,
-      lastReconnectTime: 0,
-      reconnectTimer: 0,
-      subscribeTimer: null as number | null,
-      unsubscribeTimer: null as number | null,
-      // Vars below are tied to 1 EventSource instance.
-      source: null as EventSource | null,
-      queuedSubs: new Set<string>(),
-      queuedUnsubs: new Set<string>(),
-      sessionId: null as string | null,
-    });
     const { authToken } = useAuthStore();
     const { refetch } = useApiStore();
     const handleApiEntities = useHandleApiEntities(true);
+    const showToast = useShowToast();
 
     const { fetchApi: sseSubscribe } = useDeferredApi(
       'sseSubscribe',
@@ -56,12 +65,40 @@ export const [
     );
 
     const closeSse = useCallback(() => {
-      ref.current.source?.close();
-      ref.current.source = null;
-      ref.current.readyState = EventSource.CLOSED;
-      ref.current.sessionId = null;
-      window.clearTimeout(ref.current.reconnectTimer);
-    }, []);
+      SseState.source?.close();
+      SseState.source = null;
+      SseState.readyState = EventSource.CLOSED;
+      SseState.sessionId = null;
+      window.clearTimeout(SseState.reconnectTimer);
+
+      if (!SseState.offlineToastTimer && !SseState.shownOfflineToast) {
+        SseState.offlineToastTimer = window.setTimeout(() => {
+          showToast({
+            msg: 'Offline',
+            closeAfter: 1000,
+          });
+          SseState.shownOfflineToast = true;
+          SseState.offlineToastTimer = null;
+        }, API_TIMEOUT);
+      }
+    }, [showToast]);
+
+    const reconnectAfterDelay = useCallback(() => {
+      // This is needed because WS can disconnect right after connecting.
+      const prevDelay = Math.min(60 * 1000, 1000 * (2 ** (SseState.numReconnects - 1)));
+      if (performance.now() - SseState.lastReconnectTime > prevDelay + API_TIMEOUT) {
+        SseState.numReconnects = 0;
+      }
+
+      const delay = Math.min(60 * 1000, 1000 * (2 ** SseState.numReconnects));
+      SseState.reconnectTimer = window.setTimeout(
+        () => refetch('sseOtp', {}),
+        delay,
+      );
+
+      SseState.numReconnects++;
+      SseState.lastReconnectTime = performance.now();
+    }, [refetch]);
 
     useApi(
       'sseOtp',
@@ -72,30 +109,42 @@ export const [
           // eslint-disable-next-line @typescript-eslint/no-use-before-define
           createEventSource(otp);
         },
+        onError() {
+          reconnectAfterDelay();
+        },
         refetchOnFocus: false,
+        showToastOnError: false,
       },
     );
 
     const createEventSource = useCallback((otp: string | null) => {
-      closeSse();
+      if (SseState.source) {
+        closeSse();
+      }
 
-      const events = [...ref.current.queuedSubs]
-        .map(name => TS.defined(ref.current.subscriptions[name]))
+      const events = [...SseState.queuedSubs]
+        .map(name => TS.defined(SseState.subscriptions.get(name)))
         .filter(sub => sub.numSubscribers > 0)
         .map(sub => ({ name: sub.name, params: sub.params }));
-      ref.current.queuedSubs.clear();
+      SseState.queuedSubs.clear();
+
+      let url = `${API_URL}/sse?params=${encodeURIComponent(JSON.stringify({
+        otp,
+        events,
+      }))}`;
+      if (isDebug || !!getUrlParams().get('debug')) {
+        url += '&DEBUG=1';
+      }
+
       // todo: low/mid handle removing subscription while connecting to /sse
       const source = new EventSource(
-        `${API_URL}/sse?params=${encodeURIComponent(JSON.stringify({
-          otp,
-          events,
-        }))}`,
+        url,
         {
           withCredentials: true,
         },
       );
-      ref.current.source = source;
-      ref.current.readyState = EventSource.CONNECTING;
+      SseState.source = source;
+      SseState.readyState = EventSource.CONNECTING;
 
       source.addEventListener('message', msg => {
         const parsed = safeParseJson<SseResponse>(
@@ -107,14 +156,27 @@ export const [
           return;
         }
 
-        const data = parsed as unknown as MemoDeep<SseResponse>;
+        const data = parsed as unknown as StableDeep<SseResponse>;
         const { name, params } = unserializeSseEvent(data.eventType);
         handleApiEntities(data);
         SseEventEmitter.emit(name, deepFreezeIfDev(data.data), params);
       });
 
       source.addEventListener('open', () => {
-        ref.current.readyState = EventSource.OPEN;
+        SseState.readyState = EventSource.OPEN;
+
+        if (SseState.offlineToastTimer) {
+          clearTimeout(SseState.offlineToastTimer);
+          SseState.offlineToastTimer = null;
+        }
+
+        if (SseState.shownOfflineToast) {
+          showToast({
+            msg: 'Online',
+            closeAfter: 1000,
+          });
+          SseState.shownOfflineToast = false;
+        }
       });
 
       source.addEventListener('error', event => {
@@ -125,53 +187,43 @@ export const [
 
         closeSse();
 
-        for (const sub of Object.keys(ref.current.subscriptions)) {
-          ref.current.queuedSubs.add(sub);
+        for (const sub of SseState.subscriptions.keys()) {
+          SseState.queuedSubs.add(sub);
         }
 
-        let timeout = Math.min(5 * 60 * 1000, 1000 * (2 ** ref.current.numReconnects));
-        // This is needed because WS can disconnect right after connecting.
-        if (performance.now() - ref.current.lastReconnectTime > timeout) {
-          ref.current.numReconnects = 0;
-          timeout = 1000;
-        }
-
-        ref.current.reconnectTimer = window.setTimeout(
-          () => refetch('sseOtp', {}),
-          timeout,
-        );
-        ref.current.numReconnects++;
-        ref.current.lastReconnectTime = performance.now();
+        reconnectAfterDelay();
       });
-    }, [closeSse, handleApiEntities, refetch]);
+    }, [closeSse, handleApiEntities, showToast, reconnectAfterDelay]);
 
     const processQueuedSubs = useThrottle(
       () => {
-        if (ref.current.subscribeTimer === null) {
-          ref.current.subscribeTimer = setTimeout(() => {
-            if (!authToken && !ref.current.source) {
-              // OTP is needed for auth, not for connecting to SSE.
-              createEventSource(null);
-            } else if (ref.current.readyState === EventSource.OPEN
-              && ref.current.sessionId) {
-              const events = [...ref.current.queuedSubs]
-                .map(name2 => TS.defined(ref.current.subscriptions[name2]))
-                .filter(sub2 => sub2.numSubscribers > 0)
-                .map(sub2 => ({ name: sub2.name, params: sub2.params }));
-              if (events.length) {
-                sseSubscribe({
-                  sessionId: ref.current.sessionId,
-                  events,
-                });
-              }
-              ref.current.queuedSubs.clear();
-            } else if (!process.env.PRODUCTION && ref.current.readyState === EventSource.OPEN) {
-              ErrorLogger.warn(new Error('SseStore: unhandled add SSE state'));
-            }
-
-            ref.current.subscribeTimer = null;
-          }, 0);
+        if (SseState.subscribeTimer) {
+          return;
         }
+
+        SseState.subscribeTimer = setTimeout(() => {
+          if (!authToken && !SseState.source) {
+            // OTP is needed for auth, not for connecting to SSE.
+            createEventSource(null);
+          } else if (SseState.readyState === EventSource.OPEN
+            && SseState.sessionId) {
+            const events = [...SseState.queuedSubs]
+              .map(name2 => TS.defined(SseState.subscriptions.get(name2)))
+              .filter(sub2 => sub2.numSubscribers > 0)
+              .map(sub2 => ({ name: sub2.name, params: sub2.params }));
+            if (events.length) {
+              sseSubscribe({
+                sessionId: SseState.sessionId,
+                events,
+              });
+            }
+            SseState.queuedSubs.clear();
+          } else if (!process.env.PRODUCTION && SseState.readyState === EventSource.OPEN) {
+            ErrorLogger.warn(new Error('SseStore: unhandled add SSE state'));
+          }
+
+          SseState.subscribeTimer = null;
+        }, 0);
       },
       useConst({
         timeout: 100,
@@ -181,32 +233,34 @@ export const [
 
     const processQueuedUnsubs = useThrottle(
       () => {
-        if (ref.current.unsubscribeTimer === null) {
-          ref.current.unsubscribeTimer = setTimeout(() => {
-            if (ref.current.readyState !== EventSource.CLOSED
-              && TS.objValues(ref.current.subscriptions).every(s => s.numSubscribers === 0)) {
-              closeSse();
-            } else if (ref.current.readyState === EventSource.OPEN
-              && ref.current.sessionId) {
-              const events = [...ref.current.queuedUnsubs]
-                .map(name2 => TS.defined(ref.current.subscriptions[name2]))
-                .filter(sub2 => sub2.numSubscribers === 0)
-                .map(sub2 => ({ name: sub2.name, params: sub2.params }));
-              if (events.length) {
-                sseUnsubscribe({
-                  sessionId: ref.current.sessionId,
-                  events: [...ref.current.queuedUnsubs]
-                    .map(eventName => unserializeSseEvent(eventName)),
-                });
-              }
-              ref.current.queuedUnsubs.clear();
-            } else if (!process.env.PRODUCTION && ref.current.readyState === EventSource.OPEN) {
-              ErrorLogger.warn(new Error('SseStore: unhandled remove SSE state'));
-            }
-
-            ref.current.unsubscribeTimer = null;
-          }, 0);
+        if (SseState.unsubscribeTimer) {
+          return;
         }
+
+        SseState.unsubscribeTimer = setTimeout(() => {
+          if (SseState.readyState !== EventSource.CLOSED
+            && [...SseState.subscriptions.values()].every(s => s.numSubscribers === 0)) {
+            closeSse();
+          } else if (SseState.readyState === EventSource.OPEN
+            && SseState.sessionId) {
+            const events = [...SseState.queuedUnsubs]
+              .map(name2 => TS.defined(SseState.subscriptions.get(name2)))
+              .filter(sub2 => sub2.numSubscribers === 0)
+              .map(sub2 => ({ name: sub2.name, params: sub2.params }));
+            if (events.length) {
+              sseUnsubscribe({
+                sessionId: SseState.sessionId,
+                events: [...SseState.queuedUnsubs]
+                  .map(eventName => unserializeSseEvent(eventName)),
+              });
+            }
+            SseState.queuedUnsubs.clear();
+          } else if (!process.env.PRODUCTION && SseState.readyState === EventSource.OPEN) {
+            ErrorLogger.warn(new Error('SseStore: unhandled remove SSE state'));
+          }
+
+          SseState.unsubscribeTimer = null;
+        }, 0);
       },
       useConst({
         timeout: 100,
@@ -214,9 +268,9 @@ export const [
       [closeSse, sseUnsubscribe],
     );
 
-    const addSubscription = useCallback((name: string, params: Memoed<JsonObj>) => {
+    const addSubscription = useCallback((name: string, params: Stable<JsonObj>) => {
       const serializedEventName = serializeSseEvent(name, params);
-      const sub = ref.current.subscriptions[serializedEventName];
+      const sub = SseState.subscriptions.get(serializedEventName);
       if (sub) {
         sub.numSubscribers++;
         if (sub.numSubscribers > 1) {
@@ -224,22 +278,22 @@ export const [
         }
       }
 
-      ref.current.subscriptions[serializedEventName] = {
+      SseState.subscriptions.set(serializedEventName, {
         serializedEventName,
         name,
         params,
         numSubscribers: sub?.numSubscribers ?? 1,
-      };
+      });
 
-      ref.current.queuedSubs.add(serializedEventName);
-      ref.current.queuedUnsubs.delete(serializedEventName);
+      SseState.queuedSubs.add(serializedEventName);
+      SseState.queuedUnsubs.delete(serializedEventName);
 
       processQueuedSubs();
     }, [processQueuedSubs]);
 
-    const removeSubscription = useCallback((name: string, params: Memoed<JsonObj>) => {
+    const removeSubscription = useCallback((name: string, params: Stable<JsonObj>) => {
       const serializedEventName = serializeSseEvent(name, params);
-      const sub = ref.current.subscriptions[serializedEventName];
+      const sub = SseState.subscriptions.get(serializedEventName);
       if (!sub) {
         return;
       }
@@ -249,17 +303,17 @@ export const [
         return;
       }
 
-      ref.current.queuedSubs.delete(serializedEventName);
-      ref.current.queuedUnsubs.add(serializedEventName);
+      SseState.queuedSubs.delete(serializedEventName);
+      SseState.queuedUnsubs.add(serializedEventName);
 
       processQueuedUnsubs();
     }, [processQueuedUnsubs]);
 
     useEffect(() => {
       const handleConnect = (data: any) => {
-        ref.current.sessionId = data?.sessionId ?? null;
+        SseState.sessionId = data?.sessionId ?? null;
 
-        if (ref.current.sessionId) {
+        if (SseState.sessionId) {
           processQueuedSubs();
         } else {
           closeSse();
@@ -268,10 +322,10 @@ export const [
 
       const handleHeartbeat = (data: any) => {
         const serverSubbedEventTypes = new Set(data.subbedEventTypes);
-        const missingEventTypes = Object.keys(ref.current.subscriptions)
+        const missingEventTypes = [...SseState.subscriptions.keys()]
           .filter(eventType => !serverSubbedEventTypes.has(eventType));
         for (const eventType of missingEventTypes) {
-          ref.current.queuedSubs.add(eventType);
+          SseState.queuedSubs.add(eventType);
         }
 
         if (missingEventTypes.length) {
@@ -300,7 +354,7 @@ export const [
           return;
         }
 
-        handleApiEntities(data as MemoDeep<ApiSuccessResponse<any>>);
+        handleApiEntities(data as StableDeep<ApiSuccessResponse<any>>);
       };
 
       FcmBroadcastChannel.addEventListener('message', cb);

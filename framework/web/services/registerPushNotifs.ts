@@ -11,8 +11,9 @@ export default async function registerPushNotifs(
 
   // Firebase also asks for permission, but throws if it fails
   if (window.Notification) {
-    const permission = await Notification.requestPermission();
+    const permission = await window.Notification.requestPermission();
     if (permission !== 'granted') {
+      // todo: low/mid warn if notif was rejected and add way to retry
       return null;
     }
   }

@@ -1,9 +1,10 @@
-import { DBZ_CONNECTOR_UPDATEABLE, DBZ_CONNECTOR_INSERT_ONLY } from 'consts/mz';
+import { ENABLE_DBZ, DBZ_CONNECTOR_UPDATEABLE, DBZ_CONNECTOR_INSERT_ONLY } from 'consts/mz';
 import fetchKafkaConnectors from 'utils/infra/fetchKafkaConnectors';
 import EntityModels from 'services/model/allEntityModels';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('dbzConnectors', {
+  disabled: !ENABLE_DBZ,
   cb: async function dbzConnectorsHealthcheck() {
     const {
       updateableConnectors,

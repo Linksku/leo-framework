@@ -1,39 +1,46 @@
 type ReactNode = React.ReactNode;
 type ReactElement = React.ReactElement;
 type ReactFragment = React.ReactFragment;
-type SetState<T> = Memoed<React.Dispatch<React.SetStateAction<T>>>;
+type SetState<T> = Stable<React.Dispatch<React.SetStateAction<T>>>;
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-class __MEMOED {
-  private __MEMOED = true;
+declare class __STABLE {
+  private __STABLE: true;
 }
 
-type Memoed<T> = T extends Primitive ? T
-  : T extends __MEMOED ? T
-  : T & __MEMOED;
+type StableObjects =
+  | Date
+  | Error
+  | RegExp;
+
+type Stable<T> = T extends Primitive ? T
+  : T extends StableObjects ? T
+  : T extends __STABLE ? T
+  : T & __STABLE;
 
 type StableTypes = Primitive
+  | StableObjects
   | React.ComponentType<any>
   | React.MutableRefObject<any>
   | React.SVGFactory
-  | __MEMOED;
+  | __STABLE;
 
-type MemoDependencyList = ReadonlyArray<StableTypes>;
+type StableDependencyList = ReadonlyArray<StableTypes>;
 
 // Doesn't work with generics: https://stackoverflow.com/questions/51300602
-type MemoObjShallow<Obj extends ObjectOf<any>> = {
-  [K in keyof Obj]: Memoed<Obj[K]>;
+type StableObjShallow<Obj extends ObjectOf<any>> = {
+  [K in keyof Obj]: Stable<Obj[K]>;
 };
 
-type MemoDeep<T> =
+type StableDeep<T> =
   T extends Primitive ? T
-  : T extends __MEMOED ? T
-  : Memoed<
-    T extends Set<infer U> ? Set<Memoed<U>>
-    : T extends Map<infer K, infer V> ? Map<K, Memoed<V>>
+  : T extends __STABLE ? T
+  : Stable<
+    T extends Set<infer U> ? Set<Stable<U>>
+    : T extends Map<infer K, infer V> ? Map<K, Stable<V>>
     : T extends BuiltInObjects ? T
     : (keyof T) extends never ? T
-    : { [K in keyof T]: MemoDeep<T[K]> }
+    : { [K in keyof T]: StableDeep<T[K]> }
   >;
 
 declare namespace React {
@@ -43,18 +50,18 @@ declare namespace React {
   ): NamedExoticComponent<{
     [K in keyof P]: P[K] extends StableTypes
       ? P[K]
-      : Memoed<P[K]>;
+      : Stable<P[K]>;
   }>;
-  function memo<T extends ComponentClass<any>, P extends ComponentProps<T>>(
+  function memo<T extends ComponentType<any>, P extends ComponentProps<T>>(
     Component: T,
     propsAreEqual?: (
       prevProps: Readonly<P>,
       nextProps: Readonly<P>,
     ) => boolean
-  ): MemoExoticComponent<ComponentClass<{
+  ): MemoExoticComponent<ComponentType<{
     [K in keyof P]: P[K] extends StableTypes
       ? P[K]
-      : Memoed<P[K]>;
+      : Stable<P[K]>;
   }>>;
 }
 
@@ -62,61 +69,61 @@ declare namespace React {
 // https://stackoverflow.com/questions/69703041/enable-noimplicitany-for-functions-wrapped-with-usecallback
 declare function useCallback<T extends (...args: any[]) => any>(
   callback: T,
-  deps: MemoDependencyList,
-): Memoed<T>;
+  deps: StableDependencyList,
+): Stable<T>;
 
 declare function useMemo<T>(
   callback: () => T,
-  deps: MemoDependencyList,
-): Memoed<T>;
+  deps: StableDependencyList,
+): Stable<T>;
 
 declare function useState<S>(
   initialState: S | (() => S),
 ): [
-  Memoed<
+  Stable<
     S extends Primitive ? S
     : (keyof S) extends never ? S
-    : MemoObjShallow<S>
+    : StableObjShallow<S>
   >,
   SetState<S>,
 ];
 
-function useReducer<R extends React.ReducerWithoutAction<any>, I>(
+declare function useReducer<R extends React.ReducerWithoutAction<any>, I>(
   reducer: R,
   initializerArg: I,
   initializer: (arg: I) => React.ReducerStateWithoutAction<R>
-): [Memoed<React.ReducerStateWithoutAction<R>>, Memoed<React.DispatchWithoutAction>];
+): [Stable<React.ReducerStateWithoutAction<R>>, Stable<React.DispatchWithoutAction>];
 
-function useReducer<R extends React.ReducerWithoutAction<any>>(
+declare function useReducer<R extends React.ReducerWithoutAction<any>>(
   reducer: R,
   initializerArg: React.ReducerStateWithoutAction<R>,
   initializer?: undefined
-): [Memoed<ReducerStateWithoutAction<R>>, Memoed<React.DispatchWithoutAction>];
+): [Stable<React.ReducerStateWithoutAction<R>>, Stable<React.DispatchWithoutAction>];
 
 declare function useReducer<R extends React.Reducer<any, any>>(
   reducer: R,
   initialState: React.ReducerState<R>,
   initializer?: undefined
-): [Memoed<React.ReducerState<R>>, Memoed<React.Dispatch<React.ReducerAction<R>>>];
+): [Stable<React.ReducerState<R>>, Stable<React.Dispatch<React.ReducerAction<R>>>];
 
 declare function useReducer<R extends React.Reducer<any, any>, I>(
   reducer: R,
   initializerArg: I,
   initializer: (arg: I) => React.ReducerState<R>
-): [Memoed<React.ReducerState<R>>, Memoed<React.Dispatch<React.ReducerAction<R>>>];
+): [Stable<React.ReducerState<R>>, Stable<React.Dispatch<React.ReducerAction<R>>>];
 
-function useReducer<R extends React.Reducer<any, any>, I>(
+declare function useReducer<R extends React.Reducer<any, any>, I>(
   reducer: R,
   initializerArg: I,
   initializer: (arg: I) => React.ReducerState<R>
-): [Memoed<React.ReducerState<R>>, Memoed<Memoed.Dispatch<React.ReducerAction<R>>>];
+): [Stable<React.ReducerState<R>>, Stable<React.Dispatch<React.ReducerAction<R>>>];
 
 declare function useEffect(
   effect: React.EffectCallback,
-  deps?: MemoDependencyList,
+  deps?: StableDependencyList,
 ): void;
 
 declare function useLayoutEffect(
   effect: React.EffectCallback,
-  deps?: MemoDependencyList,
+  deps?: StableDependencyList,
 ): void;

@@ -1,14 +1,14 @@
 import type SentryType from '@sentry/browser';
 import type { SeverityLevel } from '@sentry/types';
-import qs from 'query-string';
 
 import detectOs from 'utils/detectOs';
 import isOsMobile from 'utils/isOsMobile';
 import formatErr from 'utils/formatErr';
+import getUrlParams from 'utils/getUrlParams';
 
 const WARN_THROTTLE_DURATION = 10 * 60 * 1000;
 const ERROR_THROTTLE_DURATION = 60 * 1000;
-const lastLoggedTimes: ObjectOf<number> = Object.create(null);
+const lastLoggedTimes: Map<string, number> = new Map();
 
 let Sentry: {
   configureScope: typeof SentryType.configureScope,
@@ -26,15 +26,15 @@ const _queueError = (level: SeverityLevel, err: Error) => {
   const msg = err.message && err.debugCtx?.ctx && !err.message.includes(': ')
     ? `${err.debugCtx?.ctx}: ${err.message}`
     : err.message;
-  const lastLoggedTime = msg && lastLoggedTimes[msg];
+  const lastLoggedTime = msg && lastLoggedTimes.get(msg);
   const throttleDuration = level === 'warning' ? WARN_THROTTLE_DURATION : ERROR_THROTTLE_DURATION;
   if (lastLoggedTime && performance.now() - lastLoggedTime < throttleDuration) {
     return;
   }
-  lastLoggedTimes[msg] = performance.now();
+  lastLoggedTimes.set(msg, performance.now());
 
   if (Sentry) {
-    const debugCtx: ObjectOf<any> = {};
+    const debugCtx: ObjectOf<any> = Object.create(null);
     if (err.debugCtx) {
       for (const [k, v] of Object.entries(err.debugCtx)) {
         debugCtx[k] = `${typeof v === 'object' ? JSON.stringify(v) : v}`.slice(0, 1000);
@@ -74,7 +74,7 @@ export const setErrorLoggerUserId = (userId: Nullish<IUser['id']>) => {
 
 const ErrorLogger = {
   warn(_err: Error, debugCtx?: ObjectOf<any>, consoleLog = true) {
-    const err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
+    const err = debugCtx ? getErr(_err, debugCtx) : _err;
     if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
       console.warn(formatErr(err));
@@ -83,7 +83,7 @@ const ErrorLogger = {
   },
 
   error(_err: Error, debugCtx?: ObjectOf<any>, consoleLog = true) {
-    const err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
+    const err = debugCtx ? getErr(_err, debugCtx) : _err;
     if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
       console.error(formatErr(err));
@@ -92,7 +92,7 @@ const ErrorLogger = {
   },
 
   fatal(_err: Error, debugCtx?: ObjectOf<any>, consoleLog = true) {
-    const err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
+    const err = debugCtx ? getErr(_err, debugCtx) : _err;
     if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
       console.error(formatErr(err));
@@ -107,15 +107,14 @@ export const loadErrorLogger = (userId : EntityId | null) => {
   }
   latestUserId = userId;
 
-  import(/* webpackChunkName: 'initSentry' */ 'services/initSentry')
+  import(
+    /* webpackChunkName: 'initSentry' */ 'services/initSentry'
+  )
     .then(module => {
       Sentry = module.default;
       Sentry.configureScope(scope => {
         const os = detectOs(window.navigator.userAgent);
-        let params: ObjectOf<any> | undefined;
-        try {
-          params = qs.parse(window.location.search.slice(1));
-        } catch {}
+        const params = getUrlParams();
 
         scope.setUser({ id: latestUserId?.toString() });
         scope.setTag('userId', latestUserId);
@@ -130,8 +129,11 @@ export const loadErrorLogger = (userId : EntityId | null) => {
         scope.setTag('hash', window.location.hash.slice(1));
 
         if (params) {
-          for (const [k, v] of TS.objEntries(params)) {
-            scope.setTag(`param:${k}`, v);
+          for (const [k, v] of params.entries()) {
+            scope.setTag(
+              `param:${k}`,
+              typeof v === 'string' ? v : JSON.stringify(v),
+            );
           }
         }
       });

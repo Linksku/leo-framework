@@ -1,14 +1,14 @@
-import { Body } from 'aws-sdk/clients/s3';
+import type { Readable } from 'stream';
 import path from 'path';
 import os from 'os';
 
 import promiseTimeout from 'utils/promiseTimeout';
-import { API_POST_TIMEOUT } from 'settings';
+import { API_POST_TIMEOUT, DEFAULT_ASSETS_CACHE_TTL } from 'settings';
 import { SPACES_HOST } from 'consts/infra';
 import Spaces from './Spaces';
 
 type Props = {
-  file: Body,
+  file: Buffer | Uint8Array | Readable,
   path: string,
   contentType: string,
   maxAge?: number,
@@ -19,7 +19,7 @@ export default async function uploadToSpaces({
   file,
   path: outPath,
   contentType,
-  maxAge = 7 * 24 * 60 * 60,
+  maxAge = DEFAULT_ASSETS_CACHE_TTL,
 }: Props): Promise<string> {
   const prefix = process.env.PRODUCTION
     ? 'p/'

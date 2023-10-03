@@ -3,6 +3,4 @@ import MaterializedView, { MaterializedViewClass } from 'services/model/Material
 
 export default Object.values(allModels)
   .map(model => model.Model)
-  .filter(
-    model => model.prototype instanceof MaterializedView,
-  ) as MaterializedViewClass[];
+  .filter(Model => TS.extends(Model, MaterializedView)) as MaterializedViewClass[];

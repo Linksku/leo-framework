@@ -2,9 +2,9 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
 import path from 'path';
 
-import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
-import transformWebpackCopied from './scripts/helpers/transformWebpackCopied';
-import baseConfig from './webpack.web';
+import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
+import transformWebpackCopied from './scripts/helpers/transformWebpackCopied.js';
+import baseConfig from './webpack.web.js';
 
 if (process.env.NODE_ENV !== 'development') {
   throw new Error('NODE_ENV isn\'t development');

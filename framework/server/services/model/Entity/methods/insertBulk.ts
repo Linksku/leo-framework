@@ -14,7 +14,7 @@ function insertBulk<T extends EntityClass, Obj extends ModelPartialExact<T, Obj>
   this: T,
   objs: Obj[],
   opts?: {
-    onDuplicate?: 'update' | 'ignore',
+    onDuplicate?: 'error' | 'update',
     trx?: Knex.Transaction,
   },
 ): Promise<EntityInstance<T>[]>;
@@ -54,7 +54,9 @@ async function insertBulk<T extends EntityClass, Obj extends ModelPartialExact<T
       ? objs.find(obj => uniqueIndex.some(col => !obj[col]))
       : objs.find(obj => !obj[uniqueIndex]);
     if (nonUniqueObj) {
-      throw new Error(`${this.name}.insertBulk: object doesn't have unique key: ${Object.keys(nonUniqueObj).join(',')}`);
+      throw new Error(
+        `${this.name}.insertBulk: object doesn't have unique key: ${Object.keys(nonUniqueObj).join(',')}`,
+      );
     }
   }
 

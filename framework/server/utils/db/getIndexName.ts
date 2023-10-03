@@ -1,7 +1,7 @@
 export default function getIndexName(table: string, _cols: string | string[]) {
   const cols = Array.isArray(_cols) ? _cols : [_cols];
   const name = `${table}_${cols.join('_')}_idx`
-    .replace(/ DESC NULLS LAST/g, '');
+    .replaceAll(' DESC NULLS LAST', '');
 
   if (name.includes(' ')
     || name.includes('"')

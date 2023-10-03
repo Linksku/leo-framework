@@ -1,9 +1,12 @@
+import Spinner from './Spinner';
+
 import styles from './ButtonStyles.scss';
 
-// todo: low/easy multiline vs single line buttons
 type Props = {
-  Component?: 'span' | 'div' | 'input' | 'button',
+  Element?: 'span' | 'div' | 'input' | 'button',
   color?: string,
+  backgroundColor?: string,
+  borderColor?: string,
   className?: string,
   label?: ReactNode,
   labelClassName?: string,
@@ -15,19 +18,22 @@ type Props = {
   borderless?: boolean,
   fullWidth?: boolean,
   href?: string,
-  onClick?: React.MouseEventHandler,
+  onClick?: React.MouseEventHandler<HTMLElement>,
   disabled?: boolean,
   active?: boolean,
   small?: boolean,
+  spinner?: boolean,
 } & React.HTMLAttributes<HTMLSpanElement>
   & React.InputHTMLAttributes<HTMLInputElement>
   & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
-// todo: low/easy add loading state: disabled with spinner icon
 function Button(
   {
-    Component = 'span',
+    Element = 'span',
     color,
+    backgroundColor,
+    borderColor,
+    // todo: low/mid replace className with an "overrides" prop
     className,
     label,
     labelClassName,
@@ -43,6 +49,7 @@ function Button(
     disabled = false,
     active = false,
     small = false,
+    spinner = false,
     children,
     style,
     ...props
@@ -50,8 +57,13 @@ function Button(
   ref?: React.ForwardedRef<HTMLElement>,
 ) {
   if (!process.env.PRODUCTION) {
-    if (Component === 'input' && label) {
-      throw new Error('Button: input can\'t have label, use value.');
+    if (Element === 'input') {
+      if (label) {
+        throw new Error('Button: input can\'t have label, use value.');
+      }
+      if (spinner) {
+        ErrorLogger.warn(new Error('Button: input can\'t have spinner.'));
+      }
     }
     if (children) {
       throw new Error('Button: use label instead of children.');
@@ -78,23 +90,39 @@ function Button(
             </span>
           )
           : label}
-        {RightSvg && (
-          <RightSvg
-            className={cx(styles.rightSvg, {
-              [styles.rightSvgWithLabel]: label,
-            }, rightSvgClassName)}
-            style={{
-              fill: color,
-            }}
-          />
-        )}
+        {RightSvg
+          ? (
+            <RightSvg
+              className={cx(styles.rightSvg, {
+                [styles.rightSvgWithLabel]: label,
+              }, rightSvgClassName)}
+              style={{
+                fill: color,
+              }}
+            />
+          )
+          : (spinner && (
+            <div
+              className={cx({
+                [styles.rightSvgWithLabel]: label,
+              })}
+            >
+              <Spinner color={color ?? '#fff'} dimRem={1.8} />
+            </div>
+          ))}
       </>
     )
     : null;
+  const allStyles = {
+    color,
+    backgroundColor,
+    borderColor: borderColor ?? (outline ? color : backgroundColor),
+    ...style,
+  };
 
   if (!href) {
     return (
-      <Component
+      <Element
         // @ts-ignore ref type
         ref={ref}
         className={cx(styles.btn, className, {
@@ -105,16 +133,12 @@ function Button(
           [styles.disabled]: disabled,
           [styles.small]: small,
         })}
-        style={{
-          color,
-          borderColor: outline ? color : undefined,
-          ...style,
-        }}
+        style={allStyles}
         role="button"
         tabIndex={0}
         onClick={
           onClick
-            ? (event: React.MouseEvent) => {
+            ? (event: React.MouseEvent<HTMLElement>) => {
               if (!disabled && onClick) {
                 onClick(event);
               }
@@ -127,7 +151,7 @@ function Button(
         {...props}
       >
         {inner}
-      </Component>
+      </Element>
     );
   }
 
@@ -144,11 +168,7 @@ function Button(
         [styles.disabled]: disabled,
         [styles.small]: small,
       })}
-      style={{
-        color,
-        borderColor: outline ? color : undefined,
-        ...style,
-      }}
+      style={allStyles}
       onClick={!disabled && onClick ? onClick : undefined}
       disabled={disabled}
       {...props}

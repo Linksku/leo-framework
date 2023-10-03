@@ -2,8 +2,6 @@ import getUrlsIndices from 'utils/getUrlsIndices';
 import { forbiddenSubStrs, unsafeSubStrs } from 'consts/unsafeWords';
 import useMemoDeferred from 'hooks/useMemoDeferred';
 
-import styles from './ContentWithLinksStyles.scss';
-
 const allUnsafeSubstrs = [
   ...forbiddenSubStrs,
   ...unsafeSubStrs,
@@ -38,6 +36,7 @@ export default function ContentWithLinks({ content }: { content: string }) {
               : `https://${url}`}
             rel="noreferrer noopener nofollow"
             target="_blank"
+            blue
           >
             {url}
           </Link>,
@@ -48,7 +47,7 @@ export default function ContentWithLinks({ content }: { content: string }) {
     }, [content]),
   );
   return (
-    <span className={styles.content}>
+    <span>
       {contentWithLinks}
     </span>
   );

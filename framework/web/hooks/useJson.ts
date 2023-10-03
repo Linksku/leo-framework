@@ -2,21 +2,21 @@ import safeParseJson from 'utils/safeParseJson';
 
 function useJson<T>(
   json: string,
-  validator: Memoed<(val2: any) => boolean>,
-  err: Memoed<Error>,
-): Memoed<T>;
+  validator: Stable<(val2: any) => boolean>,
+  err: Stable<Error>,
+): Stable<T>;
 
 function useJson<T>(
   json: string,
-  validator?: Memoed<(val2: any) => boolean>,
-  err?: Memoed<Error>,
-): Memoed<T> | undefined;
+  validator?: Stable<(val2: any) => boolean>,
+  err?: Stable<Error>,
+): Stable<T> | undefined;
 
 function useJson<T>(
   json: string,
-  validator?: Memoed<(val2: any) => boolean>,
-  err?: Memoed<Error>,
-): Memoed<T> | undefined {
+  validator?: Stable<(val2: any) => boolean>,
+  err?: Stable<Error>,
+): Stable<T> | undefined {
   return useMemo(() => {
     const val = safeParseJson<T>(
       json,

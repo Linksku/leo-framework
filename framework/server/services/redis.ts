@@ -14,14 +14,10 @@ const redisConfig = {
 };
 
 export function shouldIgnoreRedisError(err: any) {
-  if (err.code === 'ECONNREFUSED'
+  return err.code === 'ECONNREFUSED'
     || err.code === 'ECONNRESET'
     || err.code === 'ENOTFOUND'
-    || err.message === 'Command timed out') {
-    return true;
-  }
-
-  return false;
+    || err.message === 'Command timed out';
 }
 
 // Note: apparently pub/sub is expensive on large cluster,
@@ -54,7 +50,6 @@ export const redisPub = ServiceContextLocalStorage.run(
 
 // For global config, locks, etc.
 // todo: mid/mid create separate Redis clusters
-// todo: mid/hard maybe replace with Zookeeper
 export const redisMaster = ServiceContextLocalStorage.run(
   createServiceContext('redisMaster'),
   () => {
@@ -68,7 +63,7 @@ export const redisMaster = ServiceContextLocalStorage.run(
   },
 );
 
-// For values that don't mind being duplicated
+// For values that don't mind being duplicated across servers
 const redis = ServiceContextLocalStorage.run(
   createServiceContext('redis'),
   () => {
@@ -81,22 +76,5 @@ const redis = ServiceContextLocalStorage.run(
     return redis2;
   },
 );
-
-redis.defineCommand('flushprefix', {
-  numberOfKeys: 1,
-  lua: `
-local cursor = 0
-local dels = 0
-repeat
-    local result = redis.call('SCAN', cursor, 'MATCH', ARGV[1])
-    for _,key in ipairs(result[2]) do
-        redis.call('UNLINK', key)
-        dels = dels + 1
-    end
-    cursor = tonumber(result[1])
-until cursor == 0
-return dels
-`,
-});
 
 export default redis;

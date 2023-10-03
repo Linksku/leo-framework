@@ -10,3 +10,9 @@ export const SCREEN_LG = 1200;
 export const CONTAINER_MAX_WIDTH = SCREEN_LG;
 
 export const PRIMARY_COLOR = '#2196f3';
+
+// From Chrome device mode
+export const CLICK_MAX_WAIT = 700;
+
+// Approx from trial and error
+export const IOS_EDGE_SWIPE_PX = 30;

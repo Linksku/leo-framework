@@ -1,25 +1,29 @@
+import AngleDownSvg from 'fa5/svg/angle-down-solid.svg';
+import AngleUpSvg from 'fa5/svg/angle-up-solid.svg';
+
 import type { Props as DropdownProps } from 'components/ui/DropdownMenu';
 import { useThrottle } from 'utils/throttle';
 import useLatest from 'hooks/useLatest';
 import mergeRefs from 'utils/mergeRefs';
-import useEffectOncePerDeps from 'hooks/useEffectOncePerDeps';
+import shallowEqual from 'utils/shallowEqual';
 import Input from './Input';
 import DropdownMenu, { Options, RenderOption } from './DropdownMenu';
+
 import styles from './TypeaheadStyles.scss';
 
 export type Props = {
-  fetchResults: Memoed<(s: string) => Options | null | Promise<Options | null>>,
+  fetchResults: Stable<(s: string) => Options | null | Promise<Options | null>>,
   renderOption?: RenderOption,
-  onSelectOption?: Memoed<(key: string | null, val?: string) => void>,
+  onSelectOption?: Stable<(key: string | null, val?: string) => void>,
   clearOnSelect?: boolean,
   defaultResults?: Options,
   defaultValue?: string,
   defaultValueUpdates?: number,
   className?: string | null,
-  inputProps: Memoed<Parameters<typeof Input>[0]>,
-  inputRef?: Memoed<React.RefCallback<HTMLInputElement>>,
-  dropdownProps?: Memoed<Partial<MemoObjShallow<DropdownProps>>>,
-  filteredValues?: Memoed<Set<string | null>>,
+  inputProps: Stable<Parameters<typeof Input>[0]>,
+  inputRef?: Stable<React.RefCallback<HTMLInputElement>>,
+  dropdownProps?: Stable<Partial<StableObjShallow<DropdownProps>>>,
+  filteredValues?: Stable<Set<string | null>>,
 };
 
 export default React.memo(function Typeahead({
@@ -47,33 +51,48 @@ export default React.memo(function Typeahead({
     input: defaultValue ?? '',
     isFocused: false,
     fetching: false,
-    inputToResults: {} as Memoed<ObjectOf<Options | null>>,
+    inputToResults: new Map() as Stable<Map<string, Options | null>>,
   });
   const stateRef = useLatest({
     inputToResults,
   });
   const throttledFetchResults = useThrottle(
-    async (newInput: string) => {
-      if (TS.hasProp(stateRef.current.inputToResults, newInput)) {
-        setState({ input: newInput, fetching: false });
+    async (
+      newInput: string,
+      // React doesn't batch if focus is set in onFocus
+      shouldFocus: boolean,
+    ) => {
+      if (stateRef.current.inputToResults.has(newInput)) {
+        setState(s => ({
+          fetching: false,
+          isFocused: shouldFocus || s.isFocused,
+        }));
         return;
       }
 
-      setState({ fetching: true });
-      let data = await fetchResults(newInput);
-      if (data && !data.length) {
+      setState(s => ({
+        fetching: true,
+        isFocused: shouldFocus || s.isFocused,
+      }));
+      let data: Nullish<Options> = await fetchResults(newInput);
+      if (!data?.length) {
         data = EMPTY_ARR;
       }
-      setState(s => ({
-        inputToResults: s.inputToResults[newInput] === data
-          ? s.inputToResults
-          : markMemoed({
-            ...s.inputToResults,
-            [newInput]: data as Options | null,
-          }),
-        input: newInput,
-        fetching: false,
-      }));
+      setState(s => {
+        if (shallowEqual(s.inputToResults.get(newInput), data)) {
+          return {
+            ...s,
+            fetching: false,
+          };
+        }
+        const newInputToResults = markStable(new Map(s.inputToResults));
+        newInputToResults.set(newInput, data ?? null);
+        return {
+          ...s,
+          inputToResults: newInputToResults,
+          fetching: false,
+        };
+      });
     },
     useConst({
       timeout: 1000,
@@ -81,12 +100,12 @@ export default React.memo(function Typeahead({
     [fetchResults],
   );
 
-  useEffectOncePerDeps(() => {
+  useEffect(() => {
     setState({ input: defaultValue ?? '' });
-  }, [defaultValue, defaultValueUpdates]);
+  }, [defaultValue, defaultValueUpdates, setState]);
 
   useEffect(() => {
-    if (inputRef.current) {
+    if (inputRef.current && inputRef.current.value !== input) {
       // https://stackoverflow.com/a/46012210/599184
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const setValue = TS.defined(Object.getOwnPropertyDescriptor(
@@ -110,36 +129,36 @@ export default React.memo(function Typeahead({
     }
   }, [inputProps.disabled, setState]);
 
+  const defaultResultsIfEmpty = input ? null : defaultResults;
   const results = useMemo(
     () => {
-      if (!input) {
-        return defaultResults;
+      if (defaultResultsIfEmpty) {
+        return defaultResultsIfEmpty;
       }
-      const results2 = inputToResults[input];
-      return results2?.length
-        ? results2.filter(val => !filteredValues || !filteredValues.has(val.key))
-        : null;
+      const results2 = inputToResults.get(input);
+      if (!filteredValues) {
+        return results2;
+      }
+      return results2?.filter(val => !filteredValues || !filteredValues.has(val.key));
     },
-    [inputToResults, input, filteredValues, defaultResults],
+    [inputToResults, input, filteredValues, defaultResultsIfEmpty],
   );
+  const nullState = input ? dropdownProps?.nullState : null;
   const open = isFocused
     && !!results
-    && !!(results.length || dropdownProps?.nullState || dropdownProps?.lastElement);
+    && !!(results.length || nullState || dropdownProps?.lastElement || fetching);
+  // todo: mid/mid add clear input btn to typeahead
   return (
     <div
       ref={containerRef}
-      className={cx(styles.container, className, {
-        [styles.open]: open,
-      })}
+      className={cx(styles.container, className)}
     >
       <Input
         ref={mergeRefs(inputRef, inputRefProp)}
-        className={styles.input}
         onFocus={inputProps.disabled
           ? undefined
           : () => {
-            setState({ isFocused: true });
-            throttledFetchResults(input.trim());
+            throttledFetchResults(input.trim(), true);
           }}
         onBlur={inputProps.disabled
           ? undefined
@@ -147,14 +166,24 @@ export default React.memo(function Typeahead({
             setState({ isFocused: false });
           }}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-          throttledFetchResults(event.target.value.trim());
+          const newInput = event.target.value.trim();
+          setState({ input: newInput });
+          throttledFetchResults(newInput, false);
         }}
         defaultValue={input}
         autoComplete="off"
+        suffix={
+          open ? <AngleUpSvg /> : <AngleDownSvg />
+        }
+        marginBottom={0}
+        className={cx({
+          [styles.openInput]: open,
+        })}
         {...inputProps}
+        error={open ? !!inputProps.error : inputProps.error}
       />
       <DropdownMenu
-        options={results ?? EMPTY_ARR}
+        options={results?.length ? results : EMPTY_ARR}
         renderOption={renderOption}
         open={open}
         fetching={fetching}
@@ -162,9 +191,9 @@ export default React.memo(function Typeahead({
           (event: React.MouseEvent, key: string | null, name: string) => {
             event.preventDefault();
             if (clearOnSelect) {
-              setState({ input: '' });
+              setState({ input: '', isFocused: false });
             } else {
-              setState({ input: name });
+              setState({ input: name, isFocused: false });
             }
 
             if (inputRef.current) {
@@ -175,6 +204,7 @@ export default React.memo(function Typeahead({
           [clearOnSelect, onSelectOption, setState],
         )}
         {...dropdownProps}
+        nullState={nullState}
       />
     </div>
   );

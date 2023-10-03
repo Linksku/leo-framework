@@ -23,9 +23,10 @@ export default class RedisDataLoader<
         const pipeline = redis.pipeline();
         for (const k of keys) {
           if (transformKey) {
-            (pipeline[command] as AnyFunction)(...transformKey(k));
+            // "as any" for perf
+            (pipeline as any)[command](...(transformKey as any)(k));
           } else {
-            (pipeline[command] as AnyFunction)(k);
+            (pipeline as any)[command](k);
           }
         }
         const results = await pipeline.exec();

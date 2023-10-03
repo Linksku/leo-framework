@@ -5,12 +5,12 @@ import {
   DBZ_TOPIC_UPDATEABLE_PREFIX,
   DBZ_TOPIC_INSERT_ONLY_PREFIX,
   MZ_TIMESTAMP_FREQUENCY,
+  MZ_KAFKA_CONSUMER_PREFIX,
 } from 'consts/mz';
 import { KAFKA_BROKER_INTERNAL_PORT, SCHEMA_REGISTRY_PORT } from 'consts/infra';
-import retry from 'utils/retry';
+import retry, { FORCE_STOP_RETRY } from 'utils/retry';
 import showMzSystemRows from 'utils/db/showMzSystemRows';
 import getEntitiesWithMZSources from './getEntitiesWithMZSources';
-import waitForMZSourcesCatchUp from '../steps/waitForMZSourcesCatchUp';
 
 const limiter = pLimit(5);
 
@@ -30,6 +30,7 @@ export default async function createMZDBZSource(models: EntityClass[], insertOnl
 
   await Promise.all(sourcesToCreate.map(model => limiter(async () => {
     printDebug(`Creating source for ${model.type}`, 'info');
+    const startSource = performance.now();
     await retry(
       async () => {
         try {
@@ -42,13 +43,27 @@ export default async function createMZDBZSource(models: EntityClass[], insertOnl
             FROM KAFKA BROKER 'broker:${KAFKA_BROKER_INTERNAL_PORT}'
             TOPIC '${insertOnly ? DBZ_TOPIC_INSERT_ONLY_PREFIX : DBZ_TOPIC_UPDATEABLE_PREFIX}${model.tableName}'
             WITH (
-              timestamp_frequency_ms = ${MZ_TIMESTAMP_FREQUENCY}
+              ${process.env.PRODUCTION
+                ? ''
+                // docker exec broker /opt/bitnami/kafka/bin/kafka-consumer-groups.sh --list --bootstrap-server broker:29092
+                : `
+                  group_id_prefix = '${MZ_KAFKA_CONSUMER_PREFIX}',
+                  enable_auto_commit = true,
+                `}
+              timestamp_frequency_ms = ${MZ_TIMESTAMP_FREQUENCY},
+              fetch_message_max_bytes = 10485760
             )
             FORMAT AVRO USING CONFLUENT SCHEMA REGISTRY 'http://schema-registry:${SCHEMA_REGISTRY_PORT}'
             ENVELOPE ${insertOnly ? 'NONE' : 'DEBEZIUM UPSERT'}
           `);
         } catch (err) {
-          if (!(err instanceof Error && err.message.includes('already exists'))) {
+          if (err instanceof Error && err.message.includes('already exists')) {
+            // pass
+          } else if (err instanceof Error
+            && err.message.includes('registry: subject not found')
+            && performance.now() - startSource > 60 * 1000) {
+            throw FORCE_STOP_RETRY;
+          } else {
             throw err instanceof Error
               ? getErr(err, { ctx: `createMZDBZSource(${model.type})` })
               : err;
@@ -63,7 +78,8 @@ export default async function createMZDBZSource(models: EntityClass[], insertOnl
     );
   })));
 
-  await waitForMZSourcesCatchUp(sourcesToCreate);
-
-  printDebug(`Created MZ ${insertOnly ? 'insert-only' : 'updateable'} sources after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `Created MZ ${insertOnly ? 'insert-only' : 'updateable'} sources after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

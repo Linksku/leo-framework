@@ -10,7 +10,12 @@ import {
   DOMAIN_NAME,
   DEFAULT_COOKIES_TTL,
 } from 'settings';
-import { getBirthdayInvalidReason, getNameInvalidReason, getPasswordInvalidReason } from 'helpers/users/validateUser';
+import {
+  getBirthdayInvalidReason,
+  getNameInvalidReason,
+  getEmailInvalidReason,
+  getPasswordInvalidReason,
+} from 'helpers/users/validateUser';
 import { getCookieJwt, getHeaderJwt } from 'helpers/auth/jwt';
 import { getPasswordHash, isPasswordValid } from 'helpers/auth/passwords';
 import waitForUserInsert from 'config/waitForUserInsert';
@@ -21,12 +26,24 @@ const RESET_PASSWORD_THROTTLE = 10 * 60 * 1000;
 const RESET_PASSWORD_EXPIRE = 60 * 60 * 1000;
 type ResetPasswordMetaValue = { hash: string, time: number };
 
+async function _getAuthUser(email: string, password: string): Promise<User | null> {
+  const user = await User.selectOne({ email: email.toLowerCase() });
+  if (!user) {
+    return null;
+  }
+  const userAuth = await UserAuth.selectOne({ userId: user.id });
+  if (!userAuth || !await isPasswordValid(userAuth.password, password)) {
+    return null;
+  }
+  return user;
+}
+
 const userDataSchema = TS.literal({
   type: 'object',
   required: ['currentUserId', 'authToken'],
   properties: {
     currentUserId: SchemaConstants.id,
-    authToken: { type: 'string' },
+    authToken: SchemaConstants.content,
   },
   additionalProperties: false,
 } as const);
@@ -90,6 +107,11 @@ defineApi(
       throw new UserFacingError(invalidBirthdayReason, 400);
     }
 
+    const emailInvalidReason = getEmailInvalidReason(email);
+    if (emailInvalidReason) {
+      throw new UserFacingError(emailInvalidReason, 400);
+    }
+
     const invalidPasswordReason = getPasswordInvalidReason(password);
     if (invalidPasswordReason) {
       throw new UserFacingError(invalidPasswordReason, 400);
@@ -109,33 +131,49 @@ defineApi(
           email: email.toLowerCase(),
           name,
           birthday,
-        }, { trx });
+        }, {
+          trx,
+          onDuplicate: 'error',
+        });
         await UserAuth.insert({
           userId: inserted.id,
           password: await getPasswordHash(password),
         }, { trx });
         return inserted;
       });
-      await waitForUserInsert(
-        user.id,
-        {
-          timeoutErrMsg: 'Timed out while creating account, please try again or try logging in later.',
-        },
-      );
+      await waitForUserInsert(user.id);
       userId = user.id;
     } catch (err) {
       if (err instanceof UniqueViolationError
-        && (err.constraint === 'email' || err.constraint === User.cols.email)) {
-        throw new UserFacingError('That email address is already taken, please try a different one.', 400);
-      }
-      if (err instanceof Error && err.message.includes('timed out')) {
+        && (err.constraint === 'email'
+        || err.constraint === User.cols.email
+        || err.columns.includes('email'))) {
+        const user = await _getAuthUser(email, password);
+        if (!user) {
+          throw new UserFacingError(
+            'That email address is already taken, please try logging in.',
+            400,
+          );
+        }
+        const userAuth = await UserAuth.selectOne({ userId: user.id });
+        // If user just signed up, they might be retrying signup form.
+        if (!userAuth || Date.now() - userAuth.registerTime.getTime() > 60 * 60 * 1000) {
+          throw new UserFacingError(
+            'That email address is already taken, please try logging in.',
+            400,
+          );
+        }
+
+        userId = user.id;
+      } else if (err instanceof Error && err.message.includes('timed out')) {
         throw new UserFacingError(
           'Timed out while creating user',
           503,
           { ...(err instanceof Error && err.debugCtx), origErr: err },
         );
+      } else {
+        throw err;
       }
-      throw err;
     }
 
     return _sendAuthToken(userId, res);
@@ -166,12 +204,8 @@ defineApi(
       throw new UserFacingError('Already logged in.', 400);
     }
 
-    const user = await User.selectOne({ email: email.toLowerCase() });
+    const user = await _getAuthUser(email, password);
     if (!user) {
-      throw new UserFacingError('Email or password is incorrect.', 400);
-    }
-    const userAuth = await UserAuth.selectOne({ userId: user.id });
-    if (!userAuth || !await isPasswordValid(userAuth.password, password)) {
       throw new UserFacingError('Email or password is incorrect.', 400);
     }
 
@@ -207,7 +241,10 @@ defineApi(
         val => val && typeof val === 'object' && val.hash && typeof val.time === 'number',
       );
       if (metaValue && metaValue.time > Date.now() - RESET_PASSWORD_THROTTLE) {
-        throw new UserFacingError('A password reset was requested for this account recently. Please try again later.', 400);
+        throw new UserFacingError(
+          'A password reset was requested for this account recently. Please try again later.',
+          400,
+        );
       }
     }
 

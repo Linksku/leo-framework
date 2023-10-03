@@ -6,6 +6,8 @@ export default function validateNotUniquePartial<T extends ModelClass>(
 ): void {
   const uniqueIndex = getPartialUniqueIndex(Model, partial);
   if (uniqueIndex) {
-    throw new Error(`validateNotUniquePartial: can't use unique partial for ${Model.type}: ${Object.keys(partial).join(',')}`);
+    throw new Error(
+      `validateNotUniquePartial: can't use unique partial for ${Model.type}: ${Object.keys(partial).join(',')}`,
+    );
   }
 }

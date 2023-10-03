@@ -3,6 +3,8 @@ import promiseTimeout from 'utils/promiseTimeout';
 import { API_TIMEOUT, API_POST_TIMEOUT } from 'settings';
 import TimeoutError from 'core/TimeoutError';
 import safeParseJson from 'utils/safeParseJson';
+import getUrlParams from 'utils/getUrlParams';
+import isDebug from 'utils/isDebug';
 
 type FetcherOpts = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
@@ -14,7 +16,24 @@ type FetcherOpts = {
   timeout?: number,
 };
 
-async function _fetcher(
+function _createFullUrl(url: string, params: ObjectOf<string | number | boolean> = {}) {
+  params = {
+    ...params,
+    DEBUG: isDebug || !!getUrlParams().get('debug') || undefined,
+  };
+  const newParams = removeUndefinedValues(params);
+  if (!Object.keys(newParams).length) {
+    return url;
+  }
+
+  let newUrl = `${url}${url.includes('?') ? '&' : '?'}`;
+  for (const k of Object.keys(newParams)) {
+    newUrl += `${encodeURIComponent(k)}=${encodeURIComponent(newParams[k])}&`;
+  }
+  return newUrl.slice(0, -1);
+}
+
+async function _getFetchResponse(
   url: string,
   method: string,
   body = null as BodyInit | null,
@@ -26,10 +45,10 @@ async function _fetcher(
     priority,
   }: FetcherOpts = {},
 ): Promise<{
-  data?: unknown,
+  res?: Response,
   status: number,
 }> {
-  const headers: HeadersInit = {};
+  const headers: HeadersInit = Object.create(null);
   const request: RequestInit = {
     method,
     cache,
@@ -69,25 +88,13 @@ async function _fetcher(
       status: 204,
     };
   }
-
-  const text = await res.text();
-  const data = safeParseJson(text);
-  if (data === undefined) {
-    const err = getErr('fetcher: unable to parse JSON', {
-      url,
-      text: text.slice(0, 200),
-    });
-    ErrorLogger.warn(err);
-    throw err;
-  }
-
   return {
-    data,
+    res,
     status: res.status,
   };
 }
 
-function _fetcherWrap(
+function _fetchJson(
   url: string,
   method: string,
   body = null as BodyInit | null,
@@ -98,36 +105,37 @@ function _fetcherWrap(
       ? `Fetch(${url}) timed out`
       : 'Request timed out',
   );
-  return promiseTimeout(
-    _fetcher(
-      url,
-      method,
-      body,
-      opts,
-    ),
+  return promiseTimeout<Promise<{
+    data?: JsonPrimitive | ObjectOf<any> | any[] | undefined,
+    status: number,
+  }>>(
+    (async () => {
+      const { res, status } = await _getFetchResponse(url, method, body, opts);
+      if (!res) {
+        return { status };
+      }
+
+      const text = await res.text();
+      const data = safeParseJson(text);
+      if (data === undefined) {
+        const err = getErr('fetcher: unable to parse JSON', {
+          url,
+          text: text.slice(0, 200),
+        });
+        ErrorLogger.warn(err);
+        throw err;
+      }
+
+      return {
+        data,
+        status,
+      };
+    })(),
     opts.timeout
       // Allow for a bit of transport time
       ?? ((method === 'GET' ? API_TIMEOUT : API_POST_TIMEOUT) + 1000),
     timeoutErr,
   );
-}
-
-function _createFullUrl(url: string, params: ObjectOf<string | number | boolean> = {}) {
-  params = {
-    ...params,
-    DEBUG: !!window.localStorage.getItem('DEBUG') || undefined,
-    PROFILING: !!window.localStorage.getItem('PROFILING') || undefined,
-  };
-  const newParams = removeUndefinedValues(params);
-  if (!Object.keys(newParams).length) {
-    return url;
-  }
-
-  let newUrl = `${url}${url.includes('?') ? '&' : '?'}`;
-  for (const k of Object.keys(newParams)) {
-    newUrl += `${encodeURIComponent(k)}=${encodeURIComponent(newParams[k])}&`;
-  }
-  return newUrl.slice(0, -1);
 }
 
 const fetcher = {
@@ -136,7 +144,7 @@ const fetcher = {
     params: ObjectOf<string | number | boolean> = {},
     opts: FetcherOpts = {},
   ) {
-    return _fetcherWrap(
+    return _fetchJson(
       _createFullUrl(url, params),
       opts.method || 'GET',
       null,
@@ -144,9 +152,29 @@ const fetcher = {
     );
   },
 
+  async getStream(
+    url: string,
+    params: ObjectOf<string | number | boolean> = {},
+    opts: FetcherOpts = {},
+  ) {
+    const { res, status } = await _getFetchResponse(
+      _createFullUrl(url, params),
+      opts.method || 'GET',
+      null,
+      opts,
+    );
+    if (!res) {
+      return { status };
+    }
+    return {
+      stream: res.body?.getReader(),
+      status,
+    };
+  },
+
   post(url: string, _body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
     const body = Object.keys(_body).length ? JSON.stringify(_body) : '';
-    return _fetcherWrap(_createFullUrl(url), opts.method || 'POST', body, opts);
+    return _fetchJson(_createFullUrl(url), opts.method || 'POST', body, opts);
   },
 
   postForm(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
@@ -162,7 +190,7 @@ const fetcher = {
       }
     }
 
-    return _fetcherWrap(
+    return _fetchJson(
       _createFullUrl(url),
       opts.method || 'POST',
       formData,

@@ -4,7 +4,7 @@ declare module '*.scss' {
 }
 
 declare module '*.svg' {
-  const content: Memoed<React.SVGFactory>;
+  const content: Stable<React.SVGFactory>;
   export default content;
 }
 
@@ -28,20 +28,27 @@ interface Navigator {
     readonly mobile: boolean;
     readonly platform: string;
   };
+
+  readonly virtualKeyboard?: {
+    readonly show: () => void;
+    readonly hide: () => void;
+  };
 }
 
-type HistoryState = Memoed<{
+type HistoryState = Stable<{
   id: number,
   path: string,
-  query: Memoed<ObjectOf<string | string[]>>,
+  query: Stable<ObjectOf<string | number>>,
   queryStr: string | null,
   hash: string | null,
   key: string,
 }>;
 
-type RouteConfig = Memoed<MemoObjShallow<{
+type RouteConfig = Stable<StableObjShallow<{
   pattern: string | RegExp,
-  Component: React.ComponentType<unknown> | React.LazyExoticComponent<unknown>,
+  importComponent: () => Promise<{ default: React.ComponentType<unknown> }>,
+  Component: React.LazyExoticComponent<React.ComponentType<unknown>>,
+  regexPrefix: string | null,
   homeTab?: string,
   auth?: boolean,
   opts?: {

@@ -21,13 +21,13 @@ docker load --input build.tar
 rm build.tar
 
 yarn
-yarn build:types
 yarn dc restart server-script
 chmod -R 755 /etc/letsencrypt
-yarn dc --compatibility up -d --remove-orphans --no-recreate
-yarn dc stop monitor-infra
+letsencrypt renew
+yarn dc --compatibility up -d --remove-orphans --no-recreate \
+  --scale server=0 --scale monitor-infra=0
 
 rm app/pgdumpBT.sql
 rm app/pgdumpRR.sql
 yarn migrate:up
-yarn dc start monitor-infra
+yarn dc --compatibility up -d --remove-orphans --no-recreate

@@ -5,11 +5,15 @@ import deleteBTPublications from './steps/deleteBTPublications';
 import deleteDBZReplicationSlots from './steps/deleteDBZReplicationSlots';
 
 // Note: may leave behind dangling topics, connectors, slots, etc.
-export default function destroyMVInfra() {
-  return initInfraWrap(async () => {
+export default async function destroyMVInfra() {
+  await initInfraWrap(async () => {
     await Promise.all([
       (async () => {
-        await destroyMZ({ forceDeleteDBZConnectors: true, deleteMZSinkConnectors: true });
+        await destroyMZ({
+          forceDeleteDBZConnectors: true,
+          deleteMZSources: true,
+          deleteMZSinkConnectors: true,
+        });
         printDebug('Done destroying MZ and DBZ', 'success');
       })(),
       (async () => {
@@ -21,4 +25,5 @@ export default function destroyMVInfra() {
     await withErrCtx(deleteDBZReplicationSlots(), 'destroyMVInfra: deleteDBZReplicationSlots');
     await withErrCtx(deleteBTPublications(), 'destroyMVInfra: deleteBTPublications');
   });
+  await pause(1000);
 }

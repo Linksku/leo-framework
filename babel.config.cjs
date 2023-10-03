@@ -24,10 +24,10 @@ module.exports = {
       test: ['./app/web', './framework/web'],
       presets: [
         ['@babel/preset-react', {
-          pragma: 'ReactCreateElement',
-          pragmaFrag: 'ReactFragment',
           runtime: 'classic', // 'automatic' makes bundle a bit larger for now
           development: process.env.NODE_ENV !== 'production',
+          // Slightly reduce file size
+          pragma: 'ReactCreateElement',
         }],
       ],
       plugins: [

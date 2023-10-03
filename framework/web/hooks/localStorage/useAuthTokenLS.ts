@@ -1,6 +1,6 @@
-import useLocalStorage from 'hooks/useLocalStorage';
+import { useLocalStorage } from 'hooks/useStorage';
 
-const validator = markMemoed((val: unknown) => typeof val === 'string');
+const validator = markStable((val: unknown) => typeof val === 'string');
 
 export default function useAuthTokenLS() {
   return useLocalStorage<string>(

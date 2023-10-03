@@ -10,7 +10,10 @@ export default async function addMetaTags(req: ExpressRequest, html: string) {
     return html;
   }
 
-  const metaTags = await routeToMetaTags(req.path);
+  let metaTags: ObjectOf<string | null> | null = null;
+  try {
+    metaTags = await routeToMetaTags(req.path);
+  } catch {}
   if (!metaTags) {
     return html;
   }
@@ -19,7 +22,7 @@ export default async function addMetaTags(req: ExpressRequest, html: string) {
     return html;
   }
   const metaTagsHtml = metaTagsArr
-    .map(pair => `<meta name="${encode(pair[0])}" content="${encode(pair[1])}"/>`)
+    .map(pair => `<meta property="${encode(pair[0])}" content="${encode(pair[1])}"/>`)
     .join('\n');
 
   // todo: low/mid use EJS instead of injecting before </head>

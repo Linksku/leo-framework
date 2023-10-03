@@ -7,7 +7,7 @@ export default process.env.PRODUCTION
     return useUpdatedState(
       obj,
       s => (equal(s, obj) ? s : obj),
-    ) as MemoDeep<T>;
+    ) as StableDeep<T>;
   }
   : function useDeepMemoObj<T>(obj: T) {
     const ref = useRef({
@@ -33,5 +33,5 @@ export default process.env.PRODUCTION
     return useUpdatedState(
       obj,
       s => (equal(s, obj) ? s : obj),
-    ) as MemoDeep<T>;
+    ) as StableDeep<T>;
   };

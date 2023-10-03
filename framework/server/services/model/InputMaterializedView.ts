@@ -1,9 +1,8 @@
 import MaterializedView from './MaterializedView';
 
+// todo: low/mid remove InputMaterializedView
 class InputMaterializedView extends MaterializedView {
   static BTClass: EntityClass;
-
-  static insertOnly = false;
 }
 
 export type InputMaterializedViewClass = typeof InputMaterializedView;

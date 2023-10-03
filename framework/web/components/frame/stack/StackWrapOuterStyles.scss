@@ -1,6 +1,8 @@
 .container {
-  position: absolute;
-  top: 0;
+  // "fixed" is needed to prevent .focus() in the stack from scrolling the parent
+  // https://stackoverflow.com/q/75419337
+  position: fixed;
+  top: var(--top-inset-hack, 0px);
   left: 0;
   right: 0;
   height: var(--vh100, 100vh);

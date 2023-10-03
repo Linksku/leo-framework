@@ -10,6 +10,7 @@ export SERVER=$BUILD_SERVER
 mkdir -p build
 rm -rf build/production
 
+yarn build:types
 npx concurrently \
   "node --experimental-specifier-resolution=node \
     node_modules/webpack/bin/webpack.js \

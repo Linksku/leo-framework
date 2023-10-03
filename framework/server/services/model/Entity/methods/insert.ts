@@ -11,7 +11,7 @@ function insert<T extends EntityClass, Obj extends ModelPartialExact<T, Obj>>(
   this: T,
   obj: Obj,
   opts?: {
-    onDuplicate?: 'update' | 'ignore',
+    onDuplicate?: 'error' | 'update',
     trx?: Knex.Transaction,
   },
 ): Promise<EntityInstance<T>>;
@@ -25,6 +25,7 @@ function insert<T extends EntityClass, Obj extends ModelPartialExact<T, Obj>>(
   },
 ): Promise<EntityInstance<T> | null>;
 
+// todo: mid/hard don't use auto-incremented ids
 async function insert<T extends EntityClass, Obj extends ModelPartialExact<T, Obj>>(
   this: T,
   obj: Obj,

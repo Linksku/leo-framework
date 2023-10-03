@@ -7,6 +7,10 @@
   flex-direction: column;
 }
 
+.greyBackground {
+  background-color: $greyBackgroundColor;
+}
+
 .swipeable {
   touch-action: pan-y;
   // Note: scroll instead of auto to prevent width from changing

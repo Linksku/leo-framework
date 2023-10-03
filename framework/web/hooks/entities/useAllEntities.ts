@@ -1,9 +1,12 @@
 import { useSyncExternalStore } from 'react';
 
+import type { EntitiesMap } from 'stores/EntitiesStore';
+import { getEntitiesState } from 'stores/EntitiesStore';
+
 export default function useAllEntities<T extends EntityType>(
   entityType: T | null,
-): Memoed<ObjectOf<Memoed<TypeToEntity<T>>>> {
-  const { entitiesRef, addEntityListener } = useEntitiesStore();
+): EntitiesMap<Entity<T>> {
+  const { addEntityListener } = useEntitiesStore();
 
   return useSyncExternalStore(
     useCallback(cb => {
@@ -25,8 +28,8 @@ export default function useAllEntities<T extends EntityType>(
     }, [addEntityListener, entityType]),
     () => (entityType
       ? (
-        entitiesRef.current[entityType] || EMPTY_OBJ
-      ) as Memoed<ObjectOf<Memoed<TypeToEntity<T>>>>
-      : EMPTY_OBJ),
+        getEntitiesState().get(entityType) ?? EMPTY_MAP
+      ) as EntitiesMap<Entity<T>>
+      : EMPTY_MAP),
   );
 }

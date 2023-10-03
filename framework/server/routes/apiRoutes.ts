@@ -13,10 +13,10 @@ import requestContextMiddleware from 'routes/api/helpers/requestContextMiddlewar
 import formatAndLogApiErrorResponse from 'routes/api/helpers/formatAndLogApiErrorResponse';
 import { isHealthy } from 'services/healthcheck/HealthcheckManager';
 
+import streamApi from './api/streamApi';
 import './api/authApis';
 import './api/batchedApi';
-import './api/debugApi';
-import './api/notifsApi';
+import './api/debugApis';
 import './api/sseApis';
 import 'config/apis';
 
@@ -33,7 +33,7 @@ function healthcheckMiddleware(
   res: ExpressResponse,
   next: NextFunction,
 ) {
-  if (req.path === '/status' || isHealthy()) {
+  if (!process.env.PRODUCTION || req.path === '/status' || isHealthy(!process.env.PRODUCTION)) {
     next();
   } else {
     res.status(503)
@@ -94,7 +94,10 @@ const apis = getApis();
 
 if (!process.env.PRODUCTION) {
   router.use((req, res, next) => {
-    if (req.query?.DEBUG && req.path !== '/sseSubscribe' && req.path !== '/sseUnsubscribe') {
+    if (req.query?.DEBUG
+      && req.path !== '/sseSubscribe'
+      && req.path !== '/sseUnsubscribe'
+      && req.path !== '/checkEntityExists') {
       printDebug(`${req.method} ${req.path} start`, 'highlight');
 
       res.on('finish', () => {
@@ -122,11 +125,13 @@ router.use(cors({
 router.use(healthcheckMiddleware);
 router.use(cookieParser());
 router.use(addUserMiddleware);
-router.use(rateLimitMiddleware(100));
+router.use(rateLimitMiddleware(process.env.PRODUCTION ? 100 : 200));
 
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 router.use(requestContextMiddleware);
+
+router.get('/stream', streamApi);
 
 // Unauth.
 for (const api of apis) {

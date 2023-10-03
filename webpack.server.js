@@ -1,13 +1,13 @@
 import path from 'path';
-import mapValues from 'lodash/mapValues';
+import mapValues from 'lodash/mapValues.js';
 import webpack from 'webpack';
 
-import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
+import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
 import globals from './framework/server/config/globals.cjs';
 import globalsSrc from './app/server/config/globals.cjs';
 import sharedGlobals from './framework/shared/config/globals.cjs';
 import sharedGlobalsSrc from './app/shared/config/globals.cjs';
-import baseConfig from './webpack.common';
+import baseConfig from './webpack.common.js';
 
 export default mergeReplaceArrays(baseConfig, {
   target: 'node',
@@ -67,6 +67,7 @@ export default mergeReplaceArrays(baseConfig, {
   externals: [
     // Note: these packages have errors when bundled
     // Sync with package.docker.json
+    // todo: mid/mid generate docker package.json to use latest version
     {
       bcrypt: 'bcrypt',
       bull: 'bull',

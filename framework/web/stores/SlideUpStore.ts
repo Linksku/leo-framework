@@ -1,3 +1,4 @@
+import { useAnimatedValue } from 'hooks/useAnimation';
 import { useAddPopHandler } from './HistoryStore';
 
 export const [
@@ -9,9 +10,14 @@ export const [
   function SlideUpStore() {
     const [state, setState] = useStateStable({
       shown: false,
-      element: null as Memoed<ReactElement> | null,
+      element: null as Stable<ReactElement> | null,
+      numShown: 0,
     });
     const shownRef = useRef(state.shown);
+    const animatedShownPercent = useAnimatedValue(
+      0,
+      { debugName: 'SlideUps' },
+    );
     const addPopHandler = useAddPopHandler();
 
     const hideSlideUp = useCallback((instant?: boolean) => {
@@ -20,10 +26,21 @@ export const [
       } else {
         setState({ shown: false });
       }
-    }, [setState]);
+
+      animatedShownPercent.setVal(0, instant ? 0 : undefined);
+    }, [setState, animatedShownPercent]);
 
     const showSlideUp = useCallback((element: ReactElement) => {
-      setState({ shown: true, element: markMemoed(element) });
+      setState(s => ({
+        shown: true,
+        element: markStable(React.cloneElement(
+          element,
+          { key: s.numShown },
+        )),
+        numShown: s.numShown + 1,
+      }));
+
+      animatedShownPercent.setVal(100);
 
       addPopHandler(() => {
         if (shownRef.current) {
@@ -32,7 +49,7 @@ export const [
         }
         return false;
       });
-    }, [setState, addPopHandler, hideSlideUp]);
+    }, [setState, animatedShownPercent, addPopHandler, hideSlideUp]);
 
     useEffect(() => {
       shownRef.current = state.shown;
@@ -43,7 +60,14 @@ export const [
       hideSlideUp,
       slideUpShown: state.shown,
       slideUpElement: state.element,
-    }), [showSlideUp, hideSlideUp, state.shown, state.element]);
+      animatedShownPercent,
+    }), [
+      showSlideUp,
+      hideSlideUp,
+      state.shown,
+      state.element,
+      animatedShownPercent,
+    ]);
   },
   function SlideUpStore(val) {
     return val;

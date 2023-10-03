@@ -28,10 +28,11 @@ function getSchemaTypeError({ schema, colName, colType }: {
       return 'isn\'t boolean';
     }
   } else if (nonNullSchema?.instanceof === 'Date') {
-    if (colType === 'timestamp without time zone') {
-      return 'is missing timezone';
+    if (colType === 'timestamp with time zone') {
+      // timestamptz becomes string in DBZ, timestamp is int
+      return 'shouldn\'t have timezone';
     }
-    if (!['timestamp', 'timestamp with time zone', 'date', 'datetime'].includes(colType)) {
+    if (!['timestamp', 'timestamp without time zone', 'date', 'datetime'].includes(colType)) {
       return 'isn\'t date';
     }
   } else {

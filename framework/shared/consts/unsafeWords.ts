@@ -5,7 +5,7 @@ export const forbiddenSubStrs = [
   'jailbait',
   'negro',
   'nigg',
-  // todo: low/easy allow words like retardant
+  // todo: low/mid allow words like retardant
   'retard',
 ];
 

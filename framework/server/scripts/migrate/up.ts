@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 
 import { getMigrationState, updateMigrationState } from './helpers/migrationState';
 import { getMigration, getAllMigrations } from './helpers/migrationFiles';
-import syncDbAfterMigration from './helpers/syncDbAfterMigration';
+import syncMVsAfterMigration from './helpers/syncMVsAfterMigration';
 
 export default async function migrateUp(params: Arguments) {
   let paramsFilename = params._[2];
@@ -12,7 +12,7 @@ export default async function migrateUp(params: Arguments) {
       throw new TypeError('migrateUp: invalid migration file name');
     }
     const parts = paramsFilename.split('/');
-    paramsFilename = parts[parts.length - 1];
+    paramsFilename = parts.at(-1);
     if (!paramsFilename.endsWith('.ts')) {
       paramsFilename = `${paramsFilename.slice(0, -3)}.ts`;
     }
@@ -24,7 +24,7 @@ export default async function migrateUp(params: Arguments) {
       type: 'down',
       files: [paramsFilename],
     });
-    await syncDbAfterMigration();
+    await syncMVsAfterMigration();
 
     printDebug('Completed 1 migration', 'success');
     return;
@@ -58,15 +58,16 @@ export default async function migrateUp(params: Arguments) {
     }
   }
 
-  if (filesRan.length) {
-    await updateMigrationState(filesRan[filesRan.length - 1], {
+  if (TS.notEmpty(filesRan)) {
+    await updateMigrationState(filesRan.at(-1), {
       type: 'down',
       files: filesRan.reverse(),
     });
+  }
 
-    if (!hadError) {
-      await syncDbAfterMigration();
-    }
+  if (!hadError) {
+    printDebug('Sync MVs after migration', 'info');
+    await syncMVsAfterMigration();
   }
 
   printDebug(`Ran ${filesRan.length} migrations`, 'success');

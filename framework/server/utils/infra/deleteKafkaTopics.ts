@@ -1,4 +1,4 @@
-import chunk from 'lodash/chunk';
+import chunk from 'lodash/chunk.js';
 
 import kafkaAdmin from 'services/kafkaAdmin';
 import retry from 'utils/retry';
@@ -7,7 +7,7 @@ import listKafkaTopics from './listKafkaTopics';
 export default async function deleteKafkaTopics(prefixOrRegex: string | RegExp) {
   const topics = await listKafkaTopics(prefixOrRegex);
   if (!topics.length) {
-    return;
+    return 0;
   }
 
   // todo: low/mid deleteTopics can throw time out error, but time limit wasn't reached
@@ -44,9 +44,12 @@ export default async function deleteKafkaTopics(prefixOrRegex: string | RegExp) 
       }
     },
     {
-      timeout: 5 * 60 * 1000,
+      times: 3,
+      minTime: 60 * 1000,
       interval: 10 * 1000,
       ctx: `deleteKafkaTopics(${prefixOrRegex}): failed to delete topics`,
     },
   );
+
+  return topics.length;
 }

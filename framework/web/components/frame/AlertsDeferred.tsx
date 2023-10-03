@@ -1,8 +1,8 @@
 import type { Props } from './PullToReload';
 
-const Alerts = React.lazy(
-  async () => import(/* webpackChunkName: 'deferred' */ './Alerts'),
-);
+const Alerts = React.lazy(async () => import(
+  /* webpackChunkName: 'deferred' */ './Alerts'
+));
 
 export default React.memo(function AlertsDeferred({
   children,

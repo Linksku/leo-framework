@@ -3,6 +3,9 @@ import { ExecutionError } from 'redlock';
 import type { HealthcheckName } from 'services/healthcheck/HealthcheckManager';
 import {
   SERVER_STATUS_MAX_STALENESS,
+  MZ_DBZ_HEALTHCHECKS,
+  MZ_HEALTHCHECKS,
+  MZ_DOWNSTREAM_HEALTHCHECKS,
   getMinFails,
   healthcheckRecursiveDeps,
 } from 'services/healthcheck/HealthcheckManager';
@@ -19,50 +22,45 @@ import redlock from 'services/redlock';
 import {
   INIT_INFRA_LOCK_NAME,
   RECREATE_MZ_SINKS_REDIS_KEY,
-  MZ_HOST,
-  MZ_PORT,
+  INIT_INFRA_LOCK_TTL,
 } from 'consts/infra';
 import redis, { redisMaster } from 'services/redis';
 import getDockerComposeStatus from 'utils/infra/getDockerComposeStatus';
 import getKafkaTopicsWithoutMessages from 'utils/infra/getKafkaTopicsWithoutMessages';
-import retry from 'utils/retry';
-import { MZ_SINK_KAFKA_ERRORS_TABLE, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
+import isMzRunning from 'utils/infra/isMzRunning';
+import {
+  BT_CDC_SLOT_PREFIX,
+  ENABLE_DBZ,
+  MZ_SINK_CONSISTENCY_TOPIC_REGEX,
+  MZ_SINK_KAFKA_ERRORS_TABLE,
+} from 'consts/mz';
+import getPgReplicationStatus from 'utils/infra/getPgReplicationStatus';
+import deleteBTReplicationSlot from 'utils/infra/deleteBTReplicationSlot';
 import getServersStatus from './getServersStatus';
 import runHealthchecksOnce from './runHealthchecksOnce';
 import initRR from './mv/initRR';
 import initMZ from './mv/initMZ';
 import recreateMZSinks from './mv/helpers/recreateMZSinks';
 import recreateFailingPrometheusMZSinks from './monitorInfra/helpers/recreateFailingPrometheusMZSinks';
-import recreateSinkTopicsWithoutMessages from './monitorInfra/helpers/recreateSinkTopicsWithoutMessages';
 import startDockerCompose from './mv/steps/startDockerCompose';
+import deleteMZDocker from './mv/steps/deleteMZDocker';
 import recreateMZ from './recreateMZ';
 
-export const MZ_HEALTHCHECKS = TS.literal([
-  'mzSources',
-  'mzSourceRows',
-  'mzViews',
-  'mzSinks',
-  'mzSinkPrometheus',
-] as const);
-export const MZ_DOWNSTREAM_HEALTHCHECKS = TS.literal([
-  'mzSinkTopics',
-  'mzSinkTopicMessages',
-  'mzSinkConnectors',
-  'rrMVs',
-  'mzUpdating',
-] as const);
-
-export async function getFailingServices(forceRerun = false) {
+export async function getFailingServices(forceRerun = false, printFails = false) {
   // todo: low/mid handle time outs differently
   if (!forceRerun) {
     try {
-      const serversStatus = await getServersStatus({ silent: true });
+      const serversStatus = await getServersStatus(
+        printFails
+          ? { silentSuccess: true }
+          : { silent: true },
+      );
       const servers = TS.objValues(serversStatus)
         .filter(
           server => Date.now() - new Date(server.time).getTime() < SERVER_STATUS_MAX_STALENESS,
         );
       if (servers.length >= NUM_CLUSTER_SERVERS / 2) {
-        const numServersFailing = {} as Record<HealthcheckName, number>;
+        const numServersFailing = Object.create(null) as Record<HealthcheckName, number>;
         for (const server of servers) {
           for (const service of server.failing) {
             if (service.numFails >= getMinFails(service.name)) {
@@ -85,7 +83,11 @@ export async function getFailingServices(forceRerun = false) {
     }
   }
 
-  const results = await runHealthchecksOnce({ silentSuccess: true });
+  const results = await runHealthchecksOnce(
+    printFails
+      ? { silentSuccess: true }
+      : { silent: true },
+  );
   return new Set(
     TS.objKeys(results)
       .filter(name => !results[name])
@@ -93,28 +95,40 @@ export async function getFailingServices(forceRerun = false) {
   );
 }
 
-// todo: high/mid don't restart server when recreating infra
+// todo: mid/mid don't restart server when recreating infra
+// todo: low/mid maybe skip init if views etc all exist, but downstream healthchecks fail
 async function initAndMaybeRecreateMZ() {
   printDebug('Init MZ', 'info');
   try {
-    await initMZ();
+    await initMZ({ sourceTimeout: 60 * 1000 });
+    printDebug('Finished init MZ', 'success');
     await pause(60 * 1000);
   } catch (err) {
-    printDebug(err, 'warn');
+    printDebug(err, 'error');
   }
 
   const failing = await getFailingServices(true);
   if (failing.size) {
     printDebug(`Services still failing: ${[...failing].join(', ')}. Recreating MZ`, 'info');
+    const forceDeleteAll = failing.has('rrMVs') && failing.has('mzUpdating');
     await recreateMZ({
-      forceDeleteDBZConnectors: (failing.has('mzSourceRows') && !failing.has('mzSources'))
+      forceDeleteDBZConnectors: forceDeleteAll
+        || (failing.has('mzSourceRows') && !failing.has('mzSources'))
         || failing.has('dbzConnectors')
         || failing.has('dbzConnectorTopics'),
-      deleteMZSinkConnectors: failing.has('mzSinks')
+      deleteMZSources: forceDeleteAll
+        || failing.has('mzSources')
+        || failing.has('mzSourceRows'),
+      deleteMZSinkConnectors: forceDeleteAll
+        || failing.has('mzSinks')
+        || failing.has('mzSinkPrometheus')
         || failing.has('mzSinkTopics')
         || failing.has('mzSinkTopicMessages')
         || failing.has('mzSinkConnectors')
         || failing.has('mzUpdating'),
+      recreateKafka: forceDeleteAll
+        || MZ_DBZ_HEALTHCHECKS.some(name => failing.has(name))
+        || failing.has('mzSourceRows'),
     });
   }
 }
@@ -135,14 +149,47 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
   if (!failing.size) {
     return;
   }
-  if (failing.has('pgBT') || failing.has('pgRR') || failing.has('replicationSlots')) {
+  if (failing.has('pgBT') || failing.has('pgRR')) {
     throw getErr('fixInfra: manual fix required for Postgres', {
       failing: [...failing],
     });
   }
 
-  printDebug(`Attempting to fix failing infra: ${[...failing].join(', ')}`);
+  printDebug(`Attempting to fix failing infra: ${[...failing].join(', ')}`, 'info');
 
+  if (failing.has('replicationSlots')) {
+    const replicationStatus = await getPgReplicationStatus();
+
+    if (replicationStatus.missingPubTables.length
+      || replicationStatus.extraPubTables.length
+      || replicationStatus.missingSlots.length > 1
+      || replicationStatus.extraSlots.length
+      || replicationStatus.isRRSlotInactive) {
+      throw getErr('fixInfra: manual fix required for PG replication slots', {
+        failing: [...failing],
+      });
+    }
+    if (replicationStatus.extendedSlots.length) {
+      if (replicationStatus.extendedSlots.some(slot => slot.startsWith(BT_CDC_SLOT_PREFIX))) {
+        await deleteMZDocker();
+      }
+      await Promise.all(replicationStatus.extendedSlots.map(
+        slot => deleteBTReplicationSlot(slot),
+      ));
+    }
+    if (replicationStatus.missingSlots.length === 1
+      && replicationStatus.missingSlots[0] === BT_CDC_SLOT_PREFIX) {
+      await startDockerCompose();
+      try {
+        await initMZ();
+        printDebug('Finished init MZ', 'success');
+        await pause(60 * 1000);
+      } catch (err) {
+        printDebug(err, 'error');
+      }
+      failing = await getFailingServices(true);
+    }
+  }
   if (failing.has('rrEntities')) {
     // todo: mid/mid check if MZ is updating RR after restarting
     if (onlyFailing('rrEntities')) {
@@ -151,7 +198,9 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
       await redisFlushAll(HEALTHCHECK);
       return;
     }
-    throw new Error('fixInfra: manual fix required for rrEntities');
+    throw getErr('fixInfra: manual fix required for rrEntities', {
+      failing: [...failing],
+    });
   }
 
   try {
@@ -175,7 +224,7 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
   if (failing.has('redis')) {
     try {
       // Fail if connection fails, but not if lock is in use
-      await redlock.acquire([INIT_INFRA_LOCK_NAME], 60 * 1000);
+      await redlock.acquire([INIT_INFRA_LOCK_NAME], INIT_INFRA_LOCK_TTL);
     } catch (err) {
       if (err instanceof ExecutionError
         && err.message.includes('The operation was unable to achieve a quorum during its retry window')) {
@@ -199,7 +248,7 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
 
   const {
     kafkaConnectErr,
-    mzErr,
+    mzRunning,
     hasMZKafkaErrorsTable,
     isRecreatingMzSink,
   } = await promiseObj({
@@ -217,40 +266,24 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
         return null;
       })()
       : null,
-    // todo: low/easy maybe check if MZ can recover automatically
-    mzErr: (async () => {
-      try {
-        await retry(
-          async () => {
-            const res = await fetch(`http://${MZ_HOST}:${MZ_PORT}/status`);
-            if (res && res.status >= 400) {
-              const text = await res.text();
-              throw getErr(`MZ status is ${res.status}`, {
-                response: text.slice(0, 100).replaceAll(/\s+/g, ' '),
-              });
-            }
-          },
-          {
-            times: 3,
-            interval: 1000,
-            ctx: 'fixInfra.mzErr',
-          },
-        );
-        return null;
-      } catch (err) {
-        ErrorLogger.warn(err);
-        return err;
-      }
-    })(),
+    // todo: low/mid maybe check if MZ can recover automatically
+    mzRunning: isMzRunning(),
     hasMZKafkaErrorsTable: failing.has('mzSinkPrometheus')
       ? (async () => {
         try {
-          const results = await rawSelect('mz', `
-            SELECT 1
-            FROM mz_tables
-            WHERE name = ?
-            LIMIT 1
-          `, [MZ_SINK_KAFKA_ERRORS_TABLE]);
+          const results = await rawSelect(
+            `
+              SELECT 1
+              FROM mz_tables
+              WHERE name = ?
+              LIMIT 1
+            `,
+            [MZ_SINK_KAFKA_ERRORS_TABLE],
+            {
+              db: 'mz',
+              timeout: 60 * 1000,
+            },
+          );
           return !!results.rows.length;
         } catch {
           return false;
@@ -265,35 +298,44 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
     })(),
   });
 
-  if (mzErr) {
+  if (!mzRunning) {
     printDebug('MZ isn\'t running, restarting');
     await restartMZ();
     await initAndMaybeRecreateMZ();
-  } else if (onlyPossiblyFailing('mzSinks', 'mzSinkTopics', 'mzSinkTopicMessages', 'mzSinkPrometheus') && hasMZKafkaErrorsTable) {
+  } else if (hasMZKafkaErrorsTable && onlyPossiblyFailing(
+    'mzSinks',
+    'mzSinkTopics',
+    'mzSinkTopicMessages',
+    'mzSinkPrometheus',
+  )) {
+    // Note: different healthchecks can fail for different models
     if (isRecreatingMzSink) {
       printDebug('Recreating MZ sinks', 'info');
       return;
     }
-    if (onlyFailing('mzSinkPrometheus')) {
+
+    let sinksWithoutTopicMessages: string[] | null = null;
+    if (ENABLE_DBZ && onlyFailing('mzSinkPrometheus')) {
+      try {
+        sinksWithoutTopicMessages = await getKafkaTopicsWithoutMessages(
+          MZ_SINK_CONSISTENCY_TOPIC_REGEX,
+          2 * 60 * 1000,
+        );
+        if (sinksWithoutTopicMessages.length) {
+          printDebug(`Sinks without messages: ${sinksWithoutTopicMessages.join(', ')}`, 'warn');
+        }
+      } catch (err) {
+        printDebug(err, 'warn');
+      }
+    }
+    if (onlyFailing('mzSinkPrometheus') && sinksWithoutTopicMessages?.length === 0) {
       printDebug('Recreate failing Prometheus MZ sinks', 'info');
       await recreateFailingPrometheusMZSinks();
-    } else if (onlyFailing('mzSinkTopicMessages')) {
-      printDebug('Recreate MZ sink topics with messages', 'info');
-      // todo: mid/mid get failing topics from healthcheck
-      await recreateSinkTopicsWithoutMessages();
     } else {
       printDebug('Recreate all MZ sinks', 'info');
       await recreateMZSinks();
     }
-
-    const topics = await getKafkaTopicsWithoutMessages(
-      new RegExp(`^${MZ_SINK_TOPIC_PREFIX}.+-consistency$`),
-      60 * 1000,
-    );
-    if (topics.length) {
-      await recreateMZ();
-      await recreateMZSinks();
-    }
+    // Note: sometimes the connectors are failing, so recreating sinks isn't enough
   } else if (onlyPossiblyFailing(
     'dbzConnectors',
     'dbzConnectorTopics',
@@ -307,8 +349,7 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
       });
     }
 
-    // todo: high/mid if DBZ connector fails but there's no Connect error, need to recreate connectors
-    // Maybe skip init if views etc all exist, but downstream healthchecks fail
+    // Note: if DBZ connector fails but there's no Connect error, need to recreate connectors. Can't repro
     await initAndMaybeRecreateMZ();
   } else {
     throw getErr('fixInfra: manual fix required', {
@@ -320,7 +361,8 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
 }
 
 export default async function fixInfra() {
-  const failing = await getFailingServices();
+  printDebug('Get failing services', 'info');
+  let failing = await getFailingServices(true, true);
   if (!failing.size) {
     printDebug('fixInfra: all healthchecks passed', 'success');
     return;
@@ -329,10 +371,20 @@ export default async function fixInfra() {
   printDebug('Attempting auto fix', 'info');
   await withErrCtx(fixFailingInfra(failing), 'fixInfra: fixFailingInfra');
 
-  const newFailing = await getFailingServices(true);
-  if (newFailing.size) {
+  failing = await getFailingServices(true, true);
+  if (failing.size) {
+    printDebug(`Auto-fix failed, recreating MZ: ${[...failing].join(', ')}`);
+    await recreateMZ({
+      forceDeleteDBZConnectors: true,
+      deleteMZSources: true,
+      deleteMZSinkConnectors: true,
+    });
+  }
+
+  failing = await getFailingServices(true, true);
+  if (failing.size) {
     throw getErr('fixInfra: failed to fix, manual fix required', {
-      healthchecks: [...newFailing],
+      healthchecks: [...failing],
     });
   }
   printDebug('Fixed infra', 'success');

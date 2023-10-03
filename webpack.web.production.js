@@ -3,11 +3,11 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import childProcess from 'child_process';
 import CopyPlugin from 'copy-webpack-plugin';
 
-import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
-import transformWebpackCopied from './scripts/helpers/transformWebpackCopied';
-import baseConfig from './webpack.web';
-import shortenCssClass from './scripts/helpers/shortenCssClass';
-import getTerserPlugin from './scripts/helpers/getTerserPlugin';
+import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
+import transformWebpackCopied from './scripts/helpers/transformWebpackCopied.js';
+import baseConfig from './webpack.web.js';
+import shortenCssClass from './scripts/helpers/shortenCssClass.js';
+import getTerserPlugin from './scripts/helpers/getTerserPlugin.js';
 
 if (process.env.NODE_ENV !== 'production') {
   throw new Error('NODE_ENV isn\'t production');

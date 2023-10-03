@@ -16,7 +16,7 @@ export type ConstructorProps<T> = {
   lruMaxSize: number,
 };
 
-// todo: mid/mid remove promises from perf-sensitive functions
+// todo: low/mid remove promises from perf-sensitive functions
 // Note: AsyncLocalStorage + async is slow, but removing it requires a callback-based dataloader
 export default class BaseRedisCache<T> {
   private redisNamespace: string;
@@ -27,8 +27,10 @@ export default class BaseRedisCache<T> {
 
   private delDataLoader: RedisDataLoader<'del', string, void>;
 
-  // todo: mid/mid make lru content readonly
-  private lru: QuickLRU<string, T | undefined | Promise<T | undefined>>;
+  private lru: QuickLRU<
+    string,
+    Readonly<T> | undefined | Promise<Readonly<T> | undefined>
+  >;
 
   constructor({
     redisNamespace,
@@ -79,8 +81,8 @@ export default class BaseRedisCache<T> {
     rc: Nullish<RequestContext>,
     key: string,
     onlyLocal = false,
-  ): Promise<T | undefined> {
-    const cachedFromRc = rc?.cache.get(
+  ): Promise<Readonly<T> | undefined> {
+    const cachedFromRc = rc?.redisCache.get(
       `${this.redisNamespace}:${key}`,
     );
     if (cachedFromRc) {
@@ -89,7 +91,7 @@ export default class BaseRedisCache<T> {
 
     const cachedFromLru = this.lru.get(key);
     if (cachedFromLru !== undefined) {
-      rc?.cache.set(key, cachedFromLru);
+      rc?.redisCache.set(key, cachedFromLru);
       return cachedFromLru;
     }
     if (onlyLocal) {
@@ -97,14 +99,14 @@ export default class BaseRedisCache<T> {
     }
 
     const promise = this.getDataLoader.load(key);
-    rc?.cache.set(`${this.redisNamespace}:${key}`, promise);
+    rc?.redisCache.set(`${this.redisNamespace}:${key}`, promise);
     this.lru.set(key, promise);
     const val = await promise;
     this.lru.delete(key);
     if (val === undefined) {
-      rc?.cache.delete(`${this.redisNamespace}:${key}`);
+      rc?.redisCache.delete(`${this.redisNamespace}:${key}`);
     } else {
-      rc?.cache.set(`${this.redisNamespace}:${key}`, val);
+      rc?.redisCache.set(`${this.redisNamespace}:${key}`, val);
     }
 
     return val;
@@ -113,7 +115,7 @@ export default class BaseRedisCache<T> {
   get(
     key: string,
     onlyLocal = false,
-  ): Promise<T | undefined> {
+  ): Promise<Readonly<T> | undefined> {
     const rc = getRC();
     return this.getWithRc(rc, key, onlyLocal);
   }
@@ -123,7 +125,7 @@ export default class BaseRedisCache<T> {
     key: string,
     fetchValue: () => Promise<T>,
     onlyLocal = false,
-  ): Promise<T> {
+  ): Promise<Readonly<T>> {
     const cached = await this.getWithRc(rc, key, onlyLocal);
     if (cached !== undefined) {
       return cached;
@@ -136,7 +138,7 @@ export default class BaseRedisCache<T> {
     key: string,
     fetchValue: () => Promise<T>,
     onlyLocal = false,
-  ): Promise<T> {
+  ): Promise<Readonly<T>> {
     const rc = getRC();
     return this.getOrSetWithRc(rc, key, fetchValue, onlyLocal);
   }
@@ -147,14 +149,14 @@ export default class BaseRedisCache<T> {
     val: T,
     onlyLocal = false,
   ): Promise<void> {
-    rc?.cache.set(`${this.redisNamespace}:${key}`, val);
+    rc?.redisCache.set(`${this.redisNamespace}:${key}`, val);
     this.lru.delete(key);
     if (onlyLocal) {
       return;
     }
 
     await this.setDataLoader.load([key, val]);
-    rc?.cache.set(`${this.redisNamespace}:${key}`, val);
+    rc?.redisCache.set(`${this.redisNamespace}:${key}`, val);
   }
 
   set(
@@ -171,8 +173,8 @@ export default class BaseRedisCache<T> {
     key: string,
     promise: Promise<T>,
     onlyLocal = false,
-  ): Promise<T> {
-    rc?.cache.set(`${this.redisNamespace}:${key}`, promise);
+  ): Promise<Readonly<T>> {
+    rc?.redisCache.set(`${this.redisNamespace}:${key}`, promise);
     this.lru.set(key, promise);
 
     const val = await promise;
@@ -184,7 +186,7 @@ export default class BaseRedisCache<T> {
     key: string,
     promise: Promise<T>,
     onlyLocal = false,
-  ): Promise<T> {
+  ): Promise<Readonly<T>> {
     const rc = getRC();
     return this.setPromiseWithRc(rc, key, promise, onlyLocal);
   }
@@ -194,7 +196,7 @@ export default class BaseRedisCache<T> {
     key: string,
     onlyLocal = false,
   ): Promise<void> {
-    rc?.cache.delete(`${this.redisNamespace}:${key}`);
+    rc?.redisCache.delete(`${this.redisNamespace}:${key}`);
     this.lru.delete(key);
     if (onlyLocal) {
       return;
@@ -202,7 +204,7 @@ export default class BaseRedisCache<T> {
 
     await this.delDataLoader.load(key);
     this.lru.delete(key);
-    rc?.cache.delete(`${this.redisNamespace}:${key}`);
+    rc?.redisCache.delete(`${this.redisNamespace}:${key}`);
   }
 
   del(

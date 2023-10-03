@@ -2,15 +2,17 @@
   "extends": "../../tsconfig-base.json",
   "compilerOptions": {
     "paths": {
-      "baseUrl": ["."],
       "*": [
+        "app/shared/*",
         "framework/shared/*",
-        "app/shared/*"
-      ]
-    }
+      ],
+    },
   },
   "include": [
     ".",
-    "../../shared"
-  ]
+    "../../framework/shared/types",
+  ],
+  "exclude": [
+    "../../framework/shared/types/__generated__",
+  ],
 }

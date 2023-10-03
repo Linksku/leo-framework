@@ -26,7 +26,7 @@ export default async function recreateFailingPrometheusMZSinks(
       await knexMZ.raw('DROP SINK IF EXISTS ??', [`${MZ_SINK_PREFIX}${f.modelType}`]);
       const Model = getModelClass(f.modelType as ModelType);
       await createMZSink({
-        name: Model.type,
+        modelType: Model.type,
         primaryKey: Array.isArray(Model.primaryIndex)
           ? Model.primaryIndex
           : [Model.primaryIndex],

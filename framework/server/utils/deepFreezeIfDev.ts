@@ -1,4 +1,4 @@
-export default function deepFreezeIfDev<T>(val: T): T {
+export default function deepFreezeIfDev<T>(val: T): Readonly<T> {
   if (process.env.PRODUCTION
     || !val
     || typeof val !== 'object') {
@@ -13,12 +13,14 @@ export default function deepFreezeIfDev<T>(val: T): T {
     }
     return Object.freeze(newArr) as unknown as T;
   }
+
   if (Object.getPrototypeOf(obj) === Object.prototype) {
-    const newObj = {} as ObjectOf<any>;
+    const newObj = Object.create(null) as ObjectOf<any>;
     for (const k of Object.keys(obj)) {
       newObj[k] = deepFreezeIfDev(obj[k]);
     }
     return Object.freeze(newObj) as T;
   }
+
   return val;
 }

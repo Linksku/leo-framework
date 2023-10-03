@@ -1,1 +1,1 @@
-export default Object.freeze([]) as unknown as Memoed<never[]>;
+export default Object.freeze([]) as unknown as Stable<never[]>;

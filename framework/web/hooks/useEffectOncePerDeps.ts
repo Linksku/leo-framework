@@ -1,10 +1,11 @@
-import shallowEqual from 'utils/shallowEqual';
+import shallowEqualDeps from 'utils/shallowEqualDeps';
 
-export default function useEffectOncePerDeps(cb: () => void, deps: MemoDependencyList) {
-  const prevDeps = useRef<MemoDependencyList | undefined>(undefined);
+// Prevents double invocation, e.g. for logging
+function useEffectOncePerDeps(cb: () => void, deps: StableDependencyList) {
+  const prevDeps = useRef<StableDependencyList | undefined>(undefined);
 
   useEffect(() => {
-    if (!shallowEqual(deps, prevDeps)) {
+    if (!prevDeps.current || !shallowEqualDeps(deps, prevDeps.current)) {
       prevDeps.current = deps;
       const ret = cb();
       if (!process.env.PRODUCTION
@@ -16,3 +17,7 @@ export default function useEffectOncePerDeps(cb: () => void, deps: MemoDependenc
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }
+
+export default process.env.PRODUCTION
+  ? useEffect
+  : useEffectOncePerDeps;

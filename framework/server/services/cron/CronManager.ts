@@ -1,5 +1,6 @@
 import type { CronRepeatOptions, EveryRepeatOptions, Job } from 'bull';
 import pLimit from 'p-limit';
+import cluster from 'cluster';
 
 import createBullQueue, { wrapProcessJob } from 'helpers/createBullQueue';
 
@@ -11,15 +12,24 @@ type CronConfig = {
   timeout: number,
 };
 
-const cronConfigs: ObjectOf<CronConfig> = Object.create(null);
+const cronConfigs = new Map<string, CronConfig>();
 let started = false;
+let lastRunTime = 0;
 const queue = createBullQueue('CronManager');
+
+setInterval(() => {
+  if (started && performance.now() - lastRunTime > 10 * 60 * 1000) {
+    printDebug('Cron hasn\'t ran for 10min, restarting worker.');
+    cluster.worker?.kill();
+  }
+}, 60 * 1000);
 
 async function startCronJob(name: string, { handler, repeat, timeout }: CronConfig) {
   wrapPromise(
     queue.process(
       name,
       wrapProcessJob(async job => {
+        lastRunTime = performance.now();
         const ret = handler(job);
         if (ret instanceof Promise) {
           await ret;
@@ -45,42 +55,44 @@ export function defineCronJob(
   if (!process.env.PRODUCTION && name.includes(':')) {
     throw new Error(`defineCronJob: "${name}" shouldn't contain colon`);
   }
-  if (Object.prototype.hasOwnProperty.call(cronConfigs, name)) {
+  if (cronConfigs.has(name)) {
     throw new Error(`defineCronJob: "${name}" already exists`);
   }
 
   if (started) {
     wrapPromise(startCronJob(name, config), 'fatal', `startCronJob(${name})`);
   } else {
-    cronConfigs[name] = config;
+    cronConfigs.set(name, config);
   }
 }
 
 export async function getExistingJobs() {
   const jobs = await queue.getRepeatableJobs();
-  return jobs.map(job => job.name).filter(name => cronConfigs[name]);
+  return jobs.map(job => job.name).filter(name => cronConfigs.has(name));
 }
 
 export function getCronConfigs() {
   return cronConfigs;
 }
 
+// Note: if Bull jobs don't run, flushRedis might help
 export async function startCronJobs() {
   if (started) {
     throw new Error('CronManager: Cron already started');
   }
   started = true;
+  lastRunTime = performance.now();
 
   const existingJobs = await queue.getRepeatableJobs();
   await Promise.all(
     existingJobs
-      .filter(job => !cronConfigs[job.name])
+      .filter(job => !cronConfigs.has(job.name))
       .map(job => limiter(
         () => queue.removeRepeatableByKey(job.key),
       )),
   );
 
-  await Promise.all(TS.objEntries(cronConfigs).map(
+  await Promise.all([...cronConfigs].map(
     ([name, config]) => limiter(() => startCronJob(name, config)),
   ));
 }
@@ -89,7 +101,7 @@ export async function restartMissingCronJobs() {
   const existingJobs = await queue.getRepeatableJobs();
   const existingJobNames = new Set(existingJobs.map(job => job.name));
   await Promise.all(
-    TS.objEntries(cronConfigs)
+    [...cronConfigs]
       .filter(pair => !existingJobNames.has(pair[0]))
       .map(([name, config]) => limiter(
         () => queue.add(name, null, {

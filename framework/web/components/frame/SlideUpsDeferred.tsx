@@ -1,8 +1,8 @@
 import type { Props } from './PullToReload';
 
-const SlideUps = React.lazy(
-  async () => import(/* webpackChunkName: 'deferred' */ './SlideUps'),
-);
+const SlideUps = React.lazy(async () => import(
+  /* webpackChunkName: 'deferred' */ './SlideUps'
+));
 
 export default React.memo(function SlideUpsDeferred({
   children,

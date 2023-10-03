@@ -15,8 +15,8 @@ $fontFamily: roboto, helvetica, sans-serif;
 $headingFontFamily: roboto, helvetica, sans-serif;
 
 $separatorColor: #eaeaea;
-$greyBackgroundColor: #f8f8f8;
-$activeBackgroundColor: #fafafa;
+$greyBackgroundColor: #f6f6f6;
+$activeBackgroundColor: #f9f9f9;
 
 $fadedPrimaryColorBg: color.scale($primaryColor, $saturation: -10%, $lightness: 50%);
 $fadedPrimaryColorText: color.mix($primaryColor, $fadedTextColor, $weight: 30%);
@@ -39,19 +39,20 @@ $inputPadding: 1rem;
 $inputBorderColor: #ccc;
 $inputBorder: 0.5px solid $inputBorderColor;
 $inputBorderRadius: 4px;
-$inputColor: $lightTextColor;
+$inputColor: $textColor;
 $inputPlaceholderColor: $fadedTextColor;
 
 // Layout.
 // iOS insets leave too much space
-$insetMultiplier: 0.75;
-$insetTop: calc(env(safe-area-inset-top, 0) * $insetMultiplier);
+$insetMultiplier: 0.9;
+$insetTop: calc(env(safe-area-inset-top, 0px) * $insetMultiplier);
 $insetBottom: var(
-  --safe-area-inset-bottom,
-  calc(env(safe-area-inset-bottom, 0) * $insetMultiplier)
+  --bottom-inset-hack,
+  calc(env(safe-area-inset-bottom, 0px) * $insetMultiplier)
 );
-$insetLeft: calc(env(safe-area-inset-left, 0) * $insetMultiplier);
-$insetRight: calc(env(safe-area-inset-right, 0) * $insetMultiplier);
+$insetLeft: calc(env(safe-area-inset-left, 0px) * $insetMultiplier);
+$insetRight: calc(env(safe-area-inset-right, 0px) * $insetMultiplier);
+$offsetTop: var(--top-inset-hack, 0px);
 
 $bodyMinWidth: 280px;
 $bodyMinHeight: 300px;

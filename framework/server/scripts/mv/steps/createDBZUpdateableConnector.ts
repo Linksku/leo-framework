@@ -31,6 +31,9 @@ export default async function createDBZUpdateableConnector() {
       topicPrefix: DBZ_TOPIC_UPDATEABLE_PREFIX,
     });
 
-    printDebug(`Created DBZ updateable tables connector after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+    printDebug(
+      `Created DBZ updateable tables connector after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+      'success',
+    );
   }
 }

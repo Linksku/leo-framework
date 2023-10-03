@@ -21,7 +21,9 @@ export default async function verifyCreatedTables(
               `SELECT * FROM "${model.tableName}" WHERE false${dbType === 'mz' ? ' AS OF now()' : ''}`,
             );
           } catch (err) {
-            console.log(err);
+            if (!(err instanceof Error && err.message.includes('not valid for all inputs'))) {
+              printDebug(err, 'warn');
+            }
             continue;
           }
           const fields = result.fields.map(f => f.name);

@@ -2,7 +2,7 @@ import type { Arguments } from 'yargs';
 import dayjs from 'dayjs';
 import { promises as fs } from 'fs';
 import path from 'path';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 
 import prompt from 'utils/prompt';
 import isModelType from 'utils/models/isModelType';
@@ -31,7 +31,7 @@ function getMigration({
 
   modelType = lcFirst(`${modelType}`);
   if (!isModelType(modelType)) {
-    throw new Error('migrateGenerate: unknown model type');
+    throw new Error('migrateGenerate: unknown model type. Try running build:types');
   }
   const Model = getModelClass(modelType);
   let columnType = '';
@@ -40,7 +40,7 @@ function getMigration({
     schema = TS.getProp(Model.getSchema(), columnName);
     columnType = schema
       ? getValDbType(Model, columnName as ModelKey<typeof Model>, null)
-      : 'bigint';
+      : '';
   }
 
   const createTable = `await createTable({
@@ -157,14 +157,16 @@ await createIndex({
       down: renameColumn,
     };
   }
-  throw new Error('migrateGenerate: invalid command');
+  throw new Error('getMigrations: invalid command');
 }
 
 export default async function migrateGenerate(params: Arguments) {
   let [_, _2, command, modelType, columnName] = params._;
 
   if (!command) {
-    command = await prompt('Command? [none, create, drop, alter, rename, addColumn, dropColumn, renameColumn]');
+    command = await prompt(
+      'Command? [none, create, drop, alter, rename, addColumn, dropColumn, renameColumn]',
+    );
   }
   const isColumnCommand = ['addColumn', 'dropColumn', 'renameColumn'].includes(command as string);
   if (command && command !== 'none') {
@@ -183,7 +185,7 @@ export default async function migrateGenerate(params: Arguments) {
   });
   const fileContent = `${imports.map(name => {
     const parts = name.split('/');
-    return `import ${parts[parts.length - 1]} from '${name}';`;
+    return `import ${parts.at(-1)} from '${name}';`;
   }).join('\n')}
 
 export async function up() {
@@ -206,7 +208,6 @@ export async function down() {
   );
   printDebug(`Generated ${filename}`, 'success');
 
-  await exec(
-    `code ./${filename}`,
-  );
+  await exec(`code ./${filename}`);
+  await exec('yarn build:types');
 }

@@ -1,43 +1,58 @@
 import styleDeclarationToCss from 'utils/styleDeclarationToCss';
-import getFrameDuration from 'utils/getFrameDuration';
 import easings from 'utils/easings';
+import useGetIsMounted from 'hooks/useGetIsMounted';
 
 export const DEFAULT_DURATION = 300;
-const MIN_TIMEOUT = 10;
 
-export type ValToStyle = Partial<{
-  [k in keyof React.CSSProperties]: (x: number) => React.CSSProperties[k];
+export const DEFAULT_EASING = 'easeInOutQuad';
+
+type AnimatedValueOpts = {
+  minVal?: number,
+  maxVal?: number,
+  debugName?: string,
+};
+
+type Keyframe = {
+  val: number,
+  duration: number,
+  isFinal: boolean,
+};
+
+type ValToStyle = Partial<{
+  [k in keyof React.CSSProperties]: (easedVal: number, val: number) => React.CSSProperties[k];
 }>;
 
-export type Style = Partial<React.CSSProperties>;
-
-export type AnimationStyle = Memoed<(
-  animatedVal: AnimatedValue,
-  valToStyle: ValToStyle,
-  opts?: {
-    easing?: keyof typeof easings,
-    keyframes?: number[],
-  },
-) => Style>;
+type Style = Partial<React.CSSProperties>;
 
 export class AnimatedValue {
-  lastSetValTime = 0;
-  lastDuration = 0;
+  minVal: number;
+  maxVal: number;
   startVal: number;
   finalVal: number;
   debugName: string;
-  listeners: Set<() => void>;
-  didRender = false;
+  lastSetValTime = Number.MIN_SAFE_INTEGER;
+  lastDuration = 0;
+  easing?: keyof typeof easings;
+  listeners: Set<(prevKeyframe: Keyframe, newKeyframe: Keyframe) => void>;
+  curKeyframe: Keyframe;
+  timer: number | null = null;
 
-  constructor(defaultVal: number, debugName?: string) {
-    this.startVal = defaultVal;
-    this.finalVal = defaultVal;
-    this.debugName = debugName ?? '';
+  constructor(initialVal: number, opts?: AnimatedValueOpts) {
+    this.minVal = opts?.minVal ?? 0;
+    this.maxVal = opts?.maxVal ?? 100;
+    this.startVal = initialVal;
+    this.finalVal = initialVal;
+    this.debugName = opts?.debugName ?? '';
     this.listeners = new Set();
+    this.curKeyframe = {
+      val: initialVal,
+      duration: 0,
+      isFinal: true,
+    } as Keyframe;
   }
 
   getCurPercent() {
-    if (!this.lastSetValTime || !this.didRender) {
+    if (this.lastSetValTime === Number.MIN_SAFE_INTEGER) {
       return 0;
     }
     const elapsed = performance.now() - this.lastSetValTime;
@@ -52,32 +67,22 @@ export class AnimatedValue {
       + ((this.finalVal - this.startVal) * this.getCurPercent());
   }
 
-  setVal(finalVal: number, duration = DEFAULT_DURATION) {
-    if (duration < 0) {
-      if (!process.env.PRODUCTION) {
-        throw new Error(`AnimatedVal.setVal: invalid duration: ${duration}`);
-      }
-      duration = 0;
+  isAnimating() {
+    if (this.lastSetValTime === Number.MIN_SAFE_INTEGER) {
+      return false;
     }
-
-    const curVal = this.getCurVal();
-    this.startVal = curVal;
-    this.finalVal = finalVal;
-    this.lastSetValTime = performance.now();
-    this.lastDuration = duration;
-    this.didRender = false;
-
-    for (const fn of this.listeners) {
-      fn();
-    }
+    const elapsed = performance.now() - this.lastSetValTime;
+    return elapsed < this.lastDuration;
   }
 
-  // todo: low/mid animation easing
-  getNextKeyframe(keyframeVals: number[], lastKeyframeVal: number) {
+  // todo: low/mid animation easing with keyframes
+  getNextKeyframe(keyframeVals: number[], lastKeyframeVal: number | null): Keyframe {
     const increasing = this.finalVal >= this.startVal;
-    const curVal = increasing
-      ? Math.min(lastKeyframeVal, this.getCurVal())
-      : Math.max(lastKeyframeVal, this.getCurVal());
+    const curVal = lastKeyframeVal != null
+      ? (increasing
+        ? Math.min(lastKeyframeVal, this.getCurVal())
+        : Math.max(lastKeyframeVal, this.getCurVal()))
+      : this.getCurVal();
     let nextKeyframeVal = this.finalVal;
     if (this.isAnimating()) {
       for (const val of keyframeVals) {
@@ -102,221 +107,307 @@ export class AnimatedValue {
     };
   }
 
-  isAnimating() {
-    if (!this.lastSetValTime) {
-      return false;
-    }
-    if (!this.didRender) {
-      return true;
-    }
-    const elapsed = performance.now() - this.lastSetValTime;
-    return elapsed < this.lastDuration;
-  }
-}
+  addListener(fn: (prevKeyframe: Keyframe, newKeyframe: Keyframe) => void) {
+    this.listeners.add(fn);
 
-function getStyle(
-  valToStyle: ValToStyle,
-  easing: keyof typeof easings | null,
-  val: number,
-  duration: number,
-  animatedVal: AnimatedValue,
-): Style {
-  const keys = TS.objKeys(valToStyle);
-  const style = {} as ObjectOf<any>;
-
-  for (const pair of TS.objEntries(valToStyle, true)) {
-    const easedVal = animatedVal.finalVal !== animatedVal.startVal
-      ? animatedVal.startVal
-        + (easings[easing ?? 'easeOutCubic'].fn(
-          Math.abs(val - animatedVal.startVal)
-            / Math.abs(animatedVal.finalVal - animatedVal.startVal),
-        ) * (animatedVal.finalVal - animatedVal.startVal))
-      : val;
-    // @ts-ignore union type that is too complex to represent
-    style[pair[0]] = pair[1]?.(easedVal);
+    return () => {
+      this.listeners.delete(fn);
+    };
   }
 
-  if (style.transform) {
-    style.transform += ' translateZ(0)';
-  } else {
-    keys.push('transform');
-    style.transform = 'translateZ(0)';
-  }
-
-  if (keys.length && duration) {
-    style.transitionProperty = keys.map(k => styleDeclarationToCss(k)).join(',');
-    style.transitionDuration = `${Math.round(duration)}ms`;
-    style.transitionTimingFunction = easings[easing ?? 'easeOutCubic'].css;
-  } else {
-    style.transitionProperty = '';
-    style.transitionDuration = '';
-    style.transitionTimingFunction = '';
-  }
-
-  return style;
-}
-
-export function useAnimatedValue(defaultVal: number, debugName?: string) {
-  return useConst(() => new AnimatedValue(defaultVal, debugName));
-}
-
-export function useAnimation<T extends HTMLElement>() {
-  const animationRef = useRef<T | null>(null);
-  const ref = useRef({
-    hasInit: false,
-    animatedVal: null as AnimatedValue | null,
-    valToStyle: null as ValToStyle | null,
-    easing: null as keyof typeof easings | null,
-    keyframeVals: [] as number[],
-    lastKeyframeVal: 0,
-    hadFirstTransition: false,
-    nextKeyframeTimer: null as number | null,
-    nextKeyframeRaf: null as number | null,
-  });
-
-  const renderNextKeyframe = useCallback(() => {
-    if (ref.current.nextKeyframeTimer !== null) {
-      clearTimeout(ref.current.nextKeyframeTimer);
-      ref.current.nextKeyframeTimer = null;
-    }
-    if (ref.current.nextKeyframeRaf !== null) {
-      cancelAnimationFrame(ref.current.nextKeyframeRaf);
-      ref.current.nextKeyframeRaf = null;
+  renderKeyframe() {
+    const newKeyframe = this.getNextKeyframe(
+      [this.minVal, this.maxVal],
+      null,
+    );
+    for (const fn of this.listeners) {
+      fn(this.curKeyframe, newKeyframe);
     }
 
-    if (!animationRef.current
-      || !ref.current.valToStyle
-      || !ref.current.animatedVal
-      || ref.current.animatedVal.getCurPercent() >= 1) {
+    // Render last keyframe twice for stylesForFinalVal
+    if (!this.curKeyframe.isFinal) {
+      if (this.timer) {
+        clearTimeout(this.timer);
+      }
+      this.timer = setTimeout(() => {
+        this.renderKeyframe();
+        this.timer = null;
+      }, newKeyframe.duration);
+    }
+
+    this.curKeyframe = newKeyframe;
+  }
+
+  setVal(finalVal: number, duration?: number, easing?: keyof typeof easings) {
+    if (duration && duration < 0) {
+      if (!process.env.PRODUCTION) {
+        throw new Error(`AnimatedVal.setVal(${this.debugName}): invalid duration: ${duration}`);
+      }
+      duration = 0;
+    }
+    if (finalVal === this.finalVal && (duration == null || duration === this.lastDuration)) {
       return;
     }
 
-    if (!ref.current.hadFirstTransition) {
-      // Force repaint.
-      // eslint-disable-next-line no-unused-expressions, @typescript-eslint/no-unused-expressions
-      animationRef.current.scrollTop;
+    const curVal = this.getCurVal();
+    this.startVal = curVal;
+    this.finalVal = finalVal;
+    this.lastSetValTime = performance.now();
+    this.lastDuration = duration ?? DEFAULT_DURATION;
+    this.easing = easing;
+    this.curKeyframe = {
+      val: curVal,
+      duration: 0,
+      isFinal: false,
+    };
+
+    this.renderKeyframe();
+  }
+}
+
+function getStyles(
+  animatedVal: AnimatedValue,
+  valToStyle: ValToStyle,
+  defaultEasing: keyof typeof easings,
+  skipTransitionProps: string[] | null,
+  keyframe: Keyframe,
+): {
+  styles: Style,
+  transitionStyles: Style,
+} {
+  const easing = animatedVal.easing ?? defaultEasing;
+
+  const styles = {} as ObjectOf<any>;
+  for (const pair of TS.objEntries(valToStyle, true)) {
+    const easedVal = animatedVal.finalVal !== animatedVal.startVal
+      ? animatedVal.startVal
+        + (easings[easing].fn(
+          Math.abs(keyframe.val - animatedVal.startVal)
+            / Math.abs(animatedVal.finalVal - animatedVal.startVal),
+        ) * (animatedVal.finalVal - animatedVal.startVal))
+      : keyframe.val;
+    // "as any" for perf
+    styles[pair[0]] = (pair[1] as any)?.(easedVal, keyframe.val);
+  }
+
+  if (styles.transform) {
+    if (!styles.transform.includes('translateZ(')) {
+      styles.transform += ' translateZ(0)';
+    }
+  } else {
+    styles.transform = 'translateZ(0)';
+  }
+
+  const styleKeys = TS.objKeys(styles);
+  const transitionStyles = {
+    transitionProperty: styleKeys.length
+      ? styleKeys
+        .filter(k => !skipTransitionProps?.includes(k))
+        .map(k => styleDeclarationToCss(k)).join(', ')
+      : undefined,
+    transitionDuration: keyframe.duration
+      ? `${Math.round(keyframe.duration)}ms`
+      : undefined,
+    transitionTimingFunction: easings[easing].css,
+  };
+
+  return {
+    styles,
+    transitionStyles,
+  };
+}
+
+export function useAnimatedValue(initialVal: number, opts?: AnimatedValueOpts) {
+  return useConst(() => new AnimatedValue(initialVal, opts));
+}
+
+export function useAnimation<T extends HTMLElement>(
+  animatedVal: Stable<AnimatedValue>,
+  debugName: string,
+) {
+  const animationRef = useRef<T | null>(null);
+  const ref = useRef({
+    hasInit: false,
+    valToStyle: null as ValToStyle | null,
+    stylesForFinalVal: null as ObjectOf<Style> | null,
+    defaultEasing: DEFAULT_EASING as keyof typeof easings,
+    keyframeVals: [] as number[],
+    skipTransitionProps: null as string[] | null,
+    hasCommited: false,
+    hadFirstTransition: false,
+    lastRenderedKeyframe: animatedVal.curKeyframe,
+  });
+
+  const animationStyle = useCallback((
+    valToStyle: ValToStyle,
+    opts?: {
+      stylesForFinalVal?: ObjectOf<Style>,
+      defaultEasing?: keyof typeof easings | null,
+      // Note: keyframes is choppy if thread is blocked
+      // todo: low/mid replace with css keyframes
+      keyframes?: number[],
+      skipTransitionProps?: string[],
+    },
+  ): Style => {
+    if (!ref.current.hasInit) {
+      ref.current = {
+        ...ref.current,
+        hasInit: true,
+        valToStyle,
+        stylesForFinalVal: opts?.stylesForFinalVal ?? null,
+        defaultEasing: opts?.defaultEasing ?? DEFAULT_EASING,
+        keyframeVals: opts?.keyframes ?? [],
+        skipTransitionProps: opts?.skipTransitionProps ?? null,
+        lastRenderedKeyframe: animatedVal.isAnimating()
+          ? {
+            val: animatedVal.getCurVal(),
+            duration: animatedVal.curKeyframe.duration,
+            isFinal: false,
+          }
+          : animatedVal.curKeyframe,
+      };
+    }
+    ref.current.hasCommited = false;
+
+    const { styles, transitionStyles } = getStyles(
+      animatedVal,
+      valToStyle,
+      ref.current.defaultEasing,
+      ref.current.skipTransitionProps,
+      ref.current.lastRenderedKeyframe,
+    );
+    const additionalStyles = ref.current.stylesForFinalVal !== null
+      && !animatedVal.isAnimating()
+      && ref.current.stylesForFinalVal[animatedVal.getCurVal()]
+      ? ref.current.stylesForFinalVal[animatedVal.getCurVal()]
+      : null;
+    return {
+      ...transitionStyles,
+      ...styles,
+      ...additionalStyles,
+    } as Style;
+  }, [animatedVal]);
+
+  const getIsMounted = useGetIsMounted();
+  const handleVal = useCallback((prevKeyframe: Keyframe, newKeyframe: Keyframe) => {
+    const {
+      valToStyle,
+      hadFirstTransition,
+      defaultEasing,
+      skipTransitionProps,
+      hasCommited,
+      stylesForFinalVal,
+      lastRenderedKeyframe,
+    } = ref.current;
+    const animationElem = animationRef.current;
+
+    if (
+      // If setProperty runs before commit, concurrent mode can revert it
+      !hasCommited
+      || !animationElem
+      || !valToStyle
+      || lastRenderedKeyframe === newKeyframe) {
+      return;
+    }
+    if (!getIsMounted()) {
+      if (!process.env.PRODUCTION) {
+        ErrorLogger.warn(new Error(`useAnimation(${debugName}): not mounted`));
+      }
+      return;
+    }
+    if (newKeyframe.val === prevKeyframe.val) {
+      const additionalStyles = stylesForFinalVal?.[newKeyframe.val];
+      if (additionalStyles
+        && !animatedVal.isAnimating()) {
+        for (const pair of TS.objEntries(additionalStyles)) {
+          animationElem.style.setProperty(
+            styleDeclarationToCss(pair[0]),
+            pair[1].toString(),
+          );
+        }
+      }
+      ref.current.lastRenderedKeyframe = newKeyframe;
+      return;
+    }
+
+    if (!hadFirstTransition) {
+      if (!process.env.PRODUCTION && !valToStyle.transform) {
+        const curTransform = animationElem.style.transform;
+        animationElem.style.removeProperty('transform');
+        const cssTransform = getComputedStyle(animationElem).getPropertyValue('transform');
+        if (cssTransform && cssTransform !== 'none') {
+          ErrorLogger.warn(new Error(`useAnimation(${debugName}): transform will be overridden`));
+        }
+        animationElem.style.transform = curTransform;
+      }
+
       ref.current.hadFirstTransition = true;
     }
 
-    const nextKeyframe = ref.current.animatedVal.getNextKeyframe(
-      ref.current.keyframeVals,
-      ref.current.lastKeyframeVal,
-    );
-    ref.current.lastKeyframeVal = nextKeyframe.val;
+    const removeStyles = stylesForFinalVal !== null
+      && stylesForFinalVal[prevKeyframe.val]
+      && newKeyframe.val !== prevKeyframe.val
+      ? stylesForFinalVal[prevKeyframe.val]
+      : null;
+    if (removeStyles) {
+      for (const pair of TS.objEntries(removeStyles)) {
+        animationElem.style.removeProperty(styleDeclarationToCss(pair[0]));
+      }
 
-    const style = getStyle(
-      ref.current.valToStyle,
-      ref.current.easing,
-      nextKeyframe.val,
-      nextKeyframe.duration,
-      ref.current.animatedVal,
+      if (removeStyles.display) {
+        // Force repaint.
+        // eslint-disable-next-line no-unused-expressions, @typescript-eslint/no-unused-expressions
+        animationElem.scrollTop;
+      }
+    }
+
+    const { styles, transitionStyles } = getStyles(
+      animatedVal,
+      valToStyle,
+      defaultEasing,
+      skipTransitionProps,
+      newKeyframe,
     );
-    for (const pair of TS.objEntries(style, true)) {
+    let didUpdateTransitions = false;
+    for (const pair of TS.objEntries(transitionStyles)) {
+      const key = styleDeclarationToCss(pair[0]);
+      const val = pair[1].toString();
+      if (didUpdateTransitions || val !== animationElem.style.getPropertyValue(key)) {
+        animationElem.style.setProperty(key, val);
+        didUpdateTransitions = true;
+      }
+    }
+    if (didUpdateTransitions) {
+      // Force repaint.
+      // eslint-disable-next-line no-unused-expressions, @typescript-eslint/no-unused-expressions
+      animationElem.scrollTop;
+    }
+    for (const pair of TS.objEntries(styles, true)) {
       if (pair[1] == null) {
-        animationRef.current.style.removeProperty(styleDeclarationToCss(pair[0]));
+        animationElem.style.removeProperty(styleDeclarationToCss(pair[0]));
       } else {
-        animationRef.current.style.setProperty(
+        animationElem.style.setProperty(
           styleDeclarationToCss(pair[0]),
           pair[1].toString(),
         );
       }
     }
-    ref.current.animatedVal.didRender = true;
 
-    if (!nextKeyframe.isFinal) {
-      ref.current.nextKeyframeTimer = nextKeyframe.duration < MIN_TIMEOUT
-        ? window.setTimeout(
-          renderNextKeyframe,
-          MIN_TIMEOUT,
-        )
-        : window.setTimeout(
-          () => {
-            ref.current.nextKeyframeRaf = requestAnimationFrame(renderNextKeyframe);
-          },
-          nextKeyframe.duration - (getFrameDuration() / 2),
-        );
-    }
-  }, []);
+    ref.current.lastRenderedKeyframe = newKeyframe;
+  }, [animatedVal, debugName, getIsMounted]);
 
-  let nextKeyframe = ref.current.animatedVal?.getNextKeyframe(
-    ref.current.keyframeVals,
-    ref.current.lastKeyframeVal,
-  ) ?? {
-    val: 0,
-    duration: 0,
-    isFinal: true,
-  };
-  const animationStyle: AnimationStyle = useCallback((
-    animatedVal,
-    valToStyle,
-    opts,
-  ) => {
-    if (!ref.current.hasInit) {
-      ref.current.hasInit = true;
-      animatedVal.listeners.add(renderNextKeyframe);
+  useLayoutEffect(() => {
+    ref.current.hasCommited = true;
 
-      ref.current.animatedVal = animatedVal;
-      ref.current.valToStyle = valToStyle;
-      ref.current.easing = opts?.easing ?? null;
-      ref.current.keyframeVals = opts?.keyframes ?? [];
-      ref.current.lastKeyframeVal = animatedVal.startVal;
-
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      nextKeyframe = ref.current.animatedVal
-        .getNextKeyframe(
-          ref.current.keyframeVals,
-          ref.current.lastKeyframeVal,
-        );
-    } else if (!process.env.PRODUCTION && ref.current.animatedVal !== animatedVal) {
-      throw new Error('animationStyle: animatedVal changed after init');
-    }
-
-    return getStyle(
-      valToStyle,
-      ref.current.easing,
-      nextKeyframe.val,
-      nextKeyframe.duration,
-      animatedVal,
-    ) as Style;
-  }, []);
-
-  useEffect(() => {
-    ref.current.lastKeyframeVal = nextKeyframe.val;
-
-    if (!nextKeyframe.isFinal
-      && ref.current.nextKeyframeTimer === null
-      && ref.current.nextKeyframeRaf === null
-      && ref.current.animatedVal?.isAnimating()) {
-      ref.current.nextKeyframeTimer = nextKeyframe.duration < MIN_TIMEOUT
-        ? window.setTimeout(
-          renderNextKeyframe,
-          MIN_TIMEOUT,
-        )
-        : window.setTimeout(
-          () => {
-            ref.current.nextKeyframeRaf = requestAnimationFrame(renderNextKeyframe);
-          },
-          nextKeyframe.duration - (getFrameDuration() / 2),
-        );
+    if (ref.current.lastRenderedKeyframe.val !== animatedVal.curKeyframe.val) {
+      handleVal(ref.current.lastRenderedKeyframe, animatedVal.curKeyframe);
     }
   });
 
   useEffect(() => {
-    ref.current.animatedVal?.listeners.add(renderNextKeyframe);
-
-    return () => {
-      ref.current.hasInit = false;
-      ref.current.animatedVal?.listeners.delete(renderNextKeyframe);
-
-      if (ref.current.nextKeyframeTimer !== null) {
-        clearTimeout(ref.current.nextKeyframeTimer);
-      }
-      if (ref.current.nextKeyframeRaf !== null) {
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        cancelAnimationFrame(ref.current.nextKeyframeRaf);
-      }
-    };
-  }, [renderNextKeyframe]);
+    const unsub = animatedVal.addListener(handleVal);
+    return unsub;
+  }, [animatedVal, handleVal]);
 
   return [
     animationRef,

@@ -8,21 +8,23 @@
   object-fit: cover;
 }
 
+$cornerDim: 6px;
+$cornerDraggableDim: 32px;
+
 .corner {
   position: absolute;
-  height: 32px;
-  width: 32px;
+  height: $cornerDraggableDim;
+  width: $cornerDraggableDim;
   touch-action: none;
 
   &::after {
     content: '';
-    height: 8px;
-    width: 8px;
+    height: $cornerDim;
+    width: $cornerDim;
     position: absolute;
-    top: 12px;
-    left: 12px;
+    top: math.div($cornerDraggableDim - $cornerDim, 2);
+    left: math.div($cornerDraggableDim - $cornerDim, 2);
     background-color: color.scale($primaryColor, $alpha: -30%);
-    box-shadow: 0 0 1px $primaryColor;
   }
 }
 
@@ -48,10 +50,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgb(0 0 0 / 50%);
+  background-color: rgb(0 0 0 / 70%);
 }
 
 .cropped {
   position: absolute;
   overflow: hidden;
+  box-shadow: 0 0 0 1px color.scale($primaryColor, $alpha: -50%)
 }

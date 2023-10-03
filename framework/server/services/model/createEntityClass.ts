@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import type { ModelConfig } from './createModelClass';
 import BaseEntity from './Entity';
 import composeModelConfigs from './helpers/composeModelConfigs';
@@ -9,6 +7,7 @@ import buildClass from './buildClass';
 type EntityClassConfigStaticProps = {
   useInsertOnlyPublication?: boolean,
   skipColumnsForMZ?: string[],
+  deleteable?: boolean,
   indexesNotInRR?: (string | string[])[],
 };
 
@@ -21,9 +20,13 @@ export type EntityClassConfig<
 > = ModelConfig<Type, StaticProps, Props>
   & EntityClassConfigStaticProps;
 
-export function processEntityClassConfig<Config extends EntityClassConfig<EntityType>>(
-  config: Config,
-): Pick<Config, keyof ModelConfig<any>> {
+export function processEntityClassConfig<Config extends EntityClassConfig<EntityType>>({
+  indexesNotInRR,
+  skipColumnsForMZ,
+  deleteable,
+  useInsertOnlyPublication,
+  ...config
+}: Config): Pick<Config, keyof ModelConfig<any>> {
   if (config.uniqueIndexes && config.uniqueIndexes[0] !== 'id') {
     throw new Error(`processEntityClassConfig(${config.type}): primary index isn't id.`);
   }
@@ -32,16 +35,13 @@ export function processEntityClassConfig<Config extends EntityClassConfig<Entity
   }
 
   return {
-    ...omit(config, [
-      'indexesNotInRR',
-      'skipColumnsForMZ',
-      'useInsertOnlyPublication',
-    ]),
+    ...config,
     uniqueIndexes: config.uniqueIndexes ?? ['id'],
     staticProps: {
-      indexesNotInRR: config.indexesNotInRR ?? [],
-      skipColumnsForMZ: config.skipColumnsForMZ ?? [],
-      useInsertOnlyPublication: config.useInsertOnlyPublication,
+      indexesNotInRR: indexesNotInRR ?? [],
+      skipColumnsForMZ: skipColumnsForMZ ?? [],
+      deleteable: deleteable ?? false,
+      useInsertOnlyPublication,
       ...config.staticProps,
     },
   };

@@ -44,6 +44,12 @@ const SchemaConstants = TS.literal({
     properties: {},
     tsType: 'JsonObj',
   },
+  emptyObj: {
+    type: 'object',
+    properties: {},
+    additionalProperties: false,
+    tsType: 'StrictlyEmptyObj',
+  },
   timestamp: datetime,
   timestampDefaultNow: {
     ...datetime,
@@ -55,9 +61,12 @@ const SchemaConstants = TS.literal({
     default: new Date(0),
   },
   url,
+  emptyStr: { type: 'string', maxLength: 0 },
 
   // Framework-specific.
   content: { type: 'string', minLength: 1, maxLength: 2048 },
+  contentOrEmpty: { type: ['string', 'null'], minLength: 0, maxLength: 2048 },
+  title: { type: 'string', minLength: 1, maxLength: 100 },
   name: { type: 'string', minLength: 1, maxLength: 50 },
   pagination: {
     type: 'object',

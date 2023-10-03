@@ -1,4 +1,5 @@
 import StackWrapInner from 'components/frame/stack/StackWrapInner';
+import Form from 'components/common/Form';
 import HookFormErrors from 'components/HookFormErrors';
 
 import styles from './ResetPasswordRouteStyles.scss';
@@ -13,6 +14,8 @@ export default React.memo(function ResetPasswordRoute() {
   const { errors } = useFormState({ control });
   const showAlert = useShowAlert();
   const authState = useAuthState();
+  const { backState } = useRouteStore();
+  const pushPath = usePushPath();
 
   const { fetching, fetchApi: resetPassword, error: apiError } = useDeferredApi(
     'resetPassword',
@@ -25,7 +28,11 @@ export default React.memo(function ResetPasswordRoute() {
         showAlert({
           msg: 'A password reset email was sent',
           onClose() {
-            window.history.back();
+            if (backState) {
+              window.history.back();
+            } else {
+              pushPath('/login');
+            }
           },
         });
       },
@@ -36,7 +43,7 @@ export default React.memo(function ResetPasswordRoute() {
   return (
     <StackWrapInner title="Reset Password">
       <div className={styles.container}>
-        <form
+        <Form
           onSubmit={handleSubmit(data => resetPassword(data))}
           className={styles.form}
         >
@@ -49,18 +56,18 @@ export default React.memo(function ResetPasswordRoute() {
               required: 'Email is required.',
             }}
             disabled={disabled}
-            required
           />
 
           <HookFormErrors errors={errors} additionalError={apiError} />
 
           <Button
-            Component="input"
+            Element="input"
             type="submit"
+            value={fetching ? 'Sending' : 'Send'}
             fullWidth
             disabled={disabled}
           />
-        </form>
+        </Form>
 
         <p><Link href="/login">Log In</Link></p>
       </div>

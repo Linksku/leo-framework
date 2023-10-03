@@ -12,29 +12,33 @@ export default async function renameColumn({
   oldCol: string,
   newCol: string,
 }) {
-  if (!isMV) {
-    if (await knexBT.schema.hasColumn(table, newCol)) {
-      if (await knexBT.schema.hasColumn(table, oldCol)) {
+  try {
+    if (!isMV) {
+      if (await knexBT.schema.hasColumn(table, newCol)) {
+        if (await knexBT.schema.hasColumn(table, oldCol)) {
+          await knexBT.schema.alterTable(table, builder => {
+            builder.dropColumn(oldCol);
+          });
+        }
+      } else {
         await knexBT.schema.alterTable(table, builder => {
+          builder.renameColumn(oldCol, newCol);
+        });
+      }
+    }
+
+    if (await knexRR.schema.hasColumn(table, newCol)) {
+      if (await knexRR.schema.hasColumn(table, oldCol)) {
+        await knexRR.schema.alterTable(table, builder => {
           builder.dropColumn(oldCol);
         });
       }
     } else {
-      await knexBT.schema.alterTable(table, builder => {
+      await knexRR.schema.alterTable(table, builder => {
         builder.renameColumn(oldCol, newCol);
       });
     }
-  }
-
-  if (await knexRR.schema.hasColumn(table, newCol)) {
-    if (await knexRR.schema.hasColumn(table, oldCol)) {
-      await knexRR.schema.alterTable(table, builder => {
-        builder.dropColumn(oldCol);
-      });
-    }
-  } else {
-    await knexRR.schema.alterTable(table, builder => {
-      builder.renameColumn(oldCol, newCol);
-    });
+  } catch (err) {
+    throw getErr(err, { ctx: 'renameColumn', table, newCol });
   }
 }

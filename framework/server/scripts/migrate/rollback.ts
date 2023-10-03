@@ -1,6 +1,6 @@
 import { getMigrationState, updateMigrationState } from './helpers/migrationState';
 import { getMigration, getPrevMigration } from './helpers/migrationFiles';
-import syncDbAfterMigration from './helpers/syncDbAfterMigration';
+import syncMVsAfterMigration from './helpers/syncMVsAfterMigration';
 
 export default async function migrationRollback() {
   const { rollback } = await getMigrationState();
@@ -23,11 +23,11 @@ export default async function migrationRollback() {
     }
   }
 
-  if (filesRan.length) {
+  if (TS.notEmpty(filesRan)) {
     await updateMigrationState(
       rollback.type === 'up'
-        ? filesRan[filesRan.length - 1]
-        : getPrevMigration(filesRan[filesRan.length - 1]),
+        ? filesRan.at(-1)
+        : getPrevMigration(filesRan.at(-1)),
       {
         type: rollback.type === 'up' ? 'down' : 'up',
         files: filesRan.reverse(),
@@ -35,7 +35,7 @@ export default async function migrationRollback() {
     );
 
     if (!hadError) {
-      await syncDbAfterMigration();
+      await syncMVsAfterMigration();
     }
   }
 

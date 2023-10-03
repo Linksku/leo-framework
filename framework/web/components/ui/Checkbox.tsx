@@ -1,19 +1,36 @@
+import type { UseFormRegister, RegisterOptions, UseFormWatch } from 'react-hook-form';
+
 import styles from './CheckboxStyles.scss';
 
 type Props = {
-  checked: boolean,
-  onChange: React.ChangeEventHandler<HTMLInputElement>,
-  className?: string,
+  checked?: boolean,
   label?: ReactNode,
+  register?: UseFormRegister<any>,
+  registerOpts?: RegisterOptions<any>,
+  watch?: UseFormWatch<any>,
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 export default function Checkbox({
-  checked,
-  onChange,
+  checked: _checked,
   className,
   label,
+  name,
+  register,
+  registerOpts,
+  watch,
   ...props
 }: Props) {
+  if (!process.env.PRODUCTION && register && props.required && !registerOpts?.required) {
+    throw new Error('Checkbox: use registerOpts.required');
+  }
+
+  const checked = name && watch
+    ? watch(name)
+    : _checked;
+  const registerProps = register && name
+    ? register(name, registerOpts)
+    : null;
+
   return (
     <label
       className={cx(className, styles.wrap, {
@@ -37,11 +54,12 @@ export default function Checkbox({
           />
         </svg>
         <input
+          {...registerProps}
           type="checkbox"
           className={styles.input}
-          checked={!!checked}
-          onChange={onChange}
+          checked={checked}
           {...props}
+          required={props.required ?? !!registerOpts?.required}
         />
       </span>
       {label && <span className={styles.label}>{label}</span>}

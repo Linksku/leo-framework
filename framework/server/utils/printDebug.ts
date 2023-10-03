@@ -6,6 +6,16 @@ import getServerId from 'utils/getServerId';
 
 const MSG_TYPES = new Set(['normal', 'success', 'highlight', 'info', 'warn', 'error', 'fail'] as const);
 
+const MSG_TYPE_TO_COLOR = TS.literal({
+  normal: 'reset',
+  success: 'green',
+  highlight: 'cyan',
+  info: 'cyan',
+  warn: 'yellow',
+  error: 'redBright',
+  fail: 'redBright',
+} as const);
+
 type MsgType = typeof MSG_TYPES extends Set<infer U> ? U : never;
 
 export default function printDebug(
@@ -26,25 +36,20 @@ export default function printDebug(
   }
 
   let msg = formatErr(val);
-  if (type === 'success') {
-    msg = chalk.green(msg);
-  } else if (type === 'highlight' || type === 'info') {
-    msg = chalk.cyan(msg);
-  } else if (type === 'warn') {
-    msg = chalk.yellow(msg);
-  } else if (type === 'error' || type === 'fail') {
-    msg = chalk.redBright(msg);
-  }
+  const firstNewLine = msg.indexOf('\n');
+  const color = MSG_TYPE_TO_COLOR[type];
+  msg = firstNewLine >= 0
+    ? `${chalk[color](msg.slice(0, firstNewLine))}\n${msg.slice(firstNewLine + 1)}`
+    : chalk[color](msg);
 
-  // todo: mid/mid date seems to go back sometimes
   const timeStr = dayjs().format('MM-DD HH:mm:ss');
   const serverId = getServerId();
-  const prefix = `[${timeStr}]${serverId ? `[${serverId}]` : ''}`;
+  const prefix = `[${timeStr}]${serverId ? `[${serverId}]` : ''}${ctx ? ` ${ctx}:` : ''}`;
   if (details) {
     // eslint-disable-next-line no-console
-    console.log(`${prefix} ${msg}${ctx ? ` (${ctx})` : ''}:`, details);
+    console.log(`${prefix} ${msg}:`, details);
   } else {
     // eslint-disable-next-line no-console
-    console.log(`${prefix} ${msg}${ctx ? ` (${ctx})` : ''}`);
+    console.log(`${prefix} ${msg}`);
   }
 }

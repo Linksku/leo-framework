@@ -1,3 +1,8 @@
+interface IBaseModel {
+  // todo: low/mid try making __isModel private
+  __isModel: true;
+}
+
 type _CombineNestedRelationTypes<Nested, Relation> =
   null extends Relation ? Nested | null
   : [Relation, Nested] extends [any[], any[]] ? Nested
@@ -5,7 +10,7 @@ type _CombineNestedRelationTypes<Nested, Relation> =
   : Nested;
 
 type ModelNestedRelationsMap = {
-  [Type in ModelType]: UnionToIntersection<ValueOf<{
+  [Type in RRModelType]: UnionToIntersection<ValueOf<{
     [Name in keyof ModelRelationsMap[Type]]: ValueOf<{
       [Name2 in keyof ModelRelationsMap[ModelRelationsMap[Type][Name]['modelType']]]: {
         [NestedName in `${Name & string}.${Name2 & string}`]: {
@@ -22,7 +27,7 @@ type ModelNestedRelationsMap = {
 };
 
 type AllModelRelationsMap = {
-  [Type in ModelType]: {
+  [Type in RRModelType]: {
     [K in keyof (ModelRelationsMap[Type] & ModelNestedRelationsMap[Type])]:
       (ModelRelationsMap[Type] & ModelNestedRelationsMap[Type])[K];
   };

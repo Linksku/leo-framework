@@ -10,11 +10,23 @@ type Message = {
 
 type Cb = (data: string) => void;
 
-const eventTypesToCbs = Object.create(null) as ObjectOf<Set<Cb>>;
+const eventTypesToCbs = new Map<string, Set<Cb>>();
 const serverId = getServerId();
+
+function printEventType(ctx: string, eventType: string) {
+  if (!process.env.PRODUCTION
+    && !eventType.startsWith('HealthcheckManager.')) {
+    const rc = getRC();
+    if (!rc || rc.debug) {
+      printDebug(ctx, 'highlight', { details: eventType });
+    }
+  }
+}
 
 const PubSubManager = {
   publish(eventType: string, data: string) {
+    printEventType('PubSub.publish', eventType);
+
     const msg: Message = {
       data,
       serverId,
@@ -33,8 +45,10 @@ const PubSubManager = {
     eventType: string,
     cb: Cb,
   ) {
-    if (!eventTypesToCbs[eventType]) {
-      eventTypesToCbs[eventType] = new Set();
+    printEventType('PubSub.subscribe', eventType);
+
+    if (!eventTypesToCbs.has(eventType)) {
+      eventTypesToCbs.set(eventType, new Set());
       wrapPromise(
         redisSub.subscribe(`${PUB_SUB}:${eventType}`),
         'warn',
@@ -42,21 +56,21 @@ const PubSubManager = {
       );
     }
 
-    TS.defined(eventTypesToCbs[eventType]).add(cb);
+    (eventTypesToCbs.get(eventType) as Set<Cb>).add(cb);
   },
 
   unsubscribe(
     eventType: string,
     cb: Cb,
   ) {
-    const cbs = eventTypesToCbs[eventType];
+    const cbs = eventTypesToCbs.get(eventType);
     if (!cbs) {
       return;
     }
 
     cbs.delete(cb);
     if (!cbs.size) {
-      delete eventTypesToCbs[eventType];
+      eventTypesToCbs.delete(eventType);
       wrapPromise(
         redisSub.unsubscribe(`${PUB_SUB}:${eventType}`),
         'warn',
@@ -66,7 +80,7 @@ const PubSubManager = {
   },
 
   unsubscribeAll(eventType: string) {
-    delete eventTypesToCbs[eventType];
+    eventTypesToCbs.delete(eventType);
     wrapPromise(
       redisSub.unsubscribe(`${PUB_SUB}:${eventType}`),
       'warn',
@@ -88,9 +102,14 @@ const PubSubManager = {
       );
       return;
     }
+    if (msg.serverId === serverId) {
+      return;
+    }
 
-    const cbs = eventTypesToCbs[eventType];
-    if (msg.serverId !== serverId && cbs) {
+    printEventType('PubSub.handleMessage', eventType);
+
+    const cbs = eventTypesToCbs.get(eventType);
+    if (cbs) {
       for (const cb of cbs) {
         cb(msg.data);
       }

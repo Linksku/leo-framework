@@ -1,5 +1,5 @@
 import Chance from 'chance';
-import round from 'lodash/round';
+import round from 'lodash/round.js';
 
 import knexBT from 'services/knex/knexBT';
 import knexMZ from 'services/knex/knexMZ';
@@ -103,7 +103,7 @@ export default async function testMV() {
     console.log(`Inserting ${numRowsToInsert} rows`);
     await knexBT.batchInsert(
       '__test__',
-      Array.from({ length: numRowsToInsert }).map(_ => getRandomRow()),
+      Array.from({ length: numRowsToInsert }, _ => getRandomRow()),
       1000,
     );
     btCount += numRowsToInsert;
@@ -134,7 +134,7 @@ export default async function testMV() {
 
       console.log('Initializing Kafka sinks');
       await createMZSink({
-        name: '__testMV__',
+        modelType: '__testMV__',
         primaryKey: ['id'],
       });
       await createMZSinkConnector({
@@ -272,14 +272,14 @@ export default async function testMV() {
   const insertedRows = await knexBT
     .batchInsert(
       '__test__',
-      Array.from({ length: 1000 }).map(_ => getRandomRow()),
+      Array.from({ length: 1000 }, _ => getRandomRow()),
     )
     .returning(
       // @ts-ignore Knex has wrong type
       'id',
     );
   btCount += insertedRows.length;
-  const insertedRow3 = insertedRows[insertedRows.length - 1];
+  const insertedRow3 = insertedRows.at(-1);
   console.log(`Inserted 1000 BT rows in ${round(performance.now() - startTime, 1)}ms`);
   await Promise.all([
     (async () => {
@@ -315,7 +315,7 @@ export default async function testMV() {
   ]);
   console.log('');
 
-  const updates = Array.from({ length: 1000 }).map(_ => ({
+  const updates = Array.from({ length: 1000 }, _ => ({
     id: Math.ceil(btCount * Math.random()),
     ...getRandomRow(),
   }));

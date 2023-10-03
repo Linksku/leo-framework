@@ -1,18 +1,70 @@
 import { useAnimatedValue } from 'hooks/useAnimation';
 import { useAnimation } from 'hooks/useAnimation';
 import useWindowEvent from 'hooks/useWindowEvent';
+import useDocumentEvent from 'hooks/useDocumentEvent';
+import { useThrottle } from 'utils/throttle';
+import isVirtualKeyboardOpen from 'utils/isVirtualKeyboardOpen';
 
 export const [
   UIFrameProvider,
   useUIFrameStore,
+  useWindowSize,
   useReloadPage,
 ] = constate(
   function UIFrameStore() {
-    const [sidebarLoaded, setSidebarLoaded] = useState(false);
-    const sidebarShownPercent = useAnimatedValue(0);
-    const [sidebarRef, sidebarStyle] = useAnimation<HTMLDivElement>();
+    const [windowSize, setWindowSize] = useStateStable(() => ({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }));
+    const [state, setState] = useStateStable(() => ({
+      isVirtualKeyboardOpen: isVirtualKeyboardOpen(),
+    }));
+    // Note: .focus() on ios works only in event handler, so need to focus before async operations
+    const iosFocusHackRef = useRef<HTMLInputElement | null>(null);
 
-    const reloadSpinnerDeg = useAnimatedValue(0);
+    const handleResize = useThrottle(
+      () => {
+        requestAnimationFrame(() => {
+          setWindowSize({
+            width: window.innerWidth,
+            height: window.innerHeight,
+          });
+
+          setState({
+            isVirtualKeyboardOpen: isVirtualKeyboardOpen(),
+          });
+        });
+      },
+      useConst({
+        timeout: 100,
+      }),
+    );
+    useWindowEvent('resize', handleResize);
+    // Don't know if `focus` is needed. Distinguish between input focus and tab focus
+    // useWindowEvent('focus', handleResize);
+    useDocumentEvent('visibilitychange', handleResize);
+    useEffect(() => {
+      window.visualViewport?.addEventListener('resize', handleResize);
+
+      return () => {
+        window.visualViewport?.removeEventListener('resize', handleResize);
+      };
+    }, [handleResize]);
+
+    const [sidebarLoaded, setSidebarLoaded] = useState(false);
+    const sidebarShownPercent = useAnimatedValue(
+      0,
+      { debugName: 'Sidebar' },
+    );
+    const [sidebarRef, sidebarStyle] = useAnimation<HTMLDivElement>(
+      sidebarShownPercent,
+      'Sidebar',
+    );
+
+    const reloadSpinnerDeg = useAnimatedValue(
+      0,
+      { debugName: 'ReloadSpinner' },
+    );
     const reloadPage = useCallback((delay = 0) => {
       reloadSpinnerDeg.setVal(360, 300);
       setTimeout(() => {
@@ -38,7 +90,7 @@ export const [
     }, [sidebarShownPercent]);
 
     const hideSidebar = useCallback(
-      () => sidebarShownPercent.setVal(0),
+      (duration?: number) => sidebarShownPercent.setVal(0, duration),
       [sidebarShownPercent],
     );
 
@@ -49,6 +101,8 @@ export const [
     }, [hideSidebar]));
 
     return useMemo(() => ({
+      windowSize,
+      isVirtualKeyboardOpen: state.isVirtualKeyboardOpen,
       sidebarLoaded,
       sidebarShownPercent,
       sidebarRef,
@@ -58,7 +112,10 @@ export const [
       loadSidebar,
       reloadSpinnerDeg,
       reloadPage,
+      iosFocusHackRef,
     }), [
+      windowSize,
+      state.isVirtualKeyboardOpen,
       sidebarLoaded,
       sidebarShownPercent,
       sidebarRef,
@@ -68,10 +125,14 @@ export const [
       loadSidebar,
       reloadSpinnerDeg,
       reloadPage,
+      iosFocusHackRef,
     ]);
   },
   function UIFrameStore(val) {
     return val;
+  },
+  function WindowSize(val) {
+    return val.windowSize;
   },
   function ReloadPage(val) {
     return val.reloadPage;

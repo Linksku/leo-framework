@@ -1,5 +1,5 @@
 import RequestContextLocalStorage from './RequestContextLocalStorage';
 
-export default function getRequestContext() {
+export default function getRequestContext(): RequestContext | undefined {
   return RequestContextLocalStorage.getStore();
 }

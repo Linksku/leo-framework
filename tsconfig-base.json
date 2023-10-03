@@ -9,6 +9,7 @@
     "strict": true,
     "isolatedModules": true,
     "esModuleInterop": true,
+    // Temporarily disable this to check .d.ts files
     "skipLibCheck": true,
     "baseUrl": "./",
     "noImplicitAny": true,
@@ -16,7 +17,7 @@
     "strictNullChecks": true,
     "useUnknownInCatchVariables": true,
     "resolveJsonModule": false,
-    "lib": ["es2021"],
+    "lib": ["es2022"],
     "types": [
       "webpack-env",
     ],

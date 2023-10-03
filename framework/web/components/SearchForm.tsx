@@ -1,15 +1,18 @@
 import SearchSvg from 'fa5/svg/search-regular.svg';
 
 import { useThrottle } from 'utils/throttle';
+import Form from 'components/common/Form';
+import { useAddPopHandler } from 'stores/HistoryStore';
 
 import styles from './SearchFormStyles.scss';
 
 type Props = {
-  onInput?: Memoed<React.FormEventHandler<HTMLInputElement>>,
-  onSubmit: Memoed<(query: string) => void>,
+  onInput?: Stable<React.FormEventHandler<HTMLInputElement>>,
+  onSubmit: Stable<(query: string) => void>,
   throttleTimeout?: number,
   defaultValue?: string,
   placeholder?: string,
+  inputProps?: Stable<Parameters<typeof Input>[0]>,
 };
 
 export default React.memo(function SearchForm({
@@ -18,6 +21,7 @@ export default React.memo(function SearchForm({
   throttleTimeout = 1000,
   defaultValue,
   placeholder,
+  inputProps,
 }: Props) {
   const { register, handleSubmit } = useForm({
     reValidateMode: 'onBlur',
@@ -25,19 +29,30 @@ export default React.memo(function SearchForm({
       query: defaultValue ?? '',
     },
   });
+  const addPopHandler = useAddPopHandler();
+  const lastSubmitted = useRef(defaultValue);
 
   const _handleSubmit = handleSubmit(useThrottle(
     ({ query }) => {
+      if (!lastSubmitted.current && query) {
+        addPopHandler(() => {
+          lastSubmitted.current = '';
+          onSubmit('');
+          return true;
+        });
+      }
+
+      lastSubmitted.current = query;
       onSubmit(query);
     },
-    useDeepMemoObj({
+    useMemo(() => ({
       timeout: throttleTimeout,
-    }),
+    }), [throttleTimeout]),
     [onSubmit],
   ));
 
   return (
-    <form
+    <Form
       onSubmit={_handleSubmit}
     >
       <Input
@@ -55,8 +70,9 @@ export default React.memo(function SearchForm({
         autoCapitalize="none"
         autoCorrect="off"
         onInput={onInput}
-        className={styles.input}
+        marginBottom="0.5rem"
+        {...inputProps}
       />
-    </form>
+    </Form>
   );
 });

@@ -3,12 +3,12 @@ import type { Console } from 'node:console';
 import type { Performance } from 'perf_hooks';
 
 declare global {
-  declare module '*.txt' {
+  module '*.txt' {
     const content: string;
     export default content;
   }
 
-  declare module '*.json' {
+  module '*.json' {
     const content: unknown;
     export default content;
   }
@@ -18,10 +18,21 @@ declare global {
   const console: Console;
   const performance: Performance;
 
+  interface String {
+    split(separator: string | RegExp, limit?: number): [string, ...string[]];
+  }
+
   interface ObjectConstructor {
     keys(o: any[]): never;
     keys<T>(o: T & (T extends any[] ? never : object)): string[];
     create(o: null): ObjectOf<any>;
+  }
+
+  interface Array<T> {
+    at<Arr extends T[], N extends number>(this: Arr, index: N):
+      [N, Arr] extends [0, [any, ...any[]]] ? T
+      : [N, Arr] extends [-1, [any, ...any[]]] ? T
+      : T | undefined;
   }
 
   interface Error {
@@ -52,6 +63,7 @@ declare global {
 
     NODE_ENV: 'production' | 'development';
     PRODUCTION: boolean; // NODE_ENV = production
+    // todo: mid/hard add staging server
     SERVER: 'production' | 'development';
     JS_VERSION: string;
     IS_SERVER_SCRIPT?: string;
@@ -92,6 +104,7 @@ declare global {
     PG_RR_PASS: string;
     PG_RR_SUPERUSER: string;
     REDIS_PASS: string;
+    MAX_CPU_PERCENT: string;
     PASSWORD_PEPPER: string;
     COOKIE_JWT_KEY: string;
     HEADER_JWT_KEY: string;
@@ -111,7 +124,7 @@ declare global {
     CF_API_KEY: string;
   };
 
-  declare namespace __WebpackModuleApi {
+  namespace __WebpackModuleApi {
     export interface NodeProcess {
       env: FrameworkEnv;
     }

@@ -1,8 +1,8 @@
-import { Freeze } from 'react-freeze';
-
-import { useAnimatedValue, useAnimation, DEFAULT_DURATION } from 'hooks/useAnimation';
+import { useAnimatedValue, useAnimation } from 'hooks/useAnimation';
 import Swipeable from 'components/frame/Swipeable';
 import ErrorBoundary from 'components/ErrorBoundary';
+import ErrorPage from 'components/ErrorPage';
+import { CONTAINER_MAX_WIDTH, IOS_EDGE_SWIPE_PX } from 'consts/ui';
 
 import styles from './StackWrapOuterStyles.scss';
 
@@ -12,67 +12,125 @@ export default function StackWrapOuter({
 }: React.PropsWithChildren) {
   const {
     path,
+    forwardState,
     isRouteActive,
-    isRouteVisible,
-    isStackTop,
+    isCurStack,
+    isForwardStack,
     routeOpts,
+    historyState,
   } = useRouteStore();
-  const { isReplaced } = useHistoryStore();
-  const { goBackStack, lastStackAnimatedVal } = useStacksNavStore();
-  const showSlide = isStackTop && (!isReplaced || path === '/register');
-  const slideIn = showSlide && isRouteActive;
-  const slideOut = showSlide && !isRouteActive;
+  const {
+    isReplaced,
+    prevState,
+  } = useHistoryStore();
+  const { isPrevHome } = useHomeNavStore();
+  const {
+    backStack,
+    forwardStack,
+    goBackStack,
+    stackToAnimatedVal,
+    goForwardStack,
+  } = useStacksNavStore();
+  const slideIn = isCurStack && !isReplaced && !!prevState
+    && (prevState === backStack || isPrevHome);
+  const slideOut = isForwardStack && !isReplaced
+    && prevState === forwardStack;
+  const windowSize = useWindowSize();
+
+  // 0 = shown, 100 = hidden
   const animatedLeftPercent = useAnimatedValue(
-    slideIn ? 100 : 0,
+    slideIn || isForwardStack
+      ? 100
+      : 0,
+    { debugName: `StackWrapOuter(${path})` },
+  );
+  const [animationRef, animationStyle] = useAnimation<HTMLDivElement>(
+    animatedLeftPercent,
     `StackWrapOuter(${path})`,
   );
-  const [animationRef, animationStyle] = useAnimation<HTMLDivElement>();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (slideIn) {
       animatedLeftPercent.setVal(0);
     } else if (slideOut) {
       animatedLeftPercent.setVal(100);
     }
+  }, [slideIn, slideOut, animatedLeftPercent]);
 
-    if (isRouteActive) {
-      lastStackAnimatedVal.current = animatedLeftPercent;
-    }
-  }, [slideIn, slideOut, animatedLeftPercent, isRouteActive, lastStackAnimatedVal]);
+  useEffect(() => {
+    stackToAnimatedVal.current.set(historyState, animatedLeftPercent);
+  }, [stackToAnimatedVal, historyState, animatedLeftPercent]);
 
-  // todo: mid/easy swiping can get stuck at 1%
+  const enableSwipeFromLeft = isRouteActive && !routeOpts.disableBackSwipe;
+  const enableSwipeFromRight = (isRouteActive || isForwardStack) && !!forwardState;
+  let maxSwipeStartDist = Math.max(IOS_EDGE_SWIPE_PX, windowSize.width / 10);
+  if (windowSize.width > CONTAINER_MAX_WIDTH) {
+    maxSwipeStartDist += (windowSize.width - CONTAINER_MAX_WIDTH) / 2;
+  }
   return (
-    <Freeze freeze={!isRouteVisible}>
-      <Swipeable
-        ref={animationRef}
-        swipeProps={{
-          onNavigate: goBackStack,
-          setPercent: (p, durationPercent) => animatedLeftPercent.setVal(
-            p,
-            durationPercent * DEFAULT_DURATION,
-          ),
-          direction: 'right',
-          enabled: isRouteActive && !routeOpts.disableBackSwipe,
-        }}
-        style={animationStyle(
-          animatedLeftPercent,
-          {
-            // "fixed" is needed to prevent .focus() in the stack from scrolling the parent
-            // https://stackoverflow.com/q/75419337
-            position: x => (x > 0 ? 'fixed' : 'absolute'),
-            transform: x => `translateZ(0) translateX(${x}%)`,
-            boxShadow: x => `0 0 ${(100 - x) / 10}px rgb(0 0 0 / ${((100 - x) / 10) + 10}%)`,
+    <Swipeable
+      ref={animationRef}
+      swipeProps={{
+        disabled: !enableSwipeFromLeft && !enableSwipeFromRight,
+        direction: enableSwipeFromLeft && enableSwipeFromRight
+          ? 'horizontal'
+          : (enableSwipeFromLeft ? 'right' : 'left'),
+        elementDim: windowSize.width,
+        maxSwipeStartDist: [
+          undefined,
+          maxSwipeStartDist,
+        ],
+        setPercent(p, duration, dir) {
+          if (dir === 'right') {
+            animatedLeftPercent.setVal(
+              p,
+              duration,
+              'easeOutQuad',
+            );
+          } else if (forwardState) {
+            stackToAnimatedVal.current.get(forwardState)
+              ?.setVal(
+                100 - p,
+                duration,
+                'easeOutQuad',
+              );
+          }
+        },
+        onNavigate(dir) {
+          if (dir === 'right') {
+            goBackStack.current();
+          } else {
+            goForwardStack.current();
+          }
+        },
+      }}
+      style={animationStyle(
+        {
+          transform: x => `translateZ(0) translateX(${x}%)`,
+          boxShadow: x => `-${(100 - x) / 20}px 0 ${(100 - x) / 10}px -${(100 - x) / 20}px rgb(0 0 0 / ${((100 - x) / 10) + 10}%)`,
+        },
+        {
+          stylesForFinalVal: {
+            0: {
+              position: 'absolute',
+              top: 0,
+            },
           },
-          { keyframes: [1] },
+          skipTransitionProps: ['position', 'top'],
+        },
+      )}
+      className={styles.container}
+    >
+      <ErrorBoundary
+        renderError={msg => (
+          <ErrorPage
+            title="Error"
+            content={msg}
+          />
         )}
-        className={styles.container}
       >
-        <ErrorBoundary>
-          <React.Suspense fallback={<Spinner />}>
-            {children}
-          </React.Suspense>
-        </ErrorBoundary>
-      </Swipeable>
-    </Freeze>
+        {children}
+      </ErrorBoundary>
+    </Swipeable>
   );
 }

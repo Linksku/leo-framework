@@ -3,21 +3,21 @@ import type { EntityEventHandler } from 'stores/EntitiesStore';
 function useHandleEntityEvent<T extends EntityType>(
   actionType: EntityAction,
   entityType: T,
-  cb: Memoed<EntityEventHandler<T>>,
+  cb: Stable<EntityEventHandler<T>>,
 ): void;
 
 function useHandleEntityEvent<T extends EntityType>(
   actionType: EntityAction,
   entityType: T,
   id: EntityId,
-  cb: Memoed<EntityEventHandler<T>>,
+  cb: Stable<EntityEventHandler<T>>,
 ): void;
 
 function useHandleEntityEvent<T extends EntityType>(
   actionType: EntityAction,
   entityType: T,
-  idOrCb: EntityId | Memoed<EntityEventHandler<T>>,
-  cb?: Memoed<EntityEventHandler<T>>,
+  idOrCb: EntityId | Stable<EntityEventHandler<T>>,
+  cb?: Stable<EntityEventHandler<T>>,
 ) {
   const { addEntityListener } = useEntitiesStore();
   useEffect(() => {

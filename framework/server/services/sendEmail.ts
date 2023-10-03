@@ -1,4 +1,4 @@
-import SES from 'aws-sdk/clients/ses';
+import SES from 'aws-sdk/clients/ses.js';
 
 import { NOREPLY_EMAIL } from 'settings';
 

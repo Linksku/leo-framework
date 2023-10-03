@@ -15,8 +15,10 @@ export const BT_SLOT_RR = 'slot_rr';
 
 export const BT_SLOT_RR_PREFIX = 'slot_rr_';
 
+export const BT_CDC_SLOT_PREFIX = 'materialize_';
+
 // Debezium
-export const ENABLE_DBZ = true;
+export const ENABLE_DBZ = false;
 
 export const DBZ_CONNECTOR_PREFIX = `${process.env.APP_NAME_LOWER}_dbz_`;
 
@@ -24,14 +26,16 @@ export const DBZ_CONNECTOR_UPDATEABLE = `${DBZ_CONNECTOR_PREFIX}updateable`;
 
 export const DBZ_CONNECTOR_INSERT_ONLY = `${DBZ_CONNECTOR_PREFIX}insert_only`;
 
-export const DBZ_TOPIC_UPDATEABLE_PREFIX = 'dbz_updateable_';
+export const DBZ_TOPIC_UPDATEABLE_PREFIX = `${process.env.APP_NAME_LOWER}_dbz_updateable_`;
 
-export const DBZ_TOPIC_INSERT_ONLY_PREFIX = 'dbz_insert_only_';
+export const DBZ_TOPIC_INSERT_ONLY_PREFIX = `${process.env.APP_NAME_LOWER}_dbz_insert_only_`;
 
 // Materialize source
-export const MZ_SOURCE_PG_UPDATEABLE = 'source_pg';
+export const MZ_SOURCE_PG = 'source_pg';
 
 export const MZ_SOURCE_PG_PREFIX = 'source_pg_';
+
+export const MZ_KAFKA_CONSUMER_PREFIX = `${process.env.APP_NAME_LOWER}_mz_`;
 
 // Materialize
 export const MZ_TIMESTAMP_FREQUENCY = 500;
@@ -40,6 +44,8 @@ export const MZ_TIMESTAMP_FREQUENCY = 500;
 export const MZ_SINK_PREFIX = 'sink_';
 
 export const MZ_SINK_TOPIC_PREFIX = `${process.env.APP_NAME_LOWER}_mz_sink_`;
+
+export const MZ_SINK_CONSISTENCY_TOPIC_REGEX = new RegExp(`^${MZ_SINK_TOPIC_PREFIX}.+-consistency$`);
 
 export const MZ_SINK_CONNECTOR_PREFIX = `${process.env.APP_NAME_LOWER}_mz_sink_`;
 

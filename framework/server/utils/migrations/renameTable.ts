@@ -6,8 +6,12 @@ export default async function renameTable({ isMV, oldName, newName }: {
   oldName: string,
   newName: string,
 }) {
-  if (!isMV) {
-    await knexBT.raw('ALTER TABLE IF EXISTS ?? RENAME TO ??', [oldName, newName]);
+  try {
+    if (!isMV) {
+      await knexBT.raw('ALTER TABLE IF EXISTS ?? RENAME TO ??', [oldName, newName]);
+    }
+    await knexRR.raw('ALTER TABLE IF EXISTS ?? RENAME TO ??', [oldName, newName]);
+  } catch (err) {
+    throw getErr(err, { ctx: 'renameTable', newName });
   }
-  await knexRR.raw('ALTER TABLE IF EXISTS ?? RENAME TO ??', [oldName, newName]);
 }

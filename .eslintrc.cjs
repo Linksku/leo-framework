@@ -9,7 +9,20 @@ const sharedGlobals = require('./framework/shared/config/globals.cjs');
 const sharedAppGlobals = require('./app/shared/config/globals.cjs');
 
 // const isVsCode = !!process.env.VSCODE_PID || !!process.env.VSCODE_CWD;
-const extensions = ['.js', '.ts', '.tsx', '.cjs', '.mjs', '.json'];
+const extensions = [
+  '.js',
+  '.ts',
+  '.tsx',
+  '.cjs',
+  '.mjs',
+  '.json',
+];
+
+const restrictedImports = [
+  'lodash',
+  'lodash/*',
+  'react-use', // Inefficient library.
+];
 
 const config = {
   parser: '@typescript-eslint/parser',
@@ -26,12 +39,10 @@ const config = {
   },
   extends: [
     'airbnb',
-    'airbnb/hooks',
     'plugin:unicorn/recommended',
   ],
   plugins: [
     'css-modules',
-    'unicorn',
   ],
   env: {
     node: true,
@@ -176,6 +187,7 @@ const config = {
     'no-restricted-exports': 0,
     // Same as unicorn/prefer-module
     'global-require': 0,
+    'no-constant-condition': 0,
     'import/prefer-default-export': 0,
     'import/no-relative-packages': 0,
     'import/extensions': 0,
@@ -190,6 +202,29 @@ const config = {
     'import/no-duplicates': 0,
     // Too slow.
     'import/no-cycle': 0,
+    'import/order': [2, {
+      groups: [
+        [
+          'builtin',
+          'external',
+          'type',
+          'internal',
+          'unknown',
+        ],
+        [
+          'parent',
+          'sibling',
+          'index',
+        ],
+      ],
+      pathGroups: [
+        {
+          pattern: '**',
+          group: 'internal',
+        },
+      ],
+      pathGroupsExcludedImportTypes: ['builtin', 'object'],
+    }],
     'react/jsx-filename-extension': [2, { extensions: ['.tsx'] }],
     'react/no-unknown-property': [2, { ignore: ['class', 'for'] }],
     'react/prop-types': 0,
@@ -257,16 +292,7 @@ const config = {
         tr: ['none', 'presentation'],
       },
     ],
-    'jsx-a11y/no-noninteractive-element-to-interactive-role': [
-      2,
-      {
-        ul: ['listbox', 'menu', 'menubar', 'radiogroup', 'tablist', 'tree', 'treegrid'],
-        ol: ['listbox', 'menu', 'menubar', 'radiogroup', 'tablist', 'tree', 'treegrid'],
-        li: ['menuitem', 'option', 'row', 'tab', 'treeitem'],
-        table: ['grid'],
-        td: ['gridcell'],
-      },
-    ],
+    'jsx-a11y/no-noninteractive-element-to-interactive-role': 0,
     'jsx-a11y/no-noninteractive-tabindex': 2,
     'jsx-a11y/no-static-element-interactions': [
       2,
@@ -287,7 +313,9 @@ const config = {
     'unicorn/no-null': 0,
     'unicorn/prefer-query-selector': 0,
     'unicorn/explicit-length-check': 0,
-    'unicorn/better-regex': 1,
+    'unicorn/better-regex': [2, {
+      sortCharacterClasses: false,
+    }],
     'unicorn/no-fn-reference-in-iterator': 1,
     'unicorn/no-process-exit': 1,
     'unicorn/consistent-function-scoping': 0,
@@ -308,6 +336,15 @@ const config = {
     'unicorn/switch-case-braces': [2, 'avoid'],
     'unicorn/no-array-push-push': 0,
     'unicorn/no-for-loop': 0,
+    // Array.includes is faster unless length > 10k
+    'unicorn/prefer-set-has': 0,
+    // Causes error
+    'unicorn/expiring-todo-comments': 0,
+    // False positive
+    'unicorn/no-empty-file': 0,
+    // Low browser support
+    'unicorn/prefer-modern-math-apis': 0,
+    'unicorn/no-thenable': 0,
   },
   overrides: [
     {
@@ -415,6 +452,9 @@ const config = {
       parserOptions: {
         project: 'app/web/tsconfig.json',
       },
+      extends: [
+        'airbnb/hooks',
+      ],
       settings: {
         'import/resolver': {
           node: {
@@ -434,11 +474,7 @@ const config = {
         },
       },
       rules: {
-        'no-restricted-imports': [2, { patterns: [
-          'lodash',
-          'lodash/*',
-          'react-use', // Inefficient library.
-        ] }],
+        'no-restricted-imports': [2, { patterns: restrictedImports }],
       },
       globals: {
         ...mapValues(sharedAppGlobals, () => false),
@@ -456,6 +492,9 @@ const config = {
       parserOptions: {
         project: 'framework/web/tsconfig.json',
       },
+      extends: [
+        'airbnb/hooks',
+      ],
       settings: {
         'import/resolver': {
           node: {
@@ -465,6 +504,9 @@ const config = {
             ],
           },
         },
+      },
+      rules: {
+        'no-restricted-imports': [2, { patterns: restrictedImports }],
       },
       globals: {
         ...mapValues(sharedGlobals, () => false),

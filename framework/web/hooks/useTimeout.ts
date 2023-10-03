@@ -1,5 +1,5 @@
 export default function useTimeout(
-  cb: Memoed<() => void>,
+  cb: Stable<() => void>,
   delay: number,
 ) {
   useEffect(() => {

@@ -7,7 +7,8 @@ export default async function deleteMZSources() {
   try {
     const sources = await showMzSystemRows('SHOW SOURCES');
     for (const source of sources) {
-      await knexMZ.raw('DROP SOURCE IF EXISTS ?? CASCADE', [source]);
+      await knexMZ.raw('DROP SOURCE IF EXISTS ?? CASCADE', [source])
+        .timeout(10 * 1000);
     }
   } catch (err) {
     if (err instanceof Error && (
@@ -23,5 +24,8 @@ export default async function deleteMZSources() {
     }
   }
 
-  printDebug(`Deleted MZ sources after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `Deleted MZ sources after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

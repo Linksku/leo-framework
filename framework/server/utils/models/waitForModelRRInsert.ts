@@ -1,8 +1,8 @@
 import getModelDataLoader from 'services/dataLoader/getModelDataLoader';
-import { API_POST_TIMEOUT } from 'settings';
+import MaterializedView from 'services/model/MaterializedView';
+import RequestContextLocalStorage from 'services/requestContext/RequestContextLocalStorage';
 import waitForKafkaSinkMsg from 'utils/models/waitForKafkaSinkMsg';
 
-// todo: mid/mid subscribe to kafka sink topic instead of polling
 export default async function waitForModelRRInsert<
   T extends ModelClass,
   P extends ModelPartialExact<T, P>,
@@ -11,8 +11,7 @@ export default async function waitForModelRRInsert<
   partial: P,
   {
     retryInterval = 300,
-    // todo: low/mid default to remaining api time
-    timeout = API_POST_TIMEOUT / 2,
+    timeout = 5000,
     throwIfTimeout = false,
     timeoutErrMsg = '',
   } = {},
@@ -22,19 +21,31 @@ export default async function waitForModelRRInsert<
   }
   const startTime = performance.now();
 
-  try {
-    await waitForKafkaSinkMsg(Model.type, partial, { timeout });
-  } catch (err) {
-    if (err instanceof Error && err.message.includes('timed out')) {
-      if (timeoutErrMsg) {
-        throw new UserFacingError(timeoutErrMsg, 503, { err });
-      }
-      if (throwIfTimeout) {
+  if (Model.prototype instanceof MaterializedView && Model.getReplicaTable()) {
+    try {
+      await waitForKafkaSinkMsg(
+        Model.type,
+        partial,
+        { timeout: timeout / 2 },
+      );
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('didn\'t receive first message')) {
+        // pass
+      } else if (err instanceof Error && err.message.includes('timed out')) {
+        if (timeoutErrMsg) {
+          throw new UserFacingError(timeoutErrMsg, 503, { err });
+        }
+        if (throwIfTimeout) {
+          throw err;
+        }
+        ErrorLogger.warn(new Error(
+          `waitForModelRRInsert(${Model.name}): waitForKafkaSinkMsg timed out`,
+        ));
+        return;
+      } else {
         throw err;
       }
-      return;
     }
-    throw err;
   }
 
   let lastErr: string | null = null;
@@ -42,7 +53,9 @@ export default async function waitForModelRRInsert<
     lastErr = null;
     try {
       // eslint-disable-next-line no-await-in-loop
-      const instance = await getModelDataLoader(Model).load(partial);
+      const instance = await RequestContextLocalStorage.exit(
+        () => getModelDataLoader(Model).load(partial),
+      );
       if (instance) {
         return;
       }
@@ -57,6 +70,9 @@ export default async function waitForModelRRInsert<
       if (throwIfTimeout) {
         throw getErr('waitForModelRRInsert: timed out', { lastErr });
       }
+      ErrorLogger.warn(new Error(
+        `waitForModelRRInsert(${Model.name}): RR timed out`,
+      ));
       return;
     }
     // eslint-disable-next-line no-await-in-loop

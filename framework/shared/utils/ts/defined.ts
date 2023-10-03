@@ -1,3 +1,4 @@
+// todo: low/mid maybe replace with TS ! operator
 export default process.env.PRODUCTION
   ? function defined<T>(val: T): Exclude<T, undefined> {
     return val as Exclude<T, undefined>;

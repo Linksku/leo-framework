@@ -7,21 +7,21 @@ import { getMinFails, SERVER_STATUS_MAX_STALENESS } from 'services/healthcheck/H
 import { HEALTHCHECK } from 'consts/coreRedisNamespaces';
 import { redisMaster } from 'services/redis';
 import { INIT_INFRA_REDIS_KEY } from 'consts/infra';
+import { NUM_CLUSTER_SERVERS } from 'serverSettings';
 
 export default async function getServersStatus(args?: Arguments | {
   silent?: boolean,
+  silentSuccess?: boolean,
 }) {
   const data = await redisMaster.hgetall(`${HEALTHCHECK}:status`);
-  const keys = Object.keys(data)
+  const serverKeys = Object.keys(data)
     .map(k => Number.parseInt(k, 10))
     .sort((a, b) => a - b);
 
-  if (!keys.length) {
-    console.log(chalk.red('No servers are reporting status'));
-  }
+  const newData: ObjectOf<RedisServerStatus> = Object.create(null);
+  let numActiveServers = 0;
 
-  const newData: ObjectOf<RedisServerStatus> = {};
-  for (const k of keys) {
+  for (const k of serverKeys) {
     const datum = TS.assertType<RedisServerStatus>(
       JSON.parse(data[k]),
       val => Array.isArray(val.failing)
@@ -35,38 +35,50 @@ export default async function getServersStatus(args?: Arguments | {
         && typeof val.time === 'string',
     );
 
-    if (!args?.silent) {
-      const timeAgo = Date.now() - new Date(datum.time).getTime();
-      const isOutdated = timeAgo > SERVER_STATUS_MAX_STALENESS;
-      if (isOutdated || datum.failing?.length) {
-        console.log(`Server ${k}: ${isOutdated ? chalk.yellow('outdated') : ''}`);
-        for (const service of datum.failing) {
-          const color = !isOutdated && !service.skipped && !service.isStale
-            && service.numFails >= getMinFails(service.name)
-            ? 'red'
-            : 'yellow';
-          let msg = `  ${chalk[color](service.name)}`;
-          if (service.isStale) {
-            msg += ' (stale)';
-          } else if (service.skipped) {
-            msg += ' (skipped)';
-          } else if (service.numFails < getMinFails(service.name)) {
-            msg += ` (fails: ${service.numFails})`;
-          }
-          if (service.lastErr) {
-            msg += `: ${service.lastErr}`;
-          }
-          console.log(msg);
+    const timeAgo = Date.now() - new Date(datum.time).getTime();
+    if (timeAgo > SERVER_STATUS_MAX_STALENESS) {
+      // Might be worker ID that's no longer active
+      continue;
+    }
+
+    numActiveServers++;
+    const hasFails = datum.failing?.length;
+    if (!args?.silent && hasFails) {
+      console.log(`Server ${k}:`);
+      for (const service of datum.failing) {
+        const isWarning = service.skipped
+          || service.isStale
+          || service.numFails < getMinFails(service.name);
+        let msg = `  ${chalk[isWarning ? 'yellow' : 'red'](service.name)}`;
+        if (service.isStale) {
+          msg += ' (stale)';
+        } else if (service.skipped) {
+          msg += ' (skipped)';
+        } else if (service.numFails < getMinFails(service.name)) {
+          msg += ` (fails: ${service.numFails})`;
         }
-      } else {
-        console.log(`Server ${k}: ${chalk.green('healthy')} (${Math.round(timeAgo / 1000)}s ago)`);
+        if (!isWarning && service.lastErr) {
+          msg += `: ${service.lastErr}`;
+        }
+        console.log(msg);
       }
+    } else if (!args?.silent && !args?.silentSuccess && !hasFails) {
+      console.log(`Server ${k}: ${chalk.green('healthy')} (${Math.round(timeAgo / 1000)}s ago)`);
     }
 
     newData[k] = datum;
   }
 
-  if (await redisMaster.exists(INIT_INFRA_REDIS_KEY)) {
+  if (!numActiveServers && !args?.silent) {
+    console.log(chalk.red('No servers are reporting status'));
+    return {};
+  }
+
+  if (numActiveServers < NUM_CLUSTER_SERVERS && !args?.silent) {
+    console.log(chalk.yellow(`${NUM_CLUSTER_SERVERS - numActiveServers} servers aren't reporting status`));
+  }
+
+  if (!args?.silent && await redisMaster.exists(INIT_INFRA_REDIS_KEY)) {
     console.log(chalk.yellow('Currently initializing infra'));
   }
 

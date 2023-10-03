@@ -1,6 +1,8 @@
 import type { FieldError } from 'react-hook-form';
 
-import styles from './HookFormErrorsStyles.scss';
+import FormError from './FormError';
+
+import styles from './HookFormErrors.scss';
 
 type Props = {
   errors: ObjectOf<FieldError>,
@@ -12,7 +14,7 @@ export default function HookFormErrors({
   additionalError,
 }: Props) {
   const errorValues: FieldError[] = TS.objValues(errors);
-  if ((!errors || !errorValues.length) && !additionalError) {
+  if (!errorValues.length && !additionalError) {
     return null;
   }
 
@@ -23,17 +25,15 @@ export default function HookFormErrors({
   return (
     <div className={styles.container}>
       {additionalError && (
-        <p className={styles.error}>
-          {additionalError instanceof Error ? additionalError.message : additionalError}
-        </p>
+        <FormError
+          error={additionalError instanceof Error ? additionalError.message : additionalError}
+        />
       )}
       {[...new Set(errorValues.map(err => err.message ?? 'Unknown error'))].map(msg => (
-        <p
+        <FormError
           key={msg}
-          className={styles.error}
-        >
-          {msg}
-        </p>
+          error={msg}
+        />
       ))}
     </div>
   );

@@ -9,7 +9,7 @@ export default async function promiseObj<
   const entries = TS.objEntries(obj);
   const results = await Promise.all(entries.map(pair => pair[1]));
 
-  const newObj = {} as Ret;
+  const newObj = Object.create(null) as Ret;
   for (let i = 0; i < entries.length; i++) {
     newObj[entries[i][0]] = results[i];
   }

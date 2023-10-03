@@ -3,12 +3,14 @@ import useEffectOncePerDeps from 'hooks/useEffectOncePerDeps';
 import styles from './SlideUpListStyles.scss';
 
 type Props = {
-  items: {
+  items: ({
     key: string,
     disabled?: boolean,
     content: ReactNode,
-    onClick?: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void,
-  }[],
+    onClick?: (
+      event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+    ) => boolean | void | Promise<boolean | void>,
+  } | null)[],
   context: string,
 };
 
@@ -17,7 +19,7 @@ export default function SlideUpList({
   context,
 }: Props) {
   const hideSlideUp = useHideSlideUp();
-  const itemsShown = items.filter(item => item.content);
+  const itemsShown = TS.filterNulls(items).filter(item => item.content);
 
   useEffectOncePerDeps(() => {
     if (!itemsShown.length) {
@@ -37,11 +39,23 @@ export default function SlideUpList({
               return;
             }
 
-            hideSlideUp();
-            item.onClick?.(e);
+            const shouldHideSlideup = item.onClick?.(e);
+            if (shouldHideSlideup instanceof Promise) {
+              shouldHideSlideup
+                .then(val => {
+                  if (val !== false) {
+                    hideSlideUp();
+                  }
+                })
+                .catch(_ => {
+                  hideSlideUp();
+                });
+            } else if (shouldHideSlideup !== false) {
+              hideSlideUp();
+            }
           }}
           role="button"
-          tabIndex={-1}
+          tabIndex={0}
           className={styles.listItem}
         >
           {item.content}

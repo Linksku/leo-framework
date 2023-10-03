@@ -3,6 +3,7 @@ import createEntityClass from 'services/model/createEntityClass';
 export default createEntityClass(
   {
     type: 'userDevice',
+    deleteable: true,
     schema: {
       id: SchemaConstants.id,
       userId: SchemaConstants.id,

@@ -15,22 +15,23 @@ export default function apiValidateFn(
       .split('/')
       .filter(Boolean);
 
-    const debugErrParts: string[] = [];
+    const errParts: string[] = [];
     if (errorPath?.length) {
-      debugErrParts.push(`${errorPath.join('.')}`);
+      errParts.push(`${errorPath.join('.')}`);
     }
     if (error?.message) {
-      debugErrParts.push(`${error.message.toLowerCase()}`);
+      errParts.push(`${error.message.toLowerCase()}`);
 
       if (error?.params?.additionalProperty) {
-        debugErrParts.push(`(${error.params.additionalProperty})`);
+        errParts.push(`(${error.params.additionalProperty})`);
       }
     }
-    if (!debugErrParts.length) {
-      debugErrParts.push('unknown error');
-    }
-    const debugErrMsg = `${ucFirst(apiName)} ${type}: ${debugErrParts.join(' ')}.`;
 
+    const debugErrMsg = `${ucFirst(apiName)} ${type}: ${
+      errParts.length
+        ? errParts.join(' ')
+        : 'unknown error'
+    }.`;
     if (!process.env.PRODUCTION) {
       throw new UserFacingError(
         debugErrMsg,
@@ -39,21 +40,25 @@ export default function apiValidateFn(
     }
 
     if (type === 'params') {
+      if (errParts.length) {
+        throw new UserFacingError(
+          `${ucFirst(errParts.join(' '))}.`,
+          400,
+        );
+      }
       if (errorPath?.length) {
         throw new UserFacingError(
-          `Invalid format for ${errorPath[errorPath.length - 1]}.`,
+          `Invalid format for ${errorPath.at(-1)}.`,
           400,
         );
       }
       throw new UserFacingError('Received invalid data.', 400);
     }
 
-    const newErr = getErr(debugErrMsg, { ctx: 'apiValidateFn', apiName });
-    ErrorLogger.error(newErr);
-    throw new UserFacingError(
-      'Unknown server error.',
-      500,
-      { ...(newErr instanceof Error && newErr.debugCtx), origErr: newErr },
+    ErrorLogger.error(
+      new Error(debugErrMsg),
+      { ctx: 'apiValidateFn', apiName },
     );
+    throw new UserFacingError('Unknown server error.', 500);
   }
 }

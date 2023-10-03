@@ -20,7 +20,7 @@ export default function getValDbType<T extends ModelClass>(
     return 'date';
   }
 
-  if (colSchema.instanceOf === 'Date') {
+  if (colSchema.instanceof === 'Date') {
     return 'timestamp';
   }
 

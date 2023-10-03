@@ -1,5 +1,5 @@
 import useUpdatedState from 'hooks/useUpdatedState';
-import shallowEqual from 'utils/shallowEqual';
+import shallowEqualDeps from 'utils/shallowEqualDeps';
 
 // Mostly for reducing rerenders.
 export default function useMemoedCallback<
@@ -7,22 +7,22 @@ export default function useMemoedCallback<
   Ret,
 >(
   cb: (...args: Args) => Ret,
-  deps: MemoDependencyList,
-): Memoed<(...args: Args) => Memoed<Ret>> {
+  deps: StableDependencyList,
+): Stable<(...args: Args) => Stable<Ret>> {
   interface _MemoMap {
-    [k: string]: Memoed<Ret> | Partial<_MemoMap>;
+    [k: string]: Stable<Ret> | Partial<_MemoMap>;
   }
   type MemoMap = Partial<_MemoMap>;
 
   const state = useUpdatedState(
     () => ({
       memoed: Object.create(null) as MemoMap,
-      noArgMemoed: undefined as Memoed<Ret> | undefined,
+      noArgMemoed: undefined as Stable<Ret> | undefined,
       deps,
     }),
     s => {
       // When deps change, clear memoed.
-      if (!shallowEqual(deps, s.deps)) {
+      if (!shallowEqualDeps(deps, s.deps)) {
         return {
           memoed: Object.create(null),
           noArgMemoed: undefined,
@@ -36,7 +36,7 @@ export default function useMemoedCallback<
   const fn = (...args: Args) => {
     if (!args.length) {
       if (state.noArgMemoed === undefined) {
-        state.noArgMemoed = (cb as () => Memoed<Ret>)();
+        state.noArgMemoed = (cb as () => Stable<Ret>)();
       }
       return state.noArgMemoed;
     }
@@ -45,11 +45,11 @@ export default function useMemoedCallback<
     for (const arg of args.slice(0, -1)) {
       curObj = TS.objValOrSetDefault(curObj, arg, Object.create(null)) as MemoMap;
     }
-    const lastKey = args[args.length - 1];
+    const lastKey = TS.defined(args.at(-1));
     if (!Object.prototype.hasOwnProperty.call(curObj, lastKey)) {
-      curObj[lastKey] = markMemoed(cb(...args));
+      curObj[lastKey] = markStable(cb(...args));
     }
-    return curObj[lastKey] as Memoed<Ret>;
+    return curObj[lastKey] as Stable<Ret>;
   };
   return useCallback(
     fn,

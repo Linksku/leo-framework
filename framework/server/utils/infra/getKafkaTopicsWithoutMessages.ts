@@ -13,7 +13,10 @@ export default async function getKafkaTopicsWithoutMessages(
     return [];
   }
 
-  const consumer = createKafkaConsumer({ ctx: 'getKafkaTopicsWithoutMessages' });
+  const consumer = createKafkaConsumer({
+    ctx: 'getKafkaTopicsWithoutMessages',
+    allowAutoTopicCreation: false,
+  });
   await consumer.connect();
   await consumer.subscribe({ topics });
 

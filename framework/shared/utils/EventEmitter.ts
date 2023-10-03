@@ -1,20 +1,23 @@
 type Cb = (...args: any[]) => void;
 
 export default class EventEmitter {
-  _callbacks: ObjectOf<Cb[]> = Object.create(null);
+  _callbacks: Map<string, Cb[]> = new Map();
 
   on(eventName: string, cb: Cb) {
-    if (!this._callbacks[eventName]) {
-      this._callbacks[eventName] = [];
-    } else if (!process.env.PRODUCTION
-      && (this._callbacks[eventName] as Cb[]).includes(cb)) {
+    const callbacks = TS.mapValOrSetDefault(
+      this._callbacks,
+      eventName,
+      [],
+    );
+    if (!process.env.PRODUCTION && callbacks.includes(cb)) {
       throw new Error(`EventEmitter.on(${eventName}): cb already added`);
     }
-    (this._callbacks[eventName] as Cb[]).push(cb);
+
+    callbacks.push(cb);
   }
 
   off(eventName: string, cb: Cb) {
-    const callbacks = this._callbacks[eventName];
+    const callbacks = this._callbacks.get(eventName);
     if (callbacks) {
       const idx = callbacks.indexOf(cb);
       if (idx >= 0) {
@@ -29,7 +32,7 @@ export default class EventEmitter {
   emit(eventName: string, ...args: any[]): void;
 
   emit(eventName: string) {
-    const callbacks = this._callbacks[eventName];
+    const callbacks = this._callbacks.get(eventName);
     if (callbacks) {
       for (const cb of callbacks) {
         cb(...Array.prototype.slice.call(

@@ -14,7 +14,7 @@ export default async function fetchJson(
   data?: unknown,
   status: number,
 }> {
-  const headers: HeadersInit = {};
+  const headers: HeadersInit = Object.create(null);
   const opts: RequestInit = {
     method,
     headers,

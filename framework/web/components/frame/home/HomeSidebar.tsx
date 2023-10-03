@@ -1,5 +1,5 @@
 import Swipeable from 'components/frame/Swipeable';
-import { useAnimation, DEFAULT_DURATION } from 'hooks/useAnimation';
+import { useAnimation } from 'hooks/useAnimation';
 import { HomeSidebarInner } from 'config/homeComponents';
 import ErrorBoundary from 'components/ErrorBoundary';
 
@@ -13,29 +13,38 @@ export default React.memo(function HomeSidebar() {
     sidebarStyle,
     hideSidebar,
   } = useUIFrameStore();
-  const [dialogRef, dialogStyle] = useAnimation<HTMLDivElement>();
+  const [overlayRef, overlayStyle] = useAnimation<HTMLDivElement>(
+    sidebarShownPercent,
+    'Sidebar:overlay',
+  );
 
   return (
     <>
       <Swipeable
-        ref={dialogRef}
+        ref={overlayRef}
         swipeProps={{
-          onNavigate: hideSidebar,
-          setPercent: (p, durationPercent) => sidebarShownPercent.setVal(
-            100 - p,
-            durationPercent * DEFAULT_DURATION,
-          ),
+          onNavigate: () => hideSidebar(),
+          setPercent(p, duration) {
+            sidebarShownPercent.setVal(
+              100 - p,
+              duration,
+            );
+          },
           direction: 'left',
           elementRef: sidebarRef,
         }}
-        style={dialogStyle(
-          sidebarShownPercent,
+        style={overlayStyle(
           {
             filter: x => `opacity(${x}%)`,
-            display: x => (x < 1 ? 'none' : 'block'),
-            pointerEvents: x => (x < 50 ? 'none' : 'auto'),
+            pointerEvents: (_, x) => (x < 50 ? 'none' : 'auto'),
           },
-          { keyframes: [1, 50] },
+          {
+            stylesForFinalVal: {
+              0: { display: 'none' },
+            },
+            keyframes: [50],
+            defaultEasing: 'linear',
+          },
         )}
         className={styles.overlay}
         onClick={() => hideSidebar()}
@@ -44,27 +53,24 @@ export default React.memo(function HomeSidebar() {
       <Swipeable
         ref={sidebarRef}
         swipeProps={{
-          onNavigate: hideSidebar,
-          setPercent: (p, durationPercent) => sidebarShownPercent.setVal(
-            100 - p,
-            durationPercent * DEFAULT_DURATION,
-          ),
+          onNavigate: () => hideSidebar(),
+          setPercent(p, duration) {
+            sidebarShownPercent.setVal(
+              100 - p,
+              duration,
+              'easeOutQuad',
+            );
+          },
           direction: 'left',
           elementRef: sidebarRef,
         }}
-        style={sidebarStyle(sidebarShownPercent, {
+        style={sidebarStyle({
           transform: x => `translateX(${x - 100}%)`,
         })}
         className={styles.sidebar}
       >
-        <ErrorBoundary
-          renderFallback={() => (
-            <p>Failed to load.</p>
-          )}
-        >
-          <React.Suspense fallback={<Spinner />}>
-            {sidebarLoaded && <HomeSidebarInner />}
-          </React.Suspense>
+        <ErrorBoundary>
+          {sidebarLoaded && <HomeSidebarInner />}
         </ErrorBoundary>
       </Swipeable>
     </>

@@ -14,9 +14,6 @@ export default function BaseUserMixin() {
       id: {
         'userMeta.userId': {},
         'userAuth.userId': {},
-        'notif.userId': {
-          name: 'notifs',
-        },
       },
     },
   };

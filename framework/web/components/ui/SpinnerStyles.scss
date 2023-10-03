@@ -27,7 +27,7 @@
   width: 6.4rem;
   height: 6.4rem;
   margin: 0.5rem auto;
-  border-color: $primaryColor transparent transparent transparent;
+  border-color: color.scale($primaryColor, $saturation: -10%, $lightness: 80%) transparent transparent transparent;
   flex-shrink: 0;
   overflow: hidden;
   animation-name: spinnerFadeIn;
@@ -44,7 +44,7 @@
     border: 0.6rem solid transparent;
     border-top-color: inherit;
     border-radius: 50%;
-    animation: loadingSpinner 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    animation: loadingSpinner 1.5s cubic-bezier(0.5, 0, 0.5, 1) infinite;
 
     &:nth-child(1) {
       animation-delay: -0.45s;

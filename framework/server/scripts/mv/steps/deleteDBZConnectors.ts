@@ -5,6 +5,8 @@ import fetchKafkaConnectors from 'utils/infra/fetchKafkaConnectors';
 import deleteSchemaRegistry from 'utils/infra/deleteSchemaRegistry';
 import { verifyUpdateableConnector, verifyInsertOnlyConnector } from '../helpers/verifyDBZKafkaConnectors';
 
+// Possible error: Failed to remove connector configuration from Kafka
+//   at org.apache.kafka.connect.util.ConvertingFutureCallback.get(ConvertingFutureCallback.java:106)
 async function _deleteUpdateableDBZConnector(forceDeleteDBZConnectors: boolean) {
   const { isValid, connector } = await verifyUpdateableConnector();
 
@@ -44,5 +46,8 @@ export default async function deleteDBZConnectors(forceDeleteDBZConnectors: bool
     }
   }
 
-  printDebug(`Deleted DBZ connectors after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `Deleted DBZ connectors after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

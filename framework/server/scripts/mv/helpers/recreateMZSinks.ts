@@ -17,7 +17,7 @@ export default async function recreateMZSinks(_sinkModels?: ModelClass[]) {
     await Promise.all(sinkModels.map(Model => limiter(async () => {
       await knexMZ.raw('DROP SINK IF EXISTS ??', [`${MZ_SINK_PREFIX}${Model.type}`]);
       await createMZSink({
-        name: Model.type,
+        modelType: Model.type,
         primaryKey: Array.isArray(Model.primaryIndex)
           ? Model.primaryIndex
           : [Model.primaryIndex],

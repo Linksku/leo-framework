@@ -18,8 +18,14 @@ fi
 eval `ssh-agent -t 600`
 ssh-add
 
+./scripts/pre-deploy.mjs "$@"
+
 rm -rf build/production/*
 BUILD_SERVER=production scripts/build.sh
+if [[ -n $(git status --porcelain) ]]; then
+  echo "Got changes from build"
+  exit 1
+fi
 NODE_ENV=production SERVER=production scripts/build-server-script.sh monitorInfra
 
 docker build -t server -f framework/infra/server-dockerfile .

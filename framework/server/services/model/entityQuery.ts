@@ -2,8 +2,7 @@ import type { TransactionOrKnex } from 'objection';
 
 export default function entityQuery<T extends EntityClass>(
   Entity: T,
-  trxOrKnex?: TransactionOrKnex,
+  trxOrKnex?: TransactionOrKnex | 'bt' | 'mz' | 'rr',
 ): QueryBuilder<EntityInstance<T>> {
-  // @ts-ignore TS speed hack
-  return Entity.query(trxOrKnex);
+  return modelQuery(Entity, trxOrKnex);
 }

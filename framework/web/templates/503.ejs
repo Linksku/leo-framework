@@ -18,16 +18,19 @@ a {
 </style>
 
 <%- include('partials/metaTags') %>
-
-<script>
-function reloadPage() {
-  document.body.style.display = 'none';
-  window.location.reload(true);
-}
-</script>
 </head>
 <body>
   <h1>Service temporarily unavailable</h1>
-  <p>You can try to <a href="#" onclick="reloadPage()">reload</a> the page or restart the app.</p>
+  <p id="paragraph">You can try to <a href="#" id="reload">reload</a> the page or restart the app.</p>
+
+<script>
+document.getElementById('reload')
+  .addEventListener('click', () => {
+    document.getElementById('paragraph').textContent = 'Reloading...';
+    setTimeout(() => {
+      window.location.reload(true);
+    }, 400);
+});
+</script>
 </body>
 </html>

@@ -1,47 +1,15 @@
 import { useSyncExternalStore } from 'react';
 
-import { API_TIMEOUT } from 'settings';
-import useTimeout from 'hooks/useTimeout';
-
-function useCheckEntityExists(
-  entityType: EntityType,
-  id: Nullish<EntityId>,
-  entity: Entity | null,
-) {
-  const [waited, setWaited] = useState(false);
-
-  useApi(
-    'checkEntityExists',
-    useMemo(() => ({
-      entityType,
-      entityId: id ?? '',
-    }), [entityType, id]),
-    {
-      shouldFetch: waited && id != null && !entity,
-      onFetch({ exists }) {
-        if (exists && !entity) {
-          ErrorLogger.warn(new Error(`checkEntityExists: ${entityType}.${id} exists, but not available in client`));
-        }
-      },
-    },
-  );
-
-  useTimeout(
-    useCallback(() => {
-      if (!waited && id != null && !entity) {
-        setWaited(true);
-      }
-    }, [waited, id, entity]),
-    API_TIMEOUT,
-  );
-}
+import { getEntitiesState } from 'stores/EntitiesStore';
+import isDebug from 'utils/isDebug';
+import useCheckEntityExists from './useCheckEntityExists';
 
 export default function useEntity<T extends EntityType>(
-  entityType: T,
+  entityType: T | null,
   _id: Nullish<EntityId | (string | number)[]>,
-): Memoed<TypeToEntity<T>> | null {
+): Entity<T> | null {
   const id = Array.isArray(_id) ? _id.join(',') : _id;
-  const { entitiesRef, addEntityListener } = useEntitiesStore();
+  const { addEntityListener } = useEntitiesStore();
 
   const entity = useSyncExternalStore(
     useCallback(cb => {
@@ -61,16 +29,18 @@ export default function useEntity<T extends EntityType>(
         }
       };
     }, [addEntityListener, entityType, id]),
-    () => (id
-      ? (entitiesRef.current[entityType]?.[id] ?? null) as unknown as Memoed<TypeToEntity<T>> | null
+    () => (entityType && id
+      ? (getEntitiesState().get(entityType)?.get(id) ?? null) as Entity<T> | null
       : null),
   );
 
-  if (!process.env.PRODUCTION && !!window.localStorage.getItem('DEBUG')) {
+  if (!process.env.PRODUCTION && isDebug) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const partial = useMemo(() => (id ? { id } as ObjectOf<ApiEntityId> : null), [id]);
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useCheckEntityExists(
       entityType,
-      id,
+      partial,
       entity,
     );
   }

@@ -1,4 +1,5 @@
 import { API_TIMEOUT, API_POST_TIMEOUT } from 'settings';
+import { IS_PROFILING_API } from 'serverSettings';
 import randInt from 'utils/randInt';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 import safeParseJson from 'utils/safeParseJson';
@@ -12,7 +13,7 @@ import formatAndLogApiErrorResponse from './formatAndLogApiErrorResponse';
 function getFullParamsFromReq<Name extends ApiName>(
   api: ApiDefinition<Name>,
   req: ExpressRequest,
-): ApiParams<Name> {
+): Readonly<ApiParams<Name>> {
   const paramsObj = req.method === 'GET'
     ? req.query
     : req.body;
@@ -22,13 +23,10 @@ function getFullParamsFromReq<Name extends ApiName>(
     throw new UserFacingError('Client is outdated.', 469);
   }
 
-  let fullParams = {} as ApiParams<Name>;
-  if (paramsObj?.params) {
-    const parsed = safeParseJson<any>(paramsObj?.params);
-    if (parsed) {
-      fullParams = parsed;
-    }
-  }
+  const parsed = typeof paramsObj?.params === 'string'
+    ? safeParseJson<any>(paramsObj.params)
+    : null;
+  const fullParams: ApiParams<Name> = parsed ?? Object.create(null);
 
   const { files } = req;
   if (api.config.fileFields && files && !Array.isArray(files)) {
@@ -99,8 +97,9 @@ export default function apiWrap<Name extends ApiName>(
     }
 
     if (!process.env.PRODUCTION) {
+      const rc = getRC();
+
       if (performance.now() - startTime > 100) {
-        const rc = getRC();
         printDebug(
           `Handler took ${Math.round(performance.now() - startTime)}ms (${rc?.numDbQueries ?? 0} DB requests)`,
           performance.now() - startTime > 500 ? 'error' : 'warn',
@@ -108,10 +107,13 @@ export default function apiWrap<Name extends ApiName>(
         );
       }
 
-      await pause(randInt(50, 200));
+      if (!IS_PROFILING_API && !rc?.loadTesting) {
+        await pause(randInt(50, 200));
+      }
     }
     res.status(status)
       .set('Content-Type', 'application/json; charset=utf-8')
+      // todo: low/mid switch to fast-json-stringify
       .send(JSON.stringify(
         result,
         null,

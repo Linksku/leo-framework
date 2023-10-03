@@ -2,7 +2,12 @@ import Knex from 'knex';
 import pg from 'pg';
 
 import { API_TIMEOUT } from 'settings';
-import { PG_BT_HOST, PG_BT_PORT, PG_BT_SCHEMA } from 'consts/infra';
+import {
+  PG_BT_HOST,
+  PG_BT_POOL_MAX,
+  PG_BT_PORT,
+  PG_BT_SCHEMA,
+} from 'consts/infra';
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
 import './initKnex';
 import beforeQuery from './beforeQuery';
@@ -29,7 +34,7 @@ const knexBT = ServiceContextLocalStorage.run(
     searchPath: PG_BT_SCHEMA,
     pool: {
       min: 0,
-      max: process.env.IS_SERVER_SCRIPT ? 10 : 3,
+      max: process.env.IS_SERVER_SCRIPT ? PG_BT_POOL_MAX * 2 : PG_BT_POOL_MAX,
       idleTimeoutMillis: 60 * 1000,
       afterCreate(conn: unknown, cb: AnyFunction) {
         if (!(conn instanceof pg.Client)) {

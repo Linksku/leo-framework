@@ -1,45 +1,36 @@
 import RelationConfigsEventEmitter from 'services/RelationConfigsEventEmitter';
-import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 
 export const [
   RelationsProvider,
   useRelationsStore,
 ] = constate(
   function RelationsStore() {
-    const relationConfigsRef = useRef(deepFreezeIfDev(
-      Object.create(null) as ApiRelationConfigs,
-    ));
+    const relationConfigsRef = useRef(new Map<EntityType, Map<string, ApiRelationConfig>>());
 
     const addRelationConfigs = useCallback((configs: ApiRelationConfigs) => {
       const changedKeys: string[] = [];
-      const newAllModelConfigs = Object.assign(
-        Object.create(null) as ApiRelationConfigs,
-        relationConfigsRef.current,
-      );
+      const newAllModelConfigs = new Map(relationConfigsRef.current);
       for (const [entityType, relationConfigs] of TS.objEntries(configs)) {
-        let modelConfigs = TS.objValOrSetDefault(
+        let modelConfigs = TS.mapValOrSetDefault(
           newAllModelConfigs,
           entityType,
-          Object.create(null) as Defined<ValueOf<ApiRelationConfigs>>,
+          new Map(),
         );
         for (const [relationName, config] of TS.objEntries(relationConfigs)) {
-          if (!modelConfigs[relationName]) {
-            if (modelConfigs === relationConfigsRef.current[entityType]) {
-              modelConfigs = Object.assign(
-                Object.create(null),
-                modelConfigs,
-              );
-              newAllModelConfigs[entityType] = modelConfigs;
+          if (!modelConfigs.has(relationName)) {
+            if (modelConfigs === relationConfigsRef.current.get(entityType)) {
+              modelConfigs = new Map(modelConfigs);
+              newAllModelConfigs.set(entityType, modelConfigs);
             }
 
-            modelConfigs[relationName] = config;
+            modelConfigs.set(relationName, config);
             changedKeys.push(`${config.fromModel},${relationName}`);
           }
         }
       }
 
       if (changedKeys.length) {
-        relationConfigsRef.current = deepFreezeIfDev(newAllModelConfigs);
+        relationConfigsRef.current = newAllModelConfigs;
         for (const key of changedKeys) {
           RelationConfigsEventEmitter.emit(key);
         }
@@ -58,8 +49,5 @@ export const [
       relationConfigsRef,
       addRelationConfigs,
     ]);
-  },
-  function RelationsStore(val) {
-    return val;
   },
 );

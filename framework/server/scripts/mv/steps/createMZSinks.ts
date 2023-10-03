@@ -1,6 +1,7 @@
 import pLimit from 'p-limit';
 
 import { MZ_SINK_CONNECTOR_PREFIX, MZ_SINK_PREFIX } from 'consts/mz';
+import { PG_BT_POOL_MAX, PG_RR_POOL_MAX } from 'consts/infra';
 import knexRR from 'services/knex/knexRR';
 import MaterializedViewModels from 'services/model/allMaterializedViewModels';
 import showMzSystemRows from 'utils/db/showMzSystemRows';
@@ -16,6 +17,9 @@ export default async function createMZSinks() {
   const startTime = performance.now();
 
   const modelsWithSink = MaterializedViewModels.filter(model => model.getReplicaTable());
+  // Can get error, possibly from OOM:
+  // librdkafka: GETPID [thrd:main]: Failed to acquire transactional PID from broker TxnCoordinator/1:
+  // Broker: Producer attempted to update a transaction while another concurrent operation on the same transaction was ongoing: retrying
   const existingSinks = new Set(await showMzSystemRows('SHOW SINKS'));
   const existingSinksModels = new Set(
     modelsWithSink
@@ -25,34 +29,54 @@ export default async function createMZSinks() {
 
   const existingConnectors = await fetchKafkaConnectors(MZ_SINK_CONNECTOR_PREFIX);
   const existingConnectorModels = new Set(
-    modelsWithSink
-      .filter(model => existingConnectors.some(c => c.startsWith(`${MZ_SINK_CONNECTOR_PREFIX}${model.type}_`)))
-      .map(model => model.type),
+    existingConnectors
+      .map(c => modelsWithSink.find(
+        model => c.startsWith(`${MZ_SINK_CONNECTOR_PREFIX}${model.type}_`),
+      )?.type)
+      .filter(Boolean),
   );
   if (existingSinksModels.size === modelsWithSink.length
     && existingConnectorModels.size === modelsWithSink.length) {
     printDebug('All Materialize sinks already created', 'info');
     return;
   }
-  printDebug('Creating Materialize sinks', 'info');
+  if (existingConnectors.length > existingConnectorModels.size) {
+    const extraConnectors = existingConnectors.filter(
+      c => !modelsWithSink.some(model => c.startsWith(`${MZ_SINK_CONNECTOR_PREFIX}${model.type}_`)),
+    );
+    printDebug(`createMZSinks: extra connectors: ${extraConnectors.join(', ')}`, 'warn');
+  }
 
+  const maxConnectionsRows = await knexRR.raw('SHOW max_connections');
+  const maxConnections = TS.parseIntOrNull(maxConnectionsRows?.rows?.[0]?.max_connections);
+  const requiredConnections = modelsWithSink.length
+    + PG_BT_POOL_MAX
+    + PG_RR_POOL_MAX
+    // Arbitrary buffer
+    + 10;
+  if (maxConnections && requiredConnections > maxConnections) {
+    printDebug(`createMZSinks: max_connections too low ${maxConnections} < ${requiredConnections}`);
+  }
+
+  printDebug('Creating Materialize sinks', 'info');
   const createdSinks = new Set<ModelType>();
   await Promise.all(
     modelsWithSink.map(model => limiter(async () => {
       if (!existingSinksModels.has(model.type)) {
         await createMZSink({
-          name: model.type,
+          modelType: model.type,
           primaryKey: Array.isArray(model.primaryIndex) ? model.primaryIndex : [model.primaryIndex],
         });
         createdSinks.add(model.type);
       }
 
+      // Note: with pg cdc, might need to delete old connector
       if (!existingConnectorModels.has(model.type)) {
         await createMZSinkConnector({
           name: model.type,
           replicaTable: TS.notNull(model.getReplicaTable()),
           primaryKey: model.primaryIndex,
-          timestampProps: [...getDateProps(model.getSchema())],
+          timestampProps: [...getDateProps(model.getSchema() as unknown as JsonSchemaProperties)],
         });
         createdSinks.add(model.type);
       }
@@ -65,5 +89,8 @@ export default async function createMZSinks() {
     modelsWithSink.filter(model => createdSinks.has(model.type)),
   );
 
-  printDebug(`Created Materialize sinks after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `Created Materialize sinks after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

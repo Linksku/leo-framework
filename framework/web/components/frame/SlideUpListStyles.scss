@@ -1,11 +1,11 @@
 .list {
-  padding: 0 $containerPadding 0.5rem $containerPadding;
+  padding-bottom: 0.5rem;
 }
 
 .listItem {
   @extend %oneLine;
 
-  padding: 0.8rem 0;
+  padding: 0.8rem $containerPadding;
   display: flex;
   align-items: center;
   min-width: 0;

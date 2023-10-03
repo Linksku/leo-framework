@@ -3,12 +3,8 @@ import { Kafka, logLevel, LogEntry } from 'kafkajs';
 import { KAFKA_BROKER_HOST, KAFKA_BROKER_PORT } from 'consts/infra';
 
 function _shouldIgnoreError(entry: LogEntry) {
-  if (typeof entry.log.error === 'string'
-    && entry.log.error?.includes('This server does not host this topic-partition')) {
-    return true;
-  }
-
-  return false;
+  return typeof entry.log.error === 'string'
+    && entry.log.error?.includes('This server does not host this topic-partition');
 }
 
 export default new Kafka({
@@ -33,9 +29,10 @@ export default new Kafka({
       [logLevel.ERROR]: 'error' as const,
       [logLevel.NOTHING]: 'error' as const,
     }[entry.level];
+    const { message, timestamp, ...props } = entry.log;
     ErrorLogger[errorLoggerMethod](
-      new Error(`Kafka: ${entry.log.message}: ${entry.log.error}`),
-      undefined,
+      new Error(`Kafka: ${message}: ${props.error || entry.label}`),
+      props,
       false,
     );
   },

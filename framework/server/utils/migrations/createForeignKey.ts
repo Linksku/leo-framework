@@ -24,9 +24,13 @@ export default async function createForeignKey({
     throw new Error(`createIndex(${Model.type}): invalid to col ${toTable}.${toCol}`);
   }
 
-  await knexBT.schema.alterTable(table, builder => {
-    builder.foreign(col, name).references(toCol).inTable(toTable)
-      .onUpdate('restrict')
-      .onDelete('restrict');
-  });
+  try {
+    await knexBT.schema.alterTable(table, builder => {
+      builder.foreign(col, name).references(toCol).inTable(toTable)
+        .onUpdate('restrict')
+        .onDelete('restrict');
+    });
+  } catch (err) {
+    throw getErr(err, { ctx: 'createForeignKey', table, col });
+  }
 }

@@ -15,7 +15,7 @@ import { SSE_JWT_KEY } from 'helpers/auth/jwt';
 import safeParseJson from 'utils/safeParseJson';
 
 const router = express.Router();
-router.use(rateLimitMiddleware(100));
+router.use(rateLimitMiddleware(process.env.PRODUCTION ? 100 : 200));
 
 router.use(cors({
   origin: [
@@ -34,31 +34,27 @@ router.use(requestContextMiddleware);
 
 router.get('/', async (req, res) => {
   try {
-    type Params = {
-      otp: Nullish<string>,
-      events: Nullish<{
-        name: string,
-        params: any,
-      }[]>,
-    };
-    let params = {} as Params;
+    let otp: string | null = null;
+    let events: {
+      name: string,
+      params: any,
+    }[] | null = null;
     if (typeof req.query.params === 'string') {
-      const parsed = safeParseJson<Params>(
+      const parsed = safeParseJson<ObjectOf<any>>(
         req.query.params,
         val => val && typeof val === 'object',
       );
       if (parsed) {
-        params = parsed;
+        otp = parsed.otp;
+        events = parsed.events;
       }
     }
 
-    const { otp, events } = params;
     let currentUserId: EntityId | null = null;
-
     if (otp) {
       currentUserId = await new Promise(succ => {
         jwt.verify(
-          otp,
+          otp as string,
           SSE_JWT_KEY,
           {},
           (err, obj: any) => {

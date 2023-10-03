@@ -4,6 +4,8 @@ import { Device } from '@capacitor/device';
 import useRegisterSW from 'hooks/useRegisterSW';
 import useEffectIfReady from 'hooks/useEffectIfReady';
 
+let registeredToken: string | null = null;
+
 export default function useRegisterPushNotifs() {
   const didRun = useRef(false);
   const registration = useRegisterSW();
@@ -13,6 +15,11 @@ export default function useRegisterPushNotifs() {
     useConst({
       platform: 'web',
     }),
+    {
+      onFetch(_, { registrationToken }) {
+        registeredToken = registrationToken;
+      },
+    },
   );
 
   useEffectIfReady(() => {
@@ -37,9 +44,9 @@ export default function useRegisterPushNotifs() {
           ErrorLogger.warn(err instanceof Error ? err : new Error('Failed to register push notifs'));
         }
 
-        if (registrationToken) {
+        if (registrationToken && registrationToken !== registeredToken) {
           fetchApi({
-            deviceId: deviceId.uuid,
+            deviceId: deviceId.identifier,
             registrationToken,
           });
         }

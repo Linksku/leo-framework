@@ -1,10 +1,13 @@
-import { frameworkModels as _frameworkModels, appModels as _appModels } from 'config/__generated__/allModels';
+import {
+  frameworkModels as _frameworkModels,
+  appModels as _appModels,
+} from 'config/__generated__/allModels';
 
 export type ModelsArr = {
   type: ModelType,
   path: string,
   Model: ModelClass,
-  replicaTable: string | null,
+  isRR: boolean,
 }[];
 
 export const frameworkModels: ModelsArr = _frameworkModels;

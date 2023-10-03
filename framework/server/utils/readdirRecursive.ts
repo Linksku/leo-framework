@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 
 export default async function readdirRecursive(dir: string) {
-  if (dir[dir.length - 1] === '/') {
+  if (dir.at(-1) === '/') {
     dir = dir.slice(0, -1);
   }
 

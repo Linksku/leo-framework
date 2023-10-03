@@ -1,5 +1,5 @@
-import type { ImageBlob } from 'aws-sdk/clients/rekognition';
-import Rekognition from 'aws-sdk/clients/rekognition';
+import type { ImageBlob } from 'aws-sdk/clients/rekognition.js';
+import Rekognition from 'aws-sdk/clients/rekognition.js';
 
 const client = new Rekognition({
   accessKeyId: process.env.AWS_ACCESS_ID,

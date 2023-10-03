@@ -1,6 +1,7 @@
 import InfoSvg from 'fa5/svg/info-circle-solid.svg';
 
 import StackWrapInner from 'components/frame/stack/StackWrapInner';
+import Form from 'components/common/Form';
 import HookFormErrors from 'components/HookFormErrors';
 
 import styles from './LoginRouteStyles.scss';
@@ -57,7 +58,7 @@ export default React.memo(function LoginRoute() {
           </p>
         )}
 
-        <form
+        <Form
           onSubmit={handleSubmit(data => loginUser(data))}
           className={styles.form}
           data-testid={TestIds.loginForm}
@@ -71,7 +72,6 @@ export default React.memo(function LoginRoute() {
               required: 'Email is required',
             }}
             disabled={disabled}
-            required
             autoFocus
           />
 
@@ -86,22 +86,22 @@ export default React.memo(function LoginRoute() {
               maxLength: { value: 64, message: 'Password is incorrect.' },
             }}
             disabled={disabled}
-            required
             placeholder="••••••••"
           />
 
           <HookFormErrors errors={errors} additionalError={apiError} />
 
           <Button
-            Component="input"
+            Element="input"
             type="submit"
+            value={fetching ? 'Logging In' : 'Log In'}
             fullWidth
             disabled={disabled}
           />
-        </form>
+        </Form>
 
         <p>
-          <Link href="/register">Register</Link>
+          <Link href="/register">Sign Up</Link>
         </p>
         <p>
           <Link href="/resetpassword">Forgot Password?</Link>

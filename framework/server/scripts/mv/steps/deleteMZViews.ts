@@ -7,7 +7,8 @@ export default async function deleteMZViews() {
   try {
     const views = await showMzSystemRows('SHOW VIEWS');
     for (const view of views) {
-      await knexMZ.raw('DROP VIEW IF EXISTS ?? CASCADE', [view]);
+      await knexMZ.raw('DROP VIEW IF EXISTS ?? CASCADE', [view])
+        .timeout(10 * 1000);
     }
   } catch (err) {
     if (err instanceof Error && (
@@ -23,5 +24,8 @@ export default async function deleteMZViews() {
     }
   }
 
-  printDebug(`Deleted views after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `Deleted views after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

@@ -1,7 +1,7 @@
 import path from 'path';
 
-import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays';
-import baseConfig from './webpack.server.development';
+import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
+import baseConfig from './webpack.server.development.js';
 
 export default mergeReplaceArrays(baseConfig, {
   mode: 'development',

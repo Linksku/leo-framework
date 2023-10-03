@@ -63,14 +63,19 @@ export default async function createIndex({
       if (!(err instanceof Error) || !err.message.includes('multiple primary keys for table')) {
         throw err;
       }
+      throw getErr(err, { ctx: 'createIndex', table, col });
     }
   } else {
-    await knex.raw(`
-      CREATE ${unique ? 'UNIQUE ' : ''}INDEX IF NOT EXISTS ??
-      ON ??
-      USING ${expression}
-      ${unique ? 'NULLS NOT DISTINCT' : ''}
-      `, [name, table, ...expressionCols],
-    );
+    try {
+      await knex.raw(`
+        CREATE ${unique ? 'UNIQUE ' : ''}INDEX IF NOT EXISTS ??
+        ON ??
+        USING ${expression}
+        ${unique ? 'NULLS NOT DISTINCT' : ''}
+        `, [name, table, ...expressionCols],
+      );
+    } catch (err) {
+      throw getErr(err, { ctx: 'createIndex', table, cols });
+    }
   }
 }

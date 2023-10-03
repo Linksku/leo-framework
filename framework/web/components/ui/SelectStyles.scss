@@ -3,17 +3,21 @@
   display: block;
 
   &.withLabel {
+    padding-top: 2.5rem;
     margin-bottom: 1.5rem;
   }
 }
 
 .label {
   @extend %label;
+
+  display: inline-block;
+  position: absolute;
+  top: 0;
 }
 
 .select {
   height: $inputHeight;
-  vertical-align: middle;
   display: inline-block;
   max-width: 100%;
   width: 100%;

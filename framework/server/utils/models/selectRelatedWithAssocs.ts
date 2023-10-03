@@ -24,12 +24,18 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
 
   const colVal = TS.getProp(entity, fromCol) as
     string | number | string[] | number[] | null;
-  if (!process.env.PRODUCTION && !(colVal === null || typeof colVal === 'number' || typeof colVal === 'string'
+  if (!process.env.PRODUCTION && !(
+    colVal === null
+    || typeof colVal === 'number'
+    || typeof colVal === 'string'
     || (Array.isArray(colVal) && (
       (colVal as any[]).every(x => typeof x === 'string')
       || (colVal as any[]).every(x => typeof x === 'number')
-    )))) {
-    throw new Error(`selectNonNestedRelatedWithAssocs(${Model.type}.${name}): invalid fromCol "${fromCol}"`);
+    ))
+  )) {
+    throw new Error(
+      `selectNonNestedRelatedWithAssocs(${Model.type}.${name}): invalid fromCol "${fromCol}"`,
+    );
   }
 
   if (colVal === null) {
@@ -40,7 +46,9 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
         assocs: [],
       };
     }
-    throw new Error(`selectNonNestedRelatedWithAssocs(${Model.type}.${name}): unexpected null column value`);
+    throw new Error(
+      `selectNonNestedRelatedWithAssocs(${Model.type}.${name}): unexpected null column value`,
+    );
   }
 
   let assocs: Model[] = [];
@@ -71,12 +79,17 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
     const resultsTemp = await Promise.all(assocs.map(async assoc => {
       const toVal = TS.getProp(assoc, through.to) as
         string | number | string[] | number[] | null;
-      if (!process.env.PRODUCTION && !(toVal === null || typeof toVal === 'number' || typeof toVal === 'string'
+      if (!process.env.PRODUCTION && !(
+        toVal === null
+        || typeof toVal === 'number'
+        || typeof toVal === 'string'
         || (Array.isArray(toVal) && (
           (toVal as any[]).every(x => typeof x === 'string')
           || (toVal as any[]).every(x => typeof x === 'number')
         )))) {
-        throw new Error(`selectNonNestedRelatedWithAssocs(${Model.type}.${name}): invalid through.to "${through.to}"`);
+        throw new Error(
+          `selectNonNestedRelatedWithAssocs(${Model.type}.${name}): invalid through.to "${through.to}"`,
+        );
       }
 
       if (Array.isArray(toVal)) {
@@ -136,7 +149,9 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
   }
 
   if (!process.env.PRODUCTION && results.length > 100) {
-    ErrorLogger.warn(new Error(`selectNonNestedRelatedWithAssocs(${Model.type}.${name}): too many results`));
+    ErrorLogger.warn(new Error(
+      `selectNonNestedRelatedWithAssocs(${Model.type}.${name}): too many results`,
+    ));
   }
   return {
     related: results,

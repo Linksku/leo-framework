@@ -1,5 +1,3 @@
-import knexRR from 'services/knex/knexRR';
-import { getApiId } from 'utils/models/apiModelId';
 import Model from './Model';
 
 class VirtualModel extends Model {
@@ -11,12 +9,13 @@ class VirtualModel extends Model {
     return null;
   }
 
-  override getId(): ApiEntityId {
-    return getApiId(this);
+  static override idColumn: string;
+
+  override getId() {
+    // @ts-ignore model key
+    return this[this.constructor.idColumn];
   }
 }
-
-VirtualModel.knex(knexRR);
 
 export type VirtualModelClass = typeof VirtualModel;
 

@@ -1,6 +1,6 @@
 import type { EntityEventHandler } from 'stores/EntitiesStore';
 
-export type EntityEvents<T extends EntityType> = Memoed<{
+export type EntityEvents<T extends EntityType> = Stable<{
   actionType: EntityAction,
   entityType: T,
   id?: EntityId,
@@ -9,7 +9,7 @@ export type EntityEvents<T extends EntityType> = Memoed<{
 
 export default function useHandleEntityEvents<T extends EntityType>(
   events: EntityEvents<T>,
-  cb: Memoed<EntityEventHandler<T>>,
+  cb: Stable<EntityEventHandler<T>>,
 ) {
   const { addEntityListener } = useEntitiesStore();
   useEffect(() => {

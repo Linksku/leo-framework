@@ -2,7 +2,11 @@ import Knex from 'knex';
 import pg from 'pg';
 
 import { API_TIMEOUT } from 'settings';
-import { MZ_HOST, MZ_PORT } from 'consts/infra';
+import {
+  MZ_HOST,
+  MZ_POOL_MAX,
+  MZ_PORT,
+} from 'consts/infra';
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
 import './initKnex';
 import beforeQuery from './beforeQuery';
@@ -27,7 +31,7 @@ const knexMZ = ServiceContextLocalStorage.run(
     },
     pool: {
       min: 0,
-      max: process.env.IS_SERVER_SCRIPT ? 10 : 3,
+      max: process.env.IS_SERVER_SCRIPT ? MZ_POOL_MAX * 2 : MZ_POOL_MAX,
       idleTimeoutMillis: 60 * 1000,
       afterCreate(conn: unknown, cb: AnyFunction) {
         if (!(conn instanceof pg.Client)) {

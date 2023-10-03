@@ -12,7 +12,9 @@ if (!process.env.SERVER || !process.env.NODE_ENV) {
   throw new Error('serverScript: env vars not set.');
 }
 
-const { default: fn } = await import(`../../${process.env.SERVER_SCRIPT_PATH}`);
+const { default: fn } = await import(
+  `../../${process.env.SERVER_SCRIPT_PATH}`
+);
 
 let promise: any;
 try {

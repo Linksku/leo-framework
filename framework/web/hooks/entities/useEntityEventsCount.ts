@@ -14,9 +14,10 @@ export default function useEntityEventsCount<T extends EntityType>(
   );
 
   return events.reduce((sum, event) => {
+    const eventsCounts = eventsCountRef.current[event.actionType]?.get(event.entityType);
     if (event.id) {
-      return sum + (eventsCountRef.current[event.actionType]?.[event.entityType]?.[event.id] ?? 0);
+      return sum + (eventsCounts?.get(event.id) ?? 0);
     }
-    return sum + (eventsCountRef.current[event.actionType]?.[event.entityType]?.total ?? 0);
+    return sum + (eventsCounts?.get('total') ?? 0);
   }, 0);
 }

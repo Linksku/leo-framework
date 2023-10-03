@@ -24,8 +24,8 @@ type SubUnsubMessage = {
 const SUBSCRIBE_EVENT_NAME = 'SseBroadcastManager.subscribe';
 const UNSUBSCRIBE_EVENT_NAME = 'SseBroadcastManager.unsubscribe';
 
-const sessionIdToEventTypes = Object.create(null) as ObjectOf<Set<string>>;
-const eventTypesToSessionIds = Object.create(null) as ObjectOf<Set<string>>;
+const sessionIdToEventTypes = new Map<string, Set<string>>();
+const eventTypesToSessionIds = new Map<string, Set<string>>();
 
 const SseBroadcastManager = {
   async subscribe(
@@ -59,12 +59,12 @@ const SseBroadcastManager = {
       return;
     }
 
-    const eventTypes = TS.objValOrSetDefault(sessionIdToEventTypes, sessionId, new Set());
-    const sessionIds = TS.objValOrSetDefault(eventTypesToSessionIds, eventType, new Set());
+    const eventTypes = TS.mapValOrSetDefault(sessionIdToEventTypes, sessionId, new Set());
+    const sessionIds = TS.mapValOrSetDefault(eventTypesToSessionIds, eventType, new Set());
     if (!sessionIds.size) {
       PubSubManager.subscribe(
         `sse:${eventType}`,
-        (data: string) => SseBroadcastManager.handleData(eventType, data),
+        (data: string) => SseBroadcastManager.sendToConnections(eventType, data),
       );
     }
     eventTypes.add(eventType);
@@ -86,42 +86,42 @@ const SseBroadcastManager = {
       return;
     }
 
-    const eventTypes = sessionIdToEventTypes[sessionId];
+    const eventTypes = sessionIdToEventTypes.get(sessionId);
     if (eventTypes) {
       eventTypes.delete(eventType);
       if (!eventTypes.size) {
-        delete sessionIdToEventTypes[sessionId];
+        sessionIdToEventTypes.delete(sessionId);
       }
     }
 
-    const sessionIds = eventTypesToSessionIds[eventType];
+    const sessionIds = eventTypesToSessionIds.get(eventType);
     if (sessionIds) {
       sessionIds.delete(sessionId);
       if (!sessionIds.size) {
-        delete eventTypesToSessionIds[eventType];
+        eventTypesToSessionIds.delete(eventType);
         PubSubManager.unsubscribeAll(eventType);
       }
     }
   },
 
   unsubscribeAll(sessionId: string) {
-    const eventTypes = sessionIdToEventTypes[sessionId];
+    const eventTypes = sessionIdToEventTypes.get(sessionId);
     if (!eventTypes) {
       return;
     }
 
     for (const eventType of eventTypes) {
-      const sessionIds = eventTypesToSessionIds[eventType];
+      const sessionIds = eventTypesToSessionIds.get(eventType);
       if (sessionIds) {
         sessionIds.delete(sessionId);
         if (!sessionIds.size) {
-          delete eventTypesToSessionIds[eventType];
+          eventTypesToSessionIds.delete(eventType);
           PubSubManager.unsubscribeAll(eventType);
         }
       }
     }
 
-    delete sessionIdToEventTypes[sessionId];
+    sessionIdToEventTypes.delete(sessionId);
   },
 
   async broadcastDataImpl(
@@ -138,7 +138,7 @@ const SseBroadcastManager = {
     };
     const dataStr = JSON.stringify(processedData);
 
-    SseBroadcastManager.handleData(eventType, dataStr);
+    SseBroadcastManager.sendToConnections(eventType, dataStr);
     PubSubManager.publish(
       `sse:${eventType}`,
       dataStr,
@@ -157,9 +157,9 @@ const SseBroadcastManager = {
     );
   },
 
-  handleData(eventType: string, data: string) {
-    const sessionIds = eventTypesToSessionIds[eventType];
-    if (!sessionIds) {
+  sendToConnections(eventType: string, data: string) {
+    const sessionIds = eventTypesToSessionIds.get(eventType);
+    if (!sessionIds?.size) {
       return;
     }
 
@@ -169,7 +169,7 @@ const SseBroadcastManager = {
   },
 
   sendHeartbeats() {
-    for (const [sessionId, eventTypes] of TS.objEntries(sessionIdToEventTypes)) {
+    for (const [sessionId, eventTypes] of sessionIdToEventTypes) {
       const data: SseResponse = {
         eventType: serializeSseEvent('sseHeartbeat', {}),
         status: 200,

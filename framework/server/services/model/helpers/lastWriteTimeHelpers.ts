@@ -2,6 +2,7 @@ import redis from 'services/redis';
 import getModelRecursiveDeps from 'utils/models/getModelRecursiveDeps';
 import { LAST_WRITE_TIME } from 'consts/coreRedisNamespaces';
 import RedisDataLoader from 'services/RedisDataLoader';
+import RequestContextLocalStorage from 'services/requestContext/RequestContextLocalStorage';
 
 const MIN_WAIT_TIME = 1000;
 const getdelDataloader = new RedisDataLoader('getdel');
@@ -36,9 +37,11 @@ export async function warnIfRecentlyWritten(modelType: ModelType) {
   }
 
   const deps = getModelRecursiveDeps(getModelClass(modelType));
-  const vals = TS.filterNulls(await Promise.all(deps.map(
-    dep => getdelDataloader.load(_getRedisKey(dep.type, currentUserId)),
-  )));
+  const vals = TS.filterNulls(await RequestContextLocalStorage.exit(
+    () => Promise.all(deps.map(
+      dep => getdelDataloader.load(_getRedisKey(dep.type, currentUserId)),
+    )),
+  ));
   if (vals.length) {
     ErrorLogger.warn(new Error(
       `warnIfRecentlyWritten: reading ${modelType} after writing to ${vals[0]}, possible read after write consistency issue`,

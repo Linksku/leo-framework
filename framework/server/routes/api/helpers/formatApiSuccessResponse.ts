@@ -1,5 +1,3 @@
-import pickBy from 'lodash/pickBy';
-
 import type { ModelRelation } from 'services/model/helpers/modelRelations';
 import removeUndefinedValues from 'utils/removeUndefinedValues';
 import { isPropDate } from 'utils/models/dateSchemaHelpers';
@@ -32,22 +30,36 @@ function _filterDuplicates(seen: ObjectOf<Model>, entities: Model[]) {
   }
 }
 
-function _getDateProps(entities: ModelSerializedForApi[]): ObjectOf<string[]> {
-  const dateProps: ObjectOf<string[]> = {};
+const datePropsCache = new Map<ModelType, string[] | null>();
+function _getDateProps(
+  entities: ModelSerializedForApi[],
+): Partial<Record<ModelType, string[]>> {
+  const dateProps: ObjectOf<string[]> = Object.create(null);
   for (const e of entities) {
     if (dateProps[e.type]) {
       continue;
     }
-    dateProps[e.type] = [];
+    if (datePropsCache.has(e.type)) {
+      const cached = datePropsCache.get(e.type);
+      if (cached != null) {
+        dateProps[e.type] = cached;
+      }
+      continue;
+    }
 
+    const entDateProps: string[] = [];
     for (const pair of TS.objEntries(getModelClass(e.type).getSchema())) {
       if (isPropDate(pair[1])) {
-        TS.defined(dateProps[e.type]).push(pair[0]);
+        entDateProps.push(pair[0]);
       }
     }
+    if (entDateProps.length) {
+      dateProps[e.type] = entDateProps;
+    }
+    datePropsCache.set(e.type, entDateProps.length ? entDateProps : null);
   }
 
-  return pickBy(dateProps, arr => TS.defined(arr).length);
+  return dateProps;
 }
 
 function _relationToApiRelationConfig(relation: ModelRelation): ApiRelationConfig {
@@ -65,27 +77,27 @@ function _relationToApiRelationConfig(relation: ModelRelation): ApiRelationConfi
 }
 
 function _getRelationConfigs(entities: Model[]): ApiRelationConfigs {
-  const relationConfigs: ApiRelationConfigs = {};
+  const relationConfigs: ApiRelationConfigs = Object.create(null);
   for (const ent of entities) {
     if (!ent.includedRelations) {
       continue;
     }
 
-    const cls = ent.constructor as ModelClass;
-    const entityRelationConfigs = TS.objValOrSetDefault(relationConfigs, cls.type, {});
+    const cls = ent.constructor as RRModelClass;
+    const entRelationConfigs = TS.objValOrSetDefault(relationConfigs, cls.type, {});
     for (const relationName of ent.includedRelations) {
       const relations = getRelation(cls.type, relationName);
-      const relation = Array.isArray(relations) ? relations[0] : relations;
-      const nestedRelation = Array.isArray(relations) ? relations[1] : null;
 
-      if (!entityRelationConfigs[relation.name]) {
-        entityRelationConfigs[relation.name] = _relationToApiRelationConfig(relation);
+      const relation = Array.isArray(relations) ? relations[0] : relations;
+      if (!entRelationConfigs[relation.name]) {
+        entRelationConfigs[relation.name] = _relationToApiRelationConfig(relation);
       }
 
+      const nestedRelation = Array.isArray(relations) ? relations[1] : null;
       if (nestedRelation) {
         const nestedRelationConfigs = TS.objValOrSetDefault(
           relationConfigs,
-          relation.fromModel.type,
+          nestedRelation.fromModel.type,
           {},
         );
         if (!nestedRelationConfigs[nestedRelation.name]) {
@@ -162,7 +174,7 @@ export default async function formatApiSuccessResponse<Path extends ApiName>({
     ...createdEntitiesFiltered,
     ...updatedEntitiesFiltered,
   ];
-  if (!allEntitiesFiltered.every(d => d instanceof Model)) {
+  if (allEntitiesFiltered.some(d => !(d instanceof Model))) {
     throw new UserFacingError('Api returned non-entities.', 500);
   }
 
@@ -173,6 +185,7 @@ export default async function formatApiSuccessResponse<Path extends ApiName>({
 
   const relationConfigs = _getRelationConfigs(allEntitiesFiltered);
   const related = await _fetchIncludedRelatedEntities(allEntitiesFiltered);
+  // todo: low/easy warn if a lot of related entities were fetched already
   _filterDuplicates(seen, related);
   entitiesFiltered.push(...related);
 
@@ -186,8 +199,14 @@ export default async function formatApiSuccessResponse<Path extends ApiName>({
     ...normalizedUpdatedEntities,
   ]);
 
-  const meta: ApiSuccessResponse<Path>['meta'] = {};
-  const ret: ApiSuccessResponse<Path> = {
+  const meta: ApiSuccessResponse<Path>['meta'] = Object.create(null);
+  if (Object.keys(dateProps).length) {
+    meta.dateProps = dateProps;
+  }
+  if (Object.keys(relationConfigs).length) {
+    meta.relationConfigs = relationConfigs;
+  }
+  return {
     status: 200,
     data: removeUndefinedValues(data ?? {}) as ApiNameToData[Path],
     meta,
@@ -196,11 +215,4 @@ export default async function formatApiSuccessResponse<Path extends ApiName>({
     ...(normalizedUpdatedEntities.length ? { updatedEntities: normalizedUpdatedEntities } : null),
     ...(deletedIds && Object.keys(deletedIds).length ? { deletedIds } : null),
   };
-  if (Object.keys(dateProps).length) {
-    meta.dateProps = dateProps;
-  }
-  if (Object.keys(relationConfigs).length) {
-    meta.relationConfigs = relationConfigs;
-  }
-  return ret;
 }

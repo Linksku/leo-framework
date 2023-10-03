@@ -1,11 +1,11 @@
 {
   "files": [],
   "references": [
-    { "path": "./framework/shared/tsconfig-build.json" },
+    // { "path": "./framework/shared/tsconfig-build.json" },
     { "path": "./framework/server/tsconfig-build.json" },
     { "path": "./framework/web/tsconfig-build.json" },
-    { "path": "./framework/tests/tsconfig.json" },
-    { "path": "./app/shared" },
+    { "path": "./framework/tests" },
+    // { "path": "./app/shared" },
     { "path": "./app/server" },
     { "path": "./app/web" },
     { "path": "./app/tests" },

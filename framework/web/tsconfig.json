@@ -1,6 +1,20 @@
 // For VS Code
 {
   "extends": "./tsconfig-build.json",
+  "compilerOptions": {
+    "paths": {
+      "config/*": [
+        "app/web/config/*",
+        "app/shared/config/*",
+        "framework/web/config/*",
+        "framework/shared/config/*",
+      ],
+      "*": [
+        "framework/web/*",
+        "framework/shared/*",
+      ],
+    },
+  },
   "include": [
     "../../app/web/types/__generated__",
     "../../app/shared/types/__generated__",

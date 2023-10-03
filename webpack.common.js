@@ -34,7 +34,7 @@ const ENV_KEYS = [
   'FIREBASE_APP_ID',
   'FIREBASE_WEB_PUSH_KEY',
 ];
-const ENV_OBJ = {};
+const ENV_OBJ = Object.create(null);
 for (const k of ENV_KEYS) {
   ENV_OBJ[k] = process.env[k] || '';
 }

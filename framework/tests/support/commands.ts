@@ -29,7 +29,7 @@ Cypress.Commands.addAll({
       cy.get('input[type=submit]').click();
     });
 
-    cy.url().should('eq', `${HOME_URL}/onboard?registered`);
+    cy.url({ timeout: 10_000 }).should('eq', `${HOME_URL}/onboard?registered`);
     cy.getAllLocalStorage().then(localStorage => {
       expect(localStorage[HOME_URL]).to.have.property('authToken');
     });

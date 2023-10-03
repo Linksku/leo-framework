@@ -6,6 +6,10 @@
   flex-direction: column;
 }
 
+.greyBackground {
+  background-color: $greyBackgroundColor;
+}
+
 .topBarWrap,
 .bottomBarWrap {
   flex-shrink: 0;
@@ -22,11 +26,15 @@
 
   flex-grow: 1;
   overflow-y: hidden;
+  touch-action: pan-y;
+}
+
+.greyBackground .body {
+  border-top: 0.5px solid $separatorColor;
 }
 
 .withScrollbar {
   overflow-y: scroll;
-  touch-action: pan-y;
 }
 
 .withScrollbarInner {
@@ -54,7 +62,5 @@
 }
 
 .bottomSpacer {
-  flex-shrink: 0;
   height: $insetBottom;
-  background-color: #fff;
 }

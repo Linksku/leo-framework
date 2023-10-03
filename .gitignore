@@ -46,6 +46,8 @@ package-lock.json
 /temp
 /tmp
 /tmp.*
+/*.dump
+
 /env
 /app/
 /capacitor/android/

@@ -2,11 +2,13 @@ import InfoSvg from 'fa5/svg/info-circle-solid.svg';
 import dayjs from 'dayjs';
 
 import StackWrapInner from 'components/frame/stack/StackWrapInner';
+import Form from 'components/common/Form';
 import HookFormErrors from 'components/HookFormErrors';
 import { MIN_USER_AGE, MAX_USER_AGE } from 'consts/coreUsers';
 
 import styles from './RegisterRouteStyles.scss';
 
+// todo: mid/mid captcha for signing up
 export default React.memo(function RegisterRoute() {
   const { register, handleSubmit, control } = useForm({
     reValidateMode: 'onBlur',
@@ -37,6 +39,7 @@ export default React.memo(function RegisterRoute() {
   );
 
   const disabled = fetching || isReloadingAfterAuth || authState === 'in';
+  // todo: high/hard timeout when signing up
   return (
     <StackWrapInner
       title="Sign Up"
@@ -59,7 +62,7 @@ export default React.memo(function RegisterRoute() {
               )}
           </p>
         )}
-        <form
+        <Form
           onSubmit={handleSubmit(data => {
             registerUser({
               email: data.email,
@@ -80,7 +83,7 @@ export default React.memo(function RegisterRoute() {
               required: 'Email is required.',
             }}
             disabled={disabled}
-            required
+            autoFocus
           />
 
           <Input
@@ -94,7 +97,6 @@ export default React.memo(function RegisterRoute() {
               maxLength: { value: 64, message: 'Password too long.' },
             }}
             disabled={disabled}
-            required
             placeholder="••••••••"
           />
 
@@ -107,7 +109,6 @@ export default React.memo(function RegisterRoute() {
               required: 'Name is required',
             }}
             disabled={disabled}
-            required
           />
           <p className={styles.hint}>
             * Real name not required.
@@ -132,7 +133,6 @@ export default React.memo(function RegisterRoute() {
               },
             }}
             disabled={disabled}
-            required
           />
           <p className={styles.hint}>
             * Only age will be displayed.
@@ -156,13 +156,13 @@ export default React.memo(function RegisterRoute() {
           <HookFormErrors errors={errors} additionalError={apiError} />
 
           <Button
-            Component="input"
+            Element="input"
             type="submit"
+            value={fetching ? 'Signing Up' : 'Sign Up'}
             fullWidth
             disabled={disabled}
-            value="Sign Up"
           />
-        </form>
+        </Form>
 
         <p><Link href="/login">Log In</Link></p>
       </div>

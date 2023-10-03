@@ -1,5 +1,5 @@
 import useUpdate from 'hooks/useUpdate';
-import useMountedState from 'hooks/useMountedState';
+import useGetIsMounted from 'hooks/useGetIsMounted';
 import type SwipeableType from './Swipeable';
 import type { Props } from './Swipeable';
 
@@ -16,14 +16,16 @@ function SwipeableDeferred(
   }: React.PropsWithChildren<Props>,
   ref?: React.ForwardedRef<HTMLDivElement>,
 ) {
-  const mountedState = useMountedState();
+  const getIsMounted = useGetIsMounted();
   const update = useUpdate();
   const didRunThen = useRef(false);
 
   useEffect(() => {
     if (!Swipeable) {
       if (!importPromise) {
-        importPromise = import(/* webpackChunkName: 'deferred' */ './Swipeable')
+        importPromise = import(
+          /* webpackChunkName: 'deferred' */ './Swipeable'
+        )
           .then(module => {
             importPromise = null;
             Swipeable = module.default;
@@ -37,7 +39,7 @@ function SwipeableDeferred(
       if (!didRunThen.current) {
         wrapPromise(
           importPromise.then(() => {
-            if (mountedState()) {
+            if (getIsMounted()) {
               update();
             }
           }),
@@ -47,7 +49,7 @@ function SwipeableDeferred(
         didRunThen.current = true;
       }
     }
-  }, [mountedState, update]);
+  }, [getIsMounted, update]);
 
   return Swipeable
     ? (

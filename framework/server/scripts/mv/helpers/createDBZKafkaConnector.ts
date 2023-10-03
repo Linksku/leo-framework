@@ -58,10 +58,12 @@ export default async function createDBZKafkaConnector({
         'topic.prefix': process.env.PG_BT_DB,
         'topic.creation.enable': true,
         'topic.creation.default.replication.factor': -1,
-        'topic.creation.default.partitions': -1,
+        // Higher might be needed
+        'topic.creation.default.partitions': 1,
         'topic.creation.default.cleanup.policy': 'compact',
         // With cleanup, if MZ restarts, sources will be missing rows
         'topic.creation.default.retention.ms': -1,
+        'topic.creation.default.compression.type': 'uncompressed',
         'key.converter': 'io.confluent.connect.avro.AvroConverter',
         'key.converter.schema.registry.url': `http://schema-registry:${SCHEMA_REGISTRY_PORT}`,
         'value.converter': 'io.confluent.connect.avro.AvroConverter',
@@ -78,14 +80,16 @@ export default async function createDBZKafkaConnector({
     );
     if (res.status >= 400) {
       throw getErr(
-        `createDBZKafkaConnector: failed to create connector (${res.status})`,
+        `createDBZKafkaConnector(${name}): failed to create connector (${res.status})`,
         { data: res.data },
       );
     }
 
     await retry(
       async () => {
-        const connector = await fetchJson(`http://${KAFKA_CONNECT_HOST}:${KAFKA_CONNECT_PORT}/connectors/${connectorName}`);
+        const connector = await fetchJson(
+          `http://${KAFKA_CONNECT_HOST}:${KAFKA_CONNECT_PORT}/connectors/${connectorName}`,
+        );
         if (connector.status >= 400) {
           throw new Error(`Connector status ${connector.status}`);
         }
@@ -112,7 +116,7 @@ export default async function createDBZKafkaConnector({
     {
       timeout: 10 * 60 * 1000,
       interval: 1000,
-      ctx: 'createDBZKafkaConnector: check created topics',
+      ctx: `createDBZKafkaConnector(${name}): check created topics`,
     },
   );
 }

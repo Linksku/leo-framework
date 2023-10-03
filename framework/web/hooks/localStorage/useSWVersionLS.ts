@@ -1,6 +1,6 @@
-import useLocalStorage from 'hooks/useLocalStorage';
+import { useLocalStorage } from 'hooks/useStorage';
 
-const validator = markMemoed((val: unknown) => typeof val === 'number');
+const validator = markStable((val: unknown) => typeof val === 'number');
 
 export default function useSWVersionLS() {
   return useLocalStorage<number>(

@@ -26,6 +26,9 @@ export default async function deleteMZSinkConnectors() {
       ))),
     );
 
-    printDebug(`Deleted sink connectors after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+    printDebug(
+      `Deleted sink connectors after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+      'success',
+    );
   }
 }

@@ -1,4 +1,4 @@
-import pick from 'lodash/pick';
+import pick from 'lodash/pick.js';
 
 import BaseRedisCache from 'services/cache/BaseRedisCache';
 import getModelIdsDataLoader from 'services/dataLoader/getModelIdsDataLoader';
@@ -24,10 +24,10 @@ const redisCache = new BaseRedisCache<(number | string | (number | string)[])[]>
   lruMaxSize: 10_000,
 });
 
-const allColSets: Partial<Record<ModelType, ModelIndex<any>[]>> = Object.create(null);
+const allColSets = new Map<ModelType, ModelIndex<any>[]>();
 function getAllowedColSets<T extends ModelClass>(Model: T): ModelIndex<T>[] {
-  if (TS.hasProp(allColSets, Model.type)) {
-    return allColSets[Model.type] as ModelIndex<T>[];
+  if (allColSets.has(Model.type)) {
+    return allColSets.get(Model.type) as ModelIndex<T>[];
   }
 
   const allSchema = Model.getSchema();
@@ -59,7 +59,7 @@ function getAllowedColSets<T extends ModelClass>(Model: T): ModelIndex<T>[] {
     }
   }
 
-  allColSets[Model.type] = colSets;
+  allColSets.set(Model.type, colSets);
   return colSets;
 }
 
@@ -130,7 +130,7 @@ export default {
     const cacheKey = getModelIdsCacheKey(Model, partial);
     const fromRedis = await redisCache.getWithRc(rc, cacheKey, !Model.cacheable);
     if (fromRedis !== undefined) {
-      return fromRedis;
+      return fromRedis.slice();
     }
 
     const ids = await getIds();

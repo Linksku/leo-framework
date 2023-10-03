@@ -1,12 +1,7 @@
 .inputGroup {
-  display: block;
+  display: flex;
   overflow: hidden;
   margin-bottom: 1.5rem;
-}
-
-.inputWrap {
-  display: block;
-  overflow: hidden;
 }
 
 .labelWrap {
@@ -33,9 +28,11 @@
 }
 
 .input {
-  display: inline-block;
+  display: block;
   max-width: 100%;
   width: 100%;
+  order: 2;
+  flex-grow: 1;
   background: #fff;
   color: $inputColor;
   border: $inputBorder;
@@ -68,6 +65,10 @@
     color: $inputPlaceholderColor;
   }
 
+  &:disabled {
+    color: $inputPlaceholderColor;
+  }
+
   &.hasPrefix {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
@@ -81,10 +82,6 @@
   }
 }
 
-.error {
-  border-color: color.mix(#f00, $inputBorderColor, $weight: 40%);
-}
-
 .prefix,
 .suffix {
   line-height: $inputHeight - 2 * $inputPadding;
@@ -95,7 +92,7 @@
 }
 
 .prefix {
-  float: left;
+  order: 1;
   border-top-left-radius: $inputBorderRadius;
   border-bottom-left-radius: $inputBorderRadius;
   border-right: 0;
@@ -103,7 +100,7 @@
 }
 
 .suffix {
-  float: right;
+  order: 3;
   border-top-right-radius: $inputBorderRadius;
   border-bottom-right-radius: $inputBorderRadius;
   border-left: 0;
@@ -112,4 +109,25 @@
 .prefix:active,
 .suffix:active {
   background-color: $activeBackgroundColor;
+}
+
+.hasError {
+  .input,
+  .prefix,
+  .suffix {
+    border-color: color.mix(#f00, $inputBorderColor, $weight: 40%) !important;
+  }
+}
+
+// stylelint-disable-next-line no-duplicate-selectors
+.input:focus {
+  + .prefix,
+  + .suffix,
+  + .prefix + .suffix {
+    border-color: color.mix($primaryColor, $inputBorderColor, $weight: 33%);
+  }
+}
+
+.error {
+  margin-top: 1.5rem;
 }

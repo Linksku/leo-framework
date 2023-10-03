@@ -1,4 +1,4 @@
-import ErrorPage from 'components/ErrorPage';
+import styles from './ErrorBoundaryStyles.scss';
 
 function getErrorMessage(err: Error) {
   if (!err.message) {
@@ -7,12 +7,17 @@ function getErrorMessage(err: Error) {
   if (err.message.includes('Loading chunk ') || err.message.includes('Loading CSS chunk ')) {
     return 'Content failed to load.';
   }
+  if (err instanceof ReferenceError
+    || err instanceof SyntaxError
+    || err instanceof TypeError) {
+    return 'Unexpected error occurred.';
+  }
   return err.message;
 }
 
 type Props = {
-  renderFallback?: (msg: string, err: Error) => ReactElement,
-  className?: string,
+  renderLoading?: () => ReactNode,
+  renderError?: (msg: string, err: Error) => ReactNode,
 };
 
 type State = {
@@ -32,23 +37,35 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   }
 
   override render() {
-    const { children, renderFallback, className } = this.props;
+    const {
+      children,
+      renderLoading,
+      renderError,
+    } = this.props;
     const { err } = this.state;
 
     if (err) {
       const msg = getErrorMessage(err);
 
-      if (renderFallback) {
-        return renderFallback(msg, err);
+      if (renderError) {
+        return renderError(msg, err);
       }
       return (
-        <ErrorPage
-          title="Error"
-          content={msg}
-          className={className}
-        />
+        <p className={styles.errorMsg}>
+          {msg}
+        </p>
       );
     }
-    return children;
+    return (
+      <React.Suspense
+        fallback={
+          renderLoading
+            ? renderLoading()
+            : <Spinner verticalMargin={30} />
+        }
+      >
+        {children}
+      </React.Suspense>
+    );
   }
 }

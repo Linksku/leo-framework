@@ -1,59 +1,70 @@
 import Swipeable from 'components/frame/Swipeable';
 import ErrorBoundary from 'components/ErrorBoundary';
 import LoadingRoute from 'routes/LoadingRoute';
-import { DEFAULT_DURATION } from 'hooks/useAnimation';
 import { useInnerContainerRef } from 'stores/RouteStore';
+import { CONTAINER_MAX_WIDTH, IOS_EDGE_SWIPE_PX } from 'consts/ui';
 
 import styles from './HomeWrapInnerStyles.scss';
 
 export default function HomeWrapInner({
   children,
-  backgroundColor,
+  greyBackground,
   fixedElements,
 }: React.PropsWithChildren<{
-  backgroundColor?: string,
+  greyBackground?: boolean,
   // Can't put fixed elements inside .inner because of translateZ(0)
   fixedElements?: React.ReactNode,
 }>) {
   const innerContainerRef = useInnerContainerRef();
-  const { direction: lastNavDirection } = useHistoryStore();
+  const { direction: lastNavDirection, prevState } = useHistoryStore();
   const { loadSidebar, sidebarShownPercent, sidebarRef } = useUIFrameStore();
-  const { lastStackAnimatedVal } = useStacksNavStore();
-  const { wasHome } = useHomeNavStore();
+  const { stackToAnimatedVal } = useStacksNavStore();
+  const { isPrevHome } = useHomeNavStore();
+  const windowSize = useWindowSize();
+
+  let maxSwipeStartDist = Math.max(IOS_EDGE_SWIPE_PX, windowSize.width / 10);
+  if (windowSize.width > CONTAINER_MAX_WIDTH) {
+    maxSwipeStartDist += (windowSize.width - CONTAINER_MAX_WIDTH) / 2;
+  }
   return (
     <div
-      className={styles.container}
-      style={{
-        backgroundColor,
-      }}
+      className={cx(styles.container, {
+        [styles.greyBackground]: greyBackground,
+      })}
     >
       <Swipeable
         ref={innerContainerRef}
         swipeProps={{
+          direction: prevState && !isPrevHome ? 'horizontal' : 'right',
+          elementDim: windowSize.width,
+          maxSwipeStartDist,
           onStart(direction) {
             if (direction === 'right') {
               // todo: low/mid this causes UIFrameStore to rerender twice, related to suspense
               loadSidebar();
             }
           },
-          setPercent(p, durationPercent, direction) {
+          setPercent(p, duration, direction) {
             if (direction === 'right') {
               sidebarShownPercent.setVal(
                 p,
-                durationPercent * DEFAULT_DURATION,
+                duration,
+                'easeOutQuad',
               );
-            } else {
-              lastStackAnimatedVal.current?.setVal(
-                100 - p,
-                durationPercent * DEFAULT_DURATION,
-              );
+            } else if (prevState) {
+              stackToAnimatedVal.current.get(prevState)
+                ?.setVal(
+                  100 - p,
+                  duration,
+                  'easeOutQuad',
+                );
             }
           },
           onNavigate(direction) {
-            if (direction === 'left' && !wasHome) {
+            if (direction === 'left' && prevState && !isPrevHome) {
               if (lastNavDirection === 'back') {
                 window.history.forward();
-              } else {
+              } else if (lastNavDirection === 'forward') {
                 window.history.back();
               }
             }
@@ -61,16 +72,17 @@ export default function HomeWrapInner({
           getElement(direction) {
             return direction === 'left' ? null : sidebarRef.current;
           },
-          direction: wasHome ? 'right' : 'horizontal',
-          maxSwipeStartDist: 50,
         }}
         className={styles.swipeable}
       >
-        <div className={styles.inner}>
-          <ErrorBoundary>
-            <React.Suspense fallback={<LoadingRoute />}>
-              {children}
-            </React.Suspense>
+        <div
+          className={styles.inner}
+          data-testid={TestIds.homeWrapInner}
+        >
+          <ErrorBoundary
+            renderLoading={() => <LoadingRoute />}
+          >
+            {children}
           </ErrorBoundary>
         </div>
       </Swipeable>

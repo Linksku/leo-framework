@@ -10,5 +10,8 @@ export default async function waitForMZStartUpdating() {
     await checkMZUpdating(10 * 60 * 1000);
   }
 
-  printDebug(`MZ started updating after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `MZ started updating after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

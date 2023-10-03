@@ -1,3 +1,4 @@
+import { useIsHome } from 'stores/HomeNavStore';
 import styles from './ErrorPageStyles.scss';
 
 type Props = {
@@ -20,21 +21,27 @@ export default function ErrorPage({
   className,
 }: Props) {
   let reloadPage: ReturnType<typeof useReloadPage> | undefined;
+  let isHome = false;
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     reloadPage = useReloadPage();
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    isHome = useIsHome();
   } catch {}
 
   return (
     <div
-      className={cx(styles.container, className)}
-      style={fullHeight ? { minHeight: '100vh' } : undefined}
+      className={cx(styles.container, className, {
+        [styles.fullHeight]: fullHeight && !isHome,
+        [styles.fullHeightHome]: fullHeight && isHome,
+      })}
     >
       <h2 className={styles.title}>{title}</h2>
       {content !== undefined && <p>{content}</p>}
       {showReload && (
         <p>
           {'You can try to '}
+          {/* Note: don't use Link here because stores may not be available */}
           <span
             onClick={e => {
               e.preventDefault();
@@ -48,7 +55,7 @@ export default function ErrorPage({
               }
             }}
             role="button"
-            tabIndex={-1}
+            tabIndex={0}
             className={styles.link}
           >
             reload

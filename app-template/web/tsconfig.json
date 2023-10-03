@@ -1,20 +1,29 @@
 {
   "extends": "../../tsconfig-base.json",
   "compilerOptions": {
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable",
+    ],
+    "jsx": "react",
     "paths": {
-      "baseUrl": ["."],
       "*": [
+        "app/web/*",
+        "app/shared/*",
         "framework/web/*",
         "framework/shared/*",
-        "app/web/*",
-        "app/shared/*"
-      ]
-    }
+      ],
+    },
   },
   "include": [
     ".",
-    "../framework/shared/types",
-    "../../web",
-    "../../framework/shared/types"
-  ]
+    "../shared/types",
+    "../../framework/web/types",
+    "../../framework/shared/types",
+  ],
+  "exclude": [
+    "../../framework/web/types/__generated__",
+    "../../framework/shared/types/__generated__",
+  ],
 }

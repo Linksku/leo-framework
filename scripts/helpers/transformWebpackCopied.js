@@ -1,4 +1,4 @@
-import { ASSETS_URL } from '../../framework/shared/settings';
+import { ASSETS_URL } from '../../framework/shared/settings.js';
 
 export default function transformWebpackCopied(content, absoluteFrom) {
   if (!['html', 'css', 'js', 'cjs', 'json', 'txt'].includes(absoluteFrom.replace(/^.+\./, ''))) {
@@ -6,8 +6,8 @@ export default function transformWebpackCopied(content, absoluteFrom) {
   }
   return content
     .toString()
-    .replace(/%APP_NAME%/g, process.env.APP_NAME)
-    .replace(/%APP_NAME_LOWER%/g, process.env.APP_NAME_LOWER)
-    .replace(/%BASE_PATH%/g, process.env.BASE_PATH)
-    .replace(/%ASSETS_URL%/g, ASSETS_URL);
+    .replaceAll('%APP_NAME%', process.env.APP_NAME)
+    .replaceAll('%APP_NAME_LOWER%', process.env.APP_NAME_LOWER)
+    .replaceAll('%BASE_PATH%', process.env.BASE_PATH)
+    .replaceAll('%ASSETS_URL%', ASSETS_URL);
 }

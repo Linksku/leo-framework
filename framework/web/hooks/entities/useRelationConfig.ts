@@ -5,7 +5,7 @@ import RelationConfigsEventEmitter from 'services/RelationConfigsEventEmitter';
 export default function useRelationConfig(entityType: EntityType, relationName: string) {
   const { relationConfigsRef } = useRelationsStore();
 
-  const relationConfig = useSyncExternalStore(
+  return useSyncExternalStore(
     useCallback(cb => {
       const key = `${entityType},${relationName}`;
       RelationConfigsEventEmitter.on(key, cb);
@@ -14,9 +14,7 @@ export default function useRelationConfig(entityType: EntityType, relationName: 
       };
     }, [entityType, relationName]),
     () => (
-      relationConfigsRef.current[entityType]?.[relationName] ?? null
-    ) as Memoed<ApiRelationConfig>,
+      relationConfigsRef.current.get(entityType)?.get(relationName) ?? null
+    ) as Stable<ApiRelationConfig> | null,
   );
-
-  return relationConfig;
 }

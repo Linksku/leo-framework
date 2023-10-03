@@ -1,5 +1,5 @@
-import pick from 'lodash/pick';
-import omit from 'lodash/omit';
+import pick from 'lodash/pick.js';
+import omit from 'lodash/omit.js';
 
 import ucFirst from 'utils/ucFirst';
 import getNonNullSchema from 'utils/models/getNonNullSchema';
@@ -67,8 +67,7 @@ export function processModelConfig<
   if (!/^[a-z][\dA-Za-z]+$/.test(config.type)) {
     throw new Error(`processMaterializedViewConfig(${config.type}): invalid type.`);
   }
-  const uniqueIndexes = config.uniqueIndexes ?? ['id'];
-  if (!uniqueIndexes.length) {
+  if (!config.uniqueIndexes?.length) {
     throw new Error(`processModelConfig(${config.type}): 1 unique index is required.`);
   }
 
@@ -78,10 +77,12 @@ export function processModelConfig<
     'props',
   ]);
   if (Object.keys(unhandledConfig).length) {
-    throw new Error(`processModelConfig(${config.type}): unhandled config: ${Object.keys(unhandledConfig).join(', ')}`);
+    throw new Error(
+      `processModelConfig(${config.type}): unhandled config: ${Object.keys(unhandledConfig).join(', ')}`,
+    );
   }
 
-  for (const [idx, index] of uniqueIndexes.entries()) {
+  for (const [idx, index] of config.uniqueIndexes.entries()) {
     const arr = Array.isArray(index)
       ? index
       : [index];
@@ -110,7 +111,7 @@ export function processModelConfig<
     name: ucFirst(config.type) as Capitalize<Config['type']>,
     staticProps: {
       ...pick(config, HANDLED_STATIC_PROPS),
-      uniqueIndexes,
+      uniqueIndexes: config.uniqueIndexes,
       ...config.staticProps,
       ...({} as {
         Interface: ModelTypeToInterface<Config['type']>,

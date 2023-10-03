@@ -14,7 +14,11 @@ addHealthcheck('rrEntities', {
         .map(model => limiter(async () => {
           // Every table should have a row from seedDb/createEachModel
           try {
-            const hasRRRows = await rawSelect('rr', 'SELECT 1 FROM ?? LIMIT 1', [model.tableName]);
+            const hasRRRows = await rawSelect(
+              'SELECT 1 FROM ?? LIMIT 1',
+              [model.tableName],
+              { db: 'rr' },
+            );
             if (!hasRRRows.rows.length) {
               tablesMissingData.push(model.type);
             }

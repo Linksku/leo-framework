@@ -1,11 +1,13 @@
-import shuffle from 'lodash/shuffle';
+import shuffle from 'lodash/shuffle.js';
 import pLimit from 'p-limit';
 
 import knexMZ from 'services/knex/knexMZ';
 import EntityModels from 'services/model/allEntityModels';
 import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import InputMaterializedView from 'services/model/InputMaterializedView';
 import showMzSystemRows from 'utils/db/showMzSystemRows';
 import getIndexName from 'utils/db/getIndexName';
+import shallowEqual from 'utils/shallowEqual';
 import verifyCreatedTables from '../helpers/verifyCreatedTables';
 
 // To see actual time per model, change this to 1.
@@ -84,6 +86,7 @@ export default async function createMZMaterializedViews() {
     return;
   }
 
+  printDebug('Creating MVs', 'info');
   const createdViews = new Set<ModelType>();
   while (allViews.size < MaterializedViewModels.length + EntityModels.length) {
     const startingNumCreatedViews = createdViews.size;
@@ -93,22 +96,27 @@ export default async function createMZMaterializedViews() {
           && model.MVQueryDeps.every(dep => allViews.has(dep.tableName)),
       )
       .map(model => limiter(async () => {
-        printDebug(`Creating ${model.type}`, 'info');
+        // Note: this doesn't check if the index column is correct
         const numDependents = MaterializedViewModels
           .filter(mv => mv.MVQueryDeps.includes(model)).length;
         if (!model.getReplicaTable()) {
+          const isInsertOnly = TS.extends(model, InputMaterializedView)
+            && model.BTClass.useInsertOnlyPublication;
           if (!numDependents) {
             printDebug(`createMZMaterializedView: ${model.type} has no replica table and no dependents`);
+          } else if (isInsertOnly && model.mzIndexes?.length) {
+            printDebug(`createMZMaterializedView: ${model.type} shouldn't have indexes`);
           } else if (numDependents === 1 && model.mzIndexes?.length) {
             printDebug(`createMZMaterializedView: ${model.type} has unnecessary index`);
-          } else if (numDependents >= 3 && !model.mzIndexes?.length) {
-            printDebug(`createMZMaterializedView: ${model.type} has ${numDependents} dependents and no index`);
+          } else if (numDependents >= 3 && !model.mzIndexes?.length && !isInsertOnly) {
+            printDebug(
+              `createMZMaterializedView: ${model.type} has ${numDependents} dependents and no index`,
+            );
           } else if (model.mzIndexes && model.mzIndexes.length > numDependents) {
             printDebug(`createMZMaterializedView: ${model.type} has too many indexes`);
           }
         }
 
-        const modelStartTime = performance.now();
         let query = model.getMVQuery();
         if (model.extendMVQuery) {
           for (const fn of model.extendMVQuery) {
@@ -133,7 +141,12 @@ export default async function createMZMaterializedViews() {
               })
             `);
           }
-          if (model.mzIndexes?.length) {
+
+          if (model.getReplicaTable()
+            && model.mzIndexes?.length === 1
+            && shallowEqual(model.mzIndexes[0], model.primaryIndex)) {
+            printDebug(`createMZMaterializedView: ${model.type} has unnecssary mzIndexes`);
+          } else if (model.mzIndexes?.length) {
             for (const index of model.mzIndexes) {
               await knexMZ.raw(`
                 CREATE INDEX "${getIndexName(model.tableName, index)}"
@@ -203,7 +216,6 @@ export default async function createMZMaterializedViews() {
 
         createdViews.add(model.type);
         allViews.add(model.tableName);
-        printDebug(`Created ${model.type} after ${Math.round((performance.now() - modelStartTime) / 100) / 10}s`, 'success');
       })),
     );
 
@@ -212,7 +224,10 @@ export default async function createMZMaterializedViews() {
     }
   }
 
-  printDebug(`Created MZ materialized views after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `Created MZ materialized views after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 
   await verifyCreatedTables(
     'mz',

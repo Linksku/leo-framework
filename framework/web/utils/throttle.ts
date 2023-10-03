@@ -2,6 +2,7 @@ type Opts = {
   timeout: number,
   restartTimerAfterFinished?: boolean,
   allowSchedulingDuringDelay?: boolean,
+  debounce?: boolean,
   disabled?: boolean,
 };
 
@@ -22,6 +23,7 @@ function createThrottle(
       timeout,
       restartTimerAfterFinished = true,
       allowSchedulingDuringDelay = true,
+      debounce = false,
       disabled = false,
     }: Opts,
   ): (...args: Args) => void {
@@ -49,12 +51,13 @@ function createThrottle(
       } else {
         const res = fn.apply(current.lastCtx, current.lastArgs as Args);
         if (res instanceof Promise) {
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
           res
             .catch(err => ErrorLogger.warn(err, {
               ctx: 'throttle',
               fnName: fn.name,
             }))
-            .finally(() => {
+            .then(() => {
               current.lastRunTime = performance.now();
             });
         } else {
@@ -65,10 +68,23 @@ function createThrottle(
 
     // todo low/mid: if fn returns a promise, maybe this should return a promise too
     return function throttleReturn(this: any, ...args: any[]) {
+      if (state.current.disabled) {
+        return;
+      }
+
       const { current } = state;
       current.lastArgs = args;
       current.lastCtx = this;
-      if (!current.timer) {
+      if (debounce) {
+        if (current.timer) {
+          clearTimeout(current.timer);
+        }
+        if (timeout === 0) {
+          run();
+        } else {
+          current.timer = window.setTimeout(run, timeout);
+        }
+      } else if (!current.timer) {
         if (allowSchedulingDuringDelay) {
           const delay = Math.max(0, timeout - (performance.now() - current.lastRunTime));
           if (delay === 0) {
@@ -106,12 +122,15 @@ const _useThrottle = createThrottle(() => useRef({
   disabled: false,
 }));
 
-// todo: low/mid use latest callback fn
 export function useThrottle<Args extends any[]>(
   fn: (...args: Args) => void | Promise<void>,
-  opts: Memoed<Opts>,
-  deps = [] as MemoDependencyList,
-): Memoed<(...args: Args) => void> {
+  opts: Stable<Opts>,
+  deps = [] as StableDependencyList,
+): Stable<(...args: Args) => void> {
+  const latestFn = useDynamicCallback(fn);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useCallback(_useThrottle(fn, opts), deps);
+  return useCallback(_useThrottle(
+    (...args: Args) => latestFn(...args),
+    opts,
+  ), deps);
 }

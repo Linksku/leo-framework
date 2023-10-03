@@ -1,6 +1,6 @@
 // Note: if cb changes often, need to add option to not reset timer
 export default function useInterval(
-  cb: Memoed<() => void>,
+  cb: Stable<() => void>,
   delay: number,
 ) {
   if (!process.env.PRODUCTION && delay < 10) {

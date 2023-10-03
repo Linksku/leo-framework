@@ -32,5 +32,8 @@ export default async function startMZDocker() {
     },
   );
 
-  printDebug(`Started MZ Docker after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `Started MZ Docker after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

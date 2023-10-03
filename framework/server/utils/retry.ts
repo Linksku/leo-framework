@@ -1,6 +1,8 @@
 import promiseTimeout from 'utils/promiseTimeout';
 import formatErr from 'utils/formatErr';
 
+export const FORCE_STOP_RETRY = Symbol('FORCE_STOP_RETRY');
+
 export default async function retry(
   fn: (() => void) | (() => Promise<void>),
   {
@@ -55,6 +57,20 @@ export default async function retry(
       }
       return;
     } catch (err) {
+      if (err === FORCE_STOP_RETRY) {
+        if (lastErr instanceof Error) {
+          throw getErr(lastErr, { ctx });
+        }
+        if (lastErr != null) {
+          throw lastErr;
+        }
+        throw new Error('retry: force stopped');
+      }
+
+      if (!process.env.PRODUCTION && !(err instanceof Error)) {
+        printDebug(`retry(${ctx}): err isn't Error: ${err}`, 'warn');
+      }
+
       lastErr = err;
       didCurLoopThrow = true;
     }

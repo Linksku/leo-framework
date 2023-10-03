@@ -1,9 +1,13 @@
 diff --git a/node_modules/constate/dist/constate.cjs.js b/node_modules/constate/dist/constate.cjs.js
-index 12b9ded..327a9f9 100644
+index 12b9ded..f5b5762 100644
 --- a/node_modules/constate/dist/constate.cjs.js
 +++ b/node_modules/constate/dist/constate.cjs.js
-@@ -31,7 +31,7 @@ function createUseContext(context) {
-     if (isDev && value === NO_PROVIDER) {
+@@ -28,10 +28,10 @@ function createUseContext(context) {
+   return function () {
+     var value = React.useContext(context);
+ 
+-    if (isDev && value === NO_PROVIDER) {
++    if (value === NO_PROVIDER) {
        var warnMessage = context.displayName ? "The context consumer of " + context.displayName + " must be wrapped with its corresponding Provider" : "Component must be wrapped with Provider."; // eslint-disable-next-line no-console
  
 -      console.warn(warnMessage);
@@ -12,11 +16,15 @@ index 12b9ded..327a9f9 100644
  
      return value;
 diff --git a/node_modules/constate/dist/constate.es.js b/node_modules/constate/dist/constate.es.js
-index c8297e5..6954e47 100644
+index c8297e5..2b0b113 100644
 --- a/node_modules/constate/dist/constate.es.js
 +++ b/node_modules/constate/dist/constate.es.js
-@@ -27,7 +27,7 @@ function createUseContext(context) {
-     if (isDev && value === NO_PROVIDER) {
+@@ -24,10 +24,10 @@ function createUseContext(context) {
+   return function () {
+     var value = useContext(context);
+ 
+-    if (isDev && value === NO_PROVIDER) {
++    if (value === NO_PROVIDER) {
        var warnMessage = context.displayName ? "The context consumer of " + context.displayName + " must be wrapped with its corresponding Provider" : "Component must be wrapped with Provider."; // eslint-disable-next-line no-console
  
 -      console.warn(warnMessage);
@@ -25,7 +33,7 @@ index c8297e5..6954e47 100644
  
      return value;
 diff --git a/node_modules/constate/dist/ts/src/index.d.ts b/node_modules/constate/dist/ts/src/index.d.ts
-index 26c95bb..bf99382 100644
+index 26c95bb..f4a5c34 100644
 --- a/node_modules/constate/dist/ts/src/index.d.ts
 +++ b/node_modules/constate/dist/ts/src/index.d.ts
 @@ -8,5 +8,5 @@ declare type ConstateTuple<Props, Value, Selectors extends Selector<Value>[]> =
@@ -33,5 +41,5 @@ index 26c95bb..bf99382 100644
      ...Hooks<Value, Selectors>
  ];
 -declare function constate<Props, Value, Selectors extends Selector<Value>[]>(useValue: (props: Props) => Value, ...selectors: Selectors): ConstateTuple<Props, Value, Selectors>;
-+declare function constate<Props, Value, Selectors extends Selector<Value>[]>(useValue: (props: Props) => Value, ...selectors: Selectors): ConstateTuple<Props, Memoed<Value>, Selectors>;
++declare function constate<Props, Value, Selectors extends Selector<Value>[]>(useValue: (props: Props) => Value, ...selectors: Selectors): ConstateTuple<Props, Stable<Value>, Selectors>;
  export default constate;

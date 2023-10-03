@@ -1,8 +1,14 @@
+.visibilityDiv {
+  width: 0;
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
 .btn {
-  display: block;
   position: fixed;
   right: $containerPadding;
-  bottom: calc($footerHeight + 1rem);
   z-index: $zIndexFixed;
   background-color: $primaryColor;
   border-radius: 50%;
@@ -13,14 +19,23 @@
     right: calc((100vw - $containerMaxWidth) / 2 + $containerPadding);
   }
 
+  &.fromTop {
+    top: calc(#{$headerHeight} + #{$offsetTop} + 1rem);
+  }
+
+  &.fromBottom {
+    top: calc(var(--vh100, 100vh) - #{$footerHeight} + #{$offsetTop} - 1rem);
+    transform: translateY(-100%);
+  }
+
+  &:active {
+    background-color: $activePrimaryColorBg;
+  }
+
   svg {
     display: block;
     height: 2rem;
     width: 2rem;
     fill: #fff;
-  }
-
-  &:active {
-    background-color: $activePrimaryColorBg;
   }
 }

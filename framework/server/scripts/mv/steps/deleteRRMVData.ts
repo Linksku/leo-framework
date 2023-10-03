@@ -5,7 +5,11 @@ import { PG_RR_SCHEMA } from 'consts/infra';
 export default async function deleteRRMVData() {
   const startTime = performance.now();
   printDebug('Deleting replica MV data', 'highlight');
-  const rows = await knexRR('information_schema.tables')
+  const rows = await knexRR<{
+    table_name: string,
+    table_schema: string,
+    table_type: string,
+  }>('information_schema.tables')
     .select('table_name')
     .where({
       table_schema: PG_RR_SCHEMA,
@@ -18,5 +22,8 @@ export default async function deleteRRMVData() {
     );
   }
 
-  printDebug(`Deleted RR data after ${Math.round((performance.now() - startTime) / 100) / 10}s`, 'success');
+  printDebug(
+    `Deleted RR data after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

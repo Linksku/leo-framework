@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import { compile } from 'json-schema-to-typescript';
 
 import allModels, { ModelsArr, frameworkModels } from 'services/model/allModels';
@@ -27,10 +27,10 @@ function isValidValSchema(val: JsonSchema): boolean {
 }
 
 async function getOutput(models: ModelsArr) {
-  const modelClasses = {} as ObjectOf<ModelClass>;
-  const modelNames = {} as ObjectOf<string>;
+  const modelClasses = Object.create(null) as ObjectOf<ModelClass>;
+  const modelNames = Object.create(null) as ObjectOf<string>;
   const interfaces = [] as string[];
-  const allRelations = {} as ObjectOf<ObjectOf<{
+  const allRelations = Object.create(null) as ObjectOf<ObjectOf<{
     Model: ModelClass,
     type: string,
   }>>;
@@ -47,7 +47,9 @@ async function getOutput(models: ModelsArr) {
         continue;
       }
 
-      throw new Error(`buildSharedModelsTypes.getOutput: ${Model.name}.${prop} must be auto-incremented (id), required, nullable or have default.`);
+      throw new Error(
+        `buildSharedModelsTypes.getOutput: ${Model.name}.${prop} must be auto-incremented (id), required, nullable or have default.`,
+      );
     }
 
     const fields = await compile(
@@ -58,8 +60,8 @@ async function getOutput(models: ModelsArr) {
     interfaces.push(`interface I${Model.name} extends IBaseModel {
 ${
   fields.split('\n').slice(1, -2).join('\n')
-    .replace(/\?: /g, ': ')
-    .replace(/"/g, '\'')
+    .replaceAll('?: ', ': ')
+    .replaceAll('"', '\'')
 }
 }
 `);
@@ -70,23 +72,26 @@ ${
     const modelRelations: ObjectOf<{
       Model: ModelClass,
       type: string,
-    }> = {};
+    }> = Object.create(null);
     for (const [name, relation] of TS.objEntries(Model.relationsMap)) {
       if (relation.relationType === 'hasOne'
-        || (relation.relationType === 'belongsToOne' && isSchemaNullable(TS.getProp(Model.schema, relation.fromCol)))) {
+        || (
+          relation.relationType === 'belongsToOne'
+            && isSchemaNullable(TS.getProp(Model.schema, relation.fromCol))
+        )) {
         modelRelations[name] = {
           Model: relation.toModel,
-          type: `${relation.toModel.name} | null`,
+          type: `I${relation.toModel.name} | null`,
         };
       } else if (relation.relationType === 'belongsToOne') {
         modelRelations[name] = {
           Model: relation.toModel,
-          type: `${relation.toModel.name}`,
+          type: `I${relation.toModel.name}`,
         };
       } else {
         modelRelations[name] = {
           Model: relation.toModel,
-          type: `${relation.toModel.name}[]`,
+          type: `I${relation.toModel.name}[]`,
         };
       }
     }
@@ -95,7 +100,11 @@ ${
 
   return `${interfaces.join('\n')}
 type ModelType =
-  | '${Object.keys(modelNames).join(`'
+  | '${models.map(m => m.Model.type).join(`'
+  | '`)}';
+
+type RRModelType =
+  | '${models.filter(m => m.isRR).map(m => m.Model.type).join(`'
   | '`)}';
 
 type ModelInterfacesMap = {

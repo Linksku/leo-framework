@@ -13,6 +13,8 @@ if [ "$( docker container inspect -f '{{.State.Running}}' materialize )" != "tru
 fi
 
 yarn clean
+rm -rf build/development
+
 MINIMIZE=0 yarn ss buildTemplates
 npx concurrently --names ",WEB" --prefix "{name}" --prefix-colors "blue" --kill-others \
   "scripts/watch-server.sh" \
