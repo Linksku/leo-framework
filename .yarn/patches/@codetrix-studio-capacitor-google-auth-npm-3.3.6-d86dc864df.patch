@@ -1,0 +1,38 @@
+diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
+index 31d9bbca7b325cf5691b495f4870d5dedf3b516b..995db5acb6879242fa3fe17f6e09595cd271b0d1 100644
+--- a/dist/esm/definitions.d.ts
++++ b/dist/esm/definitions.d.ts
+@@ -120,7 +120,7 @@ export interface GoogleAuthPlugin {
+      * @param options - Optional initialization options.
+      * @since 3.1.0
+      */
+-    initialize(options?: InitOptions): void;
++    initialize(options?: InitOptions): Promise<void>;
+     /**
+      * Initiates the sign-in process and returns a Promise that resolves with the user information.
+      */
+diff --git a/dist/esm/web.d.ts b/dist/esm/web.d.ts
+index 984960cb532236672c15eeae7127bac35cf8eed0..f1448fd5a9e64501fcf3dd2567537cade1ead6b9 100644
+--- a/dist/esm/web.d.ts
++++ b/dist/esm/web.d.ts
+@@ -5,7 +5,7 @@ export declare class GoogleAuthWeb extends WebPlugin implements GoogleAuthPlugin
+     options: InitOptions;
+     constructor();
+     loadScript(): void;
+-    initialize(_options?: Partial<InitOptions>): void;
++    initialize(_options?: Partial<InitOptions>): Promise<void>;
+     platformJsLoaded(): void;
+     signIn(): Promise<User>;
+     refresh(): Promise<{
+diff --git a/dist/esm/web.js b/dist/esm/web.js
+index 9672ccdd0c661df2bbbecc8c574183513b8da3e0..68ca0bb69c07dc31688775636fcd22864adf32f9 100644
+--- a/dist/esm/web.js
++++ b/dist/esm/web.js
+@@ -47,6 +47,7 @@ export class GoogleAuthWeb extends WebPlugin {
+             this.loadScript();
+         });
+         this.addUserChangeListener();
++	return this.gapiLoaded;
+     }
+     platformJsLoaded() {
+         gapi.load('auth2', () => {

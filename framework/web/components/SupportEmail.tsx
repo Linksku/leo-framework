@@ -1,6 +1,6 @@
-import { SUPPORT_EMAIL } from 'settings';
+import { SUPPORT_EMAIL } from 'config';
 
-import styles from './SupportEmailStyles.scss';
+import styles from './SupportEmail.scss';
 
 export default (
   <Link

@@ -1,4 +1,4 @@
-const cache: Map<string, URLSearchParams | null> = new Map();
+const cache = new Map<string, URLSearchParams | null>();
 
 export default function getUrlParams(_search?: string): URLSearchParams {
   const search = _search ?? window.location.search;

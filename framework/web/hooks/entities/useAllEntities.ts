@@ -1,14 +1,14 @@
 import { useSyncExternalStore } from 'react';
 
 import type { EntitiesMap } from 'stores/EntitiesStore';
-import { getEntitiesState } from 'stores/EntitiesStore';
+import { getEntitiesState, EntitiesUsage } from 'stores/EntitiesStore';
 
 export default function useAllEntities<T extends EntityType>(
   entityType: T | null,
 ): EntitiesMap<Entity<T>> {
   const { addEntityListener } = useEntitiesStore();
 
-  return useSyncExternalStore(
+  const allEntities = useSyncExternalStore(
     useCallback(cb => {
       if (!entityType) {
         return NOOP;
@@ -32,4 +32,15 @@ export default function useAllEntities<T extends EntityType>(
       ) as EntitiesMap<Entity<T>>
       : EMPTY_MAP),
   );
+
+  if (!process.env.PRODUCTION && allEntities) {
+    for (const entity of allEntities.values()) {
+      const usage = entity && EntitiesUsage.get(entity);
+      if (usage) {
+        usage.lastReadTime = performance.now();
+      }
+    }
+  }
+
+  return allEntities;
 }

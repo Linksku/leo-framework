@@ -5,9 +5,10 @@ import {
   withScope,
   captureException,
 } from '@sentry/browser';
+import { SENTRY_DSN_WEB } from 'config';
 
 init({
-  dsn: process.env.SENTRY_DSN_WEB,
+  dsn: SENTRY_DSN_WEB,
   integrations: [new BrowserTracing()],
   tracesSampleRate: 1, // process.env.PRODUCTION ? 0.01 : 1,
 });

@@ -36,7 +36,7 @@ declare global {
 
   type ModelKey<T extends { Interface: IBaseModel }> = (keyof T['Interface']) & string;
 
-  type ModelIndex<T extends { Interface: IBaseModel }> = ModelKey<T>[];
+  type ModelIndex<T extends { Interface: IBaseModel }> = ModelKey<T> | ModelKey<T>[];
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
   declare class __SCHEMA {
@@ -47,11 +47,11 @@ declare global {
     [k in keyof T]: JsonSchema;
   } & __SCHEMA;
 
-  type ModelColsMap<T extends IBaseModel> = {
+  type ModelColsMap<T extends ModelType> = {
     all: '*',
   } & {
-    // For knex().select type
-    [k in keyof T]: k;
+    // Doesn't work with knex.select(), it expects just the column name
+    [K in keyof ModelTypeToInterface<T>]: `${T}.${K}`;
   };
 
   type QueryBuilder<M extends Model, R = M[]> = CustomQueryBuilder<M, R>;

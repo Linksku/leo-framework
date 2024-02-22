@@ -1,9 +1,10 @@
-import { useAnimatedValue } from 'hooks/useAnimation';
+import { DEFAULT_DURATION, useAnimatedValue } from 'hooks/useAnimation';
 import { useAnimation } from 'hooks/useAnimation';
 import useWindowEvent from 'hooks/useWindowEvent';
 import useDocumentEvent from 'hooks/useDocumentEvent';
 import { useThrottle } from 'utils/throttle';
 import isVirtualKeyboardOpen from 'utils/isVirtualKeyboardOpen';
+import isBot from 'utils/isBot';
 
 export const [
   UIFrameProvider,
@@ -51,27 +52,22 @@ export const [
       };
     }, [handleResize]);
 
-    const [sidebarLoaded, setSidebarLoaded] = useState(false);
+    const [sidebarLoaded, setSidebarLoaded] = useState(isBot());
     const sidebarShownPercent = useAnimatedValue(
       0,
-      { debugName: 'Sidebar' },
+      {
+        initialDuration: DEFAULT_DURATION / 3 * 2,
+        debugName: 'Sidebar',
+      },
     );
     const [sidebarRef, sidebarStyle] = useAnimation<HTMLDivElement>(
       sidebarShownPercent,
       'Sidebar',
     );
 
-    const reloadSpinnerDeg = useAnimatedValue(
-      0,
-      { debugName: 'ReloadSpinner' },
-    );
+    const [isReloadingPage, setIsReloadingPage] = useState(false);
     const reloadPage = useCallback((delay = 0) => {
-      reloadSpinnerDeg.setVal(360, 300);
-      setTimeout(() => {
-        const MAX_SPIN_TIMES = 100;
-        // Spin every 2 seconds.
-        reloadSpinnerDeg.setVal(360 * MAX_SPIN_TIMES, 1500 * MAX_SPIN_TIMES);
-      }, 400);
+      setIsReloadingPage(true);
 
       if (delay) {
         setTimeout(() => {
@@ -82,15 +78,15 @@ export const [
         // @ts-ignore reload(true) is still supported
         window.location.reload(true);
       }
-    }, [reloadSpinnerDeg]);
+    }, []);
 
     const showSidebar = useCallback(() => {
-      sidebarShownPercent.setVal(100);
+      sidebarShownPercent.setVal(100, DEFAULT_DURATION / 3 * 2);
       setSidebarLoaded(true);
     }, [sidebarShownPercent]);
 
     const hideSidebar = useCallback(
-      (duration?: number) => sidebarShownPercent.setVal(0, duration),
+      () => sidebarShownPercent.setVal(0, DEFAULT_DURATION / 3 * 2),
       [sidebarShownPercent],
     );
 
@@ -110,7 +106,7 @@ export const [
       showSidebar,
       hideSidebar,
       loadSidebar,
-      reloadSpinnerDeg,
+      isReloadingPage,
       reloadPage,
       iosFocusHackRef,
     }), [
@@ -123,7 +119,7 @@ export const [
       showSidebar,
       hideSidebar,
       loadSidebar,
-      reloadSpinnerDeg,
+      isReloadingPage,
       reloadPage,
       iosFocusHackRef,
     ]);

@@ -19,7 +19,7 @@ export function isPropDate(schema: JsonSchema): boolean {
   return false;
 }
 
-const memo: Map<JsonSchemaProperties, Set<string>> = new Map();
+const memo = new Map<JsonSchemaProperties, Set<string>>();
 export function getDateProps(schema: JsonSchemaProperties): Set<string> {
   if (!memo.has(schema)) {
     memo.set(

@@ -1,23 +1,36 @@
 import Redis from 'ioredis';
 
-import { REDIS_HOST, REDIS_PORT } from 'consts/infra';
+import { REDIS_HOST, REDIS_PORT, REDIS_USER } from 'consts/infra';
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
-import { API_TIMEOUT } from 'settings';
+import { API_TIMEOUT } from 'consts/server';
 
 const redisConfig = {
   host: REDIS_HOST,
   port: REDIS_PORT,
+  username: REDIS_USER,
   password: process.env.REDIS_PASS,
   maxRetriesPerRequest: 3,
   commandTimeout: API_TIMEOUT / 2,
   showFriendlyErrorStack: !process.env.PRODUCTION,
 };
 
-export function shouldIgnoreRedisError(err: any) {
-  return err.code === 'ECONNREFUSED'
-    || err.code === 'ECONNRESET'
-    || err.code === 'ENOTFOUND'
-    || err.message === 'Command timed out';
+export function shouldLogRedisError(err: unknown) {
+  if (!(err instanceof Error)) {
+    return true;
+  }
+  if (err.name === 'MaxRetriesPerRequestError'
+    || err.message === 'Command timed out') {
+    return false;
+  }
+
+  const code = TS.getProp(err, 'code');
+  return ![
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'ENOTFOUND',
+    'EAI_AGAIN',
+    'ETIMEDOUT',
+  ].includes(code as string);
 }
 
 // Note: apparently pub/sub is expensive on large cluster,
@@ -27,7 +40,7 @@ export const redisSub = ServiceContextLocalStorage.run(
   () => {
     const redisSub2 = new Redis(redisConfig);
     redisSub2.on('error', err => {
-      if (!shouldIgnoreRedisError(err)) {
+      if (shouldLogRedisError(err)) {
         ErrorLogger.error(err, { ctx: 'redisSub error' });
       }
     });
@@ -40,7 +53,7 @@ export const redisPub = ServiceContextLocalStorage.run(
   () => {
     const redisPub2 = new Redis(redisConfig);
     redisPub2.on('error', err => {
-      if (!shouldIgnoreRedisError(err)) {
+      if (shouldLogRedisError(err)) {
         ErrorLogger.error(err, { ctx: 'redisPub error' });
       }
     });
@@ -55,7 +68,7 @@ export const redisMaster = ServiceContextLocalStorage.run(
   () => {
     const redisMaster2 = new Redis(redisConfig);
     redisMaster2.on('error', err => {
-      if (!shouldIgnoreRedisError(err)) {
+      if (shouldLogRedisError(err)) {
         ErrorLogger.error(err, { ctx: 'redisMaster error' });
       }
     });
@@ -69,7 +82,7 @@ const redis = ServiceContextLocalStorage.run(
   () => {
     const redis2 = new Redis(redisConfig);
     redis2.on('error', err => {
-      if (!shouldIgnoreRedisError(err)) {
+      if (shouldLogRedisError(err)) {
         ErrorLogger.error(err, { ctx: 'redis error' });
       }
     });

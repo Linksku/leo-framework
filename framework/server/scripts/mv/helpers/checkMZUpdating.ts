@@ -2,7 +2,7 @@ import knexBT from 'services/knex/knexBT';
 import retry from 'utils/retry';
 
 export default async function checkMZUpdating(timeout = 60 * 1000) {
-  const rows = await entityQuery(MzTest, knexBT)
+  const rows = await entityQuery(MzTestModel, knexBT)
     .patch({
       // @ts-ignore raw
       version: raw(`
@@ -16,7 +16,7 @@ export default async function checkMZUpdating(timeout = 60 * 1000) {
     .returning('*');
   const updated = rows[0];
   if (!updated) {
-    await ErrorLogger.fatal(new Error('checkMZUpdating: MzTest.update failed'));
+    await ErrorLogger.fatal(new Error('checkMZUpdating: MzTestModel.update failed'));
   }
 
   await retry(

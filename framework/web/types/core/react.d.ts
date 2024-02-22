@@ -28,19 +28,32 @@ type StableTypes = Primitive
 type StableDependencyList = ReadonlyArray<StableTypes>;
 
 // Doesn't work with generics: https://stackoverflow.com/questions/51300602
-type StableObjShallow<Obj extends ObjectOf<any>> = {
-  [K in keyof Obj]: Stable<Obj[K]>;
-};
+type StableShallow<T> =
+  T extends Primitive ? T
+  : T extends __STABLE ? T
+  : Stable<
+    T extends StableTypes ? T
+    : T extends Set<infer U> ? Set<Stable<U>>
+    : T extends Map<K, V> ? Map<Stable<K>, Stable<V>>
+    : T extends BuiltInObjects ? T
+    : (keyof T) extends never ? T
+    : {
+      [K in keyof T]: Stable<T[K]>;
+    }
+  >;
 
 type StableDeep<T> =
   T extends Primitive ? T
   : T extends __STABLE ? T
   : Stable<
-    T extends Set<infer U> ? Set<Stable<U>>
-    : T extends Map<infer K, infer V> ? Map<K, Stable<V>>
+    T extends StableTypes ? T
+    : T extends Set<infer U> ? Set<StableDeep<U>>
+    : T extends Map<infer K, infer V> ? Map<StableDeep<K>, StableDeep<V>>
     : T extends BuiltInObjects ? T
     : (keyof T) extends never ? T
-    : { [K in keyof T]: StableDeep<T[K]> }
+    : {
+      [K in keyof T]: StableDeep<T[K]>;
+    }
   >;
 
 declare namespace React {
@@ -80,11 +93,7 @@ declare function useMemo<T>(
 declare function useState<S>(
   initialState: S | (() => S),
 ): [
-  Stable<
-    S extends Primitive ? S
-    : (keyof S) extends never ? S
-    : StableObjShallow<S>
-  >,
+  S extends Primitive ? S : StableShallow<S>,
   SetState<S>,
 ];
 

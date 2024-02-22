@@ -2,9 +2,10 @@
 /* eslint-disable react/jsx-one-expression-per-line */
 import StackWrapInner from 'components/frame/stack/StackWrapInner';
 import SupportEmail from 'components/SupportEmail';
-import { APP_NAME, HOME_URL, DOMAIN_NAME } from 'settings';
+import { APP_NAME } from 'config';
+import { HOME_URL, DOMAIN_NAME } from 'consts/server';
 
-import styles from './PrivacyPolicyRouteStyles.scss';
+import styles from './PrivacyPolicyRoute.scss';
 
 export default function PrivacyPolicyRoute() {
   return (

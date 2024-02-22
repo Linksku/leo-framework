@@ -12,5 +12,5 @@ export default function useConst<T>(
     // eslint-disable-next-line no-console
     console.error('useConst: val changed.', defaultVal, val);
   }
-  return val;
+  return val as Stable<T>;
 }

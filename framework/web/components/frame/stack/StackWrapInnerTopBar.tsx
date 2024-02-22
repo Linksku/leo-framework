@@ -1,13 +1,13 @@
-import ChevronLeftSvg from 'fa5/svg/chevron-left-regular.svg';
+import ChevronLeftSvg from 'svgs/fa5/chevron-left-regular.svg';
 
-import type { HandleClickLink } from 'components/ui/Link';
+import type { HandleClickLink } from 'components/base/Link';
 import { useGoBackStack } from 'stores/StacksNavStore';
 import { useIsRouteActive } from 'stores/RouteStore';
-import { APP_NAME } from 'settings';
+import { APP_NAME } from 'config';
 
-import styles from './StackWrapInnerTopBarStyles.scss';
+import styles from './StackWrapInnerTopBar.scss';
 
-type BtnProps = Stable<Omit<Parameters<typeof Button>[0], 'onClick'>>;
+type BtnProps = Omit<Parameters<typeof Button>[0], 'onClick'>;
 
 function renderBtn({
   onClick,
@@ -15,12 +15,14 @@ function renderBtn({
   Svg,
   svgDim,
   isLeft,
+  ariaLabel,
 }: {
   onClick?: HandleClickLink,
   btnProps?: BtnProps,
   Svg?: React.SVGFactory,
   svgDim?: number,
   isLeft?: boolean,
+  ariaLabel?: string,
 }) {
   if (btnProps) {
     return (
@@ -31,6 +33,7 @@ function renderBtn({
       >
         <Button
           onClick={onClick}
+          aria-label={ariaLabel}
           {...btnProps}
         />
       </div>
@@ -39,10 +42,12 @@ function renderBtn({
   if (Svg) {
     return (
       <Link
-        className={cx(styles.btnWrap, styles.svgBtnWrap, {
+        className={cx(styles.btnWrap, {
           [styles.rightBtnWrap]: !isLeft,
         })}
         onClick={onClick}
+        activeBg
+        aria-label={ariaLabel}
       >
         <Svg style={{ height: `${svgDim}rem`, width: `${svgDim}rem` }} />
       </Link>
@@ -55,7 +60,7 @@ type Props = {
   title?: string,
   hideBackBtn?: boolean,
   onRightBtnClick?: Stable<HandleClickLink>,
-  rightBtnProps?: BtnProps,
+  rightBtnProps?: Stable<BtnProps>,
   RightSvg?: React.SVGFactory,
   rightSvgDim?: number,
   className?: string,
@@ -96,8 +101,9 @@ export default React.memo(function StackWrapInnerTopBar({
         {!hideBackBtn && renderBtn({
           Svg: ChevronLeftSvg,
           svgDim: 1.8,
-          onClick: () => goBackStack.current(),
+          onClick: goBackStack,
           isLeft: true,
+          ariaLabel: 'Back',
         })}
         <h1
           className={styles.title}

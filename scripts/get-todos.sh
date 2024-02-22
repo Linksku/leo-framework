@@ -8,6 +8,8 @@ elif [ "$1" = "easy" ]; then
   search='todo: \w+/easy '
 elif [ "$1" = "all" ] || [ "$1" = "misc" ]; then
   search='todo: \w+/\w+ '
+elif [ "$1" = "low" ]; then
+  search='todo: (low/(mid|hard|veryhard)|mid/(hard|veryhard)) '
 else
   search='todo: (veryhigh/(easy|mid|hard)|high/(easy|mid))|(mid/easy) '
 fi

@@ -7,7 +7,7 @@ import knexRR from 'services/knex/knexRR';
 import waitForQueryReady from 'utils/models/waitForQueryReady';
 import fetchKafkaConnectors from 'utils/infra/fetchKafkaConnectors';
 import deleteKafkaConnector from 'utils/infra/deleteKafkaConnector';
-import deleteKafkaTopics from 'utils/infra/deleteKafkaTopics';
+import deleteTopicsAndSchema from 'utils/infra/deleteTopicsAndSchema';
 import deleteBTReplicationSlot from 'utils/infra/deleteBTReplicationSlot';
 import deleteRRSubscription from 'utils/infra/deleteRRSubscription';
 import createBTReplicationSlot from 'utils/infra/createBTReplicationSlot';
@@ -20,11 +20,23 @@ import {
   MZ_SINK_CONNECTOR_PREFIX,
   MZ_SINK_TOPIC_PREFIX,
   RR_SUB_PREFIX,
+  BT_REPLICA_IDENTITY_FOR_MZ,
 } from 'consts/mz';
-import { PG_BT_HOST, PG_BT_PORT, INTERNAL_DOCKER_HOST } from 'consts/infra';
-import deleteSchemaRegistry from 'utils/infra/deleteSchemaRegistry';
+import {
+  PG_BT_HOST,
+  PG_BT_PORT,
+  PG_BT_DB,
+  INTERNAL_DOCKER_HOST,
+} from 'consts/infra';
+import randInt from 'utils/randInt';
 import createMZSink from './mv/helpers/createMZSink';
 import createMZSinkConnector from './mv/helpers/createMZSinkConnector';
+
+type TestRow = {
+  id: number,
+  unindexed: number,
+  name: string,
+};
 
 const chance = new Chance();
 
@@ -41,8 +53,7 @@ async function destroyTestInfra() {
           }
         }
         await knexMZ.raw(`DROP SINK IF EXISTS "${MZ_SINK_PREFIX}__testMV__"`);
-        await deleteKafkaTopics(`${MZ_SINK_TOPIC_PREFIX}__testMV__`);
-        await deleteSchemaRegistry(new RegExp(`^${MZ_SINK_TOPIC_PREFIX}__testMV__-(key|value)$`));
+        await deleteTopicsAndSchema(`${MZ_SINK_TOPIC_PREFIX}__testMV__`);
         await knexMZ.raw(`DROP SOURCE IF EXISTS ${MZ_SOURCE_PG_PREFIX}test CASCADE`);
       } catch (err: any) {
         printDebug(err, 'warn');
@@ -68,21 +79,210 @@ function getRandomRow() {
   };
 }
 
-async function bulkUpdate(objs: any[]) {
-  const cols = ['id', 'unindexed', 'name'];
+type QueryTimes = {
+  bt: number,
+  rr: number,
+  mzMv: number,
+  rrMv: number,
+};
+
+async function insert1RowTimes() {
+  const startTime = performance.now();
+  const times: Partial<QueryTimes> = {};
+  const [insertedRow2] = await knexBT<TestRow>('__test__')
+    .insert(getRandomRow())
+    .returning('id');
+  times.bt = performance.now() - startTime;
+  await Promise.all([
+    (async () => {
+      await waitForQueryReady(
+        knexRR<TestRow>('__test__').where({ id: insertedRow2.id }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.rr = performance.now() - startTime;
+    })(),
+    (async () => {
+      await waitForQueryReady(
+        knexMZ<TestRow>('__testMV__').where({ id: insertedRow2.id }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.mzMv = performance.now() - startTime;
+    })(),
+    (async () => {
+      await waitForQueryReady(
+        knexRR<TestRow>('__testMV__').where({ id: insertedRow2.id }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.rrMv = performance.now() - startTime;
+    })(),
+  ]);
+  return times as QueryTimes;
+}
+
+async function update1RowTimes(id: number) {
+  const update = getRandomRow();
+  const startTime = performance.now();
+  const times: Partial<QueryTimes> = {};
+  await knexBT<TestRow>('__test__')
+    .update(update)
+    .where({ id });
+  times.bt = performance.now() - startTime;
+  await Promise.all([
+    (async () => {
+      await waitForQueryReady(
+        knexRR<TestRow>('__test__').where({
+          id,
+          unindexed: update.unindexed,
+        }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.rr = performance.now() - startTime;
+    })(),
+    (async () => {
+      await waitForQueryReady(
+        knexMZ<TestRow>('__testMV__').where({
+          id,
+          unindexed: update.unindexed,
+        }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.mzMv = performance.now() - startTime;
+    })(),
+    (async () => {
+      await waitForQueryReady(
+        knexRR<TestRow>('__testMV__').where({
+          id,
+          unindexed: update.unindexed,
+        }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.rrMv = performance.now() - startTime;
+    })(),
+  ]);
+  return times as QueryTimes;
+}
+
+async function insert1000RowsTimes() {
+  const rows = Array.from({ length: 1000 }, _ => getRandomRow());
+  const startTime = performance.now();
+  const times: Partial<QueryTimes> = {};
+  const insertedRows = await knexBT
+    .batchInsert(
+      '__test__',
+      rows,
+    )
+    .returning(
+      // @ts-ignore Knex has wrong type
+      'id',
+    );
+  const lastRow = TS.defined(insertedRows.at(-1));
+  times.bt = performance.now() - startTime;
+  await Promise.all([
+    (async () => {
+      await waitForQueryReady(
+        knexRR<TestRow>('__test__').where({
+          // @ts-ignore Knex has wrong type
+          id: lastRow.id,
+        }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.rr = performance.now() - startTime;
+    })(),
+    (async () => {
+      await waitForQueryReady(
+        knexMZ<TestRow>('__testMV__').where({
+          // @ts-ignore Knex has wrong type
+          id: lastRow.id,
+        }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.mzMv = performance.now() - startTime;
+    })(),
+    (async () => {
+      await waitForQueryReady(
+        knexRR<TestRow>('__testMV__').where({
+          // @ts-ignore Knex has wrong type
+          id: lastRow.id,
+        }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.rrMv = performance.now() - startTime;
+    })(),
+  ]);
+  return times as QueryTimes;
+}
+
+async function update1000RowsTimes(lastId: number) {
+  const updates = Array.from({ length: 1000 }, _ => ({
+    id: randInt(1, lastId),
+    ...getRandomRow(),
+  }));
+  const startTime = performance.now();
+  const times: Partial<QueryTimes> = {};
+
+  const cols = TS.literal(['id', 'unindexed', 'name'] as const);
   await knexBT.raw(
     `
       UPDATE __test__
       SET unindexed = CAST(t.unindexed AS INTEGER),
         name = t.name
       FROM (VALUES ${
-        objs.map(_ => `(${cols.map(_ => '?').join(',')})`).join(',')
+        updates.map(_ => `(${cols.map(_ => '?').join(',')})`).join(',')
       })
       t(${cols.join(',')})
       WHERE __test__.id = CAST(t.id AS INTEGER)
     `,
-    objs.flatMap(obj => cols.map(k => obj[k])),
+    updates.flatMap(obj => cols.map(k => obj[k])),
   );
+
+  times.bt = performance.now() - startTime;
+  await Promise.all([
+    (async () => {
+      await waitForQueryReady(
+        knexRR<TestRow>('__test__').where({
+          id: updates[0].id,
+          unindexed: updates[0].unindexed,
+        }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.rr = performance.now() - startTime;
+    })(),
+    (async () => {
+      await waitForQueryReady(
+        knexMZ<TestRow>('__testMV__').where({
+          id: updates[0].id,
+          unindexed: updates[0].unindexed,
+        }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.mzMv = performance.now() - startTime;
+    })(),
+    (async () => {
+      await waitForQueryReady(
+        knexRR<TestRow>('__testMV__').where({
+          id: updates[0].id,
+          unindexed: updates[0].unindexed,
+        }),
+        { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
+      );
+      times.rrMv = performance.now() - startTime;
+    })(),
+  ]);
+  return times as QueryTimes;
+}
+
+async function getMedianTimes(getTimes: () => Promise<QueryTimes>, repeat = 3) {
+  const timesArr: QueryTimes[] = [];
+  for (let i = 0; i < repeat; i++) {
+    timesArr.push(await getTimes());
+  }
+  const medianTimes: Partial<QueryTimes> = {};
+  for (const k of TS.objKeys(timesArr[0])) {
+    const times = timesArr.map(t => t[k]);
+    times.sort((a, b) => a - b);
+    medianTimes[k] = times[Math.floor(times.length / 2)];
+  }
+  return medianTimes as QueryTimes;
 }
 
 /*
@@ -95,7 +295,7 @@ export default async function testMV() {
   console.log('Destroying test MZ');
   await destroyTestInfra();
 
-  const rows = await knexBT('__test__').count({ count: '*' });
+  const rows = await knexBT<TestRow>('__test__').count({ count: '*' });
   let btCount = rows[0].count as number;
 
   const numRowsToInsert = btCount < MIN_ROWS ? MIN_ROWS - btCount : 0;
@@ -109,18 +309,18 @@ export default async function testMV() {
     btCount += numRowsToInsert;
   }
 
+  let startTime = performance.now();
   console.log('Creating publication');
-  await knexBT.raw('ALTER TABLE __test__ REPLICA IDENTITY FULL');
+  await knexBT.raw(`ALTER TABLE __test__ REPLICA IDENTITY ${BT_REPLICA_IDENTITY_FOR_MZ}`);
   await knexBT.raw(`CREATE PUBLICATION ${BT_PUB_MODEL_PREFIX}test FOR TABLE __test__`);
 
-  let startTime = performance.now();
   await Promise.all([
     (async () => {
       console.log('Initializing MZ');
       await knexMZ.raw(`
         CREATE MATERIALIZED SOURCE "${MZ_SOURCE_PG_PREFIX}test"
         FROM POSTGRES
-          CONNECTION 'host=${INTERNAL_DOCKER_HOST} port=${PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${process.env.PG_BT_DB} sslmode=require'
+          CONNECTION 'host=${INTERNAL_DOCKER_HOST} port=${PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${PG_BT_DB} sslmode=require'
           PUBLICATION '${BT_PUB_MODEL_PREFIX}test'
         WITH (
           timestamp_frequency_ms = ${MZ_TIMESTAMP_FREQUENCY}
@@ -148,7 +348,7 @@ export default async function testMV() {
       await createBTReplicationSlot(`${BT_SLOT_RR_PREFIX}test`);
       await knexRR.raw(`
         CREATE SUBSCRIPTION "${RR_SUB_PREFIX}test"
-        CONNECTION 'host=${PG_BT_HOST} port=${PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${process.env.PG_BT_DB}'
+        CONNECTION 'host=${PG_BT_HOST} port=${PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${PG_BT_DB}'
         PUBLICATION "${BT_PUB_MODEL_PREFIX}test"
         WITH (
           create_slot = false,
@@ -157,203 +357,50 @@ export default async function testMV() {
       `);
     })(),
   ]);
+  console.log(`Initialized in ${round(performance.now() - startTime, 1)}ms`);
 
-  const [insertedRow] = await knexBT('__test__')
-    .insert(getRandomRow())
-    .returning('id');
+  let times = await insert1RowTimes();
   btCount++;
-
-  await Promise.all([
-    (async () => {
-      await waitForQueryReady(
-        knexRR('__test__').where({ id: insertedRow.id }),
-        { minWaitTime: 100, maxWaitTime: 5 * 60 * 1000, exponentialBackoff: false },
-      );
-      console.log(`RR initialized in ${round((performance.now() - startTime) / 1000, 1)}s`);
-    })(),
-    (async () => {
-      await waitForQueryReady(
-        knexMZ('__testMV__').where({ id: insertedRow.id }),
-        { minWaitTime: 100, maxWaitTime: 5 * 60 * 1000, exponentialBackoff: false },
-      );
-      console.log(`MZ initialized in ${round((performance.now() - startTime) / 1000, 1)}s`);
-    })(),
-    (async () => {
-      await waitForQueryReady(
-        knexRR('__testMV__').where({ id: insertedRow.id }),
-        { minWaitTime: 100, maxWaitTime: 5 * 60 * 1000, exponentialBackoff: false },
-      );
-      console.log(`RR MV initialized in ${round((performance.now() - startTime) / 1000, 1)}s`);
-    })(),
-  ]);
+  console.log(`RR initialized in ${round(times.rr, 1)}ms`);
+  console.log(`MZ initialized in ${round(times.mzMv, 1)}ms`);
+  console.log(`RR MV initialized in ${round(times.rrMv, 1)}ms`);
   console.log('');
 
   startTime = performance.now();
-  await knexMZ('__test__').where({ id: 123_456 }).limit(1, { skipBinding: true });
+  await knexMZ<TestRow>('__test__').where({ id: 123_456 }).limit(1, { skipBinding: true });
   console.log(`Selected 1 MZ row by primary key in ${round(performance.now() - startTime, 1)}ms`);
   startTime = performance.now();
-  await knexRR('__testMV__').where({ id: 123_456 }).limit(1, { skipBinding: true });
+  await knexRR<TestRow>('__testMV__').where({ id: 123_456 }).limit(1, { skipBinding: true });
   console.log(`Selected 1 RR row by primary key in ${round(performance.now() - startTime, 1)}ms`, '\n');
 
-  startTime = performance.now();
-  const [insertedRow2] = await knexBT('__test__')
-    .insert(getRandomRow())
-    .returning('id');
+  times = await getMedianTimes(insert1RowTimes);
   btCount++;
-  console.log(`Inserted 1 BT row in ${round(performance.now() - startTime, 1)}ms`);
-  await Promise.all([
-    (async () => {
-      await waitForQueryReady(
-        knexRR('__test__').where({ id: insertedRow2.id }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Inserted 1 RR row in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-    (async () => {
-      await waitForQueryReady(
-        knexMZ('__testMV__').where({ id: insertedRow2.id }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Inserted 1 MZ MV row in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-    (async () => {
-      await waitForQueryReady(
-        knexRR('__testMV__').where({ id: insertedRow2.id }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Inserted 1 RR MV row in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-  ]);
+  console.log(`Inserted 1 BT row in ${round(times.bt, 1)}ms`);
+  console.log(`Inserted 1 RR row in ${round(times.rr, 1)}ms`);
+  console.log(`Inserted 1 MZ MV row in ${round(times.mzMv, 1)}ms`);
+  console.log(`Inserted 1 RR MV row in ${round(times.rrMv, 1)}ms`);
   console.log('');
 
-  const update = getRandomRow();
-  startTime = performance.now();
-  await knexBT('__test__')
-    .update(update)
-    .where({
-      id: insertedRow2.id,
-    });
-  console.log(`Updated 1 BT row in ${round(performance.now() - startTime, 1)}ms`);
-  await Promise.all([
-    (async () => {
-      await waitForQueryReady(
-        knexRR('__test__').where({
-          id: insertedRow2.id,
-          unindexed: update.unindexed,
-        }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Updated 1 RR row in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-    (async () => {
-      await waitForQueryReady(
-        knexMZ('__testMV__').where({
-          id: insertedRow2.id,
-          unindexed: update.unindexed,
-        }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Updated 1 MZ MV row in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-    (async () => {
-      await waitForQueryReady(
-        knexRR('__testMV__').where({
-          id: insertedRow2.id,
-          unindexed: update.unindexed,
-        }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Updated 1 RR MV row in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-  ]);
+  times = await getMedianTimes(() => update1RowTimes(btCount));
+  console.log(`Updated 1 BT row in ${round(times.bt, 1)}ms`);
+  console.log(`Updated 1 RR row in ${round(times.rr, 1)}ms`);
+  console.log(`Updated 1 MZ MV row in ${round(times.mzMv, 1)}ms`);
+  console.log(`Updated 1 RR MV row in ${round(times.rrMv, 1)}ms`);
   console.log('');
 
-  startTime = performance.now();
-  const insertedRows = await knexBT
-    .batchInsert(
-      '__test__',
-      Array.from({ length: 1000 }, _ => getRandomRow()),
-    )
-    .returning(
-      // @ts-ignore Knex has wrong type
-      'id',
-    );
-  btCount += insertedRows.length;
-  const insertedRow3 = insertedRows.at(-1);
-  console.log(`Inserted 1000 BT rows in ${round(performance.now() - startTime, 1)}ms`);
-  await Promise.all([
-    (async () => {
-      await waitForQueryReady(
-        knexRR('__test__').where({
-          // @ts-ignore Knex has wrong type
-          id: insertedRow3.id,
-        }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Inserted 1000 RR rows in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-    (async () => {
-      await waitForQueryReady(
-        knexMZ('__testMV__').where({
-          // @ts-ignore Knex has wrong type
-          id: insertedRow3.id,
-        }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Inserted 1000 MZ MV rows in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-    (async () => {
-      await waitForQueryReady(
-        knexRR('__testMV__').where({
-          // @ts-ignore Knex has wrong type
-          id: insertedRow3.id,
-        }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Inserted 1000 RR MV rows in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-  ]);
+  times = await getMedianTimes(insert1000RowsTimes);
+  btCount += 1000;
+  console.log(`Inserted 1000 BT rows in ${round(times.bt, 1)}ms`);
+  console.log(`Inserted 1000 RR rows in ${round(times.rr, 1)}ms`);
+  console.log(`Inserted 1000 MZ MV rows in ${round(times.mzMv, 1)}ms`);
+  console.log(`Inserted 1000 RR MV rows in ${round(times.rrMv, 1)}ms`);
   console.log('');
 
-  const updates = Array.from({ length: 1000 }, _ => ({
-    id: Math.ceil(btCount * Math.random()),
-    ...getRandomRow(),
-  }));
-  startTime = performance.now();
-  await bulkUpdate(updates);
-  console.log(`Updated 1000 BT rows in ${round(performance.now() - startTime, 1)}ms`);
-  await Promise.all([
-    (async () => {
-      await waitForQueryReady(
-        knexRR('__test__').where({
-          id: updates[0].id,
-          unindexed: updates[0].unindexed,
-        }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Updated 1000 RR rows in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-    (async () => {
-      await waitForQueryReady(
-        knexMZ('__testMV__').where({
-          id: updates[0].id,
-          unindexed: updates[0].unindexed,
-        }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Updated 1000 MZ MV rows in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-    (async () => {
-      await waitForQueryReady(
-        knexRR('__testMV__').where({
-          id: updates[0].id,
-          unindexed: updates[0].unindexed,
-        }),
-        { minWaitTime: 10, exponentialBackoff: false },
-      );
-      console.log(`Updated 1000 RR MV rows in ${round(performance.now() - startTime, 1)}ms`);
-    })(),
-  ]);
+  times = await getMedianTimes(() => update1000RowsTimes(btCount));
+  console.log(`Updated 1000 BT rows in ${round(times.bt, 1)}ms`);
+  console.log(`Updated 1000 RR rows in ${round(times.rr, 1)}ms`);
+  console.log(`Updated 1000 MZ MV rows in ${round(times.mzMv, 1)}ms`);
+  console.log(`Updated 1000 RR MV rows in ${round(times.rrMv, 1)}ms`);
   console.log('');
 
   await destroyTestInfra();

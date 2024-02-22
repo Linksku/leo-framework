@@ -1,39 +1,44 @@
 import EntityModels from 'services/model/allEntityModels';
-import waitForKafkaConnectReady from 'utils/infra/waitForKafkaConnectReady';
-import createMZDBZSource from '../helpers/createMZDBZSource';
-import createDBZUpdateableConnector from './createDBZUpdateableConnector';
-import createDBZInsertOnlyConnector from './createDBZInsertOnlyConnector';
+import {
+  DBZ_FOR_UPDATEABLE,
+  DBZ_FOR_INSERT_ONLY,
+  DBZ_TOPIC_UPDATEABLE_PREFIX,
+  DBZ_TOPIC_INSERT_ONLY_PREFIX,
+} from 'consts/mz';
+import createDBZConnectors from './createDBZConnectors';
+import createMZSourcesFromKafka from '../helpers/createMZSourcesFromKafka';
 
 export default async function createMZViewsFromDBZ() {
-  printDebug('Waiting for Kafka Connect to be ready', 'highlight');
-  await withErrCtx(waitForKafkaConnectReady(), 'createMZViewsFromDBZ: waitForKafkaConnectReady');
+  if (!DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY) {
+    return;
+  }
 
-  const updateableModels = EntityModels.filter(model => !model.useInsertOnlyPublication);
-  const insertOnlyModels = EntityModels.filter(model => model.useInsertOnlyPublication);
+  await withErrCtx(createDBZConnectors(), 'createMZViewsFromDBZ: createDBZConnectors');
+
+  const updateableModels = DBZ_FOR_UPDATEABLE
+    ? EntityModels.filter(model => !model.useInsertOnlyPublication)
+    : [];
+  const insertOnlyModels = DBZ_FOR_INSERT_ONLY
+    ? EntityModels.filter(model => model.useInsertOnlyPublication)
+    : [];
   await Promise.all([
     updateableModels.length
-      ? (async () => {
-        await withErrCtx(
-          createDBZUpdateableConnector(),
-          'createMZViewsFromDBZ: createDBZUpdateableConnector',
-        );
-        await withErrCtx(
-          createMZDBZSource(updateableModels, false),
-          'createMZViewsFromDBZ: createMZDBZSource updateable',
-        );
-      })()
+      ? withErrCtx(
+        createMZSourcesFromKafka(updateableModels, {
+          topicPrefix: DBZ_TOPIC_UPDATEABLE_PREFIX,
+          insertOnly: false,
+        }),
+        'createMZViewsFromDBZ: createMZSourcesFromKafka updateable',
+      )
       : null,
     insertOnlyModels.length
-      ? (async () => {
-        await withErrCtx(
-          createDBZInsertOnlyConnector(),
-          'createMZViewsFromDBZ: createDBZInsertOnlyConnector',
-        );
-        await withErrCtx(
-          createMZDBZSource(insertOnlyModels, true),
-          'createMZViewsFromDBZ: createMZDBZSource insert-only',
-        );
-      })()
+      ? withErrCtx(
+        createMZSourcesFromKafka(insertOnlyModels, {
+          topicPrefix: DBZ_TOPIC_INSERT_ONLY_PREFIX,
+          insertOnly: true,
+        }),
+        'createMZViewsFromDBZ: createMZSourcesFromKafka insert-only',
+      )
       : null,
   ]);
 }

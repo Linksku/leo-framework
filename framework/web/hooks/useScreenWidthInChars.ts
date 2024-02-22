@@ -9,8 +9,10 @@ export default function useScreenWidthInChars() {
       elem.textContent = 'qwertyuiopasdfghjklzxcvbnm';
       elem.style.position = 'fixed';
       // Can't use rem because this might load before css
+      // todo: low/mid get actual size using rem
       elem.style.fontSize = '16px';
-      elem.style.fontFamily = 'arial';
+      // Courier New is closer to Inter Tight than Arial/etc across platforms
+      elem.style.fontFamily = 'inter tight,courier new,sans-serif';
       document.body.append(elem);
 
       const elemWidth = elem.getBoundingClientRect().width;

@@ -19,11 +19,11 @@ export default function spawn(
 
     if (stream) {
       child.stdout?.on('data', data => {
-        process.stdout.write(data.toString());
+        process.stdout.write(String(data));
       });
 
       child.stderr?.on('data', data => {
-        process.stdout.write(data.toString());
+        process.stdout.write(String(data));
       });
     }
 

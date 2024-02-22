@@ -3,6 +3,10 @@ node_modules
 npm-debug.log
 yarn-error.log
 package-lock.json
+/.yarn/*
+!/.yarn/patches
+!/.yarn/versions
+/.pnp.*
 
 # Git
 .git/
@@ -13,11 +17,11 @@ package-lock.json
 /build
 /dist
 /build.*
+/server.tar.gz
 /framework/infra/kafka-connectors/**/target/
 
 # Framework
-/.env
-/firebaseAdminKey.json
+/env/env
 
 # Generated
 /stats.json
@@ -43,13 +47,14 @@ package-lock.json
 /*.zip
 *.pepk
 *.jks
+/backups
 /temp
 /tmp
 /tmp.*
 /*.dump
-
-/env
+/env/
 /app/
 /capacitor/android/
 /capacitor/ios/
 /capacitor/resources/
+/capacitor/app-store/

@@ -35,12 +35,6 @@ export default mergeReplaceArrays(baseConfig, {
           ],
         };
       }
-      if (rule.test.toString() === '/\\.scss$/') {
-        return {
-          ...rule,
-          use: ['isomorphic-style-loader', ...(rule.use ?? [])],
-        };
-      }
       return rule;
     }),
   },
@@ -67,7 +61,7 @@ export default mergeReplaceArrays(baseConfig, {
   externals: [
     // Note: these packages have errors when bundled
     // Sync with package.docker.json
-    // todo: mid/mid generate docker package.json to use latest version
+    // todo: mid/mid generate package.docker.json to use latest versions
     {
       bcrypt: 'bcrypt',
       bull: 'bull',

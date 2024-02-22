@@ -1,6 +1,7 @@
+import type { HandleClickLink } from 'components/base/Link';
 import useEffectOncePerDeps from 'hooks/useEffectOncePerDeps';
 
-import styles from './SlideUpListStyles.scss';
+import styles from './SlideUpList.scss';
 
 type Props = {
   items: ({
@@ -8,8 +9,9 @@ type Props = {
     disabled?: boolean,
     content: ReactNode,
     onClick?: (
-      event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+      event: Parameters<HandleClickLink>[0],
     ) => boolean | void | Promise<boolean | void>,
+    linkProps?: Parameters<typeof Link>[0],
   } | null)[],
   context: string,
 };
@@ -32,7 +34,7 @@ export default function SlideUpList({
   return (
     <div className={styles.list}>
       {itemsShown.map(item => (
-        <div
+        <Link
           key={item.key}
           onClick={e => {
             if (item.disabled) {
@@ -54,12 +56,12 @@ export default function SlideUpList({
               hideSlideUp();
             }
           }}
-          role="button"
-          tabIndex={0}
+          activeBg
           className={styles.listItem}
+          {...item.linkProps}
         >
           {item.content}
-        </div>
+        </Link>
       ))}
     </div>
   );

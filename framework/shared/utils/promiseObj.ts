@@ -3,9 +3,7 @@ export default async function promiseObj<
   Ret extends {
     [P in keyof Obj]: Awaited<Obj[P]>;
   },
->(
-  obj: Obj,
-): Promise<Ret> {
+>(obj: Obj): Promise<Ret> {
   const entries = TS.objEntries(obj);
   const results = await Promise.all(entries.map(pair => pair[1]));
 

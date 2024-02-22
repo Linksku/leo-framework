@@ -1,11 +1,11 @@
 import fetcher from 'core/fetcher';
 import removeUndefinedValues from 'utils/removeUndefinedValues';
-import { API_URL } from 'settings';
+import { API_URL } from 'consts/server';
 import ApiError from 'core/ApiError';
 import useEffectIfReady from 'hooks/useEffectIfReady';
 import useUpdate from 'hooks/useUpdate';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
-import useAuthTokenLS from 'hooks/localStorage/useAuthTokenLS';
+import useAuthTokenStorage from 'hooks/storage/useAuthTokenStorage';
 import useHandleApiEntities from './useHandleApiEntities';
 import isErrorResponse from './isErrorResponse';
 import useHandleErrorResponse from './useHandleErrorResponse';
@@ -25,7 +25,7 @@ type Opts<Name extends ApiName> = {
     params: ApiParams<Name>,
   ) => void,
   onError?: (
-    err: Error,
+    err: ApiError,
     params: ApiParams<Name>,
   ) => void,
 };
@@ -33,7 +33,7 @@ type Opts<Name extends ApiName> = {
 type State<Name extends ApiName> = {
   data: ApiData<Name> | null,
   fetching: boolean,
-  error: Stable<Error> | null,
+  error: Stable<ApiError> | null,
 };
 
 export type FetchApiPromise<
@@ -131,7 +131,7 @@ function useDeferredApi<
   });
   ref.current.onFetch = onFetch;
   ref.current.onError = onError;
-  const [authToken] = useAuthTokenLS();
+  const [authToken] = useAuthTokenStorage();
   const handleApiEntities = useHandleApiEntities(type !== 'load');
   const handleErrorResponse = useHandleErrorResponse();
   const showToast = useShowToast();
@@ -245,7 +245,11 @@ function useDeferredApi<
           const err = _err;
           stateRef.current.fetching = false;
           stateRef.current.data = null;
-          stateRef.current.error = markStable(err);
+          stateRef.current.error = markStable(
+            err instanceof ApiError
+              ? err
+              : new ApiError(err.message, 503),
+          );
           ref.current.fetchApiParams = (params2 ?? EMPTY_OBJ) as Stable<ApiParams<Name>>;
           if (returnState || ref.current.onError) {
             update();

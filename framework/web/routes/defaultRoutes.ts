@@ -3,7 +3,7 @@ const defaultRoutes: [
   (() => Promise<{ default: React.ComponentType<any> | React.NamedExoticComponent<any> }>),
   Omit<
     RouteConfig,
-    'pattern' | 'importComponent' | 'Component' | 'regexPrefix'
+    'pattern' | 'importComponent' | 'getComponent' | 'regexPrefix'
   >?,
 ][] = [
   // Unauth.
@@ -29,6 +29,18 @@ const defaultRoutes: [
     '/resetpasswordverify',
     () => import(
       /* webpackChunkName: 'ResetPasswordVerifyRoute' */ 'routes/ResetPasswordVerifyRoute'
+    ),
+  ],
+  [
+    '/support',
+    () => import(
+      /* webpackChunkName: 'SupportRoute' */ 'routes/SupportRoute'
+    ),
+  ],
+  [
+    '/verifyemail',
+    () => import(
+      /* webpackChunkName: 'VerifyEmailRoute' */ 'routes/VerifyEmailRoute'
     ),
   ],
 

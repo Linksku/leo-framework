@@ -1,9 +1,59 @@
 import isSchemaNullable from 'utils/models/isSchemaNullable';
+import isUniqueModelCols from './isUniqueModelCols';
 
 export type RelatedResults = Promise<{
   related: Model | Model[] | null,
   assocs: Model[],
 }>;
+
+async function getRelatedRows(
+  Model: ModelClass,
+  col: string,
+  colVal: string | number | string[] | number[] | null,
+  consts: Nullish<ObjectOf<string | number | null>>,
+): Promise<Model[]> {
+  if (Array.isArray(colVal)) {
+    if (consts) {
+      return Model.selectBulk(
+        [col, ...TS.objKeys(consts)] as ModelKey<ModelClass>[],
+        colVal.map(val => [val, ...TS.objValues(consts)]),
+      );
+    }
+
+    return Model.selectBulk(
+      col as ModelKey<ModelClass>,
+      colVal,
+    );
+  }
+
+  if (!consts && Model.getUniqueSingleColumnsSet().has(col as ModelKey<ModelClass>)) {
+    const ent = await Model.selectOne(
+      // @ts-ignore wontfix relation
+      {
+        [col]: colVal,
+      },
+    );
+    return ent ? [ent] : [];
+  }
+  if (consts && isUniqueModelCols(Model, [col, ...TS.objKeys(consts)])) {
+    const ent = await Model.selectOne(
+      // @ts-ignore wontfix relation
+      {
+        [col]: colVal,
+        ...consts,
+      },
+    );
+    return ent ? [ent] : [];
+  }
+
+  return Model.selectAll(
+    // @ts-ignore wontfix relation
+    {
+      [col]: colVal,
+      ...consts,
+    },
+  );
+}
 
 async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
   Model: T,
@@ -14,6 +64,7 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
   if (!relation) {
     throw new Error(`selectNonNestedRelatedWithAssocs(${Model.type}.${name}): : relation not found`);
   }
+
   const {
     relationType,
     fromCol,
@@ -33,8 +84,9 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
       || (colVal as any[]).every(x => typeof x === 'number')
     ))
   )) {
-    throw new Error(
+    throw getErr(
       `selectNonNestedRelatedWithAssocs(${Model.type}.${name}): invalid fromCol "${fromCol}"`,
+      { colVal },
     );
   }
 
@@ -51,34 +103,38 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
     );
   }
 
+  let consts = relation.consts as Nullish<ObjectOf<string | number | null>>;
+  if (consts) {
+    for (const [k, v] of TS.objEntries(consts)) {
+      // Temp hack, maybe add more validation
+      if (v === 'currentUserId') {
+        const rc = getRC();
+        if (!rc?.currentUserId) {
+          return {
+            related: null,
+            assocs: [],
+          };
+        }
+
+        consts = {
+          ...consts,
+          [k]: rc?.currentUserId ?? null,
+        };
+        break;
+      }
+    }
+  }
+
   let assocs: Model[] = [];
   let results: Model[];
   if (through) {
-    if (Array.isArray(colVal)) {
-      assocs = await through.model.selectBulk(
-        through.from as ModelKey<ModelClass>,
-        colVal,
-      );
-    } else if (through.model.getUniqueColumnsSet().has(through.from as ModelKey<ModelClass>)) {
-      const ent = await through.model.selectOne(
-        // @ts-ignore wontfix relation
-        {
-          [through.from]: colVal,
-        },
-      );
-      assocs = ent ? [ent] : [];
-    } else {
-      assocs = await through.model.selectAll(
-        // @ts-ignore wontfix relation
-        {
-          [through.from]: colVal,
-        },
-      );
-    }
+    assocs = await getRelatedRows(through.model, through.from, colVal, null);
 
     const resultsTemp = await Promise.all(assocs.map(async assoc => {
-      const toVal = TS.getProp(assoc, through.to) as
-        string | number | string[] | number[] | null;
+      const toVal = TS.getProp(
+        assoc,
+        through.to,
+      ) as string | number | string[] | number[] | null;
       if (!process.env.PRODUCTION && !(
         toVal === null
         || typeof toVal === 'number'
@@ -92,50 +148,12 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
         );
       }
 
-      if (Array.isArray(toVal)) {
-        return toModel.selectBulk(
-          toCol as ModelKey<ModelClass>,
-          toVal,
-        );
-      }
-      if (toModel.getUniqueColumnsSet().has(toCol as ModelKey<ModelClass>)) {
-        const ent = await toModel.selectOne(
-          // @ts-ignore wontfix relation
-          {
-            [toCol]: toVal,
-          },
-        );
-        return ent ? [ent] : [];
-      }
-      return toModel.selectAll(
-        // @ts-ignore wontfix relation
-        {
-          [toCol]: toVal,
-        },
-      );
+      return getRelatedRows(toModel, toCol, toVal, consts);
     }));
 
     results = resultsTemp.flat();
-  } else if (Array.isArray(colVal)) {
-    results = await toModel.selectBulk(
-      toCol as ModelKey<ModelClass>,
-      colVal,
-    );
-  } else if (toModel.getUniqueColumnsSet().has(toCol as ModelKey<ModelClass>)) {
-    const ent = await toModel.selectOne(
-      // @ts-ignore wontfix relation
-      {
-        [toCol]: colVal,
-      },
-    );
-    results = ent ? [ent] : [];
   } else {
-    results = await toModel.selectAll(
-      // @ts-ignore wontfix relation
-      {
-        [toCol]: colVal,
-      },
-    );
+    results = await getRelatedRows(toModel, toCol, colVal, consts);
   }
 
   if (relationType === 'hasOne' || relationType === 'belongsToOne') {
@@ -172,7 +190,8 @@ export default async function selectRelatedWithAssocs<T extends ModelClass>(
   const [name, nestedName] = parts;
 
   const { related, assocs } = await selectNonNestedRelatedWithAssocs(Model, entity, name);
-  if (!nestedName || !related) {
+  if (!nestedName || !related
+    || (Array.isArray(related) && !related.length)) {
     return { related, assocs };
   }
 

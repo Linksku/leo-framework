@@ -1,0 +1,15 @@
+diff --git a/index.js b/index.js
+index 30dd1ba78cb4989e67a32295b3ca1fd9baaa6c96..ce3926be4bafd44aab85d9bb1817aa9d9392cf51 100644
+--- a/index.js
++++ b/index.js
+@@ -22,8 +22,8 @@ module.exports = function equal(a, b) {
+ 
+ 
+     if (a.constructor === RegExp) return a.source === b.source && a.flags === b.flags;
+-    if (a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();
+-    if (a.toString !== Object.prototype.toString) return a.toString() === b.toString();
++    if (a.valueOf && a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();
++    if (a.toString && a.toString !== Object.prototype.toString) return a.toString() === b.toString();
+ 
+     keys = Object.keys(a);
+     length = keys.length;

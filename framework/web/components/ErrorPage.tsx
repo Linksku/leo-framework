@@ -1,5 +1,5 @@
 import { useIsHome } from 'stores/HomeNavStore';
-import styles from './ErrorPageStyles.scss';
+import styles from './ErrorPage.scss';
 
 type Props = {
   title: ReactNode,

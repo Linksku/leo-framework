@@ -1,31 +1,30 @@
 #!/usr/bin/env zx
 
 import { $, chalk } from 'zx';
-import pLimit from 'p-limit';
 
-import '../framework/server/helpers/initDotenv.cjs';
-
-const limiter = pLimit(2);
+import '../framework/server/core/initEnv.cjs';
+import throttledPromiseAll from '../framework/shared/utils/throttledPromiseAll';
+import { APP_NAME_LOWER } from '../framework/shared/config/config.js';
 
 $.verbose = false;
 
 const _topics = await $`
-  docker exec -it broker \
+  docker exec -it $(yarn dc ps -q broker) \
     /opt/bitnami/kafka/bin/kafka-topics.sh \
     --bootstrap-server broker:29092 \
     --list
 `;
 const topics = _topics.stdout.trim().split('\n').sort();
 
-await Promise.all(topics.map(topic => limiter(async () => {
+await throttledPromiseAll(2, topics, async topic => {
   topic = topic.trim();
-  if (!topic.startsWith(`${process.env.APP_NAME_LOWER}_`)
+  if (!topic.startsWith(`${APP_NAME_LOWER}_`)
     || topic.endsWith('-consistency')) {
     return;
   }
 
   const _numMsgs = await $`
-    docker exec -it broker \
+    docker exec -it $(yarn dc ps -q broker) \
       /opt/bitnami/kafka/bin/kafka-run-class.sh kafka.tools.GetOffsetShell \
       --bootstrap-server broker:29092 \
       --topic ${topic} \
@@ -37,7 +36,7 @@ await Promise.all(topics.map(topic => limiter(async () => {
   if (numMsgs) {
     try {
       const _lastMsg = await $`
-        docker exec -it schema-registry \
+        docker exec -it $(yarn dc ps -q schema-registry) \
           kafka-avro-console-consumer --bootstrap-server broker:29092 \
           --property schema.registry.url=http://schema-registry:8081 \
           --partition 0 \
@@ -53,4 +52,4 @@ await Promise.all(topics.map(topic => limiter(async () => {
   }
 
   console.log(`${chalk.cyan(topic)}: ${numMsgs} ${lastMsg}\n`);
-})));
+});

@@ -3,9 +3,9 @@ import cluster from 'cluster';
 import SseConnectionsManager from 'services/sse/SseConnectionsManager';
 import PubSubManager from 'services/PubSubManager';
 import serializeSseEvent from 'utils/serializeSseEvent';
-import formatApiSuccessResponse from 'routes/api/helpers/formatApiSuccessResponse';
-import canSubscribeToSse from 'config/canSubscribeToSse';
-import { NUM_CLUSTER_SERVERS } from 'serverSettings';
+import formatApiSuccessResponse from 'api/helpers/formatApiSuccessResponse';
+import { canSubscribeToSse } from 'config/functions';
+import { NUM_CLUSTER_SERVERS } from 'consts/infra';
 
 export type SseData = {
   // temp
@@ -130,7 +130,7 @@ const SseBroadcastManager = {
     data: SseData,
   ) {
     const eventType = serializeSseEvent(eventName, eventParams);
-    const successResponse = await formatApiSuccessResponse<any>(data);
+    const successResponse = await formatApiSuccessResponse('sse' as any, data);
     // todo: mid/mid validate SSE data
     const processedData: SseResponse = {
       eventType,

@@ -1,3 +1,5 @@
+import stringify from 'utils/stringify';
+
 function _indentLines(str: string, spaces: number): string {
   if (!str) {
     return '';
@@ -5,6 +7,8 @@ function _indentLines(str: string, spaces: number): string {
   return str.split('\n').map(line => ' '.repeat(spaces) + line).join('\n');
 }
 
+// JSON.parse(JSON.stringify({ a: undefined })) -> {}
+// JSON.parse(JSON.stringify([undefined])) -> [null]
 function _deepEqualIgnoreUndefined(objA: any, objB: any) {
   if (objA === objB) {
     return true;
@@ -19,7 +23,7 @@ function _deepEqualIgnoreUndefined(objA: any, objB: any) {
     }
 
     for (let i = 0; i < objA.length; i++) {
-      if (!_deepEqualIgnoreUndefined(objA[i], objB[i])) {
+      if (!_deepEqualIgnoreUndefined(objA[i] ?? null, objB[i] ?? null)) {
         return false;
       }
     }
@@ -89,7 +93,7 @@ export default function formatErr(
       msg = `${err.debugCtx.ctx}: ${msg}`;
     }
     const details = _indentLines(
-      `${debugCtxStr}${debugCtxStr && stackLines.length ? '\n' : ''}${stackLines.join('\n')}`,
+      debugCtxStr + (debugCtxStr && stackLines.length ? '\n' : '') + stackLines.join('\n'),
       2,
     );
     return details ? `${msg}\n${details}` : msg;
@@ -99,5 +103,5 @@ export default function formatErr(
     return JSON.stringify(err).slice(0, 1000);
   }
 
-  return `${err}`.slice(0, 1000);
+  return stringify(err).slice(0, 1000);
 }

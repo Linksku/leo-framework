@@ -1,9 +1,9 @@
 import type { UseFormRegister, RegisterOptions } from 'react-hook-form';
-import TimesSvg from 'fa5/svg/times-circle-solid.svg';
+import TimesSvg from 'svgs/fa5/times-circle-solid.svg';
 
 import fileToDataUrl from 'utils/fileToDataUrl';
 
-import styles from './MediaFileInputStyles.scss';
+import styles from './MediaFileInput.scss';
 
 type Props = {
   mediaType: 'image' | 'video' | 'both',
@@ -162,6 +162,7 @@ function MediaFileInput({
             onClick={event => {
               event.stopPropagation();
               event.preventDefault();
+
               setState({
                 file: null,
                 imgUrl: null,
@@ -171,6 +172,7 @@ function MediaFileInput({
               clearField();
             }}
             role="button"
+            aria-label="Hide"
             tabIndex={0}
           >
             <TimesSvg />

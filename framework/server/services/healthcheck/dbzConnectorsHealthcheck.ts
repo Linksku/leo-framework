@@ -1,22 +1,31 @@
-import { ENABLE_DBZ, DBZ_CONNECTOR_UPDATEABLE, DBZ_CONNECTOR_INSERT_ONLY } from 'consts/mz';
+import {
+  DBZ_FOR_UPDATEABLE,
+  DBZ_FOR_INSERT_ONLY,
+  DBZ_CONNECTOR_UPDATEABLE,
+  DBZ_CONNECTOR_INSERT_ONLY,
+} from 'consts/mz';
 import fetchKafkaConnectors from 'utils/infra/fetchKafkaConnectors';
 import EntityModels from 'services/model/allEntityModels';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('dbzConnectors', {
-  disabled: !ENABLE_DBZ,
+  disabled: !DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY,
   cb: async function dbzConnectorsHealthcheck() {
     const {
       updateableConnectors,
       insertOnlyConnectors,
     } = await promiseObj({
-      updateableConnectors: fetchKafkaConnectors(DBZ_CONNECTOR_UPDATEABLE, 'status'),
-      insertOnlyConnectors: fetchKafkaConnectors(DBZ_CONNECTOR_INSERT_ONLY, 'status'),
+      updateableConnectors: DBZ_FOR_UPDATEABLE
+        ? fetchKafkaConnectors(DBZ_CONNECTOR_UPDATEABLE, 'status')
+        : null,
+      insertOnlyConnectors: DBZ_FOR_INSERT_ONLY
+        ? fetchKafkaConnectors(DBZ_CONNECTOR_INSERT_ONLY, 'status')
+        : null,
     });
 
     const updateableModels = EntityModels
       .filter(model => !model.useInsertOnlyPublication);
-    if (updateableModels.length) {
+    if (DBZ_FOR_UPDATEABLE && updateableConnectors && updateableModels.length) {
       if (!updateableConnectors.length) {
         throw new Error('dbzConnectorsHealthcheck: no updateable tables DBZ connector');
       }
@@ -40,7 +49,7 @@ addHealthcheck('dbzConnectors', {
 
     const insertOnlyModels = EntityModels
       .filter(model => model.useInsertOnlyPublication);
-    if (insertOnlyModels.length) {
+    if (DBZ_FOR_INSERT_ONLY && insertOnlyConnectors && insertOnlyModels.length) {
       if (!insertOnlyConnectors.length) {
         throw new Error('dbzConnectorsHealthcheck: no insert-only DBZ connector');
       }
@@ -59,6 +68,7 @@ addHealthcheck('dbzConnectors', {
     }
   },
   resourceUsage: 'mid',
+  usesResource: 'kafka',
   stability: 'mid',
   timeout: 10 * 1000,
 });

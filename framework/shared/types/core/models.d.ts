@@ -14,6 +14,7 @@ type ModelNestedRelationsMap = {
     [Name in keyof ModelRelationsMap[Type]]: ValueOf<{
       [Name2 in keyof ModelRelationsMap[ModelRelationsMap[Type][Name]['modelType']]]: {
         [NestedName in `${Name & string}.${Name2 & string}`]: {
+          // eslint-disable-next-line max-len
           modelType: ModelRelationsMap[ModelRelationsMap[Type][Name]['modelType']][Name2]['modelType'],
           tsType: _CombineNestedRelationTypes<
             ModelRelationsMap[ModelRelationsMap[Type][Name]['modelType']][Name2]['tsType'],

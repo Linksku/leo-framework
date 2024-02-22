@@ -7,8 +7,10 @@ import { mkdirp } from 'mkdirp';
 import prompt from 'utils/prompt';
 import isModelType from 'utils/models/isModelType';
 import lcFirst from 'utils/lcFirst';
-import getValDbType from 'utils/db/getValDbType';
+import getValPgType from 'utils/db/getValPgType';
 import exec from 'utils/exec';
+import stringify from 'utils/stringify';
+import isSchemaNullable from 'utils/models/isSchemaNullable';
 
 function getMigration({
   command,
@@ -39,7 +41,7 @@ function getMigration({
   if (isColumnCommand) {
     schema = TS.getProp(Model.getSchema(), columnName);
     columnType = schema
-      ? getValDbType(Model, columnName as ModelKey<typeof Model>, null)
+      ? getValPgType(Model, columnName as ModelKey<typeof Model>, null)
       : '';
   }
 
@@ -78,8 +80,8 @@ await createIndex({
   table: '${Model.tableName}',
   col: '${columnName}',
   type: '${columnType}',
-  nullable: false,
-  default: ${schema?.default ?? ''},
+  nullable: ${schema && isSchemaNullable(schema) ? 'true' : 'false'},
+  default: ${stringify(schema?.default ?? '')},
   dropDefault: ${!schema || !TS.hasProp(schema, 'default')},
 });`;
   const dropColumn = `await dropColumn({
@@ -100,7 +102,10 @@ await createIndex({
         'utils/migrations/dropTable',
         'utils/migrations/createIndex',
       ],
-      up: createTable,
+      up: Model.isMV
+        ? createTable
+        : `// Reminder to add to createEachModel
+${createTable}`,
       down: dropTable,
     };
   }

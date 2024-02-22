@@ -1,4 +1,11 @@
-import { ENABLE_DBZ, MZ_SINK_CONSISTENCY_TOPIC_REGEX, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
+import {
+  DBZ_FOR_INSERT_ONLY,
+  DBZ_FOR_UPDATEABLE,
+  MZ_SINK_TOPIC_PREFIX,
+  MZ_SINK_TOPIC_REGEX,
+  MZ_ENABLE_CONSISTENCY_TOPIC,
+  MZ_SINK_CONSISTENCY_TOPIC_REGEX,
+} from 'consts/mz';
 import MaterializedViewModels from 'services/model/allMaterializedViewModels';
 import listKafkaTopics from 'utils/infra/listKafkaTopics';
 import getKafkaTopicsWithoutMessages from 'utils/infra/getKafkaTopicsWithoutMessages';
@@ -6,53 +13,56 @@ import { RECREATE_MZ_SINKS_REDIS_KEY } from 'consts/infra';
 import { redisMaster } from 'services/redis';
 import { addHealthcheck } from './HealthcheckManager';
 
-const TOPICS_REGEX = new RegExp(`^${MZ_SINK_TOPIC_PREFIX}.+(?<!-consistency)$`);
-
 addHealthcheck('mzSinkTopics', {
   cb: async function mzSinkTopicsHealthcheck() {
     if (await redisMaster.exists(RECREATE_MZ_SINKS_REDIS_KEY)) {
       return;
     }
 
-    const topics = await listKafkaTopics(TOPICS_REGEX);
+    const topics = await listKafkaTopics(MZ_SINK_TOPIC_REGEX);
     if (!topics.length) {
       throw new Error('mzSinkTopicsHealthcheck: no topics');
     }
     const modelsWithSinks = MaterializedViewModels
-      .filter(m => m.getReplicaTable())
-      .map(m => m.tableName);
+      .filter(m => m.getReplicaTable());
     if (topics.length !== modelsWithSinks.length) {
-      const missingTopics = modelsWithSinks.filter(m => (
-        ENABLE_DBZ
-          ? !topics.includes(`${MZ_SINK_TOPIC_PREFIX}${m}`)
-          : !topics.some(t => t.startsWith(`${MZ_SINK_TOPIC_PREFIX}${m}-`))
-      ));
+      const missingTopics = modelsWithSinks
+        .filter(Model => (
+          MZ_ENABLE_CONSISTENCY_TOPIC
+            ? !topics.includes(MZ_SINK_TOPIC_PREFIX + Model.type)
+            : !topics.some(t => t.startsWith(`${MZ_SINK_TOPIC_PREFIX}${Model.type}-`))
+        ))
+        .map(Model => Model.type);
       const extraTopics = topics.filter(t => (
-        ENABLE_DBZ
-          ? !modelsWithSinks.includes(t.slice(MZ_SINK_TOPIC_PREFIX.length))
-          : !modelsWithSinks.some(m => t.startsWith(`${MZ_SINK_TOPIC_PREFIX}${m}-`))
+        MZ_ENABLE_CONSISTENCY_TOPIC
+          ? !modelsWithSinks.some(Model => Model.type === t.slice(MZ_SINK_TOPIC_PREFIX.length))
+          : !modelsWithSinks.some(Model => t.startsWith(`${MZ_SINK_TOPIC_PREFIX}${Model.type}-`))
       ));
-      const duplicateTopics = ENABLE_DBZ
+      const duplicateTopics = MZ_ENABLE_CONSISTENCY_TOPIC
         ? []
         : modelsWithSinks
-          .map(m => topics.filter(t => t.startsWith(`${MZ_SINK_TOPIC_PREFIX}${m}-`)))
+          .map(Model => topics.filter(t => t.startsWith(`${MZ_SINK_TOPIC_PREFIX}${Model.type}-`)))
           .filter(t => t.length > 1)
           .map(t => t.join(', '));
 
-      throw getErr('mzSinkTopicsHealthcheck: wrong number of topics', {
-        missingTopics,
-        extraTopics,
-        duplicateTopics,
-      });
+      // Don't know why MZ sometimes creates duplicate topics
+      if (missingTopics.length || extraTopics.length) {
+        throw getErr('mzSinkTopicsHealthcheck: wrong number of topics', {
+          missingTopics,
+          extraTopics,
+          duplicateTopics,
+        });
+      }
     }
   },
   resourceUsage: 'mid',
+  usesResource: 'kafka',
   stability: 'mid',
   timeout: 10 * 1000,
 });
 
 addHealthcheck('mzSinkTopicMessages', {
-  disabled: !ENABLE_DBZ,
+  disabled: !DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY,
   deps: ['mzSinks', 'mzSinkTopics'],
   cb: async function mzSinkTopicMessagesHealthcheck() {
     if (await redisMaster.exists(RECREATE_MZ_SINKS_REDIS_KEY)) {
@@ -72,6 +82,7 @@ addHealthcheck('mzSinkTopicMessages', {
   // Too unstable and slow. Using monitorMZSinkTopics instead
   onlyForDebug: true,
   resourceUsage: 'high',
+  usesResource: 'kafka',
   stability: 'low',
   timeout: 2 * 60 * 1000,
 });

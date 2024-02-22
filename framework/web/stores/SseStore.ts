@@ -1,13 +1,14 @@
 import SseEventEmitter from 'services/SseEventEmitter';
-import FcmBroadcastChannel from 'services/FcmBroadcastChannel';
 import serializeSseEvent, { unserializeSseEvent } from 'utils/serializeSseEvent';
-import { API_TIMEOUT, API_URL } from 'settings';
+import { API_TIMEOUT, API_URL } from 'consts/server';
 import useHandleApiEntities from 'hooks/api/useHandleApiEntities';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 import { useThrottle } from 'utils/throttle';
 import safeParseJson from 'utils/safeParseJson';
 import isDebug from 'utils/isDebug';
 import getUrlParams from 'utils/getUrlParams';
+import stringify from 'utils/stringify';
+import useDocumentEvent from 'hooks/useDocumentEvent';
 
 const SseState = {
   subscriptions: new Map<
@@ -32,6 +33,7 @@ const SseState = {
   sessionId: null as string | null,
   shownOfflineToast: false,
   offlineToastTimer: null as number | null,
+  lastFocusTabTime: Number.MIN_SAFE_INTEGER,
 };
 
 export const [
@@ -63,6 +65,12 @@ export const [
         showToastOnError: false,
       },
     );
+
+    useDocumentEvent('visibilitychange', useCallback(() => {
+      if (document.visibilityState === 'visible') {
+        SseState.lastFocusTabTime = performance.now();
+      }
+    }, []));
 
     const closeSse = useCallback(() => {
       SseState.source?.close();
@@ -149,10 +157,10 @@ export const [
       source.addEventListener('message', msg => {
         const parsed = safeParseJson<SseResponse>(
           msg.data,
-          val => val && typeof val === 'object' && typeof val.eventType === 'string',
+          val => TS.isObj(val) && typeof val.eventType === 'string',
         );
-        if (!parsed || !TS.hasOwnProp(parsed, 'data')) {
-          ErrorLogger.warn(new Error(`SseStore: invalid SSE data: ${msg.data?.slice(0, 200)}`));
+        if (!parsed || !TS.hasProp(parsed, 'data')) {
+          ErrorLogger.warn(new Error(`SseStore: invalid SSE data: ${stringify(msg.data).slice(0, 200)}`));
           return;
         }
 
@@ -163,6 +171,9 @@ export const [
       });
 
       source.addEventListener('open', () => {
+        if (!process.env.PRODUCTION && SseState.readyState === EventSource.OPEN) {
+          ErrorLogger.warn(new Error('SseStore: opened SSE without closing old'));
+        }
         SseState.readyState = EventSource.OPEN;
 
         if (SseState.offlineToastTimer) {
@@ -170,13 +181,14 @@ export const [
           SseState.offlineToastTimer = null;
         }
 
-        if (SseState.shownOfflineToast) {
+        if (SseState.shownOfflineToast
+          && performance.now() - SseState.lastFocusTabTime > API_TIMEOUT) {
           showToast({
             msg: 'Online',
             closeAfter: 1000,
           });
-          SseState.shownOfflineToast = false;
         }
+        SseState.shownOfflineToast = false;
       });
 
       source.addEventListener('error', event => {
@@ -201,7 +213,7 @@ export const [
           return;
         }
 
-        SseState.subscribeTimer = setTimeout(() => {
+        SseState.subscribeTimer = window.setTimeout(() => {
           if (!authToken && !SseState.source) {
             // OTP is needed for auth, not for connecting to SSE.
             createEventSource(null);
@@ -237,7 +249,7 @@ export const [
           return;
         }
 
-        SseState.unsubscribeTimer = setTimeout(() => {
+        SseState.unsubscribeTimer = window.setTimeout(() => {
           if (SseState.readyState !== EventSource.CLOSED
             && [...SseState.subscriptions.values()].every(s => s.numSubscribers === 0)) {
             closeSse();
@@ -342,27 +354,6 @@ export const [
         SseEventEmitter.off('sseHeartbeat', handleHeartbeat);
       };
     }, [processQueuedSubs, closeSse]);
-
-    useEffect(() => {
-      const cb = (event: MessageEvent) => {
-        const data = safeParseJson<ApiSuccessResponse<any>>(
-          event.data,
-          val => val && typeof val === 'object',
-        );
-        if (!data || !TS.hasOwnProp(data, 'data')) {
-          ErrorLogger.warn(new Error(`SseStore: invalid FCM message: ${event.data?.slice(0, 200)}`));
-          return;
-        }
-
-        handleApiEntities(data as StableDeep<ApiSuccessResponse<any>>);
-      };
-
-      FcmBroadcastChannel.addEventListener('message', cb);
-
-      return () => {
-        FcmBroadcastChannel.removeEventListener('message', cb);
-      };
-    }, [handleApiEntities]);
 
     return useMemo(() => ({
       addSubscription,

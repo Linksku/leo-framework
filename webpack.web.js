@@ -8,10 +8,41 @@ import globalsSrc from './app/web/config/globals.cjs';
 import sharedGlobals from './framework/shared/config/globals.cjs';
 import sharedGlobalsSrc from './app/shared/config/globals.cjs';
 import baseConfig from './webpack.common.js';
-import { ASSETS_URL } from './framework/shared/settings.js';
+import { ASSETS_URL } from './framework/shared/consts/server.js';
 
 const WEB_ROOT = path.resolve('./framework/web');
 const WEB_SRC_ROOT = path.resolve('./app/web');
+
+const svgrLoader = {
+  loader: '@svgr/webpack',
+  options: {
+    svgoConfig: {
+      plugins: [
+        {
+          name: 'preset-default',
+          params: {
+            overrides: {
+              removeViewBox: false,
+            },
+          },
+        },
+        'removeDimensions',
+        {
+          name: 'removeAttrs',
+          params: {
+            attrs: [
+              'aria-hidden',
+              'data-prefix',
+              'data-icon',
+              'role',
+              'class',
+            ],
+          },
+        },
+      ],
+    },
+  },
+};
 
 export default mergeReplaceArrays(baseConfig, {
   module: {
@@ -51,40 +82,30 @@ export default mergeReplaceArrays(baseConfig, {
         ],
       },
       {
-        test: /\.svg$/,
-        use: [
-          {
-            loader: '@svgr/webpack',
-            options: {
-              svgoConfig: {
-                plugins: [
-                  {
-                    name: 'preset-default',
-                    params: {
-                      overrides: {
-                        removeViewBox: false,
-                      },
-                    },
+        test: /\/(fa5|boxicons)\/.+\.svg$/,
+        use: [mergeReplaceArrays(svgrLoader, {
+          options: {
+            svgoConfig: {
+              plugins: [
+                ...svgrLoader.options.svgoConfig.plugins.slice(0, 2),
+                mergeReplaceArrays(svgrLoader.options.svgoConfig.plugins[2], {
+                  params: {
+                    attrs: [
+                      // @ts-ignore .js
+                      ...svgrLoader.options.svgoConfig.plugins[2].params.attrs,
+                      'path:fill',
+                    ],
                   },
-                  'removeDimensions',
-                  {
-                    name: 'removeAttrs',
-                    params: {
-                      attrs: [
-                        'aria-hidden',
-                        'data-prefix',
-                        'data-icon',
-                        'role',
-                        'class',
-                        'path:fill',
-                      ],
-                    },
-                  },
-                ],
-              },
+                }),
+              ],
             },
           },
-        ],
+        })],
+      },
+      {
+        test: /\.svg$/,
+        exclude: /\/(fa5|boxicons)\/.+\.svg$/,
+        use: [svgrLoader],
       },
       ...baseConfig.module.rules,
     ],

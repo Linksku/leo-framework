@@ -1,5 +1,3 @@
-import dayjs from 'dayjs';
-
 function _transformDateProps(
   entities: ModelSerializedForApi[],
   dateProps?: {
@@ -14,8 +12,9 @@ function _transformDateProps(
           const val = TS.getProp(ent, prop);
           if (val) {
             // new Date() gets timezone wrong if not specified.
+            // ent[prop] = dayjs(ent[prop]).toDate();
             // @ts-ignore wontfix add key
-            ent[prop] = dayjs(ent[prop]).toDate();
+            ent[prop] = new Date(ent[prop]);
           }
         }
       }
@@ -45,11 +44,6 @@ export default function useHandleApiEntities(allowPost = false) {
       if (invalidEnt) {
         throw new Error(`useHandleApiEntities: invalid ent "${JSON.stringify(invalidEnt)}"`);
       }
-    }
-
-    if (entities) {
-      _transformDateProps(entities, meta?.dateProps);
-      loadEntities(entities);
     }
 
     // Handle deletions before creations in case ID is reused
@@ -82,6 +76,12 @@ export default function useHandleApiEntities(allowPost = false) {
       }
       _transformDateProps(updatedEntities, meta?.dateProps);
       updateEntities(updatedEntities);
+    }
+
+    if (entities) {
+      _transformDateProps(entities, meta?.dateProps);
+      // loadEntities last, in case created/updated entities trigger mutateEntity on loaded entities
+      loadEntities(entities);
     }
 
     if (meta?.relationConfigs) {

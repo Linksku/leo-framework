@@ -1,11 +1,11 @@
 import shallowEqualDeps from 'utils/shallowEqualDeps';
 
-const GlobalMemo = new Map() as Map<string, {
+const GlobalMemo = new Map<string, {
   val: any,
   deps: StableDependencyList,
   hits: number,
   misses: number,
-}>;
+}>();
 
 export default function useGlobalMemo<T>(
   key: string,

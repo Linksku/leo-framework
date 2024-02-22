@@ -1,11 +1,9 @@
-import pLimit from 'p-limit';
-
+import throttledPromiseAll from 'utils/throttledPromiseAll';
 import EntityModels from 'services/model/allEntityModels';
-import retry from 'utils/retry';
+import retry, { forceStopRetry } from 'utils/retry';
 import knexBT from 'services/knex/knexBT';
-import getEntitiesWithMZSources from '../helpers/getEntitiesWithMZSources';
-
-const limiter = pLimit(3);
+import { MZ_TIMESTAMP_FREQUENCY } from 'consts/mz';
+import getEntitiesForMZSources from '../helpers/getEntitiesForMZSources';
 
 // Note: if MVs aren't created right after sources are created, overrall time is slower
 export default async function waitForMZSourcesCatchUp(
@@ -18,9 +16,9 @@ export default async function waitForMZSourcesCatchUp(
   );
   const startTime = performance.now();
 
-  const allDeps = new Set<string>(getEntitiesWithMZSources());
+  const allDeps = new Set(getEntitiesForMZSources('all'));
   const models = EntityModels.filter(
-    model => insertOnly === model.useInsertOnlyPublication && allDeps.has(model.type),
+    model => insertOnly === model.useInsertOnlyPublication && allDeps.has(model),
   );
   const numBTRows: Partial<Record<EntityType, number>> = Object.create(null);
   const numMZRows: Partial<Record<EntityType, number>> = Object.create(null);
@@ -28,33 +26,45 @@ export default async function waitForMZSourcesCatchUp(
     EntityType,
     Record<number, number>
   >> = Object.create(null);
-  await Promise.all(models.map(m => limiter(async () => {
+  await throttledPromiseAll(3, models, async m => {
     const rows = await knexBT(m.tableName)
       .count({ count: '*' });
     numBTRows[m.type] = TS.parseIntOrNull(rows[0]?.count) ?? 0;
-  })));
+  });
 
   const remainingModels = new Set(models.filter(m => TS.defined(numBTRows[m.type]) > 0));
   await retry(
     async () => {
-      await Promise.all([...remainingModels].map(m => limiter(async () => {
-        const result = await rawSelect(
-          `
-            SELECT count(*) count
-            FROM ??
-            AS OF now()
-          `,
-          [m.tableName],
-          { db: 'mz' },
-        );
-        const mzRows = TS.parseIntOrNull(result.rows[0]?.count) ?? 0;
+      await throttledPromiseAll(3, remainingModels, async m => {
+        let mzRows: number;
+        try {
+          const result = await rawSelect(
+            'mz',
+            `
+              SELECT count(*) count
+              FROM ??
+              AS OF now() + INTERVAL '${MZ_TIMESTAMP_FREQUENCY} MILLISECOND'
+            `,
+            [m.tableName],
+            { timeout: 60 * 1000 },
+          );
+          mzRows = TS.parseIntOrNull(result.rows[0]?.count) ?? 0;
+        } catch (err) {
+          if (err instanceof Error
+            && (err.message.includes(' has been altered')
+              || err.message.includes('Connection terminated unexpectedly'))) {
+            throw forceStopRetry(err);
+          }
+          throw err;
+        }
+
         numMZRows[m.type] = mzRows;
         if (mzRows >= TS.defined(numBTRows[m.type])) {
           remainingModels.delete(m);
         }
         const retryCount = TS.objValOrSetDefault(numMZRowsRetryCount, m.type, {});
         retryCount[mzRows] = (retryCount[mzRows] ?? 0) + 1;
-      })));
+      });
 
       if (remainingModels.size) {
         const hasPausedSource = [...remainingModels].some(m => {

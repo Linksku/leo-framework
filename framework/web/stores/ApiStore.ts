@@ -1,10 +1,10 @@
 import { flushSync } from 'react-dom';
 import equal from 'fast-deep-equal';
 
-import useAuthTokenLS from 'hooks/localStorage/useAuthTokenLS';
+import useAuthTokenStorage from 'hooks/storage/useAuthTokenStorage';
 import fetcher from 'core/fetcher';
 import ApiError from 'core/ApiError';
-import { API_URL } from 'settings';
+import { API_TIMEOUT, API_URL } from 'consts/server';
 import isErrorResponse from 'hooks/api/isErrorResponse';
 import useHandleApiEntities from 'hooks/api/useHandleApiEntities';
 import useHandleErrorResponse from 'hooks/api/useHandleErrorResponse';
@@ -14,6 +14,7 @@ import useDocumentEvent from 'hooks/useDocumentEvent';
 import TimeoutError from 'core/TimeoutError';
 import omit from 'utils/omit';
 import safeParseJson from 'utils/safeParseJson';
+import promiseTimeout from 'utils/promiseTimeout';
 
 const MIN_STALE_DURATION = 60 * 1000;
 const MAX_STALE_DURATION = 3 * 60 * 60 * 1000;
@@ -22,7 +23,7 @@ export type UseApiState<Name extends ApiName> = {
   apiId: string,
   data: ApiData<Name> | null,
   fetching: boolean,
-  error: Error | null,
+  error: ApiError | null,
   isFirstTime: boolean,
   addedEntityIds: Stable<EntityId[]>,
   deletedEntityIds: Stable<Set<EntityId>>,
@@ -40,27 +41,31 @@ type Pagination = {
 export type ShouldAddCreatedEntity<T extends EntityType>
   = Stable<(ent: Entity<T>) => boolean> | true;
 
+export type ApiOpts = {
+  cacheBreaker?: string,
+  refetchOnFocus: boolean,
+  refetchIfStale: boolean,
+  showToastOnError: boolean,
+  batchInterval: number,
+};
+
 type ActiveApi<Name extends ApiName> = {
   name: Name,
   params: ApiParams<Name>,
   id: string,
   pagination: Pagination | null,
-  refetchKey?: string,
   cachedData: ApiData<Name> | null,
   prevCachedData?: ApiData<Name> | null,
-  cachedError: Error | null,
+  cachedError: ApiError | null,
   fetching: boolean,
   lastFetched: number,
-  refetchOnFocus: boolean,
-  refetchIfStale: boolean,
-  showToastOnError: boolean,
   subs: {
     state: UseApiState<Name>,
     update: () => void,
     onFetch?: (results: ApiData<Name>) => void,
-    onError?: (err: Error) => void,
+    onError?: (err: ApiError) => void,
   }[],
-};
+} & ApiOpts;
 
 const ApiState = {
   activeApis: new Map<string, ActiveApi<any>>(),
@@ -84,12 +89,21 @@ function _getApiId(
   ].join(',');
 }
 
+function _getErrMsg(data: unknown, status: number | undefined) {
+  if (isErrorResponse(data) && data?.error?.msg) {
+    return data.error.msg;
+  }
+  return status === 503 || (status && status >= 520)
+    ? 'Server temporarily unavailable.'
+    : 'Unknown error occurred while fetching data.';
+}
+
 export const [
   ApiProvider,
   useApiStore,
 ] = constate(
   function ApiStore() {
-    const [authToken] = useAuthTokenLS();
+    const [authToken] = useAuthTokenStorage();
     const handleErrorResponse = useHandleErrorResponse();
     const catchAsync = useCatchAsync();
     const handleApiEntities = useHandleApiEntities();
@@ -103,18 +117,14 @@ export const [
     }: {
       api: ActiveApi<any>,
       response: StableDeep<ApiResponse<any>> | null,
-      fetchErr?: Error,
+      fetchErr?: ApiError,
       fetchNextBatch: () => Promise<void>,
     }) => {
       if (fetchErr || isErrorResponse(response)) {
         const status = response?.status;
-        const err = fetchErr ?? getErr(
-          new ApiError(
-            status === 503 || (status && status >= 520)
-              ? 'Server temporarily unavailable.'
-              : 'Unknown error occurred while fetching data.',
-            status,
-          ),
+        const err = fetchErr ?? new ApiError(
+          _getErrMsg(response, status),
+          status,
           {
             ctx: `ApiStore.handleResponseBatch(${api.name})`,
             apiName: api.name,
@@ -179,7 +189,7 @@ export const [
                   fetchNextBatch(),
                   `ApiStore.handleResponseBatch(${api.name})`,
                 );
-              }, 0);
+              }, api.batchInterval);
             }
           }
 
@@ -275,37 +285,54 @@ export const [
         }
       }
 
+      const startTime = performance.now();
       const remainingBatchIdx = new Set(curBatch.map((_, idx) => idx));
-      let fetchErr: Error | undefined;
+      let fetchErr: ApiError | undefined;
       try {
-        const { stream, status } = await fetcher.getStream(
-          `${API_URL}/api/stream`,
-          {
-            apis: process.env.PRODUCTION
-              ? JSON.stringify(curBatch.map(b => ({
-                name: b.name,
-                params: b.params,
-              })))
-              : `[{
-${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
-"params": ${JSON.stringify(b.params)}`).join('\n},{\n')}
-}]`,
-            ...extraApiProps,
-          },
-          {
-            authToken,
-            priority: 'high',
-          },
+        const timeoutErr = new TimeoutError('Request timed out');
+        const { res, status } = await promiseTimeout(
+          fetcher.getResponse(
+            `${API_URL}/api/stream`,
+            {
+              ...(process.env.PRODUCTION
+                ? null
+                : {
+                  _: [...new Set(curBatch.map(b => b.name))].join('_'),
+                }),
+              apis: process.env.PRODUCTION
+                ? JSON.stringify(curBatch.map(b => ({
+                  name: b.name,
+                  params: b.params,
+                })))
+                : `[{
+  ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
+  "params": ${JSON.stringify(b.params)}`).join('\n},{\n')}
+  }]`,
+              ...extraApiProps,
+            },
+            {
+              authToken,
+              priority: 'high',
+            },
+          ),
+          API_TIMEOUT,
+          timeoutErr,
         );
 
-        if (!stream) {
-          throw getErr(
-            new ApiError(
-              status === 503 || status >= 520
-                ? 'Server temporarily unavailable.'
-                : 'Unknown error occurred while fetching data.',
-              status,
-            ),
+        const stream = res && status < 400 ? res.body?.getReader() : null;
+        if (!stream || status >= 400) {
+          let data: unknown;
+          if (res) {
+            const text = await promiseTimeout(
+              res.text(),
+              API_TIMEOUT - (performance.now() - startTime),
+              timeoutErr,
+            );
+            data = safeParseJson(text);
+          }
+          throw new ApiError(
+            _getErrMsg(data, status),
+            status,
             {
               ctx: 'ApiStore.fetchNextBatch',
               batchedApis: curBatch.map(v => v.name).join(','),
@@ -319,7 +346,11 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
         const decoder = new TextDecoder();
         while (true) {
           // eslint-disable-next-line no-await-in-loop
-          const { value, done } = await stream.read();
+          const { value, done } = await promiseTimeout(
+            stream.read(),
+            API_TIMEOUT - (performance.now() - startTime),
+            timeoutErr,
+          );
           if (done) {
             break;
           }
@@ -343,7 +374,7 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
               result: StableDeep<ApiResponse<ApiName>>
             }>(
               json,
-              val => val && typeof val === 'object'
+              val => TS.isObj(val)
                 && typeof val.batchIdx === 'number'
                 && !!val.result,
             );
@@ -404,21 +435,28 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
         }
       } catch (err) {
         // todo: mid/mid retry fetching on error
-        fetchErr = err instanceof ApiError || err instanceof TimeoutError
-          ? err
-          : getErr(
+        if (err instanceof ApiError || err instanceof TimeoutError) {
+          fetchErr = err;
+        } else {
+          if (err instanceof Error) {
+            ErrorLogger.error(err, { ctx: 'ApiStore.fetchNextBatch' });
+          }
+          fetchErr = new ApiError(
             'Unknown API error occurred.',
+            503,
             {
               ctx: 'ApiStore.fetchNextBatch',
               batchedApis: curBatch.map(b => b.name).join(','),
               err,
             },
           );
+        }
       }
 
       if (remainingBatchIdx.size) {
-        fetchErr ??= getErr(
+        fetchErr = fetchErr ?? new ApiError(
           'Unknown API error occurred.',
+          503,
           {
             ctx: 'ApiStore.fetchNextBatch',
             batchedApis: [...remainingBatchIdx]
@@ -454,20 +492,15 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
       api.cachedError = null;
     }, []);
 
-    const queueBatchedRequest = useCallback(<Name extends ApiName>(
-      name: Name,
-      params: ApiParams<Name>,
-      _apiId?: string,
-    ) => {
-      const apiId = _apiId ?? _getApiId(name, params);
-      if (ApiState.batchedRequests.some(b => b.id === apiId)) {
+    const queueBatchedRequest = useCallback(<Name extends ApiName>(api: ActiveApi<Name>) => {
+      if (ApiState.batchedRequests.some(b => b.id === api.id)) {
         return;
       }
 
       ApiState.batchedRequests.push({
-        name,
-        params,
-        id: apiId,
+        name: api.name,
+        params: api.params,
+        id: api.id,
       });
 
       if (!ApiState.batchTimer) {
@@ -476,7 +509,7 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
             fetchNextBatch(),
             'ApiStore.fetchNextBatch',
           );
-        }, 0);
+        }, api.batchInterval);
       }
     }, [catchAsync, fetchNextBatch]);
 
@@ -487,7 +520,11 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
     ) => {
       const apiId = _apiId ?? _getApiId(name, params);
       clearCache(apiId);
-      queueBatchedRequest(name, params, apiId);
+
+      const api = ApiState.activeApis.get(apiId);
+      if (api) {
+        queueBatchedRequest(api);
+      }
     }, [clearCache, queueBatchedRequest]);
 
     const fetchNextPage = useCallback(<Name extends ApiName>(
@@ -497,29 +534,32 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
     ) => {
       const apiId = _getApiId(name, params, initialCursor);
       const api = ApiState.activeApis.get(apiId);
-      if (api && !api.pagination) {
-        throw new Error(`ApiStore.fetchNextPage(${name}): API not paginated`);
+      if (api) {
+        if (!api.pagination) {
+          throw new Error(`ApiStore.fetchNextPage(${name}): API not paginated`);
+        }
+
+        queueBatchedRequest(api);
       }
-      queueBatchedRequest(name, params, apiId);
     }, [queueBatchedRequest]);
 
     const getApiState = useCallback(<Name extends ApiName>({
       name,
       params,
       initialCursor,
-      refetchKey,
+      cacheBreaker,
       shouldFetch,
     }: {
       name: Name,
       params: ApiParams<Name>,
       initialCursor?: string,
-      refetchKey?: string,
+      cacheBreaker?: string,
       shouldFetch?: boolean,
     }): UseApiState<Name> => {
       const apiId = _getApiId(name, params, initialCursor);
       const api = ApiState.activeApis.get(apiId);
       const hasValidApi = api
-        && (!refetchKey || refetchKey === api.refetchKey)
+        && (!cacheBreaker || cacheBreaker === api.cacheBreaker)
         && api.lastFetched + MIN_STALE_DURATION > performance.now();
       return {
         apiId,
@@ -541,7 +581,7 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
       name,
       params,
       isPaginated,
-      refetchKey,
+      cacheBreaker,
       state,
       update: updateSub,
       onFetch,
@@ -554,24 +594,22 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
       refetchOnFocus = true,
       refetchIfStale = true,
       showToastOnError = true,
+      batchInterval = 0,
     }: {
       name: Name,
       params: ApiParams<Name>,
       isPaginated?: boolean,
-      refetchKey?: string,
+      cacheBreaker?: string,
       state: UseApiState<Name>,
       update: () => void,
       onFetch?: (results: ApiData<Name>) => void,
-      onError?: (err: Error) => void,
+      onError?: (err: ApiError) => void,
       initialCursor?: string,
       shouldAddCreatedEntity?: ShouldAddCreatedEntity<EntityType>,
       shouldRemoveDeletedEntity?: boolean,
       paginationEntityType?: EntityType,
       addEntitiesToEnd?: boolean,
-      refetchOnFocus?: boolean,
-      refetchIfStale?: boolean,
-      showToastOnError?: boolean,
-    }): () => void => {
+    } & Partial<ApiOpts>): () => void => {
       const apiId = _getApiId(name, params, initialCursor);
       if (!ApiState.activeApis.has(apiId)) {
         ApiState.activeApis.set(apiId, {
@@ -588,7 +626,7 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
               unsubHandleDeleteEntity: null,
             }
             : null,
-          refetchKey,
+          cacheBreaker,
           cachedData: null,
           cachedError: null,
           fetching: false,
@@ -597,6 +635,7 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
           refetchOnFocus,
           refetchIfStale,
           showToastOnError,
+          batchInterval,
         });
       }
       const api = ApiState.activeApis.get(apiId) as ActiveApi<Name>;
@@ -622,28 +661,31 @@ ${curBatch.map(b => `  "name": ${JSON.stringify(b.name)},
       };
       api.subs.push(sub);
 
-      if ((refetchKey && refetchKey !== api.refetchKey)
+      if ((cacheBreaker && cacheBreaker !== api.cacheBreaker)
         || (api.refetchIfStale && api.lastFetched + MIN_STALE_DURATION < performance.now())
         || (!api.cachedData && !api.cachedError && !api.fetching)) {
         if (api.lastFetched > Number.MIN_SAFE_INTEGER) {
           clearCache(apiId);
         }
 
-        api.refetchKey = refetchKey;
-        queueBatchedRequest(name, params, apiId);
-      } else if (api.cachedError) {
-        onError?.(api.cachedError);
-        if (state.data || state.error !== api.cachedError) {
-          state.data = null;
-          state.error = api.cachedError;
-          updateSub();
+        api.cacheBreaker = cacheBreaker;
+        queueBatchedRequest(api);
+      } else if (api.cachedError || api.cachedData) {
+        if (api.cachedError) {
+          onError?.(api.cachedError);
+        } else if (api.cachedData) {
+          // Note: onFetch needs to call setState
+          onFetch?.(api.cachedData);
         }
-      } else if (api.cachedData) {
-        // Note: onFetch needs to call setState
-        onFetch?.(api.cachedData);
-        if (state.error || state.data !== api.cachedData) {
+
+        if (state.data !== api.cachedData
+          || state.error !== api.cachedError
+          || state.fetching !== api.fetching
+          || state.isFirstTime) {
           state.data = api.cachedData;
-          state.error = null;
+          state.error = api.cachedError;
+          state.fetching = api.fetching;
+          state.isFirstTime = false;
           updateSub();
         }
       } else if (api.fetching) {

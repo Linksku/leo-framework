@@ -1,10 +1,10 @@
-import SearchSvg from 'fa5/svg/search-regular.svg';
+import SearchSvg from 'svgs/fa5/search-regular.svg';
 
 import { useThrottle } from 'utils/throttle';
 import Form from 'components/common/Form';
 import { useAddPopHandler } from 'stores/HistoryStore';
 
-import styles from './SearchFormStyles.scss';
+import styles from './SearchForm.scss';
 
 type Props = {
   onInput?: Stable<React.FormEventHandler<HTMLInputElement>>,

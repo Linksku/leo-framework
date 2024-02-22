@@ -1,0 +1,15 @@
+diff --git a/index.d.ts b/index.d.ts
+index 9381e999b435d0c90af07362c56b65fe23036277..5c73482bc95e20edfd9e4b71839bf34cf0500c5b 100644
+--- a/index.d.ts
++++ b/index.d.ts
+@@ -641,6 +641,10 @@ export interface JSONSchema7 {
+     maxLength?: number | undefined;
+     minLength?: number | undefined;
+     pattern?: string | undefined;
++    instanceof?: string | undefined;
++    instanceOf?: never;
++    tsType?: string | undefined;
++    maxPrecision?: number | undefined;
+ 
+     /**
+      * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.4

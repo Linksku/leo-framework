@@ -1,4 +1,4 @@
-import styles from './ErrorBoundaryStyles.scss';
+import styles from './ErrorBoundary.scss';
 
 function getErrorMessage(err: Error) {
   if (!err.message) {
@@ -33,7 +33,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   override state: State = { err: null };
 
   override componentDidCatch(err: Error) {
-    ErrorLogger.error(err, undefined, false);
+    ErrorLogger.error(err, undefined, !!err.debugCtx);
   }
 
   override render() {

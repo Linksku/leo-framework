@@ -3,11 +3,7 @@ import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 export default function useStateStable<T extends ObjectOf<any>>(
   initial: T | (() => T),
 ): [
-  Stable<
-    T extends Primitive ? T
-    : (keyof T) extends never ? T
-    : StableObjShallow<T>
-  >,
+  StableShallow<T>,
   Stable<(patch: Partial<T> | ((prevState: T) => Partial<T>)) => void>,
 ] {
   const [state, setState] = useState(() => {
@@ -21,7 +17,7 @@ export default function useStateStable<T extends ObjectOf<any>>(
   });
 
   return [
-    state,
+    state as StableShallow<T>,
     useCallback((patch: Partial<T> | ((prevState: T) => Partial<T>)) => {
       let lastPrevState: T | null = null;
       let newState: T | null = null;

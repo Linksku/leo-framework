@@ -3,6 +3,7 @@ import type { Knex } from 'knex';
 import knexBT from 'services/knex/knexBT';
 import knexRR from 'services/knex/knexRR';
 import pg from 'services/pg';
+import stringify from 'utils/stringify';
 
 export default async function addColumn({
   isMV,
@@ -29,7 +30,7 @@ export default async function addColumn({
   if (typeof defaultVal === 'string') {
     defaultEsc = pg.escapeLiteral(defaultVal);
   } else if (defaultVal && typeof defaultVal === 'object') {
-    defaultEsc = defaultVal.toString();
+    defaultEsc = stringify(defaultVal);
   } else if (defaultVal !== undefined) {
     defaultEsc = defaultVal;
   }

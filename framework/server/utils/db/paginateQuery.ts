@@ -19,10 +19,15 @@ export type OrderByColumns = (
   }
 )[];
 
-export type PaginatedResponse<T extends Model> = {
+export type PaginatedResponse<
+  T extends Model,
+  Item extends number | string | undefined = undefined,
+> = {
   entities: T[],
   data: {
-    items: (T['cls']['primaryIndex'] extends any[] ? ApiEntityId : EntityId)[],
+    items: [Item] extends [number | string]
+      ? Item[]
+      : (T['cls']['primaryIndex'] extends any[] ? ApiEntityId : EntityId)[],
     cursor?: string,
     hasCompleted: boolean,
   },
@@ -37,31 +42,36 @@ export const EMPTY_PAGINATION = {
     cursor: undefined,
     hasCompleted: true,
   },
-} as PaginatedResponse<Model>;
+} as PaginatedResponse<Model, any>;
 
-export default async function paginateQuery<T extends QueryBuilder<Model>>(
-  query: T,
+export default async function paginateQuery<
+  T extends Model,
+  Item extends number | string | undefined = undefined,
+>(
+  query: QueryBuilder<T>,
   orderByColumns: OrderByColumns,
   {
     limit = MAX_PER_PAGE,
     cursor,
+    getItem,
     keepCursorVals = false,
   }: {
     limit?: number,
     cursor: Nullish<string>,
+    getItem?: (ent: Partial<T>) => Item,
     keepCursorVals?: boolean,
   },
-): Promise<PaginatedResponse<T['ModelType']>> {
+): Promise<PaginatedResponse<T, Item>> {
   const Model = (query as any)._modelClass as ModelClass;
   if (!process.env.PRODUCTION) {
-    if (!TS.hasProp(query, '_operations')) {
+    if (!TS.hasDefinedProp(query, '_operations')) {
       throw new Error(`paginateQuery(${Model.tableName}): _operations field is expected on query.`);
     }
     const operations = query._operations as { name: string }[];
     if (operations.some(op => op.name === 'orderByRaw' || op.name === 'orderBy')) {
       throw new Error(`paginateQuery(${Model.tableName}): query already has orderby.`);
     }
-    if (!operations.some(op => op.name === 'select')) {
+    if (!operations.some(op => op.name === 'select' || op.name === 'distinct')) {
       throw new Error(`paginateQuery(${Model.tableName}): select is required.`);
     }
   }
@@ -124,11 +134,12 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
   query = query.limit(limit);
 
   const entities = await query;
-  const entityIds = entities.map(
-    e => e.getId() as T['ModelType']['cls']['primaryIndex'] extends any[]
-      ? ApiEntityId
-      : EntityId,
-  );
+  const items = entities.map(e => (getItem ? getItem(e) : e.getId()));
+  if (!process.env.PRODUCTION
+    && items.some(item => typeof item !== 'number' && typeof item !== 'string')) {
+    throw getErr('paginateQuery: invalid item type', { items });
+  }
+
   const lastRowCursorVals = entities.length
     ? orderByColumns.map((_, idx) => {
       const lastRow = entities.at(-1);
@@ -145,8 +156,8 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
       );
     }
 
-    if ((new Set(entityIds)).size !== entityIds.length) {
-      throw new Error('paginateQuery: entity IDs contain duplicates.');
+    if ((new Set(items)).size !== items.length) {
+      throw getErr('paginateQuery: items contain duplicates.', items);
     }
 
     const cursorCols = entities.map(
@@ -158,7 +169,7 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
     );
     const firstDuplicate = arrFirstDuplicate(cursorCols);
     if (firstDuplicate !== undefined) {
-      throw new Error(`paginateQuery: cursor contains duplicate: ${firstDuplicate}`);
+      throw getErr('paginateQuery: cursor contains duplicate', { firstDuplicate });
     }
   }
 
@@ -173,7 +184,9 @@ export default async function paginateQuery<T extends QueryBuilder<Model>>(
   return {
     entities,
     data: {
-      items: entityIds,
+      items: items as [Item] extends [number | string]
+        ? Item[]
+        : (T['cls']['primaryIndex'] extends any[] ? ApiEntityId : EntityId)[],
       cursor: lastRowCursorVals
         ? lastRowCursorVals.join(',')
         : undefined,

@@ -2,9 +2,9 @@ import type DataLoader from 'dataloader';
 import QuickLRU from 'quick-lru';
 
 import redis from 'services/redis';
-import { MAX_CACHE_TTL } from 'serverSettings';
-import { API_POST_TIMEOUT } from 'settings';
-import createDataLoader from 'utils/createDataLoader';
+import { MAX_CACHE_TTL } from 'consts/infra';
+import { API_POST_TIMEOUT } from 'consts/server';
+import createDataLoader from 'core/createDataLoader';
 import RedisDataLoader from 'services/RedisDataLoader';
 
 export type ConstructorProps<T> = {
@@ -21,13 +21,20 @@ export type ConstructorProps<T> = {
 export default class BaseRedisCache<T> {
   private redisNamespace: string;
 
+  private serialize: ConstructorProps<T>['serialize'];
+
+  private unserialize: ConstructorProps<T>['unserialize'];
+
   private getDataLoader: DataLoader<string, T | undefined>;
 
   private setDataLoader: RedisDataLoader<'psetex', [string, T], void>;
 
   private delDataLoader: RedisDataLoader<'del', string, void>;
 
-  private lru: QuickLRU<
+  private lruTtl: number;
+
+  // Mostly to avoid concurrently fetching same thing, keep short to enough to not need invalidation
+  private memCache: QuickLRU<
     string,
     Readonly<T> | undefined | Promise<Readonly<T> | undefined>
   >;
@@ -37,11 +44,12 @@ export default class BaseRedisCache<T> {
     serialize,
     unserialize,
     redisTtl = MAX_CACHE_TTL,
-    // LRU is mostly to avoid concurrently fetching same thing, keep short to enough to not need invalidation
     lruTtl = API_POST_TIMEOUT,
     lruMaxSize,
   }: ConstructorProps<T>) {
     this.redisNamespace = redisNamespace;
+    this.serialize = serialize;
+    this.unserialize = unserialize;
 
     this.getDataLoader = createDataLoader<string, T | undefined>(
       async (keys: readonly string[]) => {
@@ -70,43 +78,52 @@ export default class BaseRedisCache<T> {
       ],
     );
 
-    this.lru = new QuickLRU<string, T | Promise<T>>({
+    this.lruTtl = lruTtl;
+    this.memCache = new QuickLRU<string, T | Promise<T>>({
       maxSize: lruMaxSize,
       maxAge: lruTtl,
     });
   }
 
-  // todo: mid/mid prevent thundering herd
   async getWithRc(
     rc: Nullish<RequestContext>,
     key: string,
     onlyLocal = false,
   ): Promise<Readonly<T> | undefined> {
-    const cachedFromRc = rc?.redisCache.get(
-      `${this.redisNamespace}:${key}`,
-    );
+    const cachedFromRc = rc?.reqCache.get(`${this.redisNamespace}:${key}`);
     if (cachedFromRc) {
       return cachedFromRc;
     }
 
-    const cachedFromLru = this.lru.get(key);
+    const cachedFromLru = this.memCache.get(key);
     if (cachedFromLru !== undefined) {
-      rc?.redisCache.set(key, cachedFromLru);
-      return cachedFromLru;
+      let clone: Readonly<T> | undefined;
+      if (cachedFromLru instanceof Promise) {
+        const getClone = cachedFromLru.then(
+          val => (val !== undefined ? this.unserialize(this.serialize(val), key) : undefined),
+        );
+        rc?.reqCache.set(`${this.redisNamespace}:${key}`, getClone);
+        clone = await getClone;
+      } else {
+        clone = this.unserialize(this.serialize(cachedFromLru), key);
+      }
+      rc?.reqCache.set(`${this.redisNamespace}:${key}`, clone);
+      return clone;
     }
     if (onlyLocal) {
       return undefined;
     }
 
+    // Don't know why latency is ~10ms sometimes. Removing DataLoader didn't help
     const promise = this.getDataLoader.load(key);
-    rc?.redisCache.set(`${this.redisNamespace}:${key}`, promise);
-    this.lru.set(key, promise);
+    rc?.reqCache.set(`${this.redisNamespace}:${key}`, promise);
+    this.memCache.set(key, promise);
     const val = await promise;
-    this.lru.delete(key);
+    this.memCache.set(key, val, { maxAge: this.lruTtl / 2 });
     if (val === undefined) {
-      rc?.redisCache.delete(`${this.redisNamespace}:${key}`);
+      rc?.reqCache.delete(`${this.redisNamespace}:${key}`);
     } else {
-      rc?.redisCache.set(`${this.redisNamespace}:${key}`, val);
+      rc?.reqCache.set(`${this.redisNamespace}:${key}`, val);
     }
 
     return val;
@@ -149,14 +166,14 @@ export default class BaseRedisCache<T> {
     val: T,
     onlyLocal = false,
   ): Promise<void> {
-    rc?.redisCache.set(`${this.redisNamespace}:${key}`, val);
-    this.lru.delete(key);
+    rc?.reqCache.set(`${this.redisNamespace}:${key}`, val);
+    this.memCache.set(key, val);
     if (onlyLocal) {
       return;
     }
 
     await this.setDataLoader.load([key, val]);
-    rc?.redisCache.set(`${this.redisNamespace}:${key}`, val);
+    rc?.reqCache.set(`${this.redisNamespace}:${key}`, val);
   }
 
   set(
@@ -174,9 +191,8 @@ export default class BaseRedisCache<T> {
     promise: Promise<T>,
     onlyLocal = false,
   ): Promise<Readonly<T>> {
-    rc?.redisCache.set(`${this.redisNamespace}:${key}`, promise);
-    this.lru.set(key, promise);
-
+    rc?.reqCache.set(`${this.redisNamespace}:${key}`, promise);
+    this.memCache.set(key, promise);
     const val = await promise;
     await this.setWithRc(rc, key, val, onlyLocal);
     return val;
@@ -196,15 +212,15 @@ export default class BaseRedisCache<T> {
     key: string,
     onlyLocal = false,
   ): Promise<void> {
-    rc?.redisCache.delete(`${this.redisNamespace}:${key}`);
-    this.lru.delete(key);
+    rc?.reqCache.delete(`${this.redisNamespace}:${key}`);
+    this.memCache.delete(key);
     if (onlyLocal) {
       return;
     }
 
     await this.delDataLoader.load(key);
-    this.lru.delete(key);
-    rc?.redisCache.delete(`${this.redisNamespace}:${key}`);
+    this.memCache.delete(key);
+    rc?.reqCache.delete(`${this.redisNamespace}:${key}`);
   }
 
   del(

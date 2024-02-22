@@ -1,5 +1,6 @@
 import type { UseApiState } from 'stores/ApiStore';
 import useUpdate from 'hooks/useUpdate';
+import useRefInitialState from 'hooks/useRefInitialState';
 import { useHadRouteBeenActive, useIsRouteVisible } from 'stores/RouteStore';
 import type { ApiReturn } from './useApi';
 
@@ -8,10 +9,10 @@ export default function useApiState<Name extends ApiName>(
   params: Stable<ApiParams<Name>>,
   {
     initialCursor,
-    refetchKey,
+    cacheBreaker,
   }: {
     initialCursor?: string,
-    refetchKey?: string,
+    cacheBreaker?: string,
   } = {},
 ): ApiReturn<Name> {
   let isRouteVisible = true;
@@ -27,32 +28,19 @@ export default function useApiState<Name extends ApiName>(
 
   const { getApiState, subscribeApiState } = useApiStore();
   const update = useUpdate();
-  const stateRef = useRef<UseApiState<Name>>(
-    useMemo(
-      () => {
-        const apiState = getApiState({
-          name,
-          params,
-          initialCursor,
-          refetchKey,
-          shouldFetch,
-        });
-        if (!hadBeenActive) {
-          return { ...apiState, fetching: true };
-        }
-        return apiState;
-      },
-      [
-        getApiState,
-        name,
-        params,
-        initialCursor,
-        refetchKey,
-        shouldFetch,
-        hadBeenActive,
-      ],
-    ),
-  );
+  const stateRef = useRefInitialState<UseApiState<Name>>(() => {
+    const apiState = getApiState({
+      name,
+      params,
+      initialCursor,
+      cacheBreaker,
+      shouldFetch,
+    });
+    if (!hadBeenActive) {
+      return { ...apiState, fetching: true };
+    }
+    return apiState;
+  });
 
   useEffect(() => {
     if (!shouldFetch) {
@@ -68,6 +56,7 @@ export default function useApiState<Name extends ApiName>(
     });
     return unsub;
   }, [
+    stateRef,
     subscribeApiState,
     name,
     params,

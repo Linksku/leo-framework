@@ -66,7 +66,7 @@ function createThrottle(
       }
     }
 
-    // todo low/mid: if fn returns a promise, maybe this should return a promise too
+    // todo: low/mid: if fn returns a promise, maybe this should return a promise too
     return function throttleReturn(this: any, ...args: any[]) {
       if (state.current.disabled) {
         return;
@@ -127,7 +127,7 @@ export function useThrottle<Args extends any[]>(
   opts: Stable<Opts>,
   deps = [] as StableDependencyList,
 ): Stable<(...args: Args) => void> {
-  const latestFn = useDynamicCallback(fn);
+  const latestFn = useLatestCallback(fn);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useCallback(_useThrottle(
     (...args: Args) => latestFn(...args),

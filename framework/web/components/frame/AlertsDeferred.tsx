@@ -1,20 +1,13 @@
-import type { Props } from './PullToReload';
-
 const Alerts = React.lazy(async () => import(
   /* webpackChunkName: 'deferred' */ './Alerts'
 ));
 
-export default React.memo(function AlertsDeferred({
-  children,
-  ...props
-}: React.PropsWithChildren<Props>) {
+export default React.memo(function AlertsDeferred() {
   return (
     <React.Suspense
       fallback={null}
     >
-      <Alerts {...props}>
-        {children}
-      </Alerts>
+      <Alerts />
     </React.Suspense>
   );
 });

@@ -19,9 +19,9 @@ class BaseEntity extends BaseModel implements IBaseEntity {
 
   static deleteable = false;
 
-  declare static cols: ModelColsMap<IBaseEntity>;
+  declare static cols: ModelColsMap<EntityType>;
 
-  declare static colsQuoted: ModelColsMap<IBaseEntity>;
+  declare static colsQuoted: ModelColsMap<EntityType>;
 
   static override uniqueIndexes: (string | string[])[] = ['id'];
 
@@ -37,19 +37,6 @@ class BaseEntity extends BaseModel implements IBaseEntity {
     );
   }
 
-  /*
-  Start Objection fields
-  */
-
-  static override virtualAttributes = [
-    'extras',
-    'relations',
-  ];
-
-  /*
-  End Objection fields
-  */
-
   constructor(..._args: any[]) {
     super();
   }
@@ -58,6 +45,8 @@ class BaseEntity extends BaseModel implements IBaseEntity {
 
   declare cls: EntityClass;
 
+  // Assume entity id increases with time, but there will be gaps
+  // todo: mid/hard use snowflake ids
   id!: EntityId;
 
   override getId() {

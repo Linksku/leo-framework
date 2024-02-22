@@ -33,6 +33,18 @@ export function processEntityClassConfig<Config extends EntityClassConfig<Entity
   if (config.schema.id?.type !== 'integer') {
     throw new Error(`processEntityClassConfig(${config.type}): missing schema for "id".`);
   }
+  if (!deleteable && !config.schema.isDeleted) {
+    if (config.type.includes('user')) {
+      throw new Error(`processEntityClassConfig(${config.type}): user data must be deleteable.`);
+    }
+
+    // todo: low/mid recursively check if related to user model
+    for (const key of Object.keys(config.schema)) {
+      if (key.includes('user')) {
+        throw new Error(`processEntityClassConfig(${config.type}): user data must be deleteable.`);
+      }
+    }
+  }
 
   return {
     ...config,

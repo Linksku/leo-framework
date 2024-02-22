@@ -2,9 +2,17 @@ import chalk from 'chalk';
 import dayjs from 'dayjs';
 
 import formatErr from 'utils/formatErr';
-import getServerId from 'utils/getServerId';
+import getServerId from 'core/getServerId';
 
-const MSG_TYPES = new Set(['normal', 'success', 'highlight', 'info', 'warn', 'error', 'fail'] as const);
+const MSG_TYPES = new Set([
+  'normal',
+  'success',
+  'highlight',
+  'info',
+  'warn',
+  'error',
+  'fail',
+] as const);
 
 const MSG_TYPE_TO_COLOR = TS.literal({
   normal: 'reset',

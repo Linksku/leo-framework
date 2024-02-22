@@ -12,7 +12,7 @@ async function flushAllHelper(prefix: string | undefined, limit: number) {
     });
 
     stream.on('data', keys => {
-      if (keys.length) {
+      if (Array.isArray(keys) && keys.length) {
         redis.unlink(keys)
           .then(() => {
             numDeleted += keys.length;
@@ -24,16 +24,18 @@ async function flushAllHelper(prefix: string | undefined, limit: number) {
     });
 
     stream.on('end', () => {
-      if (numFailed) {
-        printDebug(`redisFlushAll(${prefix ?? '*'}): ${numFailed}/${numFailed + numDeleted} failed to delete`, 'warn');
-      } else {
-        printDebug(`redisFlushAll(${prefix ?? '*'}): ${numDeleted} deleted`, 'success');
+      if (process.env.IS_SERVER_SCRIPT) {
+        if (numFailed) {
+          printDebug(`redisFlushAll(${prefix ?? '*'}): ${numFailed}/${numFailed + numDeleted} failed to delete`, 'warn');
+        } else {
+          printDebug(`redisFlushAll(${prefix ?? '*'}): ${numDeleted} deleted`, 'success');
+        }
       }
       succ();
     });
 
     stream.on('error', err => {
-      fail(err);
+      fail(getErr(err, { ctx: `redisFlushAll(${prefix ?? '*'})` }));
     });
   });
 
@@ -46,9 +48,27 @@ export default async function redisFlushAll(prefix?: string | string[]) {
   const promise = Array.isArray(prefix)
     ? Promise.all(prefix.map(p => flushAllHelper(p, 100)))
     : flushAllHelper(prefix, 100);
-  await promiseTimeout(
-    promise,
-    5000,
-    new Error('redisFlushAll: timed out'),
-  );
+  let origErr: unknown;
+  try {
+    await promiseTimeout(
+      promise,
+      5000,
+      new Error('redisFlushAll: timed out'),
+    );
+    return;
+  } catch (err) {
+    if (!(err instanceof Error)
+      || !err.message.includes('Reached the max retries')) {
+      throw err;
+    }
+    origErr = err;
+  }
+
+  try {
+    await redis.ping();
+    throw origErr;
+  } catch {
+    // Redis is probably down
+    ErrorLogger.warn(origErr);
+  }
 }

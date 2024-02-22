@@ -1,16 +1,16 @@
 import type { Scope } from '@sentry/types';
 import { inspect } from 'util';
 
-import detectOs from 'utils/detectOs';
-import isOsMobile from 'utils/isOsMobile';
-import getServerId from 'utils/getServerId';
+import getOsFromUa from 'utils/getOsFromUa';
+import getServerId from 'core/getServerId';
 import BullQueueContextLocalStorage, { BullQueueContext } from 'services/BullQueueContextLocalStorage';
 import ServiceContextLocalStorage, { ServiceContext } from 'services/ServiceContextLocalStorage';
 
 function setRequestContextScope(scope: Scope, rc: RequestContext) {
   const currentUserId = rc?.currentUserId;
   const userAgent = rc?.userAgent;
-  const os = rc?.os ?? detectOs(userAgent);
+  const os = rc?.os ?? getOsFromUa(userAgent);
+  const platform = rc?.platform;
   const language = rc?.language;
   const path = rc?.path;
   const params = rc?.apiParams;
@@ -27,7 +27,7 @@ function setRequestContextScope(scope: Scope, rc: RequestContext) {
 
   scope.setTag('userAgent', userAgent);
   scope.setTag('os', os);
-  scope.setTag('isMobile', isOsMobile(os));
+  scope.setTag('platform', platform);
   scope.setTag('language', language);
   scope.setTag('path', path);
 
@@ -35,7 +35,7 @@ function setRequestContextScope(scope: Scope, rc: RequestContext) {
     for (const [k, v] of TS.objEntries(params)) {
       scope.setTag(
         `param:${k}`,
-        v && typeof v === 'object'
+        TS.isObj(v)
           ? inspect(v).slice(0, 1000)
           : v as Primitive,
       );

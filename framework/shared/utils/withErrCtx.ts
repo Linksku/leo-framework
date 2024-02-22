@@ -19,7 +19,13 @@ function withErrCtx(
   }
 
   try {
-    return getVal();
+    const ret = getVal();
+    if (ret instanceof Promise) {
+      return ret.catch(err => {
+        throw getErr(err, { ctx });
+      });
+    }
+    return ret;
   } catch (err) {
     throw getErr(err, { ctx });
   }

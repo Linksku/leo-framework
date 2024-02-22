@@ -1,11 +1,9 @@
-import pLimit from 'p-limit';
-
+import throttledPromiseAll from 'utils/throttledPromiseAll';
 import MaterializedViewModels from 'services/model/allMaterializedViewModels';
 import showMzSystemRows from 'utils/db/showMzSystemRows';
 import promiseTimeout from 'utils/promiseTimeout';
+import { MZ_TIMESTAMP_FREQUENCY } from 'consts/mz';
 import { addHealthcheck } from './HealthcheckManager';
-
-const limiter = pLimit(3);
 
 addHealthcheck('rrMVs', {
   deps: ['pgRR'],
@@ -22,43 +20,49 @@ addHealthcheck('rrMVs', {
     }
 
     const tablesMissingData: string[] = [];
-    await Promise.all(
-      MaterializedViewModels
-        .filter(model => model.getReplicaTable())
-        .map(model => limiter(async () => {
-          try {
-            const hasRRRows = await rawSelect(
-              'SELECT 1 FROM ?? LIMIT 1',
-              [model.tableName],
-              { db: 'rr' },
-            );
-            if (hasRRRows.rows.length) {
-              return;
-            }
+    const tablesUnknown: string[] = [];
+    const modelsWithSinks = MaterializedViewModels
+      .filter(model => model.getReplicaTable());
+    await throttledPromiseAll(3, modelsWithSinks, async model => {
+      try {
+        const hasRRRows = await rawSelect(
+          'rr',
+          'SELECT 1 FROM ?? LIMIT 1',
+          [model.tableName],
+        );
+        if (hasRRRows.rows.length) {
+          return;
+        }
 
-            try {
-              // todo: low/easy cache hasMZRows
-              const hasMZRows = await rawSelect(
-                'SELECT 1 FROM ?? LIMIT 1 AS OF now()',
-                [model.tableName],
-                { db: 'mz' },
-              );
-              if (hasMZRows.rows.length) {
-                tablesMissingData.push(model.type);
-              }
-            } catch {}
-          } catch (err) {
+        try {
+          // todo: low/easy cache hasMZRows
+          const hasMZRows = await rawSelect(
+            'mz',
+            `
+              SELECT 1
+              FROM ??
+              LIMIT 1
+              AS OF now() + INTERVAL '${MZ_TIMESTAMP_FREQUENCY} MILLISECOND'
+            `,
+            [model.tableName],
+          );
+          if (hasMZRows.rows.length) {
             tablesMissingData.push(model.type);
-            if (err instanceof Error && err.message.includes('does not exist')) {
-              // pass
-            } else if (err instanceof Error) {
-              throw getErr(err, { ctx: `rrMVsHealthcheck: ${model.type}` });
-            } else {
-              throw err;
-            }
           }
-        })),
-    );
+        } catch {
+          // Table has no rows and MZ is down, so don't know if table should have rows
+          tablesUnknown.push(model.type);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('does not exist')) {
+          tablesMissingData.push(model.type);
+        } else if (err instanceof Error) {
+          throw getErr(err, { ctx: `rrMVsHealthcheck: ${model.type}` });
+        } else {
+          throw err;
+        }
+      }
+    });
 
     if (tablesMissingData.length) {
       throw getErr(
@@ -66,11 +70,22 @@ addHealthcheck('rrMVs', {
         {
           numMissing: tablesMissingData.length,
           tables: tablesMissingData,
+          tablesUnknown,
+        },
+      );
+    }
+    if (tablesUnknown.length > modelsWithSinks.length / 2) {
+      throw getErr(
+        'rrMVsHealthcheck: tables likely missing data',
+        {
+          numUnknown: tablesUnknown.length,
+          tablesUnknown,
         },
       );
     }
   },
   resourceUsage: 'high',
+  usesResource: 'rr',
   stability: 'mid',
-  timeout: 60 * 1000,
+  timeout: 2 * 60 * 1000,
 });

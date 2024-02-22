@@ -8,7 +8,7 @@ import WindowedInfiniteScrollerInner, { Props as InnerProps } from './WindowedIn
 type Props<Name extends PaginatedApiName> = {
   apiName: Name,
   apiParams: Stable<ApiParams<Name>>,
-  apiRefetchKey?: string,
+  apiCacheBreaker?: string,
   maxItems?: number,
   throttleTimeout?: number,
   columns?: number,
@@ -42,7 +42,7 @@ function WindowedInfiniteScroller<
 >({
   apiName,
   apiParams,
-  apiRefetchKey,
+  apiCacheBreaker,
   throttleTimeout,
   maxItems,
   columns = 1,
@@ -55,7 +55,7 @@ function WindowedInfiniteScroller<
     error,
     fetchNext,
   } = usePaginationApi(apiName, apiParams, {
-    refetchKey: apiRefetchKey,
+    cacheBreaker: apiCacheBreaker,
     throttleTimeout,
     maxItems,
   });

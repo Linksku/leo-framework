@@ -8,7 +8,10 @@ export default async function getKafkaTopicsWithoutMessages(
   prefixOrRegex: string | RegExp,
   timeout: number,
 ): Promise<string[]> {
-  const topics = await listKafkaTopics(prefixOrRegex);
+  const topics = await withErrCtx(
+    listKafkaTopics(prefixOrRegex),
+    'getKafkaTopicsWithoutMessages: listKafkaTopics',
+  );
   if (!topics.length) {
     return [];
   }
@@ -17,8 +20,8 @@ export default async function getKafkaTopicsWithoutMessages(
     ctx: 'getKafkaTopicsWithoutMessages',
     allowAutoTopicCreation: false,
   });
-  await consumer.connect();
-  await consumer.subscribe({ topics });
+  await withErrCtx(consumer.connect(), 'getKafkaTopicsWithoutMessages: connect');
+  await withErrCtx(consumer.subscribe({ topics }), 'getKafkaTopicsWithoutMessages: subscribe');
 
   const remainingTopics = new Set(topics);
   try {

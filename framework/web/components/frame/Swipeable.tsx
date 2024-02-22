@@ -1,9 +1,12 @@
-import type { Props as SwipeNavigationProps } from 'hooks/useSwipeNavigation';
-import useSwipeNavigation from 'hooks/useSwipeNavigation';
+import type { Props as SwipeProps, Ret as SwipeRet } from 'hooks/useSwipeNavigation';
 import mergeRefs from 'utils/mergeRefs';
 
+const SwipeNavigationLoader = React.lazy(async () => import(
+  /* webpackChunkName: 'deferred' */ './SwipeNavigationLoader'
+));
+
 export type Props = {
-  swipeProps: SwipeNavigationProps<HTMLDivElement>,
+  swipeProps: SwipeProps<HTMLElement>,
 } & React.HTMLAttributes<HTMLDivElement>;
 
 function Swipeable(
@@ -17,28 +20,37 @@ function Swipeable(
   >,
   forwardedRef?: React.ForwardedRef<HTMLDivElement>,
 ) {
-  const { ref: swipeRef, bindSwipe } = useSwipeNavigation<HTMLDivElement>(swipeProps);
+  const [{ ref: swipeRef, bindSwipe }, setRet] = React.useState<SwipeRet<HTMLElement>>({
+    ref: useRef(null),
+    bindSwipe: () => ({}),
+  });
 
   return (
-    <div
-      {...props}
-      {...bindSwipe()}
-      ref={mergeRefs(
-        swipeRef,
-        forwardedRef,
-      )}
-      style={{
-        ...style,
-        overscrollBehaviorX: swipeProps.direction === 'left' || swipeProps.direction === 'right'
-          ? 'none'
-          : undefined,
-        overscrollBehaviorY: swipeProps.direction === 'up' || swipeProps.direction === 'down'
-          ? 'none'
-          : undefined,
-      }}
-    >
-      {children}
-    </div>
+    <>
+      <SwipeNavigationLoader
+        props={swipeProps}
+        setRet={markStable(setRet)}
+      />
+      <div
+        {...props}
+        {...bindSwipe()}
+        ref={mergeRefs(
+          swipeRef,
+          forwardedRef,
+        )}
+        style={{
+          ...style,
+          overscrollBehaviorX: swipeProps.direction === 'left' || swipeProps.direction === 'right'
+            ? 'none'
+            : undefined,
+          overscrollBehaviorY: swipeProps.direction === 'up' || swipeProps.direction === 'down'
+            ? 'none'
+            : undefined,
+        }}
+      >
+        {children}
+      </div>
+    </>
   );
 }
 

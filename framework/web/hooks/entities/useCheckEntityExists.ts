@@ -1,4 +1,4 @@
-import { API_TIMEOUT } from 'settings';
+import { API_TIMEOUT } from 'consts/server';
 import { useHadRouteBeenActive, useIsRouteVisible } from 'stores/RouteStore';
 import useUpdatedState from 'hooks/useUpdatedState';
 
@@ -31,6 +31,7 @@ function useCheckEntityExists(
           ErrorLogger.warn(err);
         }
       },
+      batchInterval: 1000,
     },
   );
 
@@ -49,7 +50,7 @@ function useCheckEntityExists(
       return undefined;
     }
 
-    timerRef.current = setTimeout(() => {
+    timerRef.current = window.setTimeout(() => {
       setWaited(true);
     }, API_TIMEOUT);
 

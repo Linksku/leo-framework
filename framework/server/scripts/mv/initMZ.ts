@@ -1,11 +1,11 @@
-import { ENABLE_DBZ } from 'consts/mz';
 import redisFlushAll from 'utils/infra/redisFlushAll';
 import { HEALTHCHECK, MODEL_NAMESPACES } from 'consts/coreRedisNamespaces';
 import initInfraWrap from 'utils/infra/initInfraWrap';
-import checkDidMigrations from './steps/checkDidMigrations';
-import startMZDocker from './steps/startMZDocker';
-import createMZViewsFromPostgres from './steps/createMZViewsFromPostgres';
+import checkPendingMigrations from './steps/checkPendingMigrations';
+import startDockerCompose from './steps/startDockerCompose';
 import createMZViewsFromDBZ from './steps/createMZViewsFromDBZ';
+import createMZViewsFromPostgres from './steps/createMZViewsFromPostgres';
+import createMZViewIndexes from './steps/createMZViewIndexes';
 import createMZMaterializedViews from './steps/createMZMaterializedViews';
 import createMZErrorsTables from './steps/createMZErrorsTables';
 import createMZSinks from './steps/createMZSinks';
@@ -17,9 +17,9 @@ export default function initMZ({ sourceTimeout }: {
   sourceTimeout?: number,
 } = {}) {
   return initInfraWrap(async () => {
-    await withErrCtx(checkDidMigrations(), 'initMZ: checkDidMigrations');
+    await withErrCtx(checkPendingMigrations(), 'initMZ: checkPendingMigrations');
 
-    await withErrCtx(startMZDocker(), 'initMZ: startMZDocker');
+    await withErrCtx(startDockerCompose(), 'initMZ: startDockerCompose');
 
     /*
     Postgres WAL shipping cons:
@@ -32,16 +32,23 @@ export default function initMZ({ sourceTimeout }: {
 
     For both:
     - replica identity should be FULL, otherwise MZ uses more memory
+
+    Maybe aggregate before importing in MZ. ksqlDB doesn't support enough features
     */
-    await (ENABLE_DBZ
-      ? withErrCtx(createMZViewsFromDBZ(), 'initMZ: createMZViewsFromDBZ')
-      : withErrCtx(createMZViewsFromPostgres(), 'initMZ: createMZViewsFromPostgres'));
+    // todo: high/hard do preprocessing in Flink etc
+    await Promise.all([
+      withErrCtx(createMZViewsFromDBZ(), 'initMZ: createMZViewsFromDBZ'),
+      withErrCtx(createMZViewsFromPostgres(), 'initMZ: createMZViewsFromPostgres'),
+    ]);
+    await withErrCtx(createMZViewIndexes(), 'initMZ: createMZViewIndexes');
 
-    await withErrCtx(createMZMaterializedViews(), 'initMZ: createMZMaterializedViews');
-    await withErrCtx(createMZErrorsTables(), 'initMZ: createMZErrorsTables');
-
+    await Promise.all([
+      withErrCtx(createMZMaterializedViews(), 'initMZ: createMZMaterializedViews'),
+      withErrCtx(createMZErrorsTables(), 'initMZ: createMZErrorsTables'),
+    ]);
     await withErrCtx(createMZSinks(), 'initMZ: createMZSinks');
 
+    // todo: mid/hard detect if MZ crashes while waiting
     await Promise.all([
       withErrCtx(
         waitForMZSourcesCatchUp(true, sourceTimeout),

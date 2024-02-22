@@ -1,7 +1,9 @@
 import type { UserDragConfig } from '@use-gesture/core/types';
+import type { ReactDOMAttributes } from '@use-gesture/react/dist/declarations/src/types';
 import { useDrag } from '@use-gesture/react';
 
-import { CLICK_MAX_WAIT } from 'consts/ui';
+import { CLICK_MAX_WAIT, DISABLE_BROWSER_HACKS } from 'consts/ui';
+import clamp from 'utils/clamp';
 import { DEFAULT_DURATION } from './useAnimation';
 
 const NEAR_EDGE_PX = 30;
@@ -29,17 +31,29 @@ function _shouldSwipeNavigate({
     return true;
   }
 
-  let swipeMoves = lastMoves.filter(move => move.time > performance.now() - MAX_SWIPE_DURATION);
-  // swipeMoves are in same direction
-  swipeMoves = swipeMoves.filter(
-    (move, idx) => idx === swipeMoves.length - 1
-      || (swipeMoves[idx + 1].x - move.x) * directionMultiplier >= 0,
-  );
-
-  if (!TS.notEmpty(swipeMoves) || swipeMoves.length < 2) {
+  const lastMove = lastMoves.at(-1);
+  if (!lastMove) {
     return false;
   }
-  const lastMove = swipeMoves.at(-1);
+  if (distToEdge < NEAR_EDGE_PX
+    && lastMoves.some(move => (lastMove.x - move.x) * directionMultiplier >= MIN_SWIPE_PX)) {
+    // Swiped to edge, then held finger there
+    return true;
+  }
+
+  let lastSwipeMoveIdx = 0;
+  for (let i = lastMoves.length - 2; i >= 0; i--) {
+    const move = lastMoves[i];
+    if (move.time < performance.now() - MAX_SWIPE_DURATION
+      || (lastMoves[i + 1].x - move.x) * directionMultiplier < 0) {
+      lastSwipeMoveIdx = i + 1;
+      break;
+    }
+  }
+  const swipeMoves = lastMoves.slice(lastSwipeMoveIdx);
+  if (swipeMoves.length < 2) {
+    return false;
+  }
 
   for (const firstMove of swipeMoves.slice(0, -1)) {
     const dx = (lastMove.x - firstMove.x) * directionMultiplier;
@@ -95,6 +109,11 @@ function _simulateClickAfterSwipeHack() {
 
       e.preventDefault();
       setTimeout(() => {
+        if (!process.env.PRODUCTION) {
+          // eslint-disable-next-line no-console
+          console.log('useSwipeNavigation: trigger click');
+        }
+
         target.dispatchEvent(new MouseEvent('click', {
           bubbles: true,
           cancelable: true,
@@ -103,35 +122,38 @@ function _simulateClickAfterSwipeHack() {
     };
 
     // Bug didn't occur
-    const handleMouseDown = () => {
+    const removeTouchListeners = () => {
       window.removeEventListener('touchmove', handleTouchmove);
       window.removeEventListener('touchend', handleTouchend);
     };
 
-    const handleClick = (e: MouseEvent) => {
-      if (!process.env.PRODUCTION && isValid && (e.pageX || e.pageY)) {
-        ErrorLogger.error(new Error('_simulateClickAfterSwipeHack: real click event fired'));
-      }
-    };
-
     // Event order: touchstart, touchmove, touchend, mousedown, click
-    window.addEventListener('touchmove', handleTouchmove);
+    window.addEventListener('touchmove', handleTouchmove, { passive: true });
     window.addEventListener('touchend', handleTouchend, { once: true });
-    window.addEventListener('mousedown', handleMouseDown, { once: true });
-    window.addEventListener('click', handleClick, { once: true });
+    window.addEventListener('mousedown', removeTouchListeners, { once: true });
+    window.addEventListener(
+      'scroll',
+      removeTouchListeners,
+      { once: true, capture: true, passive: true },
+    );
+    window.addEventListener('click', removeTouchListeners, { once: true });
 
     setTimeout(() => {
       window.removeEventListener('touchmove', handleTouchmove);
       window.removeEventListener('touchend', handleTouchend);
-      window.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('click', handleClick);
+      window.removeEventListener('mousedown', removeTouchListeners);
+      window.removeEventListener('scroll', removeTouchListeners);
+      window.removeEventListener('click', removeTouchListeners);
     }, CLICK_MAX_WAIT);
   };
 
-  window.addEventListener('touchstart', handleTouchstart, { once: true });
-  setTimeout(() => {
+  window.addEventListener('touchstart', handleTouchstart, { once: true, passive: true });
+
+  const removeTouchStart = () => {
     window.removeEventListener('touchstart', handleTouchstart);
-  }, 2000);
+  };
+  window.addEventListener('scroll', removeTouchStart, { once: true, capture: true });
+  setTimeout(removeTouchStart, 2000);
 }
 
 type Direction = 'up' | 'left' | 'down' | 'right';
@@ -149,6 +171,11 @@ export type Props<T extends HTMLElement> = {
   dragOpts?: UserDragConfig,
 };
 
+export type Ret<T extends HTMLElement> = {
+  ref: React.MutableRefObject<T | null>,
+  bindSwipe: (...args: any[]) => ReactDOMAttributes,
+};
+
 export default function useSwipeNavigation<T extends HTMLElement>({
   direction,
   duration = DEFAULT_DURATION,
@@ -161,8 +188,10 @@ export default function useSwipeNavigation<T extends HTMLElement>({
   getElement,
   maxSwipeStartDist,
   dragOpts,
-}: Props<T>) {
-  const axis = direction === 'left' || direction === 'right' || direction === 'horizontal' ? 'x' : 'y';
+}: Props<T>): Ret<T> {
+  const axis = direction === 'left' || direction === 'right' || direction === 'horizontal'
+    ? 'x'
+    : 'y';
   const elemDimProp = axis === 'x' ? 'offsetWidth' : 'offsetHeight';
   const axisIdx = axis === 'x' ? 0 : 1;
   const windowDim = useWindowSize()[axis === 'x' ? 'width' : 'height'];
@@ -257,22 +286,22 @@ export default function useSwipeNavigation<T extends HTMLElement>({
     }
 
     let swipePercent = mx / ref.current.dim * directionMultiplier;
-    swipePercent = Math.min(1, Math.max(0, swipePercent)) * 100;
+    swipePercent = clamp(swipePercent, 0, 1) * 100;
 
-    if (last) {
-      // pass
-    } else if (first || Math.sign(delta[axisIdx]) !== Math.sign(ref.current.lastDelta)) {
-      ref.current.lastMoves = [{
-        time: performance.now(),
-        x: mx,
-      }];
-    } else {
-      ref.current.lastMoves.push({
-        time: performance.now(),
-        x: mx,
-      });
+    if (!last && (first || delta[axisIdx])) {
+      if (first || Math.sign(delta[axisIdx]) !== Math.sign(ref.current.lastDelta)) {
+        ref.current.lastMoves = [{
+          time: performance.now(),
+          x: mx,
+        }];
+      } else {
+        ref.current.lastMoves.push({
+          time: performance.now(),
+          x: mx,
+        });
+      }
+      ref.current.lastDelta = delta[axisIdx];
     }
-    ref.current.lastDelta = delta[axisIdx];
 
     if (last) {
       const distToEdge = Math.min(
@@ -288,10 +317,11 @@ export default function useSwipeNavigation<T extends HTMLElement>({
       })) {
         let remainingDuration = duration * percentToEdge;
         if (velocity[axisIdx]) {
-          remainingDuration = Math.min(
-            remainingDuration,
-            (ref.current.dim * percentToEdge) / velocity[axisIdx],
-          );
+          const durationFromVelocity = (ref.current.dim * percentToEdge) / velocity[axisIdx];
+          if (durationFromVelocity < remainingDuration) {
+            // Just using durationFromVelocity feels too fast
+            remainingDuration = (remainingDuration + durationFromVelocity) / 2;
+          }
         }
         setPercent(
           100,
@@ -314,10 +344,12 @@ export default function useSwipeNavigation<T extends HTMLElement>({
         );
       }
 
-      window.addEventListener('touchend', _simulateClickAfterSwipeHack);
-      setTimeout(() => {
-        window.removeEventListener('touchend', _simulateClickAfterSwipeHack);
-      }, 500);
+      if (!DISABLE_BROWSER_HACKS) {
+        window.addEventListener('touchend', _simulateClickAfterSwipeHack);
+        setTimeout(() => {
+          window.removeEventListener('touchend', _simulateClickAfterSwipeHack);
+        }, 500);
+      }
     } else if (performance.now() - ref.current.lastSetPercentTime > 1000 / 120) {
       ref.current.lastSetPercentTime = performance.now();
       setPercent(
@@ -331,6 +363,8 @@ export default function useSwipeNavigation<T extends HTMLElement>({
     axis,
     filterTaps: true,
     tapsThreshold: 1,
+    // Fixes alt+arrow messing up use-gesture state with `axis: y`
+    keyboardDisplacement: 0,
     // Note: no axisThreshold because it feels laggy
   });
 

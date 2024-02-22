@@ -1,11 +1,8 @@
-import pLimit from 'p-limit';
-
+import throttledPromiseAll from 'utils/throttledPromiseAll';
 import MaterializedViewModels from 'services/model/allMaterializedViewModels';
 import retry from 'utils/retry';
-import { ENABLE_DBZ } from 'consts/mz';
+import { DBZ_FOR_INSERT_ONLY, DBZ_FOR_UPDATEABLE } from 'consts/mz';
 import verifyMZSinkConnectors from '../helpers/verifyMZSinkConnectors';
-
-const limiter = pLimit(5);
 
 export default async function waitForRRTablesData() {
   printDebug('Waiting for RR tables to have data', 'highlight');
@@ -18,13 +15,13 @@ export default async function waitForRRTablesData() {
   const tablesMissingData = new Set<ModelType>();
   await retry(
     async () => {
-      await Promise.all([...remainingTables].map(model => limiter(async () => {
+      await throttledPromiseAll(5, remainingTables, async model => {
         const hasMZRows = tablesMissingData.has(model.type);
         if (!hasMZRows) {
           const query = modelQuery(model, 'mz')
             .select(raw('1'))
             .limit(1);
-          const results = await (ENABLE_DBZ
+          const results = await (DBZ_FOR_UPDATEABLE || DBZ_FOR_INSERT_ONLY
             ? query.asOfNow()
             : query);
 
@@ -43,7 +40,7 @@ export default async function waitForRRTablesData() {
         } else {
           tablesMissingData.add(model.type);
         }
-      })));
+      });
       if (!tablesMissingData.size) {
         return;
       }

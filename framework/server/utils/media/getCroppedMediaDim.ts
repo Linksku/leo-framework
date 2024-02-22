@@ -1,46 +1,59 @@
-type Props = {
-  height: number,
-  width: number,
-  orientation?: number,
-  maxDim: number,
-  maxRatio?: number,
-};
-
 export default function getCroppedMediaDim({
   height,
   width,
   maxDim,
+  minRatio = 1,
   maxRatio = 1,
-}: Props) {
+}: {
+  height: number,
+  width: number,
+  maxDim: number,
+  minRatio?: number,
+  maxRatio?: number,
+}) {
   if (maxRatio < 1) {
     maxRatio = 1 / maxRatio;
+  }
+  if (minRatio > 1) {
+    minRatio = 1 / minRatio;
   }
   let newHeight = height;
   let newWidth = width;
 
   // Aspect ratio.
   if (newWidth / newHeight > maxRatio) {
-    newWidth = Math.round(newHeight * maxRatio);
+    newWidth = newHeight * maxRatio;
   }
-  if (newHeight / newWidth > maxRatio) {
-    newHeight = Math.round(newWidth * maxRatio);
+  if (newWidth / newHeight < minRatio) {
+    newHeight = newWidth / minRatio;
   }
 
   // Size.
   if (newHeight > maxDim && newWidth > maxDim) {
     if (newHeight > newWidth) {
-      newWidth = Math.round(newWidth / (newHeight / maxDim));
+      newWidth /= newHeight / maxDim;
       newHeight = maxDim;
     } else {
-      newHeight = Math.round(newHeight / (newWidth / maxDim));
+      newHeight /= newWidth / maxDim;
       newWidth = maxDim;
     }
   } else if (newHeight > maxDim) {
-    newWidth = Math.round(newWidth * (maxDim / newHeight));
+    newWidth *= maxDim / newHeight;
     newHeight = maxDim;
   } else if (newWidth > maxDim) {
-    newHeight = Math.round(newHeight * (maxDim / newWidth));
+    newHeight *= maxDim / newWidth;
     newWidth = maxDim;
+  }
+
+  if (newHeight === newWidth) {
+    newHeight = Math.round(newHeight);
+    newWidth = newHeight;
+  } else if (newHeight > newWidth) {
+    newHeight = Math.floor(newHeight);
+    newWidth = Math.ceil(newWidth);
+  } else {
+    newHeight = Math.ceil(newHeight);
+    newWidth = Math.floor(newWidth);
   }
 
   return { newHeight, newWidth };

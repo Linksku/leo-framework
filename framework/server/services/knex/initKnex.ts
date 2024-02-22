@@ -1,5 +1,6 @@
 import type { TypeId } from 'pg-types';
-import Knex from 'knex';
+import type { Knex } from 'knex';
+import KnexCls from 'knex';
 import pg from 'pg';
 import pgArray from 'postgres-array';
 
@@ -23,16 +24,16 @@ pg.types.setTypeParser(1016 as TypeId, val => pgArray.parse(val, str => {
   return int;
 }));
 
-Knex.QueryBuilder.extend('joinLateral', function joinLateral(table: any) {
+KnexCls.QueryBuilder.extend('joinLateral', function joinLateral(table: any) {
   // @ts-ignore Knex is missing type
-  this._joinType('lateral').join(table, raw('true'));
-  return this;
+  const joinType = this._joinType as (val: string) => Knex.QueryBuilder;
+  return joinType.call(this, 'lateral').join(table, raw('true'));
 });
 
-Knex.QueryBuilder.extend('leftJoinLateral', function leftJoinLateral(table: any) {
+KnexCls.QueryBuilder.extend('leftJoinLateral', function leftJoinLateral(table: any) {
   // @ts-ignore Knex is missing type
-  this._joinType('left lateral').join(table, raw('true'));
-  return this;
+  const joinType = this._joinType as (val: string) => Knex.QueryBuilder;
+  return joinType.call(this, 'left lateral').join(table, raw('true'));
 });
 
 export {};

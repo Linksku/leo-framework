@@ -1,11 +1,5 @@
 #!/bin/bash
 
-ARG_NODE_ENV="${NODE_ENV}"
-ARG_SERVER="${SERVER}"
-set -o allexport; source ./env; set +o allexport
-export NODE_ENV=${ARG_NODE_ENV:-${NODE_ENV}}
-export SERVER=${ARG_SERVER:-${SERVER}}
-
 name=$1
 
 if [ -f "build/$NODE_ENV/server/$name.js" ]; then

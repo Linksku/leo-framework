@@ -1,5 +1,5 @@
 import type { Knex } from 'knex';
-import { IS_PROFILING_API } from 'serverSettings';
+import { IS_PROFILING_API } from 'consts/infra';
 
 export default function beforeQuery({
   db,
@@ -41,9 +41,13 @@ export default function beforeQuery({
 
   if (rc?.debug) {
     printDebug(
+      // todo: low/mid add async context for apis
       rc ? `${db.toUpperCase()} Query ${rc.path}` : `${db.toUpperCase()} Query`,
       'success',
-      { details: knex.raw(sql, bindings).toString() },
+      {
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        details: knex.raw(sql, bindings).toString(),
+      },
     );
 
     if (db === 'rr') {

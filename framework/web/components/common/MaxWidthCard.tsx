@@ -1,4 +1,4 @@
-import styles from './MaxWidthCardStyles.scss';
+import styles from './MaxWidthCard.scss';
 
 type Props = {
   maxWidth?: 'lg' | 'md' | 'sm' | 'xs',

@@ -41,7 +41,14 @@ export const [
     }
 
     const hasBackState = !!backState;
-    const goBackStack = useLatest(() => {
+    // Handles bugs with going back twice before rerender
+    let hasPendingNav = false;
+    const goBackStack = useLatestCallback(() => {
+      if (hasPendingNav) {
+        return;
+      }
+      hasPendingNav = true;
+
       if (!hasBackState) {
         addHomeToHistory();
       }
@@ -53,7 +60,12 @@ export const [
 
     const hasForwardStack = !!forwardStack;
     const shouldForwardStackGoForward = !isForwardHome;
-    const goForwardStack = useLatest(() => {
+    const goForwardStack = useLatestCallback(() => {
+      if (hasPendingNav) {
+        return;
+      }
+      hasPendingNav = true;
+
       if (hasForwardStack) {
         if (shouldForwardStackGoForward) {
           window.history.forward();

@@ -5,7 +5,7 @@ import retry from 'utils/retry';
 export default async function deleteKafkaConnector(name: string) {
   const res = await fetchJson(
     `http://${KAFKA_CONNECT_HOST}:${KAFKA_CONNECT_PORT}/connectors/${encodeURIComponent(name)}`,
-    'DELETE',
+    { method: 'DELETE' },
   );
   if (res.status >= 400 && res.status !== 404) {
     throw getErr(

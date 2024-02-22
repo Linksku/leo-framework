@@ -1,8 +1,12 @@
-let memo: boolean | null = null;
+import { Capacitor } from '@capacitor/core';
+
+let cache: boolean | undefined;
 
 export default function isStandalone() {
-  if (memo === null) {
-    memo = window.matchMedia('(display-mode: standalone)').matches;
+  if (cache == null) {
+    cache = !Capacitor.isNativePlatform()
+      && typeof window !== 'undefined'
+      && window.matchMedia('(display-mode: standalone)').matches;
   }
-  return memo;
+  return cache;
 }

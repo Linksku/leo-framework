@@ -4,9 +4,26 @@
   "start_url": "/%BASE_PATH%",
   "icons": [
     {
-      "src": "%ASSETS_URL%/android-icon192.png",
+      "src": "%ASSETS_URL%/icon-android192.png",
       "type": "image/png",
       "sizes": "192x192"
+    },
+    {
+      "src": "%ASSETS_URL%/icon-android512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "%ASSETS_URL%/icon-maskable192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "%ASSETS_URL%/icon-maskable.svg",
+      "type": "image/svg+xml",
+      "sizes": "48x48 72x72 96x96 128x128 256x256 512x512",
+      "purpose": "maskable"
     }
   ],
   "theme_color": "#FFFFFF",

@@ -10,11 +10,10 @@ import WindowedInfiniteScrollerInner, { Props as InnerProps } from './WindowedIn
 type Props<
   T extends EntityType,
   Name extends PaginatedEntitiesApiName,
-  Params,
 > = {
   apiName: Name,
-  apiParams: Params & Stable<NoExtraProps<ApiParams<Name>, Params>>,
-  apiRefetchKey?: string,
+  apiParams: Stable<ApiParams<Name>>,
+  apiCacheBreaker?: string,
   apiInitialCursor?: string,
   entityType: T,
   throttleTimeout?: number,
@@ -33,9 +32,8 @@ type Props<
 function WindowedInfiniteEntitiesScroller<
   T extends EntityType,
   Name extends PaginatedEntitiesApiName,
-  Params,
 >(
-  props: Props<T, Name, Params>
+  props: Props<T, Name>
     & ListItemRendererProps<Entity<T>['id']>
     & { otherItemProps?: undefined },
 ): ReactElement;
@@ -43,22 +41,20 @@ function WindowedInfiniteEntitiesScroller<
 function WindowedInfiniteEntitiesScroller<
   T extends EntityType,
   Name extends PaginatedEntitiesApiName,
-  Params,
   OtherProps extends ObjectOf<any>,
 >(
-  props: Props<T, Name, Params>
+  props: Props<T, Name>
     & ListItemRendererProps<Entity<T>['id'], OtherProps>,
 ): ReactElement;
 
-// todo: mid/hard reset state when apiParams changes so key prop isn't needed
+// todo: low/hard reset state when apiParams changes so key prop isn't needed
 function WindowedInfiniteEntitiesScroller<
   T extends EntityType,
   Name extends PaginatedEntitiesApiName,
-  Params,
 >({
   apiName,
   apiParams,
-  apiRefetchKey,
+  apiCacheBreaker,
   apiInitialCursor,
   entityType,
   throttleTimeout,
@@ -69,11 +65,11 @@ function WindowedInfiniteEntitiesScroller<
   deletedItems,
   columns = 1,
   ...props
-}: Props<T, Name, Params> & ListItemRendererProps<Entity<T>['id']>) {
-  const prevRefetchKey = usePrevious(apiRefetchKey);
-  if (prevRefetchKey && prevRefetchKey !== apiRefetchKey) {
+}: Props<T, Name> & ListItemRendererProps<Entity<T>['id']>) {
+  const prevCacheBreaker = usePrevious(apiCacheBreaker);
+  if (prevCacheBreaker && prevCacheBreaker !== apiCacheBreaker) {
     ErrorLogger.warn(new Error(
-      'WindowedInfiniteEntitiesScroller: apiRefetchKey changed without key changing',
+      'WindowedInfiniteEntitiesScroller: apiCacheBreaker changed without key changing',
     ));
   }
 
@@ -85,8 +81,8 @@ function WindowedInfiniteEntitiesScroller<
     error,
     isFirstFetch,
     fetchNext,
-  } = usePaginationApi(apiName, apiParams as Stable<ApiParams<Name>>, {
-    refetchKey: apiRefetchKey,
+  } = usePaginationApi(apiName, apiParams, {
+    cacheBreaker: apiCacheBreaker,
     initialCursor: apiInitialCursor,
     throttleTimeout,
     maxItems,

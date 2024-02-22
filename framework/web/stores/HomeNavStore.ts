@@ -5,11 +5,10 @@ import useShallowMemoArr from 'hooks/useShallowMemoArr';
 import { FIRST_ID, getPartsFromPath } from 'stores/HistoryStore';
 import { DEFAULT_PATH_PARTS } from 'config/homeTabs';
 import shallowEqual from 'utils/shallowEqual';
-import { useAddPopHandler } from './HistoryStore';
 
 const HOME_TABS_SET = new Set<string>(Object.values(HOME_TABS));
 function _isPathHome(path: string | undefined): boolean {
-  if (!path) {
+  if (path == null) {
     return false;
   }
   if (path === '/' || path === '') {
@@ -20,11 +19,6 @@ function _isPathHome(path: string | undefined): boolean {
     pathParts[0] === '' ? pathParts[1] : pathParts[0],
   );
 }
-
-const HomeNavState = {
-  // Allow immediate exit.
-  canExit: true,
-};
 
 export const [
   HomeNavProvider,
@@ -101,7 +95,7 @@ export const [
       homeParts,
     }, true) ?? {};
 
-    const replaceHome = useLatest((
+    const replaceHome = useLatestCallback((
       newHomeTab: HomeTab,
       newParts?: string | string[],
       newQuery: ObjectOf<string | number> | null = null,
@@ -156,36 +150,6 @@ export const [
         pushPath(newPath, newQuery, newHash);
       }
     });
-
-    const addPopHandler = useAddPopHandler();
-    const showToast = useShowToast();
-    const latestPrevState = useLatest(prevState);
-    useEffect(() => {
-      if (!prevState
-        && HomeNavState.canExit
-        && (!isHome || homeTab !== HOME_TABS.FEED)) {
-        HomeNavState.canExit = false;
-        addPopHandler(() => {
-          if (!latestPrevState.current
-            && !HomeNavState.canExit
-            && (homeTab === HOME_TABS.FEED && isHome)) {
-            showToast({
-              msg: 'Tap again to exit',
-            });
-            HomeNavState.canExit = true;
-            return true;
-          }
-          return false;
-        });
-      }
-    }, [
-      prevState,
-      latestPrevState,
-      addPopHandler,
-      showToast,
-      isHome,
-      homeTab,
-    ]);
 
     const deferredHomeTab = useDeferredValue(homeTab);
     const deferredHomeParts = useDeferredValue(homeParts);

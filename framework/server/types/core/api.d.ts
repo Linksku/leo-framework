@@ -26,7 +26,10 @@ declare global {
       properties: Record<string, JsonSchema>,
       additionalProperties: false,
     },
-    fileFields?: { name: (keyof ApiNameToParams[Name]) & string, maxCount: number }[],
+    fileFields?: {
+      name: (keyof ApiNameToParams[Name]) & string,
+      maxCount: number,
+    }[],
   };
 
   type ApiHandlerParams<Name extends ApiName> = ApiNameToParams[Name] & {
@@ -36,7 +39,6 @@ declare global {
 
   type ApiHandler<Name extends ApiName> = (
     params: ApiHandlerParams<Name>,
-    // todo: low/mid add cookies to ApiRouteRet instead of passing res to apis
     res: ExpressResponse,
   ) => ApiRouteRet<Name> | Promise<ApiRouteRet<Name>>;
 

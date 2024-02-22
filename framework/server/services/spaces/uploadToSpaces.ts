@@ -1,38 +1,45 @@
 import type { Readable } from 'stream';
 import path from 'path';
-import os from 'os';
 
 import promiseTimeout from 'utils/promiseTimeout';
-import { API_POST_TIMEOUT, DEFAULT_ASSETS_CACHE_TTL } from 'settings';
-import { SPACES_HOST } from 'consts/infra';
+import { API_POST_TIMEOUT, DEFAULT_ASSETS_CACHE_TTL } from 'consts/server';
+import {
+  DO_SPACES_HOST,
+  DO_SPACES_BUCKET,
+  DO_SPACES_PREFIX,
+} from 'config/serverConfig';
 import Spaces from './Spaces';
 
 type Props = {
   file: Buffer | Uint8Array | Readable,
+  prefix?: string,
   path: string,
   contentType: string,
   maxAge?: number,
 };
 
-// todo: mid/mid verify Spaces paths are unique, periodically remove unused files
+// todo: mid/mid verify paths are unique
+// todo: mid/hard periodically remove unused files
 export default async function uploadToSpaces({
   file,
+  prefix = DO_SPACES_PREFIX,
   path: outPath,
   contentType,
   maxAge = DEFAULT_ASSETS_CACHE_TTL,
 }: Props): Promise<string> {
-  const prefix = process.env.PRODUCTION
-    ? 'p/'
-    : `dev/${os.hostname()}/`;
+  if (process.env.SERVER !== 'production' && prefix.startsWith('p/')) {
+    throw new Error('uploadToSpaces: can\'t upload to prod in dev');
+  }
+
   try {
     const uploaded = await promiseTimeout(
       Spaces
         .upload({
-          Bucket: process.env.DO_SPACES_BUCKET,
-          Key: `${prefix}${outPath}`,
+          Bucket: DO_SPACES_BUCKET,
+          Key: prefix + outPath,
           Body: file,
           ACL: 'public-read',
-          CacheControl: `public, max-age=${maxAge}`,
+          CacheControl: `public,max-age=${maxAge}`,
           ContentType: contentType,
           ContentDisposition: `inline; filename=${path.basename(outPath)}`,
         })
@@ -41,7 +48,7 @@ export default async function uploadToSpaces({
       new Error('uploadToSpaces: uploading file timed out.'),
     );
 
-    return `${SPACES_HOST}/${uploaded.Key}`;
+    return `${DO_SPACES_HOST}/${uploaded.Key}`;
   } catch (err) {
     ErrorLogger.warn(err, { ctx: 'uploadToSpaces' });
     throw new UserFacingError('Failed to upload file.', 500);

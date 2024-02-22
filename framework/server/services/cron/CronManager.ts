@@ -1,10 +1,8 @@
 import type { CronRepeatOptions, EveryRepeatOptions, Job } from 'bull';
-import pLimit from 'p-limit';
 import cluster from 'cluster';
 
-import createBullQueue, { wrapProcessJob } from 'helpers/createBullQueue';
-
-const limiter = pLimit(10);
+import throttledPromiseAll from 'utils/throttledPromiseAll';
+import createBullQueue, { wrapProcessJob } from 'core/createBullQueue';
 
 type CronConfig = {
   handler: (job: Job) => void | Promise<void>,
@@ -13,13 +11,14 @@ type CronConfig = {
 };
 
 const cronConfigs = new Map<string, CronConfig>();
+const MAX_STALE_TIME = 24 * 60 * 60 * 1000;
 let started = false;
 let lastRunTime = 0;
-const queue = createBullQueue('CronManager');
+export const queue = createBullQueue('CronManager');
 
 setInterval(() => {
   if (started && performance.now() - lastRunTime > 10 * 60 * 1000) {
-    printDebug('Cron hasn\'t ran for 10min, restarting worker.');
+    printDebug('Cron hasn\'t ran for 10min, restarting worker.', 'warn', { prod: 'always' });
     cluster.worker?.kill();
   }
 }, 60 * 1000);
@@ -30,9 +29,16 @@ async function startCronJob(name: string, { handler, repeat, timeout }: CronConf
       name,
       wrapProcessJob(async job => {
         lastRunTime = performance.now();
-        const ret = handler(job);
-        if (ret instanceof Promise) {
-          await ret;
+
+        try {
+          const ret = handler(job);
+          if (ret instanceof Promise) {
+            await ret;
+          }
+        } catch (err) {
+          throw getErr(err, {
+            jobName: name,
+          });
         }
       }),
     ),
@@ -84,32 +90,42 @@ export async function startCronJobs() {
   lastRunTime = performance.now();
 
   const existingJobs = await queue.getRepeatableJobs();
-  await Promise.all(
+  const removableJobs = existingJobs
+    .filter(job => !cronConfigs.has(job.name));
+  await throttledPromiseAll(
+    10,
     existingJobs
-      .filter(job => !cronConfigs.has(job.name))
-      .map(job => limiter(
-        () => queue.removeRepeatableByKey(job.key),
-      )),
+      .filter(job => !cronConfigs.has(job.name)),
+    job => queue.removeRepeatableByKey(job.key),
   );
+  const { cleanedPaused, cleanedFailed } = await promiseObj({
+    cleanedPaused: queue.clean(MAX_STALE_TIME, 'paused'),
+    cleanedFailed: queue.clean(MAX_STALE_TIME, 'failed'),
+  });
+  if (removableJobs.length || cleanedPaused.length || cleanedFailed.length) {
+    printDebug(`Removed ${removableJobs.length + cleanedPaused.length + cleanedFailed.length} old cron jobs`, 'info');
+  }
 
-  await Promise.all([...cronConfigs].map(
-    ([name, config]) => limiter(() => startCronJob(name, config)),
-  ));
+  await throttledPromiseAll(
+    10,
+    [...cronConfigs.entries()],
+    ([name, config]) => startCronJob(name, config),
+  );
 }
 
+// Note: this doesn't seem to always work
 export async function restartMissingCronJobs() {
   const existingJobs = await queue.getRepeatableJobs();
   const existingJobNames = new Set(existingJobs.map(job => job.name));
-  await Promise.all(
+  await throttledPromiseAll(
+    10,
     [...cronConfigs]
-      .filter(pair => !existingJobNames.has(pair[0]))
-      .map(([name, config]) => limiter(
-        () => queue.add(name, null, {
-          repeat: config.repeat,
-          timeout: config.timeout,
-          removeOnComplete: true,
-          removeOnFail: true,
-        }),
-      )),
+      .filter(pair => !existingJobNames.has(pair[0])),
+    ([name, config]) => queue.add(name, null, {
+      repeat: config.repeat,
+      timeout: config.timeout,
+      removeOnComplete: true,
+      removeOnFail: true,
+    }),
   );
 }

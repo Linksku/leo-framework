@@ -7,12 +7,14 @@ import { getMinFails, SERVER_STATUS_MAX_STALENESS } from 'services/healthcheck/H
 import { HEALTHCHECK } from 'consts/coreRedisNamespaces';
 import { redisMaster } from 'services/redis';
 import { INIT_INFRA_REDIS_KEY } from 'consts/infra';
-import { NUM_CLUSTER_SERVERS } from 'serverSettings';
+import { NUM_CLUSTER_SERVERS } from 'consts/infra';
 
-export default async function getServersStatus(args?: Arguments | {
+type Props = {
   silent?: boolean,
   silentSuccess?: boolean,
-}) {
+};
+
+export default async function getServersStatus(args?: Arguments<Props> | Props) {
   const data = await redisMaster.hgetall(`${HEALTHCHECK}:status`);
   const serverKeys = Object.keys(data)
     .map(k => Number.parseInt(k, 10))
@@ -24,9 +26,10 @@ export default async function getServersStatus(args?: Arguments | {
   for (const k of serverKeys) {
     const datum = TS.assertType<RedisServerStatus>(
       JSON.parse(data[k]),
-      val => Array.isArray(val.failing)
+      val => TS.isObj(val)
+        && Array.isArray(val.failing)
         && val.failing.every(
-          (f: any) => f && typeof f === 'object'
+          (f: any) => TS.isObj(f)
             && typeof f.name === 'string'
             && typeof f.numFails === 'number'
             && typeof f.isStale === 'boolean'
@@ -44,7 +47,7 @@ export default async function getServersStatus(args?: Arguments | {
     numActiveServers++;
     const hasFails = datum.failing?.length;
     if (!args?.silent && hasFails) {
-      console.log(`Server ${k}:`);
+      printDebug(`Server ${k}: failing (${Math.round(timeAgo / 1000)}s ago)`);
       for (const service of datum.failing) {
         const isWarning = service.skipped
           || service.isStale
@@ -60,26 +63,34 @@ export default async function getServersStatus(args?: Arguments | {
         if (!isWarning && service.lastErr) {
           msg += `: ${service.lastErr}`;
         }
-        console.log(msg);
+        printDebug(msg);
       }
     } else if (!args?.silent && !args?.silentSuccess && !hasFails) {
-      console.log(`Server ${k}: ${chalk.green('healthy')} (${Math.round(timeAgo / 1000)}s ago)`);
+      printDebug(`Server ${k}: ${chalk.green('healthy')} (${Math.round(timeAgo / 1000)}s ago)`);
     }
 
     newData[k] = datum;
   }
 
   if (!numActiveServers && !args?.silent) {
-    console.log(chalk.red('No servers are reporting status'));
+    if (!process.env.SERVER_SCRIPT_PATH?.includes('monitorInfra')) {
+      printDebug('No servers are reporting status', 'warn');
+    }
     return {};
   }
 
-  if (numActiveServers < NUM_CLUSTER_SERVERS && !args?.silent) {
-    console.log(chalk.yellow(`${NUM_CLUSTER_SERVERS - numActiveServers} servers aren't reporting status`));
+  if (numActiveServers < NUM_CLUSTER_SERVERS
+    && !args?.silent
+    && !!process.env.SERVER_SCRIPT_PATH?.includes('monitorInfra')) {
+    const numInactive = NUM_CLUSTER_SERVERS - numActiveServers;
+    printDebug(
+      `${numInactive} ${pluralize('server', numInactive)} not reporting status`,
+      'warn',
+    );
   }
 
   if (!args?.silent && await redisMaster.exists(INIT_INFRA_REDIS_KEY)) {
-    console.log(chalk.yellow('Currently initializing infra'));
+    printDebug('Currently initializing infra', 'warn');
   }
 
   return newData;

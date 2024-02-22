@@ -1,25 +1,3 @@
-import equal from 'fast-deep-equal';
-
-export function hasNewOrChangedExtras(
-  oldMap?: ObjectOf<any>,
-  newMap?: ObjectOf<any>,
-): boolean {
-  if (!newMap) {
-    return false;
-  }
-  if (!oldMap) {
-    return true;
-  }
-
-  for (const pair of TS.objEntries(newMap)) {
-    if (!TS.hasOwnProp(oldMap, pair[0]) || !equal(oldMap[pair[0]], pair[1])) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 export function hasNewIncludedRelations(
   oldRelations: Nullish<string[]>,
   newRelations: Nullish<string[]>,
@@ -40,25 +18,19 @@ export function hasNewIncludedRelations(
   return false;
 }
 
-export function mergeEntityExtras(
-  oldExtras: Nullish<ObjectOf<any>>,
-  newExtras: Nullish<ObjectOf<any>>,
-) {
-  return {
-    ...oldExtras,
-    ...newExtras,
-  };
-}
-
 export function mergeEntityIncludedRelations(
-  oldRelations: Nullish<string[]>,
-  newRelations: Nullish<string[]>,
-) {
+  oldRelations: Nullish<string[] | Set<string>>,
+  newRelations: Nullish<string[] | Set<string>>,
+): string[] | undefined {
   if (!oldRelations) {
-    return newRelations ?? undefined;
+    return newRelations instanceof Set
+      ? [...newRelations]
+      : (newRelations ?? undefined);
   }
   if (!newRelations) {
-    return oldRelations ?? undefined;
+    return oldRelations instanceof Set
+      ? [...oldRelations]
+      : (oldRelations ?? undefined);
   }
 
   return [...new Set([

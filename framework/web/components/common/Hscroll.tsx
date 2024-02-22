@@ -1,4 +1,4 @@
-import styles from './HscrollStyles.scss';
+import styles from './Hscroll.scss';
 
 export default function Hscroll({ children }: React.PropsWithChildren) {
   return (

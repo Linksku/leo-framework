@@ -1,11 +1,17 @@
 // @ts-ignore no module types
-import parsePrometheusTextFormat from 'parse-prometheus-text-format';
-import fromPairs from 'lodash/fromPairs.js';
+import _parsePrometheusTextFormat from 'parse-prometheus-text-format';
 
 import { MZ_HOST, MZ_PORT } from 'consts/infra';
-import { MZ_SINK_PREFIX, MZ_SINK_TOPIC_PREFIX, MZ_SINK_KAFKA_ERRORS_TABLE } from 'consts/mz';
+import {
+  MZ_SINK_PREFIX,
+  MZ_SINK_TOPIC_PREFIX,
+  MZ_SINK_KAFKA_ERRORS_TABLE,
+  MzSinkKafkaErrorsRow,
+} from 'consts/mz';
 import promiseTimeout from 'utils/promiseTimeout';
 import knexMZ from 'services/knex/knexMZ';
+
+const parsePrometheusTextFormat = _parsePrometheusTextFormat as (metrics: string) => unknown;
 
 export default async function fetchMZPrometheusFailingSinkIds() {
   const metricsRes = await promiseTimeout(
@@ -24,14 +30,14 @@ export default async function fetchMZPrometheusFailingSinkIds() {
   } = await promiseObj({
     // Try to fetch /metrics slightly before errors table in case errors table gets updated
     promMetricsText: metricsRes.text(),
-    existingErrors: knexMZ.select(['modelType', 'sinkId'])
+    existingErrors: knexMZ<MzSinkKafkaErrorsRow>(MZ_SINK_KAFKA_ERRORS_TABLE)
+      .select(['modelType', 'sinkId'])
       .max({
         count: 'count',
       })
-      .from(MZ_SINK_KAFKA_ERRORS_TABLE)
       .groupBy(['modelType', 'sinkId']),
-    mzSinks: knexMZ.select(['id', 'name'])
-      .from('mz_sinks'),
+    mzSinks: knexMZ<{ id: string, name: string }>('mz_sinks')
+      .select(['id', 'name']),
   });
 
   promMetricsText = promMetricsText
@@ -51,19 +57,23 @@ export default async function fetchMZPrometheusFailingSinkIds() {
   }[]>(
     parsePrometheusTextFormat(promMetricsText),
     val => Array.isArray(val) && val.every(
-      v => typeof v.name === 'string' && Array.isArray(v.metrics) && v.metrics.every(
-        (m: any) => m.labels && typeof m.labels === 'object'
-          && typeof m.labels.sink_id === 'string'
-          && typeof m.labels.topic === 'string'
-          && typeof m.value === 'string',
-      ),
+      v => TS.isObj(v)
+        && typeof v.name === 'string'
+        && Array.isArray(v.metrics)
+        && v.metrics.every(
+          m => TS.isObj(m)
+            && TS.isObj(m.labels)
+            && typeof m.labels.sink_id === 'string'
+            && typeof m.labels.topic === 'string'
+            && typeof m.value === 'string',
+        ),
     ),
   );
 
-  const existingErrorsMap = fromPairs(existingErrors.map(row => [row.sinkId, row.count]));
-  const sinkIdToModel = fromPairs(mzSinks.map(row => [
-    row.id as string,
-    (row.name as string).slice(MZ_SINK_PREFIX.length),
+  const existingErrorsMap = Object.fromEntries(existingErrors.map(row => [row.sinkId, row.count]));
+  const sinkIdToModel = Object.fromEntries(mzSinks.map(row => [
+    row.id,
+    row.name.slice(MZ_SINK_PREFIX.length),
   ]));
 
   const curErrorsMap: ObjectOf<number> = Object.create(null);

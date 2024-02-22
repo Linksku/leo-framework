@@ -4,18 +4,18 @@ import path from 'path';
 import { mkdirp } from 'mkdirp';
 import childProcess from 'child_process';
 
+import { APP_NAME } from 'config';
 import {
-  APP_NAME,
-  SITE_TITLE,
   BASE_PATH,
   HOME_URL,
   ASSETS_URL,
-} from 'settings';
-import recursiveReaddir from 'utils/recursiveReaddir';
-import { SPACES_HOST } from 'consts/infra';
+  API_URL,
+} from 'consts/server';
+import { DO_SPACES_HOST } from 'config/serverConfig';
+import readdirRecursive from 'utils/readdirRecursive';
 
 export default async function buildTemplates() {
-  const files = await recursiveReaddir(path.resolve('./framework/web/templates'));
+  const files = await readdirRecursive(path.resolve('./framework/web/templates'));
 
   await Promise.all(files
     .filter(file => file.endsWith('.ejs') && !file.startsWith('/partials/'))
@@ -33,17 +33,17 @@ export default async function buildTemplates() {
         ejs.render(
           template.toString(),
           {
-            name: APP_NAME,
-            title: SITE_TITLE,
+            appName: APP_NAME,
+            title: APP_NAME,
             basePath: BASE_PATH,
             assetsUrl: ASSETS_URL,
+            apiUrl: API_URL,
             homeUrl: HOME_URL,
-            description: process.env.DESCRIPTION,
             production: process.env.PRODUCTION,
             fileVersion: process.env.NODE_ENV === 'production'
               ? `.${childProcess.execSync('git rev-list --count master').toString().trim()}`
               : '',
-            spacesHost: SPACES_HOST,
+            spacesHost: DO_SPACES_HOST,
           },
           {
             filename: resolvedInPath,

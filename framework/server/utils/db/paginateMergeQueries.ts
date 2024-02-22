@@ -1,8 +1,5 @@
-import pLimit from 'p-limit';
-
+import throttledPromiseAll from 'utils/throttledPromiseAll';
 import paginateQuery, { OrderByColumns, PaginatedResponse, MAX_PER_PAGE } from './paginateQuery';
-
-const limiter = pLimit(10);
 
 export default async function paginateMergeQueries<T extends QueryBuilder<Model>>(
   queries: T[],
@@ -19,13 +16,15 @@ export default async function paginateMergeQueries<T extends QueryBuilder<Model>
     throw new Error(`paginateMergeQueries: ${queries.length} > 100 queries`);
   }
 
-  const results = await Promise.all(queries.map(
-    q => limiter(() => paginateQuery(
+  const results = await throttledPromiseAll(
+    10,
+    queries,
+    q => paginateQuery(
       q,
       orderByColumns,
       { limit, cursor, keepCursorVals: true },
-    )),
-  ));
+    ),
+  );
 
   let mergedEntities = results.flatMap(r => r.entities);
   mergedEntities.sort((a, b) => {

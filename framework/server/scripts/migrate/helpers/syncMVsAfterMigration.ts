@@ -6,20 +6,21 @@ import spawn from 'utils/spawn';
 import redisFlushAll from 'utils/infra/redisFlushAll';
 import { MODEL_NAMESPACES } from 'consts/coreRedisNamespaces';
 import isModelType from 'utils/models/isModelType';
-import createEachModel from 'config/createEachModel';
+import { createEachModel } from 'config/functions';
 import getPgReplicationStatus from 'utils/infra/getPgReplicationStatus';
 
-function getChangedModels(diff: string): string[] | 'other' {
+function getChangedModels(diff: string): { tables: string[], indexes: string[], other: boolean } {
   const lines = diff.split('\n');
   let changedLine: string | null = null;
-  let models: string[] = [];
+  let changedTables: string[] = [];
+  let changedIndexes: string[] = [];
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i].trim();
 
     if (changedLine !== null) {
       const matches = line.match(/^[+-]?\s*CREATE TABLE ("?\w+"?\.)?"?(\w+)"? /);
       if (matches) {
-        models.push(matches[2]);
+        changedTables.push(matches[2]);
         changedLine = null;
         continue;
       }
@@ -30,7 +31,7 @@ function getChangedModels(diff: string): string[] | 'other' {
       || line.startsWith('@@ ')) {
       if (changedLine !== null) {
         printDebug(`syncMVsAfterMigration.getChangedModels: other changed line: ${changedLine}`);
-        return 'other';
+        return { other: true, tables: [], indexes: [] };
       }
       continue;
     }
@@ -46,14 +47,15 @@ function getChangedModels(diff: string): string[] | 'other' {
 
       const matches = tmpLine.match(/^\s*ALTER TABLE (?:ONLY )?("?\w+"?\.)?"?(\w+)"? /);
       if (matches) {
-        models.push(matches[2]);
+        changedTables.push(matches[2]);
         changedLine = null;
         continue;
       }
 
-      const matches2 = tmpLine.match(/^\s*CREATE INDEX "?(\w+)"? ON ("?\w+"?\.)?"?(\w+)"? /);
+      const matches2 = tmpLine
+        .match(/^\s*CREATE (?:UNIQUE )?INDEX "?(\w+)"? ON ("?\w+"?\.)?"?(\w+)"? /);
       if (matches2) {
-        models.push(matches2[3]);
+        changedIndexes.push(matches2[3]);
         changedLine = null;
         continue;
       }
@@ -64,46 +66,51 @@ function getChangedModels(diff: string): string[] | 'other' {
 
   if (changedLine !== null) {
     printDebug(`syncMVsAfterMigration.getChangedModels: other changed line: ${changedLine}`, 'warn');
-    return 'other';
+    return { other: true, tables: [], indexes: [] };
   }
-  models = uniq(models);
-  if (models.length) {
-    printDebug(`syncMVsAfterMigration.getChangedModels: changed models: ${models.join(', ')}`, 'info');
+  changedTables = uniq(changedTables);
+  if (changedTables.length) {
+    printDebug(`syncMVsAfterMigration.getChangedModels: changed tables: ${changedTables.join(', ')}`, 'info');
   }
-  return models;
+  changedIndexes = uniq(changedIndexes);
+  if (changedIndexes.length) {
+    printDebug(`syncMVsAfterMigration.getChangedModels: changed indexes: ${changedIndexes.join(', ')}`, 'info');
+  }
+  return { tables: changedTables, indexes: changedIndexes, other: false };
 }
 
 export default async function syncMVsAfterMigration() {
-  await pgdump();
+  // Run pgdump before migrating
   const { btDiff, rrDiff, replicationStatus } = await promiseObj({
     btDiff: exec('git diff --unified=100 app/pgdumpBT.sql'),
     rrDiff: exec('git diff --unified=100 app/pgdumpRR.sql'),
     replicationStatus: getPgReplicationStatus(),
   });
 
-  const btChanged = getChangedModels(btDiff.stdout);
-  const rrChanged = getChangedModels(rrDiff.stdout);
+  const { tables: btTables, indexes: btIndexes, other: btOther } = getChangedModels(btDiff.stdout);
+  const { tables: rrTables, indexes: rrIndexes, other: rrOther } = getChangedModels(rrDiff.stdout);
 
   // Need to run server scripts because migrate can run outside Docker
   // and some services don't allow outside connections
-  if (btChanged === 'other'
-    || btChanged.length
-    || replicationStatus.missingPubTables.length
+  if (btOther
+    || btTables.length
+    || (replicationStatus.missingPubTables.length && !replicationStatus.missingSlots.length)
     || replicationStatus.extraPubTables.length
-    || replicationStatus.missingSlots.length
     || replicationStatus.extraSlots.length
     || replicationStatus.isRRSlotInactive) {
+    printDebug('BT changed', 'info');
     await createEachModel();
     await spawn(
-      'yarn ss recreateMVInfra',
+      'yarn ss recreateMVInfra -f',
       [],
       {
         stdio: 'inherit',
         shell: true,
       },
     );
-  } else if (rrChanged === 'other' || rrChanged.length > 1) {
-    // todo: mid/mid recreate mz if mv queries change without table change
+  } else if (rrOther || rrTables.length > 1) {
+    printDebug('RR changed', 'info');
+    // todo: mid/mid recreate mz if mv queries changed without pgdump change
     await spawn(
       'yarn ss recreateMZ --deleteMZSinkConnectors',
       [],
@@ -112,12 +119,13 @@ export default async function syncMVsAfterMigration() {
         shell: true,
       },
     );
-  } else if (rrChanged.length === 1) {
-    if (!isModelType(rrChanged[0])) {
-      throw new Error(`syncMVsAfterMigration: "${rrChanged[0]}" isn't model type`);
+  } else if (rrTables.length === 1) {
+    printDebug('RR changed', 'info');
+    if (!isModelType(rrTables[0])) {
+      throw new Error(`syncMVsAfterMigration: "${rrTables[0]}" isn't model type`);
     }
     await spawn(
-      `yarn ss recreateOneMV ${rrChanged[0]}`,
+      `yarn ss recreateOneMV ${rrTables[0]}`,
       [],
       {
         stdio: 'inherit',
@@ -126,5 +134,11 @@ export default async function syncMVsAfterMigration() {
     );
   } else {
     await withErrCtx(redisFlushAll(MODEL_NAMESPACES), 'redisFlushAll');
+  }
+
+  if (btOther || rrOther
+    || btTables.length || rrTables.length
+    || btIndexes.length || rrIndexes.length) {
+    await pgdump();
   }
 }

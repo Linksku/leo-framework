@@ -5,15 +5,10 @@ import {
   BT_SLOT_DBZ_INSERT_ONLY,
   BT_SLOT_DBZ_UPDATEABLE,
   BT_SLOT_RR,
-  ENABLE_DBZ,
+  DBZ_FOR_INSERT_ONLY,
+  DBZ_FOR_UPDATEABLE,
 } from 'consts/mz';
 import knexBT from 'services/knex/knexBT';
-
-const DBZ_SLOTS = [
-  BT_SLOT_RR,
-  BT_SLOT_DBZ_UPDATEABLE,
-  BT_SLOT_DBZ_INSERT_ONLY,
-];
 
 export default async function getPgReplicationStatus() {
   const { pubRows, slotsRows } = await promiseObj({
@@ -37,26 +32,46 @@ export default async function getPgReplicationStatus() {
   );
 
   const existingSlots: string[] = slotsRows.map(row => row.slot_name);
-  let missingSlots: string[] = [];
-  let extraSlots: string[] = [];
-  let extendedSlots: string[] = [];
+  const missingSlots: string[] = [];
+  const extraSlots: string[] = [];
+  const extendedSlots: string[] = [];
   let isRRSlotInactive = false;
-  if (ENABLE_DBZ) {
-    missingSlots = DBZ_SLOTS.filter(slot => !existingSlots.includes(slot));
-    extraSlots = existingSlots.filter(slot => !DBZ_SLOTS.includes(slot));
+
+  if (DBZ_FOR_UPDATEABLE && !existingSlots.includes(BT_SLOT_DBZ_UPDATEABLE)) {
+    missingSlots.push(BT_SLOT_DBZ_UPDATEABLE);
+  }
+  if (!DBZ_FOR_UPDATEABLE && existingSlots.includes(BT_SLOT_DBZ_UPDATEABLE)) {
+    extraSlots.push(BT_SLOT_DBZ_UPDATEABLE);
+  }
+
+  if (DBZ_FOR_INSERT_ONLY && !existingSlots.includes(BT_SLOT_DBZ_INSERT_ONLY)) {
+    missingSlots.push(BT_SLOT_DBZ_INSERT_ONLY);
+  }
+  if (!DBZ_FOR_INSERT_ONLY && existingSlots.includes(BT_SLOT_DBZ_INSERT_ONLY)) {
+    extraSlots.push(BT_SLOT_DBZ_INSERT_ONLY);
+  }
+
+  if (DBZ_FOR_UPDATEABLE && DBZ_FOR_INSERT_ONLY) {
+    const pgSlots = existingSlots.filter(slot => slot.startsWith(BT_CDC_SLOT_PREFIX));
+    if (pgSlots) {
+      extraSlots.push(...pgSlots);
+    }
   } else {
     if (!existingSlots.some(slot => slot.startsWith(BT_CDC_SLOT_PREFIX))) {
-      missingSlots = [BT_CDC_SLOT_PREFIX];
+      missingSlots.push(BT_CDC_SLOT_PREFIX);
     }
 
-    extendedSlots = slotsRows
+    extendedSlots.push(...slotsRows
       .filter(
         row => row.wal_status === 'extended'
           && row.slot_name.startsWith(BT_CDC_SLOT_PREFIX),
       )
-      .map(row => row.slot_name);
+      .map(row => row.slot_name));
   }
 
+  if (!existingSlots.includes(BT_SLOT_RR)) {
+    missingSlots.push(BT_SLOT_RR);
+  }
   if (slotsRows.some(row => row.slot_name === BT_SLOT_RR && row.active_pid == null)) {
     isRRSlotInactive = true;
   }

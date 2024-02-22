@@ -55,8 +55,10 @@ async function fetchKafkaConnectors(
   }
 
   let connectors = response?.data;
-  if (!expand && Array.isArray(connectors) && connectors.every((v: unknown) => typeof v === 'string')) {
-    return connectors.filter(c => c.startsWith(prefix)) as string[];
+  if (!expand
+    && Array.isArray(connectors)
+    && connectors.every((v: unknown) => typeof v === 'string')) {
+    return connectors.filter(c => (c as string).startsWith(prefix)) as string[];
   }
 
   if (connectors && typeof connectors === 'object') {
@@ -68,15 +70,17 @@ async function fetchKafkaConnectors(
       }));
   }
   if (expand === 'status' && Array.isArray(connectors)
-    && connectors.every((v: unknown) => v && typeof v === 'object'
-      && TS.hasProp(v, 'status') && v.status && typeof v.status === 'object'
+    && connectors.every(v => TS.isObj(v)
+      && TS.hasProp(v, 'status')
+      && TS.isObj(v.status)
       && TS.hasProp(v.status, 'connector')
       && TS.hasProp(v.status, 'tasks'))) {
     return connectors as ConnectorStatus[];
   }
   if (expand === 'info' && Array.isArray(connectors)
-    && connectors.every((v: unknown) => v && typeof v === 'object'
-      && TS.hasProp(v, 'info') && v.info && typeof v.info === 'object'
+    && connectors.every((v: unknown) => TS.isObj(v)
+      && TS.hasProp(v, 'info')
+      && TS.isObj(v.info)
       && TS.hasProp(v.info, 'config')
       && TS.hasProp(v.info, 'tasks'))) {
     return connectors as ConnectorInfo[];

@@ -1,8 +1,8 @@
-import { ENABLE_DBZ, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
+import { MZ_ENABLE_CONSISTENCY_TOPIC, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
 import type { Consumer } from 'kafkajs';
 
 import schemaRegistry from 'services/schemaRegistry';
-import { API_POST_TIMEOUT } from 'settings';
+import { API_POST_TIMEOUT } from 'consts/server';
 import createKafkaConsumer from 'utils/infra/createKafkaConsumer';
 import listKafkaTopics from 'utils/infra/listKafkaTopics';
 
@@ -52,9 +52,9 @@ export default async function waitForKafkaSinkMsg<
     ));
   }, timeout);
 
-  if (TS.hasProp(consumerConfigs, modelType)) {
-    const consumerConfig = consumerConfigs[modelType];
-    consumerConfig.lastSubbedTime = performance.now();
+  const oldConsumerConfig = consumerConfigs[modelType];
+  if (oldConsumerConfig) {
+    oldConsumerConfig.lastSubbedTime = performance.now();
     return new Promise((succ, fail) => {
       const sub: ConsumerSub = {
         match: Object.entries(partial),
@@ -62,8 +62,8 @@ export default async function waitForKafkaSinkMsg<
         rejectPromise: fail,
         timeoutTimer: 0 as unknown as NodeJS.Timeout,
       };
-      sub.timeoutTimer = createTimeoutTimer(consumerConfig, sub);
-      consumerConfig.subscriptions.push(sub);
+      sub.timeoutTimer = createTimeoutTimer(oldConsumerConfig, sub);
+      oldConsumerConfig.subscriptions.push(sub);
     });
   }
 
@@ -86,8 +86,8 @@ export default async function waitForKafkaSinkMsg<
   });
 
   try {
-    let modelTopic = `${MZ_SINK_TOPIC_PREFIX}${modelType}`;
-    if (!ENABLE_DBZ) {
+    let modelTopic = MZ_SINK_TOPIC_PREFIX + modelType;
+    if (!MZ_ENABLE_CONSISTENCY_TOPIC) {
       const topics = await listKafkaTopics(`${modelTopic}-`);
       if (!process.env.PRODUCTION && topics.length > 1) {
         throw getErr('waitForKafkaSinkMsg: too many topics', { topics });
@@ -97,6 +97,7 @@ export default async function waitForKafkaSinkMsg<
       }
       modelTopic = topics[0];
     }
+
     await consumer.connect();
     await consumer.subscribe({
       topic: modelTopic,
@@ -105,7 +106,7 @@ export default async function waitForKafkaSinkMsg<
     await consumer.run({
       async eachMessage({ topic, message }) {
         const msgModel = (
-          ENABLE_DBZ
+          MZ_ENABLE_CONSISTENCY_TOPIC
             ? topic.slice(MZ_SINK_TOPIC_PREFIX.length)
             : topic.slice(MZ_SINK_TOPIC_PREFIX.length).split('-')[0]
         ) as ModelType;
@@ -143,7 +144,10 @@ export default async function waitForKafkaSinkMsg<
     const err = getErr(_err, { ctx: 'waitForKafkaSinkMsg' });
     ErrorLogger.error(err);
 
-    await consumer.disconnect();
+    try {
+      await consumer.disconnect();
+    } catch {}
+
     const consumerConfig = consumerConfigs[modelType];
     if (consumerConfig) {
       for (const sub of consumerConfig.subscriptions) {

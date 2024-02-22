@@ -9,5 +9,5 @@ export default function isColDescNullsLast(Model: ModelClass, col: string) {
   const { nonNullType } = getNonNullSchema(schema);
   return nonNullType === 'number'
     || nonNullType === 'integer'
-    || (nonNullType && typeof nonNullType === 'object' && nonNullType.instanceof === 'Date');
+    || (TS.isObj(nonNullType) && nonNullType.instanceof === 'Date');
 }

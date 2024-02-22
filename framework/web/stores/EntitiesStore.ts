@@ -1,10 +1,11 @@
 import EntitiesEventEmitter from 'services/EntitiesEventEmitter';
 import {
-  hasNewOrChangedExtras,
   hasNewIncludedRelations,
-  mergeEntityExtras,
   mergeEntityIncludedRelations,
 } from 'utils/models/mergeEntityProps';
+import useTimeout from 'hooks/useTimeout';
+import isDebug from 'utils/isDebug';
+import { API_TIMEOUT } from 'consts/server';
 
 export type EntityEventHandler<T extends EntityType> =
   (
@@ -24,46 +25,30 @@ export function getEntitiesState() {
   return EntitiesState as Stable<Map<EntityType, EntitiesMap>>;
 }
 
+export const EntityEventsCounts: Record<
+  EntityAction,
+  Map<EntityType, Map<EntityId, number>>
+> = {
+  load: new Map(),
+  create: new Map(),
+  update: new Map(),
+  delete: new Map(),
+};
+
+const EntitiesEmittedCreateState = new Map<EntityType, Set<EntityId>>();
+
+export const EntitiesUsage = new WeakMap<Entity, {
+  fetchTime: number,
+  lastReadTime: number | null,
+}>();
+
 export const [
   EntitiesProvider,
   useEntitiesStore,
   useMutateEntity,
 ] = constate(
   function EntitiesStore() {
-    const entitiesByUniqueFieldsRef = useRef(new Map<
-      EntityType,
-      Map<
-        string, // field name
-        WeakMap<
-          EntitiesMap, // all entities map
-          Stable<Map<any, Entity>> // field values to entities
-        >
-      >
-    >());
-    const eventsCountRef = useRef<Record<
-      EntityAction,
-      Map<EntityType, Map<EntityId, number>>
-    >>({
-      load: new Map(),
-      create: new Map(),
-      update: new Map(),
-      delete: new Map(),
-    });
-    const entitiesEmittedCreate = useRef(new Map<EntityType, Set<EntityId>>());
-
-    const getEntities = useCallback(
-      <T extends EntityType>(type: T): EntitiesMap<Entity<T>> => (
-        EntitiesState.get(type) ?? new Map()
-      ) as EntitiesMap<Entity<T>>,
-      [],
-    );
-
-    const getEntity = useCallback(
-      <T extends EntityType>(type: T, id: EntityId): Entity<T> | null => (
-        EntitiesState.get(type)?.get(id) ?? null
-      ) as Entity<T> | null,
-      [],
-    );
+    const justFetchedEntities = useRef<ModelSerializedForApi[] | null>(null);
 
     // forceUpdate means replace object even if nothing changed
     const addOrUpdateEntities = useCallback(({ entities, action, forceUpdate }: {
@@ -79,12 +64,16 @@ export const [
       }
 
       const updated: { oldEntity: Entity | null, entity: Entity }[] = [];
-      let newIncludedRelations = false;
       const newEntities = new Map(EntitiesState);
       for (const entity of entities) {
         if (!entity.id || !entity.type) {
           ErrorLogger.warn(new Error(`EntitiesStore: invalid entity ${entity.type}, ${entity.id}`));
           continue;
+        }
+        if (!process.env.PRODUCTION
+          && (action === 'load' || action === 'create')
+          && TS.getProp(entity, 'isDeleted') === true) {
+          ErrorLogger.warn(new Error(`EntitiesStore: got deleted entity ${entity.type}, ${entity.id}`));
         }
 
         if (!newEntities.has(entity.type)) {
@@ -94,8 +83,7 @@ export const [
 
         const oldEntity = entitiesMap.get(entity.id);
         const isEntityAdded = !oldEntity;
-        const isEntityUpdated = !isEntityAdded && (forceUpdate
-          || hasNewOrChangedExtras(oldEntity.extras, entity.extras));
+        const isEntityUpdated = !isEntityAdded && forceUpdate;
         const entityNewIncludedRelations = !process.env.PRODUCTION
           && hasNewIncludedRelations(
             oldEntity?.includedRelations,
@@ -107,18 +95,11 @@ export const [
             newEntities.set(entity.type, entitiesMap);
           }
 
-          if (oldEntity?.extras) {
-            entity.extras = mergeEntityExtras(
-              oldEntity.extras,
-              entity.extras,
-            );
-          }
           if (entityNewIncludedRelations) {
             entity.includedRelations = mergeEntityIncludedRelations(
               oldEntity?.includedRelations,
               entity.includedRelations,
             );
-            newIncludedRelations = true;
           }
           entitiesMap.set(entity.id, entity as Stable<Entity>);
 
@@ -129,7 +110,7 @@ export const [
         }
       }
 
-      if (updated.length || newIncludedRelations) {
+      if (updated.length) {
         EntitiesState = newEntities;
 
         if (!process.env.PRODUCTION && typeof window !== 'undefined') {
@@ -140,15 +121,22 @@ export const [
 
       for (const { oldEntity, entity } of updated) {
         const eventsCount = TS.mapValOrSetDefault(
-          eventsCountRef.current[action],
+          EntityEventsCounts[action],
           entity.type,
           new Map(),
         );
         eventsCount.set('total', (eventsCount.get('total') ?? 0) + 1);
         eventsCount.set(entity.id, (eventsCount.get(entity.id) ?? 0) + 1);
 
+        if (!process.env.PRODUCTION) {
+          EntitiesUsage.set(entity, {
+            fetchTime: performance.now(),
+            lastReadTime: null,
+          });
+        }
+
         const emitAction = action === 'create'
-          && entitiesEmittedCreate.current.get(entity.type)?.has(entity.id)
+          && EntitiesEmittedCreateState.get(entity.type)?.has(entity.id)
           ? 'update'
           : action;
         if (emitAction === 'update') {
@@ -168,16 +156,20 @@ export const [
         }
         if (action === 'create') {
           TS.mapValOrSetDefault(
-            entitiesEmittedCreate.current,
+            EntitiesEmittedCreateState,
             entity.type,
             new Set(),
           )
             .add(entity.id);
         }
       }
+
+      justFetchedEntities.current = entities;
+      setTimeout(() => {
+        justFetchedEntities.current = null;
+      }, 0);
     }, []);
 
-    // todo: mid/mid warn if loaded entity is unused
     const loadEntities = useCallback((
       entities: ModelSerializedForApi | ModelSerializedForApi[],
     ) => {
@@ -233,7 +225,7 @@ export const [
 
       for (const entity of entitiesToDelete) {
         const eventsCount = TS.mapValOrSetDefault(
-          eventsCountRef.current.delete,
+          EntityEventsCounts.delete,
           entity.type,
           new Map(),
         );
@@ -280,9 +272,17 @@ export const [
           // todo: mid/mid warn if entity was just fetched then updated
         }
 
+        if (!process.env.PRODUCTION
+          && updates
+          && updates.action !== 'delete'
+          && justFetchedEntities.current?.some(ent => ent.type === type && ent.id === id)) {
+          ErrorLogger.warn(new Error(`mutateEntity(${type},${id}): entity was just fetched`));
+        }
+
         if (updates?.action === 'load') {
           loadEntities([{ id, type, ...updates.entity } as Entity<T>]);
         } else if (updates?.action === 'create') {
+          // todo: low/mid check if entity already exists
           createEntities([{ id, type, ...updates.entity } as Entity<T>]);
         } else if (updates?.action === 'update') {
           if (!entity) {
@@ -330,18 +330,44 @@ export const [
       EntitiesEventEmitter.off(key, cb);
     }, []);
 
-    if (!process.env.PRODUCTION && typeof window !== 'undefined') {
-      // @ts-ignore for debugging
-      window.entities = EntitiesState;
-      // @ts-ignore for debugging
-      window.mutateEntity = mutateEntity;
+    if (!process.env.PRODUCTION) {
+      if (typeof window !== 'undefined') {
+        // @ts-ignore for debugging
+        window.entities = EntitiesState;
+        // @ts-ignore for debugging
+        window.mutateEntity = mutateEntity;
+      }
+
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      useTimeout(useCallback(() => {
+        if (!isDebug) {
+          return;
+        }
+
+        const notUsed: Entity[] = [];
+        let numEntities = 0;
+        for (const entities of EntitiesState.values()) {
+          for (const entity of entities.values()) {
+            const usage = EntitiesUsage.get(entity);
+            if (usage && !usage.lastReadTime && performance.now() - usage.fetchTime > API_TIMEOUT) {
+              notUsed.push(entity);
+            }
+            numEntities++;
+          }
+        }
+
+        if (notUsed.length) {
+          // eslint-disable-next-line no-console
+          console.log(`${notUsed.length}/${numEntities} (${Math.round(notUsed.length / numEntities * 100)}%) entities not used:`, notUsed);
+        } else {
+          // Not all entities are necessarily used, e.g. useAllEntities marks all entities as read
+          // eslint-disable-next-line no-console
+          console.log(`All ${numEntities} entities used.`);
+        }
+      }, []), API_TIMEOUT * 2);
     }
 
     return useMemo(() => ({
-      entitiesByUniqueFieldsRef,
-      eventsCountRef,
-      getEntities,
-      getEntity,
       addEntityListener,
       removeEntityListener,
       loadEntities,
@@ -350,10 +376,6 @@ export const [
       deleteEntities,
       mutateEntity,
     }), [
-      entitiesByUniqueFieldsRef,
-      eventsCountRef,
-      getEntities,
-      getEntity,
       addEntityListener,
       removeEntityListener,
       loadEntities,

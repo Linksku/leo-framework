@@ -1,3 +1,4 @@
+// todo: low/easy replace some ts.last with arr.at(-1)
 function last<T>(
   arr: [T, ...T[]],
 ): T;

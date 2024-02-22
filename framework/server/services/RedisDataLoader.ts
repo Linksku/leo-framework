@@ -24,8 +24,10 @@ export default class RedisDataLoader<
         for (const k of keys) {
           if (transformKey) {
             // "as any" for perf
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             (pipeline as any)[command](...(transformKey as any)(k));
           } else {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             (pipeline as any)[command](k);
           }
         }

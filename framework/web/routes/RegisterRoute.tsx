@@ -1,26 +1,75 @@
-import InfoSvg from 'fa5/svg/info-circle-solid.svg';
+import InfoSvg from 'svgs/fa5/info-circle-solid.svg';
 import dayjs from 'dayjs';
 
 import StackWrapInner from 'components/frame/stack/StackWrapInner';
 import Form from 'components/common/Form';
 import HookFormErrors from 'components/HookFormErrors';
 import { MIN_USER_AGE, MAX_USER_AGE } from 'consts/coreUsers';
+import useLoginRedirectPathStorage from 'hooks/storage/useLoginRedirectPathStorage';
+import { getPathFromState } from 'stores/HistoryStore';
+import { DEFAULT_DURATION } from 'hooks/useAnimation';
+import InfoBanner from 'components/common/InfoBanner';
+import GoogleLoginButton from 'components/buttons/GoogleLoginButton';
+import detectPlatform from 'utils/detectPlatform';
 
-import styles from './RegisterRouteStyles.scss';
+import styles from './RegisterRoute.scss';
+
+const AppleLoginButton = React.lazy(async () => import(
+  /* webpackChunkName: 'AppleLoginButton' */ 'components/buttons/AppleLoginButton'
+));
 
 // todo: mid/mid captcha for signing up
 export default React.memo(function RegisterRoute() {
-  const { register, handleSubmit, control } = useForm({
+  const query = useRouteQuery();
+  const defaultEmail = query?.email;
+  const defaultName = query?.name;
+  const backAfterRegister = query?.backAfterRegister !== undefined;
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    control,
+  } = useForm({
     reValidateMode: 'onBlur',
     defaultValues: {
-      email: '',
+      email: typeof defaultEmail === 'string' ? defaultEmail : '',
       password: '',
-      name: '',
+      name: typeof defaultName === 'string' ? defaultName : '',
       birthday: '',
     },
   });
   const { errors } = useFormState({ control });
   const { authState, setAuth, isReloadingAfterAuth } = useAuthStore();
+  const { backState, isRouteActive } = useRouteStore();
+  useLoginRedirectPathStorage(
+    backState && backState.path !== '/login' && backState.path !== '/register'
+      ? getPathFromState(backState)
+      : undefined,
+  );
+  const selectedEmail = watch('email');
+  const onSubmitEmail = useCallback((email: string) => {
+    if (selectedEmail.includes('@')) {
+      setValue('email', email);
+    }
+  }, [selectedEmail, setValue]);
+  const onFetch = useCallback((data: ApiData<'registerUser'>) => {
+    setAuth({
+      authToken: data.authToken,
+      userId: data.currentUserId,
+      redirectPath: backAfterRegister
+        ? undefined
+        : '/onboard?registered',
+    });
+    if (isRouteActive && backAfterRegister) {
+      window.history.back();
+      setTimeout(() => {
+        // @ts-ignore reload(true)
+        window.location.reload(true);
+      }, DEFAULT_DURATION);
+    }
+  }, [setAuth, backAfterRegister, isRouteActive]);
 
   const { fetching, fetchApi: registerUser, error: apiError } = useDeferredApi(
     'registerUser',
@@ -28,39 +77,36 @@ export default React.memo(function RegisterRoute() {
     {
       type: 'create',
       returnState: true,
-      onFetch(data) {
-        setAuth({
-          authToken: data.authToken,
-          userId: data.currentUserId,
-          redirectPath: '/onboard?registered',
-        });
-      },
+      onFetch,
     },
   );
 
   const disabled = fetching || isReloadingAfterAuth || authState === 'in';
-  // todo: high/hard timeout when signing up
   return (
     <StackWrapInner
       title="Sign Up"
     >
       <div className={styles.container}>
         {authState === 'in' && (
-          <p className={styles.loggedInMsg}>
-            {isReloadingAfterAuth
+          <InfoBanner
+            msg={isReloadingAfterAuth
               ? 'Redirecting.'
               : (
                 <>
-                  <InfoSvg />
-                  {' '}
                   Already logged in.
                   {' '}
-                  <Link href="/">Go back to home</Link>
+                  <Link
+                    href="/"
+                    blue
+                  >
+                    Go to home
+                  </Link>
                   {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
                   {'.'}
                 </>
               )}
-          </p>
+            LeftSvg={isReloadingAfterAuth ? undefined : InfoSvg}
+          />
         )}
         <Form
           onSubmit={handleSubmit(data => {
@@ -135,22 +181,7 @@ export default React.memo(function RegisterRoute() {
             disabled={disabled}
           />
           <p className={styles.hint}>
-            * Only age will be displayed.
-          </p>
-
-          <p className={styles.tos}>
-            By signing up, you agree to the
-            {' '}
-            <Link href="/tos/terms">Terms of Service</Link>
-            {' '}
-            and
-            {' '}
-            <Link href="/tos/privacy">Privacy Policy</Link>
-            , including
-            {' '}
-            <Link href="/tos/cookie">Cookie Policy</Link>
-            {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
-            {'.'}
+            * Only your age will be shown, your birthday is private.
           </p>
 
           <HookFormErrors errors={errors} additionalError={apiError} />
@@ -164,7 +195,40 @@ export default React.memo(function RegisterRoute() {
           />
         </Form>
 
-        <p><Link href="/login">Log In</Link></p>
+        <div className={styles.socialWrap}>
+          <div className={styles.or}>or</div>
+          <GoogleLoginButton
+            type="register"
+            onSubmitEmail={onSubmitEmail}
+            onLogin={onFetch}
+          />
+          {detectPlatform().os === 'ios' && (
+            <AppleLoginButton
+              type="register"
+              onSubmitEmail={onSubmitEmail}
+              onLogin={onFetch}
+            />
+          )}
+        </div>
+
+        <p className={styles.tos}>
+          By signing up, you agree to the
+          {' '}
+          <Link href="/tos/terms">Terms of Service</Link>
+          {' '}
+          and
+          {' '}
+          <Link href="/tos/privacy">Privacy Policy</Link>
+          , including
+          {' '}
+          <Link href="/tos/cookie">Cookie Policy</Link>
+          {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
+          {'.'}
+        </p>
+
+        <p>
+          <Link href="/login" replace>Log In</Link>
+        </p>
       </div>
     </StackWrapInner>
   );

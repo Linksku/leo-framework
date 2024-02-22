@@ -1,8 +1,7 @@
 import deleteKafkaConnector from 'utils/infra/deleteKafkaConnector';
-import deleteKafkaTopics from 'utils/infra/deleteKafkaTopics';
 import { DBZ_TOPIC_UPDATEABLE_PREFIX, DBZ_TOPIC_INSERT_ONLY_PREFIX, DBZ_CONNECTOR_PREFIX } from 'consts/mz';
 import fetchKafkaConnectors from 'utils/infra/fetchKafkaConnectors';
-import deleteSchemaRegistry from 'utils/infra/deleteSchemaRegistry';
+import deleteTopicsAndSchema from 'utils/infra/deleteTopicsAndSchema';
 import { verifyUpdateableConnector, verifyInsertOnlyConnector } from '../helpers/verifyDBZKafkaConnectors';
 
 // Possible error: Failed to remove connector configuration from Kafka
@@ -13,8 +12,7 @@ async function _deleteUpdateableDBZConnector(forceDeleteDBZConnectors: boolean) 
   if ((forceDeleteDBZConnectors || !isValid) && connector) {
     printDebug('Deleting DBZ updateable tables connectors', 'highlight');
     await deleteKafkaConnector(connector.name);
-    await deleteKafkaTopics(DBZ_TOPIC_UPDATEABLE_PREFIX);
-    await deleteSchemaRegistry(new RegExp(`^${DBZ_TOPIC_UPDATEABLE_PREFIX}\\w+-(key|value)$`));
+    await deleteTopicsAndSchema(DBZ_TOPIC_UPDATEABLE_PREFIX);
   }
 }
 
@@ -24,8 +22,7 @@ async function _deleteInsertOnlyDBZConnector(forceDeleteDBZConnectors: boolean) 
   if ((forceDeleteDBZConnectors || !isValid) && connector) {
     printDebug('Deleting DBZ insert-only connectors', 'highlight');
     await deleteKafkaConnector(connector.name);
-    await deleteKafkaTopics(DBZ_TOPIC_INSERT_ONLY_PREFIX);
-    await deleteSchemaRegistry(new RegExp(`^${DBZ_TOPIC_INSERT_ONLY_PREFIX}\\w+-(key|value)$`));
+    await deleteTopicsAndSchema(DBZ_TOPIC_INSERT_ONLY_PREFIX);
   }
 }
 

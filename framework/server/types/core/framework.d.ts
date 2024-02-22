@@ -3,16 +3,8 @@ import type { JSONSchema4 } from 'json-schema';
 // Unused import to extend Express with Express.Multer.File
 import type _multer from 'multer';
 import 'compression';
-import { fetch as _fetch } from 'undici';
 
 declare global {
-  namespace NodeJS {
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
-    export interface ProcessEnv extends FrameworkEnv {}
-  }
-
-  const fetch: typeof _fetch;
-
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     export interface Request {
@@ -34,9 +26,10 @@ declare global {
     apiParams?: ObjectOf<unknown>,
     currentUserId: EntityId | null,
     userAgent: string | null,
-    os: OSTypes | null,
+    os: OSType | null,
+    platform: PlatformType | null,
     language: string | null,
-    redisCache: Map<string, any>,
+    reqCache: Map<string, any>,
     debug: boolean,
     loadTesting: boolean,
     numDbQueries: number,

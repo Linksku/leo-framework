@@ -1,7 +1,7 @@
 import exec from 'utils/exec';
 import retry from 'utils/retry';
 import { MZ_HOST, MZ_PORT } from 'consts/infra';
-import { APP_NAME_LOWER } from 'settings';
+import { APP_NAME_LOWER } from 'config';
 
 export default async function startMZDocker() {
   const startTime = performance.now();

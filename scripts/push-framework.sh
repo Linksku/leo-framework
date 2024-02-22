@@ -2,11 +2,12 @@
 
 cp .gitignore .gitignore-temp
 
-echo '/env' >> .gitignore
+echo '/env/' >> .gitignore
 echo '/app/' >> .gitignore
 echo '/capacitor/android/' >> .gitignore
 echo '/capacitor/ios/' >> .gitignore
 echo '/capacitor/resources/' >> .gitignore
+echo '/capacitor/app-store/' >> .gitignore
 
 printf '%s\n\n%s\n' $'This is the public version of my private repo with commits squashed.' "$(cat README.md)" > README.md
 

@@ -4,7 +4,7 @@ import LoadingRoute from 'routes/LoadingRoute';
 import ErrorBoundary from 'components/ErrorBoundary';
 import { useInnerContainerRef } from 'stores/RouteStore';
 
-import styles from './StackWrapInnerStyles.scss';
+import styles from './StackWrapInner.scss';
 
 type Props = {
   greyBackground?: boolean,

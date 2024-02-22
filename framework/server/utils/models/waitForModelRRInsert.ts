@@ -14,6 +14,7 @@ export default async function waitForModelRRInsert<
     timeout = 5000,
     throwIfTimeout = false,
     timeoutErrMsg = '',
+    otherErrMsg = '',
   } = {},
 ) {
   if (!process.env.PRODUCTION && !Model.getReplicaTable()) {
@@ -38,17 +39,20 @@ export default async function waitForModelRRInsert<
         if (throwIfTimeout) {
           throw err;
         }
+
         ErrorLogger.warn(new Error(
           `waitForModelRRInsert(${Model.name}): waitForKafkaSinkMsg timed out`,
         ));
         return;
+      } else if (otherErrMsg) {
+        throw new UserFacingError(otherErrMsg, 503, { err });
       } else {
         throw err;
       }
     }
   }
 
-  let lastErr: string | null = null;
+  let lastErr: any = null;
   for (let i = 0; i < timeout / retryInterval; i++) {
     lastErr = null;
     try {
@@ -60,16 +64,23 @@ export default async function waitForModelRRInsert<
         return;
       }
     } catch (err) {
-      lastErr = err instanceof Error ? err.message : 'Non-error was thrown.';
+      lastErr = err;
     }
 
     if (performance.now() - startTime >= timeout - retryInterval) {
+      if (lastErr) {
+        if (otherErrMsg) {
+          throw new UserFacingError(otherErrMsg, 503, { lastErr });
+        }
+        throw lastErr;
+      }
       if (timeoutErrMsg) {
-        throw new UserFacingError(timeoutErrMsg, 503, { lastErr });
+        throw new UserFacingError(timeoutErrMsg, 503);
       }
       if (throwIfTimeout) {
-        throw getErr('waitForModelRRInsert: timed out', { lastErr });
+        throw new Error('waitForModelRRInsert: RR timed out');
       }
+
       ErrorLogger.warn(new Error(
         `waitForModelRRInsert(${Model.name}): RR timed out`,
       ));

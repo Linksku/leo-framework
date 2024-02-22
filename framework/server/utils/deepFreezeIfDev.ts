@@ -15,7 +15,7 @@ export default function deepFreezeIfDev<T>(val: T): Readonly<T> {
   }
 
   if (Object.getPrototypeOf(obj) === Object.prototype) {
-    const newObj = Object.create(null) as ObjectOf<any>;
+    const newObj = Object.create(null);
     for (const k of Object.keys(obj)) {
       newObj[k] = deepFreezeIfDev(obj[k]);
     }

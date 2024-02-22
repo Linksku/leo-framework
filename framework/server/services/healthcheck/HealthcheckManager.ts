@@ -6,12 +6,14 @@ import rand from 'utils/rand';
 import randInt from 'utils/randInt';
 import { defineCronJob } from 'services/cron/CronManager';
 import PubSubManager from 'services/PubSubManager';
-import { IS_PROFILING_API, NUM_CLUSTER_SERVERS } from 'serverSettings';
+import { IS_PROFILING_API, NUM_CLUSTER_SERVERS } from 'consts/infra';
 import { HEALTHCHECK } from 'consts/coreRedisNamespaces';
-import getServerId from 'utils/getServerId';
-import { redisMaster } from 'services/redis';
+import getServerId from 'core/getServerId';
+import { redisMaster, shouldLogRedisError } from 'services/redis';
 import formatError from 'utils/formatErr';
 import { INIT_INFRA_REDIS_KEY } from 'consts/infra';
+import stringify from 'utils/stringify';
+import { DBZ_FOR_INSERT_ONLY, DBZ_FOR_UPDATEABLE } from 'consts/mz';
 
 export type HealthcheckName =
   | 'memory'
@@ -20,16 +22,20 @@ export type HealthcheckName =
   | 'pgRR'
   | 'replicationSlots'
   | 'rrEntities'
+  | 'dockerCompose'
   | 'dbzConnectors'
   | 'dbzConnectorTopics'
+  | 'dbzConnectorTopicMessages'
   | 'mzSources'
-  | 'mzSourceRows'
+  | 'mzDbzSourceRows'
+  | 'mzPgSourceRows'
   | 'mzViews'
   | 'mzSinks'
   | 'mzSinkTopics'
   | 'mzSinkTopicMessages'
   | 'mzSinkPrometheus'
   | 'mzSinkConnectors'
+  | 'kafkaConnect'
   | 'rrMVs'
   | 'mzUpdating'
   | 'redis'
@@ -39,11 +45,14 @@ export const MZ_DBZ_HEALTHCHECKS: HealthcheckName[] = [
   'replicationSlots',
   'dbzConnectors',
   'dbzConnectorTopics',
+  'dbzConnectorTopicMessages',
+  ...(DBZ_FOR_INSERT_ONLY || DBZ_FOR_UPDATEABLE ? ['kafkaConnect' as const] : []),
 ];
 
 export const MZ_HEALTHCHECKS: HealthcheckName[] = [
   'mzSources',
-  'mzSourceRows',
+  'mzDbzSourceRows',
+  'mzPgSourceRows',
   'mzViews',
   'mzSinks',
   'mzSinkPrometheus',
@@ -53,19 +62,22 @@ export const MZ_DOWNSTREAM_HEALTHCHECKS: HealthcheckName[] = [
   'mzSinkTopics',
   'mzSinkTopicMessages',
   'mzSinkConnectors',
+  'kafkaConnect',
   'rrMVs',
   'mzUpdating',
 ];
 
-// todo: high/mid monitor error logs
+// todo: mid/mid monitor error logs
 
 type HealthcheckConfig = {
   disabled?: boolean,
   deps?: HealthcheckName[],
   cb: () => Promise<void>,
   onlyForDebug?: boolean,
+  onlyForScript?: boolean,
   runOnAllServers?: boolean,
   resourceUsage: 'high' | 'mid' | 'low',
+  usesResource?: 'bt' | 'rr' | 'docker' | 'kafka' | 'mz',
   stability: 'high' | 'mid' | 'low',
   minUpdateFreq?: number,
   timeout: number,
@@ -91,6 +103,7 @@ const skipped = Object.create(null) as Record<HealthcheckName, boolean>;
 const lastRunTime = Object.create(null) as Record<HealthcheckName, number>;
 const lastErr = Object.create(null) as Record<HealthcheckName, unknown>;
 let hasStarted = false;
+let hasBeenHealthy = false;
 
 function _getDuration(name: HealthcheckName, passing: boolean) {
   const config = healthchecks[name];
@@ -165,11 +178,16 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
         const numUnhealthy = TS.objEntries(numFails).filter(
           pair => pair[1] >= getMinFails(pair[0]),
         ).length;
-        printDebug(
-          `Healthcheck ${name} healthy (${numUnhealthy} unhealthy)`,
-          'success',
-          { prod: 'always' },
-        );
+        if (hasBeenHealthy) {
+          printDebug(
+            `Healthcheck ${name} healthy (${numUnhealthy} unhealthy)`,
+            'success',
+            { prod: 'always' },
+          );
+        }
+        if (!numUnhealthy) {
+          hasBeenHealthy = true;
+        }
       }
     } catch (err) {
       if (!process.env.PRODUCTION && performance.now() - startTime > config.timeout * 2) {
@@ -180,7 +198,7 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
 
         if (numFails[name] === getMinFails(name) || !lastRunTime[name]) {
           printDebug(
-            `Healthcheck ${name} failed: ${err instanceof Error ? err.message : err}`,
+            `Healthcheck ${name} failed: ${err instanceof Error ? err.message : stringify(err)}`,
             'warn',
             { prod: 'only' },
           );
@@ -235,11 +253,16 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
         const numUnhealthy = TS.objEntries(numFails).filter(
           pair => pair[1] >= getMinFails(pair[0]),
         ).length;
-        printDebug(
-          `Healthcheck ${name} healthy (${numUnhealthy} unhealthy)`,
-          'success',
-          { prod: 'always' },
-        );
+        if (hasBeenHealthy) {
+          printDebug(
+            `Healthcheck ${name} healthy (${numUnhealthy} unhealthy)`,
+            'success',
+            { prod: 'always' },
+          );
+        }
+        if (!numUnhealthy) {
+          hasBeenHealthy = true;
+        }
 
         await job.update({
           repeat: {
@@ -261,7 +284,7 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
 
         if (numFails[name] === getMinFails(name) || !lastRunTime[name]) {
           printDebug(
-            `Healthcheck ${name} failed: ${err instanceof Error ? err.message : err}`,
+            `Healthcheck ${name} failed: ${err instanceof Error ? err.message : stringify(err)}`,
             'warn',
             { prod: 'only' },
           );
@@ -301,7 +324,8 @@ export function addHealthcheck(name: HealthcheckName, config: HealthcheckConfig)
   }
 
   healthchecks[name] = config;
-  if (!config.disabled && !config.onlyForDebug) {
+  if (!config.disabled && !config.onlyForDebug
+    && (!config.onlyForScript || process.env.IS_SERVER_SCRIPT)) {
     numFails[name] = START_FAILING ? getMinFails(name) : 0;
     skipped[name] = false;
     lastRunTime[name] = 0;
@@ -319,7 +343,8 @@ export function startHealthchecks() {
   }
 
   for (const [name, config] of TS.objEntries(healthchecks)) {
-    if (config.disabled || config.onlyForDebug) {
+    if (config.disabled || config.onlyForDebug
+      || (config.onlyForScript && !process.env.IS_SERVER_SCRIPT)) {
       continue;
     }
 
@@ -366,8 +391,19 @@ export function startHealthchecks() {
     }
   }
 
+  let lastWarnTime = performance.now();
   setInterval(() => {
-    if (!Object.values(lastRunTime).every(Boolean)) {
+    const haventRun = TS.objEntries(lastRunTime)
+      .filter(pair => !pair[1]);
+    if (haventRun.length) {
+      if (performance.now() - lastWarnTime > 10 * 60 * 1000) {
+        printDebug(
+          `HealthcheckManager: healthchecks haven't run: ${haventRun.map(pair => pair[0]).join(', ')}`,
+          'warn',
+          { prod: 'always' },
+        );
+        lastWarnTime = performance.now();
+      }
       return;
     }
 
@@ -408,7 +444,10 @@ async function _updateLocked() {
       new Error('HealthcheckManager._updateLocked: Redis timed out'),
     );
   } catch (err) {
-    ErrorLogger.error(err, { ctx: 'HealthcheckManager._updateLocked' });
+    if (shouldLogRedisError(err)
+      && !(err instanceof Error && err.message.includes('Redis timed out'))) {
+      ErrorLogger.error(err, { ctx: 'HealthcheckManager._updateLocked' });
+    }
     isLocked = true;
   }
 
@@ -417,18 +456,26 @@ async function _updateLocked() {
 // eslint-disable-next-line unicorn/prefer-top-level-await
 wrapPromise(_updateLocked(), 'fatal', 'HealthcheckManager._updateLocked');
 
-export function isHealthy(allowMzFailures?: boolean): boolean {
+export function isHealthy({ onlyFatal, ignoreStaleRR }: {
+  onlyFatal?: boolean,
+  ignoreStaleRR?: boolean,
+} = {}): boolean {
   if (!hasStarted) {
     throw new Error('HealthcheckManager.isHealthy: haven\'t started');
   }
-  if (isLocked && !allowMzFailures) {
+  if (isLocked && !ignoreStaleRR && !onlyFatal) {
     return false;
   }
 
   const failingHealthchecks = TS.objEntries(numFails)
-    .filter(pair => pair[1] >= getMinFails(pair[0]) || (lastRunTime[pair[0]] && _isStale(pair[0])));
+    .filter(pair => pair[1] >= getMinFails(pair[0])
+      || (lastRunTime[pair[0]] && _isStale(pair[0])));
   if (!failingHealthchecks.length) {
     return true;
+  }
+  const failingRRMVs = failingHealthchecks.some(pair => pair[0] === 'rrMVs');
+  if (failingRRMVs || onlyFatal) {
+    return failingRRMVs;
   }
 
   const notSkippedFailing = failingHealthchecks.filter(pair => !skipped[pair[0]]);
@@ -442,7 +489,7 @@ export function isHealthy(allowMzFailures?: boolean): boolean {
     }
   }
 
-  if (allowMzFailures && failingHealthchecks.every(
+  if (ignoreStaleRR && failingHealthchecks.every(
     pair => MZ_DBZ_HEALTHCHECKS.includes(pair[0])
       || MZ_HEALTHCHECKS.includes(pair[0])
       || MZ_DOWNSTREAM_HEALTHCHECKS.includes(pair[0]),
@@ -468,7 +515,7 @@ export function healthcheckRecursiveDeps(service: HealthcheckName) {
     return TS.defined(recursiveDeps[service]);
   }
 
-  const deps: Set<HealthcheckName> = new Set();
+  const deps = new Set<HealthcheckName>();
   const configs = [healthchecks[service]];
   while (configs.length) {
     const config = TS.defined(configs.shift());

@@ -1,9 +1,9 @@
-import LocationSvg from 'fa5/svg/location-regular.svg';
+import LocationSvg from 'svgs/fa5/location-regular.svg';
 import { Geolocation } from '@capacitor/geolocation';
 
 import promiseTimeout from 'utils/promiseTimeout';
 
-import styles from './GeolocateButtonStyles.scss';
+import styles from './GeolocateButton.scss';
 
 type Props = {
   onGeolocate: ((lat: number, lng: number) => void),

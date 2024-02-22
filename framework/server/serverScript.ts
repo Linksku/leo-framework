@@ -1,7 +1,8 @@
+import 'core/initEnv';
+
 // todo: low/mid build shared lib bundle for server scripts
 import yargs from 'yargs';
 
-import 'helpers/initDotenv';
 import 'services/knex/knexBT';
 
 if (!process.env.SERVER_SCRIPT_PATH) {
@@ -20,13 +21,13 @@ let promise: any;
 try {
   // todo: low/mid args validation and typing
   // Note: yargs built-in validation allows non-numbers and converts them to NaN
-  promise = fn(yargs(process.argv).argv);
+  promise = (fn as AnyFunction)(yargs(process.argv).argv);
 } catch (err) {
   printDebug(getErr(err, { ctx: `serverScript (${process.env.SERVER_SCRIPT_PATH})` }), 'error');
   await ErrorLogger.flushAndExit(1);
 }
 
-if (promise && promise.then) {
+if (TS.isObj(promise) && promise instanceof Promise) {
   // Node bug: prevent exiting while promises are running
   setTimeout(NOOP, 24 * 60 * 60 * 1000);
 

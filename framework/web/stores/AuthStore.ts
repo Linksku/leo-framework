@@ -1,11 +1,11 @@
-import useAuthTokenLS from 'hooks/localStorage/useAuthTokenLS';
-import useCurrentUserIdLS from 'hooks/localStorage/useCurrentUserIdLS';
+import useAuthTokenStorage from 'hooks/storage/useAuthTokenStorage';
+import useCurrentUserIdStorage from 'hooks/storage/useCurrentUserIdStorage';
 import { setErrorLoggerUserId } from 'services/ErrorLogger';
 
 /*
-in -> current user is set
-out -> current user is null
-fetching -> fetching user right after loading page
+in: fetched currentUser
+out: null authToken, null currentUser
+fetching: has authToken and maybe currentUserId, fetching currentUser
 */
 type AuthStateType = 'in' | 'out' | 'fetching';
 
@@ -16,8 +16,8 @@ const [
   useAuthState,
 ] = constate(
   function AuthStore() {
-    const [authToken, setAuthToken, removeAuthToken] = useAuthTokenLS();
-    const [currentUserIdLS, setCurrentUserIdLS, removeCurrentUserIdLS] = useCurrentUserIdLS();
+    const [authToken, setAuthToken, removeAuthToken] = useAuthTokenStorage();
+    const [currentUserIdLS, setCurrentUserIdLS, removeCurrentUserIdLS] = useCurrentUserIdStorage();
     const [{ currentUserId, authState }, setState] = useStateStable<{
       currentUserId: IUser['id'] | null,
       authState: AuthStateType,
@@ -35,8 +35,7 @@ const [
     }: {
       authToken: string | null,
       userId: IUser['id'] | null,
-      // todo: low/mid redirect to previous path
-      redirectPath: string,
+      redirectPath?: string,
     }) => {
       if (newAuthToken && userId) {
         setAuthToken(newAuthToken);
@@ -49,7 +48,10 @@ const [
       }
 
       setIsReloadingAfterAuth(true);
-      window.location.href = redirectPath;
+      if (redirectPath) {
+        // Note: Chrome can freeze after redirecting with devtools open, probably browser bug
+        window.location.href = redirectPath;
+      }
       catchAsync(Promise.reject(new Promise(NOOP)));
     }, [
       setAuthToken,

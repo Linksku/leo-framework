@@ -1,22 +1,25 @@
-import { API_TIMEOUT } from 'settings';
+import { API_TIMEOUT } from 'consts/server';
 import useVisibilityObserver from 'hooks/useVisibilityObserver';
 import { useInnerContainerRef, useHadRouteBeenActive } from 'stores/RouteStore';
+import ErrorBoundary from 'components/ErrorBoundary';
 import type { ListItemRendererProps } from './WindowedInfiniteScrollerColumn';
 import WindowedInfiniteScrollerColumn from './WindowedInfiniteScrollerColumn';
 import useItemsToColumns from './useItemsToColumns';
 
-import styles from './WindowedInfiniteScrollerInnerStyles.scss';
+import styles from './WindowedInfiniteScrollerInner.scss';
 
 function InnerSpinner({
   numItems,
   spinnerPadding,
   spinnerDimRem,
+  spinnerWrapClassName,
   onSpinnerVisible,
   onSpinnerTimeout,
 }: {
   numItems: number,
   spinnerPadding?: string,
   spinnerDimRem?: number,
+  spinnerWrapClassName?: string,
   onSpinnerVisible?: Stable<() => void>,
   onSpinnerTimeout?: Stable<() => void>,
 }) {
@@ -25,7 +28,10 @@ function InnerSpinner({
     onVisible: useCallback(() => {
       onSpinnerVisible?.();
       if (onSpinnerTimeout) {
-        timerRef.current = window.setTimeout(onSpinnerTimeout, API_TIMEOUT / 2);
+        timerRef.current = window.setTimeout(
+          onSpinnerTimeout,
+          Math.min(3000, API_TIMEOUT / 2),
+        );
       }
     }, [onSpinnerVisible, onSpinnerTimeout]),
     onHidden: useCallback(() => {
@@ -47,7 +53,7 @@ function InnerSpinner({
     <div
       key={numItems}
       ref={visibilityRef}
-      className={styles.spinner}
+      className={cx(styles.spinner, spinnerWrapClassName)}
       style={{
         padding: spinnerPadding ? `${spinnerPadding} 0` : undefined,
       }}
@@ -71,7 +77,6 @@ export type Props<ItemType extends string | number> = {
   addEntitiesToEnd?: boolean,
   initialId?: ItemType,
   columns?: number,
-  loadingElement?: Stable<ReactElement>,
   estimateItemHeight?: Stable<(item: ItemType, avgHeight: number) => number>,
   notFoundMsg?: Stable<ReactNode>,
   completedMsg?: Stable<ReactNode>,
@@ -81,8 +86,10 @@ export type Props<ItemType extends string | number> = {
   className?: string,
   columnClassName?: string,
   errorClassName?: string,
+  notFoundClassName?: string,
   spinnerPadding?: string,
   spinnerDimRem?: number,
+  spinnerWrapClassName?: string,
 } & ListItemRendererProps<ItemType>;
 
 // Note: items are append-only.
@@ -98,7 +105,6 @@ export default React.memo(function WindowedInfiniteScrollerInner<ItemType extend
   addEntitiesToEnd = false,
   initialId,
   columns = 1,
-  loadingElement,
   estimateItemHeight,
   notFoundMsg = 'Nothing found',
   completedMsg = null,
@@ -108,8 +114,10 @@ export default React.memo(function WindowedInfiniteScrollerInner<ItemType extend
   className,
   columnClassName,
   errorClassName,
+  notFoundClassName,
   spinnerPadding,
   spinnerDimRem,
+  spinnerWrapClassName,
   ...props
 }: Props<ItemType>) {
   if (!process.env.PRODUCTION && reverse && columns > 1) {
@@ -210,32 +218,30 @@ export default React.memo(function WindowedInfiniteScrollerInner<ItemType extend
     setStuckSpinnerNumItems(numItems);
   }, [numItems]);
 
-  if (isFirstFetch && !numItems && loadingElement) {
-    return loadingElement;
-  }
   if (isFirstFetch || numItems || apiError) {
-    // todo: low/mid resizing window may make spinner stuck
     return (
       <div
         ref={innerRef}
         className={cx({ [styles.reverse]: reverse }, className)}
       >
         {topElement}
-        {columns === 1
+        {columns === 1 || (isFirstFetch && !numItems)
           ? (
             <div className={cx(styles.singleColumn, columnClassName)}>
-              <WindowedInfiniteScrollerColumn
-                {...props}
-                columnIdx={0}
-                hasRightColumn={false}
-                items={columnItems[0]}
-                initialVisibleItems={initialVisibleItems}
-                scrollParentRelative={scrollParentRelative}
-                itemToRow={itemToRow}
-                reverse={reverse}
-                onReachEnd={handleReachedEnd}
-                scrollableRef={scrollableRef}
-              />
+              {columnItems[0].length > 0 && (
+                <WindowedInfiniteScrollerColumn
+                  {...props}
+                  columnIdx={0}
+                  hasRightColumn={false}
+                  items={columnItems[0]}
+                  initialVisibleItems={initialVisibleItems}
+                  scrollParentRelative={scrollParentRelative}
+                  itemToRow={itemToRow}
+                  reverse={reverse}
+                  onReachEnd={handleReachedEnd}
+                  scrollableRef={scrollableRef}
+                />
+              )}
               {apiError
                 || (stuckSpinnerNumItems === numItems && hadBeenActive)
                 || (hasCompleted && hasColsReachedEnd[0])
@@ -245,6 +251,7 @@ export default React.memo(function WindowedInfiniteScrollerInner<ItemType extend
                     numItems={numItems}
                     spinnerPadding={spinnerPadding}
                     spinnerDimRem={spinnerDimRem}
+                    spinnerWrapClassName={spinnerWrapClassName}
                     onSpinnerVisible={hadBeenActive ? onSpinnerVisible : undefined}
                     onSpinnerTimeout={hadBeenActive ? onSpinnerTimeout : undefined}
                   />
@@ -259,18 +266,20 @@ export default React.memo(function WindowedInfiniteScrollerInner<ItemType extend
                   key={colIdx}
                   className={cx(styles.column, columnClassName)}
                 >
-                  <WindowedInfiniteScrollerColumn
-                    {...props}
-                    columnIdx={colIdx}
-                    hasRightColumn={colIdx < columns - 1}
-                    items={items}
-                    initialVisibleItems={initialVisibleItems}
-                    scrollParentRelative={scrollParentRelative}
-                    itemToRow={itemToRow}
-                    reverse={reverse}
-                    onReachEnd={handleReachedEnd}
-                    scrollableRef={scrollableRef}
-                  />
+                  {items.length > 0 && (
+                    <WindowedInfiniteScrollerColumn
+                      {...props}
+                      columnIdx={colIdx}
+                      hasRightColumn={colIdx < columns - 1}
+                      items={items}
+                      initialVisibleItems={initialVisibleItems}
+                      scrollParentRelative={scrollParentRelative}
+                      itemToRow={itemToRow}
+                      reverse={reverse}
+                      onReachEnd={handleReachedEnd}
+                      scrollableRef={scrollableRef}
+                    />
+                  )}
                   {apiError
                     || (stuckSpinnerNumItems === numItems && hadBeenActive)
                     || (hasCompleted && hasColsReachedEnd[colIdx])
@@ -280,6 +289,7 @@ export default React.memo(function WindowedInfiniteScrollerInner<ItemType extend
                         numItems={numItems}
                         spinnerPadding={spinnerPadding}
                         spinnerDimRem={spinnerDimRem}
+                        spinnerWrapClassName={spinnerWrapClassName}
                         onSpinnerVisible={hadBeenActive ? onSpinnerVisible : undefined}
                         onSpinnerTimeout={hadBeenActive ? onSpinnerTimeout : undefined}
                       />
@@ -309,7 +319,13 @@ export default React.memo(function WindowedInfiniteScrollerInner<ItemType extend
           if (hasCompleted
             && columnItems.every((_, colIdx) => hasColsReachedEnd[colIdx])
             && completedMsg) {
-            return completedMsg;
+            return React.isValidElement(completedMsg)
+              ? (
+                <ErrorBoundary>
+                  {completedMsg}
+                </ErrorBoundary>
+              )
+              : completedMsg;
           }
           return null;
         })()}
@@ -317,10 +333,17 @@ export default React.memo(function WindowedInfiniteScrollerInner<ItemType extend
       </div>
     );
   }
-  if (typeof notFoundMsg === 'string') {
-    return (
-      <div className={styles.notFoundMsg}>{notFoundMsg}</div>
+  return React.isValidElement(notFoundMsg)
+    ? (
+      <ErrorBoundary>
+        {notFoundMsg}
+      </ErrorBoundary>
+    )
+    : (
+      <div
+        className={cx(styles.notFoundMsg, notFoundClassName)}
+      >
+        {notFoundMsg}
+      </div>
     );
-  }
-  return notFoundMsg;
 });

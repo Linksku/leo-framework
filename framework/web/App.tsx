@@ -12,6 +12,7 @@ import { EntitiesProvider } from 'stores/EntitiesStore';
 import { HistoryProvider } from 'stores/HistoryStore';
 import { HomeNavProvider } from 'stores/HomeNavStore';
 import { RelationsProvider } from 'stores/RelationsStore';
+import { NotifsProvider } from 'stores/NotifsStore';
 import { SseProvider } from 'stores/SseStore';
 import { SlideUpProvider } from 'stores/SlideUpStore';
 import { StacksNavProvider } from 'stores/StacksNavStore';
@@ -42,6 +43,7 @@ export default function App() {
 
     // Other data
     SseProvider,
+    NotifsProvider,
 
     // Nav
     HomeNavProvider,

@@ -1,43 +1,59 @@
-import SyncSvg from 'fa5/svg/sync-alt-solid.svg';
+import SyncSvg from 'svgs/fa5/sync-alt-solid.svg';
 
 import useSwipeNavigation from 'hooks/useSwipeNavigation';
-import { useAnimation } from 'hooks/useAnimation';
+import { useAnimatedValue, useAnimation } from 'hooks/useAnimation';
 import mergeRefs from 'utils/mergeRefs';
 
-import styles from './PullToReloadStyles.scss';
+import styles from './PullToReload.scss';
 
 export type Props = {
   className?: string,
 } & React.HTMLAttributes<HTMLDivElement>;
 
 const ELEM_DIM = 36;
-const MAX_DEG = 270;
+const MAX_DISPLACEMENT = 3;
+const RELOADING_MAX_ROTATIONS = 100;
 
 export default function PullToReload({
   children,
   className,
   ...props
 }: React.PropsWithChildren<Props>) {
-  const { reloadSpinnerDeg, reloadPage } = useUIFrameStore();
+  const { reloadPage, isReloadingPage } = useUIFrameStore();
+  const reloadSpinnerPercent = useAnimatedValue(
+    0,
+    {
+      debugName: 'ReloadSpinner',
+      maxVal: RELOADING_MAX_ROTATIONS * 100,
+    },
+  );
   const [animationRef, animationStyle] = useAnimation<HTMLDivElement>(
-    reloadSpinnerDeg,
+    reloadSpinnerPercent,
     'PullToReload',
   );
 
+  // todo: low/mid allow pull to reload past 100%
   const { ref, bindSwipe } = useSwipeNavigation<HTMLDivElement>({
     duration: 500,
-    elementDim: ELEM_DIM * 3,
+    elementDim: ELEM_DIM * (MAX_DISPLACEMENT * 1.5),
     onNavigate: useCallback(() => {
       reloadPage();
     }, [reloadPage]),
     setPercent(p, duration) {
-      reloadSpinnerDeg.setVal(
-        p / 100 * MAX_DEG,
-        duration,
-      );
+      reloadSpinnerPercent.setVal(p, duration, 'linear');
     },
     direction: 'down',
   });
+
+  useEffect(() => {
+    if (isReloadingPage) {
+      reloadSpinnerPercent.setVal(
+        RELOADING_MAX_ROTATIONS * 100,
+        // This is overridden by styles.isReloading
+        1,
+      );
+    }
+  }, [isReloadingPage, reloadSpinnerPercent]);
 
   return (
     <div
@@ -51,9 +67,14 @@ export default function PullToReload({
         style={animationStyle(
           {
             transform(x) {
-              const remainingPercent = Math.max(0, 1 - (x / MAX_DEG));
-              const temp = 1 - Math.max(0, remainingPercent ** 2);
-              return `translateX(-50%) translateY(${(temp * 300) - 100}%) rotate(${x + 90}deg)`;
+              const eased = x > 100 ? x : Math.cbrt(x / 100) * 100;
+              const rotate = ((eased / 100) * 270) + 90;
+              return `translateX(-50%) rotate(${rotate}deg)`;
+            },
+            top(x) {
+              const eased = x > 100 ? 100 : Math.cbrt(x / 100) * 100;
+              const top = (eased * MAX_DISPLACEMENT) - 100;
+              return `${top}%`;
             },
           },
           {
@@ -63,7 +84,9 @@ export default function PullToReload({
             defaultEasing: 'linear',
           },
         )}
-        className={styles.reloadSpinner}
+        className={cx(styles.reloadSpinner, {
+          [styles.isReloading]: isReloadingPage,
+        })}
       >
         <div className={styles.reloadSpinnerInner}>
           <SyncSvg />

@@ -1,11 +1,26 @@
-import fromPairs from 'lodash/fromPairs.js';
-
 import isSchemaNumeric from 'utils/models/isSchemaNumeric';
 
 export function getApiId(ent: Model): ApiEntityId {
   const index = (ent.constructor as ModelClass).getPrimaryIndex();
-  if (!Array.isArray(index)) {
-    return ent[index];
+  if (typeof index === 'string') {
+    // todo: low/mid type of Model shouldn't be { __isModel: boolean }
+    const id = ent[index];
+    if (!process.env.PRODUCTION
+      && typeof id !== 'number'
+      && typeof id !== 'string') {
+      throw getErr(
+        `getApiId(${ent.constructor.name}): id has unexpected type`,
+        { id, type: typeof id });
+    }
+    return typeof id === 'number' ? id : `${id}`;
+  }
+
+  if (!process.env.PRODUCTION
+    && !index.every(col => typeof ent[col] === 'number' || typeof ent[col] === 'string')) {
+    throw getErr(
+      `getApiId(${ent.constructor.name}): id has unexpected type`,
+      { id: index.map(i => ent[i]), types: index.map(i => typeof ent[i]) },
+    );
   }
   return index
     .map(i => ent[i])
@@ -18,13 +33,13 @@ export function apiIdToPartial<T extends ModelType>(
 ): ModelPartial<ModelTypeToClass<T>> {
   const Model = getModelClass(entityType);
   const index = Model.getPrimaryIndex();
-  if (!Array.isArray(index)) {
+  if (typeof index === 'string') {
     if (typeof id !== 'number') {
       throw getErr(`apiIdToPartial: expected ${entityType}'s id to be number`, { id });
     }
     return {
       [index]: id,
-    } as ModelPartial<ModelTypeToClass<T>>;
+    } as unknown as ModelPartial<ModelTypeToClass<T>>;
   }
 
   if (typeof id !== 'string') {
@@ -35,7 +50,7 @@ export function apiIdToPartial<T extends ModelType>(
     throw getErr(`apiIdToPartial: invalid ${entityType} api id`, { id });
   }
 
-  return fromPairs(index.map((col, idx) => {
+  return Object.fromEntries(index.map((col, idx) => {
     const idVal = isSchemaNumeric(Model.getSchema()[col])
       ? TS.parseIntOrNull(parts[idx])
       : parts[idx];

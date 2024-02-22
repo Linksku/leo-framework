@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
+    "target": "es2022",
+    "module": "es2022",
     "moduleResolution": "node",
     "allowJs": true,
     "noEmit": true,
@@ -17,7 +17,6 @@
     "strictNullChecks": true,
     "useUnknownInCatchVariables": true,
     "resolveJsonModule": false,
-    "lib": ["es2022"],
     "types": [
       "webpack-env",
     ],

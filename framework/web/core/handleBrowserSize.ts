@@ -1,9 +1,9 @@
 import throttle from 'utils/throttle';
 import isVirtualKeyboardOpen from 'utils/isVirtualKeyboardOpen';
-import isIOS from 'utils/isIOS';
+import detectPlatform from 'utils/detectPlatform';
 
 if (TS.hasProp(navigator, 'virtualKeyboard')) {
-  (navigator.virtualKeyboard as any).overlaysContent = false;
+  navigator.virtualKeyboard.overlaysContent = false;
 }
 
 function _handleResize() {
@@ -17,7 +17,7 @@ function _handleResize() {
   // Note: on Android, after re-opening screen, height can be wrong
   document.documentElement.style.setProperty(
     '--vh100',
-    `${window.visualViewport?.height ?? window.innerHeight}px`,
+    `${Math.round(window.visualViewport?.height ?? window.innerHeight)}px`,
   );
 
   // Move screen back after opening mobile keyboard
@@ -33,7 +33,7 @@ const throttledHandleResize = throttle(
       clearTimeout(resizeTimer);
     }
     // Note: on iOS, height doesn't update immediately
-    resizeTimer = setTimeout(_handleResize, 100);
+    resizeTimer = window.setTimeout(_handleResize, 100);
   },
   { timeout: 100 },
 );
@@ -58,11 +58,15 @@ export default function handleBrowserSize() {
 
   window.addEventListener('resize', throttledHandleResize);
   window.addEventListener('focus', throttledHandleResize);
-  // todo: mid/mid resize event doesn't always fire for ios
+  // todo: mid/blocked resize event doesn't always fire for ios
   window.visualViewport?.addEventListener('resize', throttledHandleResize);
-  window.visualViewport?.addEventListener('scroll', throttledHandleScroll);
+  window.visualViewport?.addEventListener(
+    'scroll',
+    throttledHandleScroll,
+    { passive: true },
+  );
 
-  if (isIOS()) {
+  if (detectPlatform().os === 'ios') {
     setInterval(throttledHandleScroll, 100);
   }
 }

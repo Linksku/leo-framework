@@ -11,8 +11,10 @@ export default function objValOrSetDefault<
     ? Exclude<Obj[K], undefined | null>
     : Exclude<ValueOf<Obj>, undefined | null> {
   const k = (typeof _k === 'number' ? _k.toString() : _k) as keyof Obj;
-  if (!(k in obj) || obj[k] == null) {
-    obj[k] = defaultVal;
+  if ((k in obj) && obj[k] != null) {
+    return obj[k];
   }
-  return obj[k];
+
+  obj[k] = defaultVal;
+  return defaultVal;
 }

@@ -1,7 +1,7 @@
 type Cb = (...args: any[]) => void;
 
 export default class EventEmitter {
-  _callbacks: Map<string, Cb[]> = new Map();
+  _callbacks = new Map<string, Cb[]>();
 
   on(eventName: string, cb: Cb) {
     const callbacks = TS.mapValOrSetDefault(

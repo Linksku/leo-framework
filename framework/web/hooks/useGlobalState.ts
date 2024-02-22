@@ -6,17 +6,14 @@ const GlobalStateEventEmitter = markStable(new EventEmitter());
 
 const GlobalState = new Map() as Stable<Map<string, any>>;
 
-// todo: low/mid maybe replace global state with atoms etc
+// todo: mid/mid replace global state with atoms etc
 export default function useGlobalState<T>(
   key: string,
   initialState: T | (() => T),
 ): [Stable<T>, SetState<T>] {
   if (!process.env.PRODUCTION
-    && (
-      (!key.startsWith('use') && !/^[A-Z]/.test(key))
-      || (!key.includes(':') && !key.includes('.'))
-    )
-  ) {
+    && !key.startsWith('use')
+    && !/^[A-Z]/.test(key)) {
     throw new Error('useGlobalState: key must contain hook or component name');
   }
 
@@ -47,7 +44,7 @@ export default function useGlobalState<T>(
   }, [key]);
 
   return [
-    state as Stable<T>,
+    state,
     setState,
   ];
 }

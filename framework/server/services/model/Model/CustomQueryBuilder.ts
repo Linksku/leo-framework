@@ -2,12 +2,17 @@ import type { Page } from 'objection';
 import type { Knex } from 'knex';
 import { QueryBuilder as BaseQueryBuilder } from 'objection';
 // @ts-ignore Objection is missing type
-import { KnexOperation } from 'objection/lib/queryBuilder/operations/KnexOperation.js';
+import { KnexOperation as _KnexOperation } from 'objection/lib/queryBuilder/operations/KnexOperation.js';
 import unzip from 'lodash/unzip.js';
 
 import formatTsquery from 'utils/db/formatTsquery';
 import { AGGREGATE_FUNCTIONS } from 'consts/pg';
 import isSchemaNullable from 'utils/models/isSchemaNullable';
+import { MZ_TIMESTAMP_FREQUENCY } from 'consts/mz';
+
+const KnexOperation = _KnexOperation as {
+  new(name: string, opt?: any): typeof KnexOperation;
+};
 
 const AGGREGATE_FUNCTIONS_SET = new Set(AGGREGATE_FUNCTIONS);
 
@@ -52,7 +57,7 @@ function validateLateral(
   table: Knex.Raw | BaseQueryBuilder<any>,
 ) {
   const lateralModelType = TS.getAs<ModelClass>(table, '_modelClass').type;
-  if (TS.hasProp(table, '_operations')) {
+  if (TS.hasDefinedProp(table, '_operations')) {
     const operations = TS.getAs<{ name: string, args: any[] }[]>(table, '_operations');
     for (const op of operations) {
       if (op.name !== 'where') {
@@ -62,7 +67,9 @@ function validateLateral(
       const rightVals = op.args.length === 1 && typeof op.args[0] === 'object'
         ? Object.values(op.args[0])
         : [TS.last(op.args)];
-      const stringCol = rightVals.find(val => typeof val === 'string' && /^"?\w+"?\."?\w+"?$/.test(val));
+      const stringCol = rightVals.find(
+        val => typeof val === 'string' && /^"?\w+"?\."?\w+"?$/.test(val),
+      );
       if (stringCol) {
         throw new Error(
           `joinLateral(${modelType}, ${lateralModelType}): maybe "${stringCol}" should be raw column instead of string`,
@@ -97,8 +104,12 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
       throw new Error(`CustomQueryBuilder.limit: invalid value "${val}"`);
     }
 
-    // @ts-ignore Objection type is wrong
-    return this.addOperation(new KnexOperation('limit'), [limit, { skipBinding: true }]);
+    // @ts-ignore Objection is missing type
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    return this.addOperation(
+      new KnexOperation('limit'),
+      [limit, { skipBinding: true }],
+    );
   }
 
   coalesce(
@@ -132,21 +143,21 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
       const schema = Model.getSchema()[col as ModelKey<ModelClass>];
 
       if (schema && isSchemaNullable(schema)) {
+        // todo: low/mid make isDistinctFrom work differently with MZ
         printDebug(`whereNot(${Model.type}.${col}): unsafe condition, use whereDistinctFrom`, 'warn');
       }
     }
-    return super.whereNot(
-      // @ts-ignore wontfix spread arr
-      ...args,
-    );
+    return super
+      // @ts-ignore wontfix
+      .whereNot(...args);
   };
 
   whereDistinctFrom(col: string, val: any): this {
-    return super.where(col, 'IS DISTINCT FROM', val);
+    return this.where(col, 'IS DISTINCT FROM', val);
   }
 
   whereNotDistinctFrom(col: string, val: any): this {
-    return super.where(col, 'IS NOT DISTINCT FROM', val);
+    return this.where(col, 'IS NOT DISTINCT FROM', val);
   }
 
   tsquery(
@@ -240,7 +251,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
               : `(${data.map(_ => '?').join(',')})`),
           ).join(',')
         })
-        ??(${data.map(_ => '??')})
+        ??(${data.map(_ => '??').join(', ')})
       `,
       [
         ...unzip(data.map(d => d.rows)).flat(),
@@ -256,6 +267,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     validateLateral('inner', TS.getAs<ModelClass>(this, '_modelClass').type, table);
 
     // @ts-ignore Objection is missing type
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     return this.addOperation(
       new KnexOperation('joinLateral'),
       [table],
@@ -266,6 +278,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
     validateLateral('left', TS.getAs<ModelClass>(this, '_modelClass').type, table);
 
     // @ts-ignore Objection is missing type
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     return this.addOperation(
       new KnexOperation('leftJoinLateral'),
       [table],
@@ -280,9 +293,13 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
 
   asOfNow(): this {
     // @ts-ignore Objection is missing type
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     return this.addOperation(
       new KnexOperation('offset'),
-      [raw('0 AS OF now()'), { skipBinding: true }],
+      [
+        raw(`0 AS OF now() + INTERVAL '${MZ_TIMESTAMP_FREQUENCY} MILLISECOND'`),
+        { skipBinding: true },
+      ],
     );
   }
 }

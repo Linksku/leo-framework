@@ -1,15 +1,13 @@
 import showMzSystemRows from 'utils/db/showMzSystemRows';
 import MaterializedViewModels from 'services/model/allMaterializedViewModels';
-import getEntitiesWithMZSources from 'scripts/mv/helpers/getEntitiesWithMZSources';
-import { ENABLE_DBZ } from 'consts/mz';
+import getEntitiesForMZSources from 'scripts/mv/helpers/getEntitiesForMZSources';
 import { addHealthcheck } from './HealthcheckManager';
 
-const expectedViews: string[] = ENABLE_DBZ
-  ? MaterializedViewModels.map(model => model.type)
-  : [
-    ...MaterializedViewModels.map(model => model.type),
-    ...getEntitiesWithMZSources(),
-  ];
+const expectedViews: string[] = [
+  ...MaterializedViewModels.map(Model => Model.type),
+  ...getEntitiesForMZSources('pg')
+    .map(Model => Model.type),
+];
 
 addHealthcheck('mzViews', {
   deps: ['mzSources'],
@@ -28,6 +26,7 @@ addHealthcheck('mzViews', {
     }
   },
   resourceUsage: 'mid',
+  usesResource: 'mz',
   stability: 'mid',
-  timeout: 10 * 1000,
+  timeout: 2 * 60 * 1000,
 });

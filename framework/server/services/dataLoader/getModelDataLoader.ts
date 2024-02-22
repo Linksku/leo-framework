@@ -1,7 +1,7 @@
 import type DataLoader from 'dataloader';
 
-import { IS_PROFILING_API } from 'serverSettings';
-import createDataLoader from 'utils/createDataLoader';
+import { IS_PROFILING_API } from 'consts/infra';
+import createDataLoader from 'core/createDataLoader';
 
 const dataLoaders = new Map<string, DataLoader<
   ModelPartial<ModelClass>,
@@ -15,6 +15,8 @@ export default function getModelDataLoader<T extends ModelClass>(Model: T): Data
   if (!dataLoaders.has(Model.type)) {
     dataLoaders.set(Model.type, createDataLoader(
       async (partials: readonly ModelPartial<T>[]) => {
+        const startTime = performance.now();
+
         let query = modelQuery(Model);
         for (const partial of partials) {
           query = query.orWhere(partial);
@@ -27,7 +29,7 @@ export default function getModelDataLoader<T extends ModelClass>(Model: T): Data
           }
         }
 
-        return partials.map(partial => {
+        const results = partials.map(partial => {
           const pairs = TS.objEntries(partial);
           return rows.find(row => {
             for (const pair of pairs) {
@@ -39,6 +41,13 @@ export default function getModelDataLoader<T extends ModelClass>(Model: T): Data
             return true;
           }) ?? null;
         });
+
+        if (IS_PROFILING_API) {
+          // eslint-disable-next-line no-console
+          console.log(`modelDataLoader(${Model.type}): ${results.length} ${pluralize('result', results.length)} in ${Math.round(performance.now() - startTime)}ms`);
+        }
+
+        return results;
       },
       {
         objKeys: true,

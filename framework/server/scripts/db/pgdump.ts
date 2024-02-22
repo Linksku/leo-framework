@@ -1,6 +1,5 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import fromPairs from 'lodash/fromPairs.js';
 import trimEnd from 'lodash/trimEnd.js';
 import isEqual from 'lodash/isEqual.js';
 
@@ -16,9 +15,11 @@ import isColDescNullsLast from 'utils/models/isColDescNullsLast';
 import {
   PG_BT_HOST,
   PG_BT_PORT,
+  PG_BT_DB,
   PG_BT_SCHEMA,
   PG_RR_HOST,
   PG_RR_PORT,
+  PG_RR_DB,
   PG_RR_SCHEMA,
 } from 'consts/infra';
 
@@ -215,7 +216,7 @@ function parseTables(lines: string[]) {
   });
 
   if (hasError) {
-    throw new Error('pgdump: had errors');
+    printDebug('pgdump: had errors', 'error');
   }
 
   console.log(`${lines.length} lines unprocessed.`);
@@ -239,7 +240,7 @@ function verifyModels(
     }
   }
 
-  const tableNameToModel = fromPairs(
+  const tableNameToModel = Object.fromEntries(
     models.map(m => [m.tableName, m]),
   );
   for (const [tableName, table] of TS.objEntries(tables)) {
@@ -318,12 +319,19 @@ function verifyModels(
     } else {
       const normalIndexes = Model.getNormalIndexes().map(index => ({
         name: getIndexName(Model.tableName, index),
-        cols: index.map(col => ({
-          name: col,
-          nulls: isColDescNullsLast(Model, col)
-            ? 'DESC NULLS LAST'
-            : 'ASC NULLS FIRST',
-        })),
+        cols: Array.isArray(index)
+          ? index.map(col => ({
+            name: col,
+            nulls: isColDescNullsLast(Model, col)
+              ? 'DESC NULLS LAST'
+              : 'ASC NULLS FIRST',
+          }))
+          : {
+            name: index,
+            nulls: isColDescNullsLast(Model, index)
+              ? 'DESC NULLS LAST'
+              : 'ASC NULLS FIRST',
+          },
       }));
       const expressionIndexes = Model.expressionIndexes.map(index => ({
         name: index.name ?? getIndexName(Model.tableName, index.cols ?? index.col),
@@ -364,12 +372,19 @@ function verifyModels(
       : Model.getUniqueIndexes();
     const uniqueIndexes = uniqueIndexesRaw.map((index, idx) => ({
       name: getIndexName(Model.tableName, index),
-      cols: index.map(col => ({
-        name: col,
-        nulls: idx !== 0 && isColDescNullsLast(Model, col)
-          ? 'DESC NULLS LAST'
-          : 'ASC NULLS FIRST',
-      })),
+      cols: Array.isArray(index)
+        ? index.map(col => ({
+          name: col,
+          nulls: idx !== 0 && isColDescNullsLast(Model, col)
+            ? 'DESC NULLS LAST'
+            : 'ASC NULLS FIRST',
+        }))
+        : {
+          name: index,
+          nulls: idx !== 0 && isColDescNullsLast(Model, index)
+            ? 'DESC NULLS LAST'
+            : 'ASC NULLS FIRST',
+        },
     }));
 
     for (const [i, index] of uniqueIndexes.entries()) {
@@ -405,21 +420,24 @@ function verifyModels(
           printError(`Table "${fk.references[0]}" is missing unique index on "${referenceCol}" referenced by "${fk.name}".`);
         }
 
-        if (fk.name !== `${tableName}_${fk.col}_fk`) {
+        if (fk.name !== getIndexName(tableName, fk.col, true)) {
           printError(`Table "${tableName}" has wrong foreign key name "${fk.name}".`);
         }
       }
+    } else if (!isBT && table.foreignKeys.length) {
+      printError(`Table "${tableName}" has foreign keys: ${table.foreignKeys.map(fk => fk.name).join(', ')}`);
     }
   }
 
   if (hasError) {
-    throw new Error('pgdump: had errors');
+    printDebug('pgdump had errors', 'error');
+  } else {
+    printDebug('Verified tables', 'success');
   }
-  printDebug('Verified tables', 'success');
 }
 
 function reorderColumns(tables: Tables, models: ModelClass[], lines: string[]) {
-  const tableNameToModel = fromPairs(
+  const tableNameToModel = Object.fromEntries(
     models.map(m => [m.tableName, m]),
   );
   for (const [tableName, table] of TS.objEntries(tables)) {
@@ -428,7 +446,9 @@ function reorderColumns(tables: Tables, models: ModelClass[], lines: string[]) {
     }
 
     const Model = TS.defined(tableNameToModel[tableName]);
-    const colToIdx = fromPairs(Object.keys(Model.getSchema()).map((col, idx) => [col, idx]));
+    const colToIdx = Object.fromEntries(
+      Object.keys(Model.getSchema()).map((col, idx) => [col, idx]),
+    );
     const tableLines = [...table.lines].sort((a, b) => colToIdx[a.col] - colToIdx[b.col]);
     const firstLineIdx = Math.min(...tableLines.map(line => line.idx));
     for (const [idx, line] of tableLines.entries()) {
@@ -511,20 +531,20 @@ CREATE EXTENSION IF NOT EXISTS tsm_system_rows SCHEMA "${PG_RR_SCHEMA}";`);
 }
 
 export default async function pgdump() {
-  printDebug('Dumping BT', 'info');
+  printDebug('pgdump BT', 'info');
   await dumpDb({
     models: EntityModels,
     host: PG_BT_HOST,
     port: PG_BT_PORT,
     user: process.env.PG_BT_USER,
     pass: process.env.PG_BT_PASS,
-    db: process.env.PG_BT_DB,
+    db: PG_BT_DB,
     schema: PG_BT_SCHEMA,
     isBT: true,
     outFile: 'pgdumpBT',
   });
 
-  printDebug('Dumping RR', 'info');
+  printDebug('pgdump RR', 'info');
   await dumpDb({
     models: [
       ...EntityModels,
@@ -534,7 +554,7 @@ export default async function pgdump() {
     port: PG_RR_PORT,
     user: process.env.PG_RR_USER,
     pass: process.env.PG_RR_PASS,
-    db: process.env.PG_RR_DB,
+    db: PG_RR_DB,
     schema: PG_RR_SCHEMA,
     isBT: false,
     outFile: 'pgdumpRR',
@@ -544,14 +564,14 @@ export default async function pgdump() {
     'Restore BT',
     'info',
     {
-      details: `psql -d ${process.env.PG_BT_DB} -f app/pgdumpBT.sql --username ${process.env.PG_BT_USER} --password --host=${PG_BT_HOST} -v ON_ERROR_STOP=1`,
+      details: `psql -d ${PG_BT_DB} -f app/pgdumpBT.sql --username ${process.env.PG_BT_USER} --password --host=${PG_BT_HOST} -v ON_ERROR_STOP=1`,
     },
   );
   printDebug(
     'Restore RR',
     'info',
     {
-      details: `psql -d ${process.env.PG_RR_DB} -f app/pgdumpRR.sql --username ${process.env.PG_RR_USER} --password --host=${PG_RR_HOST} -v ON_ERROR_STOP=1`,
+      details: `psql -d ${PG_RR_DB} -f app/pgdumpRR.sql --username ${process.env.PG_RR_USER} --password --host=${PG_RR_HOST} -v ON_ERROR_STOP=1`,
     },
   );
 }

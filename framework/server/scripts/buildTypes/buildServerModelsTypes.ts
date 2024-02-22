@@ -6,11 +6,9 @@ import { compile } from 'json-schema-to-typescript';
 import allModels, { ModelsArr, frameworkModels } from 'services/model/allModels';
 import Entity from 'services/model/Entity';
 import MaterializedView from 'services/model/MaterializedView';
-import InputMaterializedView from 'services/model/InputMaterializedView';
 import VirtualModel from 'services/model/VirtualModel';
 
 const ModelBaseClasses = [
-  InputMaterializedView,
   MaterializedView,
   Entity,
   VirtualModel,
@@ -20,7 +18,7 @@ async function getOutput(models: ModelsArr) {
   const localClasses = [] as string[];
   const globalClasses = [] as string[];
 
-  for (const { Model, isRR } of models) {
+  for (const { Model, path: modelPath, isRR } of models) {
     const BaseClass = ModelBaseClasses.find(Cls => Model.prototype instanceof Cls);
     if (!BaseClass) {
       throw new Error(`getModelBaseClass: unknown base class for ${Model.name}`);
@@ -31,13 +29,14 @@ async function getOutput(models: ModelsArr) {
       'Foo',
       { bannerComment: '' },
     );
-    const modelStr = `class ${Model.name} extends ${BaseClass.name} implements I${Model.name} {
+    const clsName = path.basename(modelPath).split('.')[0];
+    const modelStr = `class ${clsName} extends ${BaseClass.name} implements I${Model.name} {
   declare static type: '${Model.type}';
   declare static Interface: I${Model.name};
-  declare static instanceType: ${Model.name};
+  declare static instanceType: ${clsName};
   declare static schema: ModelSchema<I${Model.name}>;
-  declare static cols: ModelColsMap<I${Model.name}>;
-  declare static colsQuoted: ModelColsMap<I${Model.name}>;
+  declare static cols: ModelColsMap<'${Model.type}'>;
+  declare static colsQuoted: ModelColsMap<'${Model.type}'>;
   declare static primaryIndex: ${
     Array.isArray(Model.primaryIndex)
       ? `['${Model.primaryIndex.join('\', \'')}']`
@@ -61,7 +60,7 @@ ${
 }
 }
 
-type ${Model.name}Class = typeof ${Model.name};`;
+type ${Model.name}Class = typeof ${clsName};`;
     if (isRR) {
       globalClasses.push(modelStr);
     } else {
@@ -71,7 +70,6 @@ type ${Model.name}Class = typeof ${Model.name};`;
 
   return `import Entity from 'services/model/Entity';
 import MaterializedView from 'services/model/MaterializedView';
-import InputMaterializedView from 'services/model/InputMaterializedView';
 import VirtualModel from 'services/model/VirtualModel';
 
 ${localClasses.join('\n\n')}
@@ -85,7 +83,7 @@ type EntityType =
 
 // Use ModelTypeToInstance, ModelInstancesMap[ModelType] creates a union of all models
 type ModelInstancesMap = {
-${models.map(m => `  ${m.Model.type}: ${m.Model.name};`).join('\n')}
+${models.map(m => `  ${m.Model.type}: ${path.basename(m.path).split('.')[0]};`).join('\n')}
 };
 
 // Use ModelTypeToClass, ModelClassesMap[ModelType] creates a union of all models

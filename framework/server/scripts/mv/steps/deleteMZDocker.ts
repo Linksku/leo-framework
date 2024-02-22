@@ -1,12 +1,11 @@
 import exec from 'utils/exec';
-import { APP_NAME_LOWER } from 'settings';
+import { APP_NAME_LOWER } from 'config';
 
 export default async function deleteMZDocker() {
   const startTime = performance.now();
   printDebug('Deleting MZ Docker volume', 'highlight');
 
-  // docker inspect -f '{{ (index .Mounts 0).Name }}' materialize
-  await exec(`yarn dc -p ${APP_NAME_LOWER} stop materialize`);
+  // docker inspect -f '{{ (index .Mounts 0).Name }}' $(yarn dc ps -q materialize)
   await exec(`yarn dc -p ${APP_NAME_LOWER} rm -f -s -v materialize`);
 
   printDebug(

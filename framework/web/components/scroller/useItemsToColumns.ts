@@ -26,11 +26,6 @@ export default function useItemsToColumns<ItemType extends string | number>({
   const prevAddedItems = usePrevious(addedItems) ?? [];
   const prevOrigItems = usePrevious(origItems) ?? [];
   const prevDeletedItems = usePrevious(deletedItems) ?? new Set();
-  if (!process.env.PRODUCTION
-    && origItems.length + (addedItems?.length ?? 0) + (deletedItems?.size ?? 0)
-      < prevOrigItems.length + prevAddedItems.length + prevDeletedItems.size) {
-    throw new Error('useItemsToColumns: items decreased.');
-  }
 
   return useUpdatedState(() => ({
     columnItems: markStable(Array.from({ length: columns }, _ => new Set<ItemType>())),
@@ -55,28 +50,29 @@ export default function useItemsToColumns<ItemType extends string | number>({
       }
     }
 
-    const newAddedItems = (addedItems?.filter(item => !prevAddedItems.includes(item)) ?? []);
+    const newAddedItems = (addedItems?.filter(
+      item => !prevAddedItems.includes(item) && !deletedItems?.has(item),
+    ) ?? []);
     if (newAddedItems.length) {
       for (const item of newAddedItems) {
         initialVisibleItems.add(item);
       }
     }
 
+    const prevOrigItemsSet = new Set(prevOrigItems);
+    const origItemsSet = new Set(origItems);
+
+    const deletedOrigItems = prevOrigItems.filter(item => !origItemsSet.has(item));
     const newDeletedItems = [...deletedItems ?? []].filter(item => !prevDeletedItems.has(item));
-    if (newDeletedItems.length) {
-      for (const item of newDeletedItems) {
-        for (const colItems of columnItems) {
-          colItems.delete(item);
-        }
+    for (const item of [...deletedOrigItems, ...newDeletedItems]) {
+      for (const colItems of columnItems) {
+        colItems.delete(item);
       }
     }
 
-    const prevOrigItemsSet = new Set(prevOrigItems);
     const newOrigItems = origItems.filter(item => !prevOrigItemsSet.has(item));
-    if (newOrigItems.length) {
-      for (const item of prevOrigItems) {
-        initialVisibleItems.add(item);
-      }
+    for (const item of prevOrigItems) {
+      initialVisibleItems.add(item);
     }
     const newItems = [
       ...newOrigItems,

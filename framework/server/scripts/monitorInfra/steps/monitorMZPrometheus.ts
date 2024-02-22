@@ -33,6 +33,7 @@ export default async function monitorMZPrometheus() {
       try {
         const { errorsTableResult, redisResult } = await promiseObj({
           errorsTableResult: rawSelect(
+            'mz',
             `
               SELECT 1
               FROM mz_tables
@@ -40,7 +41,6 @@ export default async function monitorMZPrometheus() {
               LIMIT 1
             `,
             [MZ_SINK_KAFKA_ERRORS_TABLE],
-            { db: 'mz' },
           ),
           redisResult: redisMaster.exists(INIT_INFRA_REDIS_KEY),
         });

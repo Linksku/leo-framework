@@ -1,20 +1,13 @@
-import type { Props } from './PullToReload';
-
 const Toasts = React.lazy(async () => import(
   /* webpackChunkName: 'deferred' */ './Toasts'
 ));
 
-export default React.memo(function ToastsDeferred({
-  children,
-  ...props
-}: React.PropsWithChildren<Props>) {
+export default React.memo(function ToastsDeferred() {
   return (
     <React.Suspense
       fallback={null}
     >
-      <Toasts {...props}>
-        {children}
-      </Toasts>
+      <Toasts />
     </React.Suspense>
   );
 });

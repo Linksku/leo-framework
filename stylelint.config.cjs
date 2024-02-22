@@ -70,7 +70,6 @@ module.exports = {
     'scss/double-slash-comment-empty-line-before': null,
     'shorthand-property-no-redundant-values': null,
     'selector-attribute-quotes': null,
-    'declaration-colon-newline-after': null,
     'length-zero-no-unit': [true, {
       ignoreFunctions: [
         /^var$/,

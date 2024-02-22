@@ -1,0 +1,39 @@
+.container {
+  // PullToReload goes above content
+  z-index: $zIndexFixed + 1;
+  touch-action: none;
+  position: relative;
+}
+
+.reloadSpinner {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
+  padding: 1px;
+}
+
+.reloadSpinnerInner {
+  background-color: #fff;
+  box-shadow: 0 0 1px rgb(0 0 0 / 30%);
+  border: 0.5px solid $separatorColor;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  width: 36px;
+
+  svg {
+    height: 20px;
+    width: 20px;
+    fill: $primaryColor;
+  }
+}
+
+.isReloading {
+  transition-property: transform, top !important;
+  transition-timing-function: linear, ease-out !important;
+  transition-duration: 80s, 0.6s !important;
+}

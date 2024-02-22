@@ -1,4 +1,5 @@
 import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
+import stringify from 'utils/stringify';
 
 export default function validateUniquePartial<T extends ModelClass>(
   Model: T,
@@ -23,7 +24,7 @@ export default function validateUniquePartial<T extends ModelClass>(
     if ((type === 'string' && typeof val !== 'string')
       || ((type === 'number' || type === 'integer') && typeof val !== 'number')) {
       throw new Error(
-        `validateUniquePartial: ${Model.type} ${key}=${val} (${typeof val}) doesn't match schema (${type}).`,
+        `validateUniquePartial: ${Model.type} ${key}=${stringify(val)} (${typeof val}) doesn't match schema (${type}).`,
       );
     }
   }

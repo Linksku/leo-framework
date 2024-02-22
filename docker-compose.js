@@ -2,9 +2,9 @@ import yaml from 'js-yaml';
 import os from 'os';
 import omit from 'lodash/omit.js';
 
-import './framework/server/helpers/initDotenv.cjs';
+import './framework/server/core/initEnv.cjs';
 
-if (!process.env.SERVER || !process.env.NODE_ENV) {
+if (!process.env.SERVER || !process.env.NODE_ENV || !process.env.REDIS_PASS) {
   throw new Error('Env vars not set.');
 }
 
@@ -44,7 +44,7 @@ export const RESOURCE_LIMITS = {
   },
   connect: {
     cpus: 2,
-    memory: 6,
+    memory: 4,
   },
   'control-center': {
     cpus: 2,
@@ -52,7 +52,7 @@ export const RESOURCE_LIMITS = {
   },
   materialize: {
     cpus: 16,
-    memory: 8,
+    memory: 16,
   },
   'materialize-dashboard': {
     cpus: 2,
@@ -92,6 +92,10 @@ const totalCpuUnits = Object.values(omit(RESOURCE_LIMITS, OMIT_SERVICES))
 const totalMemoryUnits = Object.values(omit(RESOURCE_LIMITS, OMIT_SERVICES))
   .reduce((sum, val) => sum + val.memory, 0);
 export function getResourceLimits(service) {
+  if (!RESOURCE_LIMITS[service]) {
+    return null;
+  }
+
   const cpus = (RESOURCE_LIMITS[service].cpus / totalCpuUnits)
     * RESOURCE_MULTIPLIER * NUM_CORES;
   const memory = (RESOURCE_LIMITS[service].memory / totalMemoryUnits)
@@ -104,19 +108,20 @@ export function getResourceLimits(service) {
 
 const SERVICES = {
   broker: {
-    image: 'bitnami/kafka:3.4.0',
-    container_name: 'broker',
+    image: 'bitnami/kafka:3.5.1',
     ...expose(9092),
     restart: 'always',
     environment: {
-      KAFKA_BROKER_ID: 1,
       KAFKA_KRAFT_CLUSTER_ID: 'ZmNiZmU5YzA3OTVkNGQ2Yj', // random
+      KAFKA_CFG_NODE_ID: 1,
       KAFKA_CFG_PROCESS_ROLES: 'broker,controller',
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: 'PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT',
       KAFKA_CFG_LISTENERS: 'PLAINTEXT://:29092,EXTERNAL://:9092,CONTROLLER://:9093',
       KAFKA_CFG_ADVERTISED_LISTENERS: 'PLAINTEXT://broker:29092,EXTERNAL://localhost:9092',
       ALLOW_PLAINTEXT_LISTENER: true,
       KAFKA_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081',
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: '1@broker:9093',
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: 'CONTROLLER',
       // loglevel probably doesn't do anything
       KAFKA_LOG4J_ROOT_LOGLEVEL: 'WARN',
       KAFKA_TOOLS_LOG4J_LOGLEVEL: 'WARN',
@@ -140,8 +145,7 @@ const SERVICES = {
     },
   },
   'schema-registry': {
-    image: 'confluentinc/cp-schema-registry:7.4.0',
-    container_name: 'schema-registry',
+    image: 'confluentinc/cp-schema-registry:7.4.2',
     ...expose(8081),
     restart: 'always',
     environment: {
@@ -169,7 +173,6 @@ const SERVICES = {
       context: './framework/infra',
       dockerfile: './kafka-connect-dockerfile',
     },
-    container_name: 'connect',
     depends_on: [
       'broker',
       'schema-registry',
@@ -212,8 +215,7 @@ const SERVICES = {
     },
   },
   'control-center': {
-    image: 'confluentinc/cp-enterprise-control-center:7.4.0',
-    container_name: 'control-center',
+    image: 'confluentinc/cp-enterprise-control-center:7.4.2',
     depends_on: [
       'broker',
       'schema-registry',
@@ -244,8 +246,7 @@ const SERVICES = {
   },
   // todo: high/hard materialized 0.27 clusters
   materialize: {
-    image: 'materialize/materialized:v0.26.5',
-    container_name: 'materialize',
+    image: 'materialize/materialized:v0.26.6',
     depends_on: [
       'broker',
       'schema-registry',
@@ -257,8 +258,8 @@ const SERVICES = {
     command: `
       -D /var/lib/mzdata
       --disable-telemetry
-      --introspection-frequency off
       --workers 1
+      --introspection-frequency off
       --log-filter WARN
     `,
     healthcheck: {
@@ -274,8 +275,7 @@ const SERVICES = {
     },
   },
   'materialize-dashboard': {
-    image: 'materialize/dashboard:v0.26.5',
-    container_name: 'materialize-dashboard',
+    image: 'materialize/dashboard:v0.26.6',
     depends_on: [
       'materialize',
     ],
@@ -295,20 +295,22 @@ const SERVICES = {
     },
   },
   redis: {
-    image: 'redis:7.0.11',
-    container_name: 'redis',
+    image: 'redis:7.2.1',
     ...expose(6379),
     restart: 'always',
     command: [
       '--requirepass',
-      '${REDIS_PASS}',
+      process.env.REDIS_PASS,
       '--save',
       '""',
       '--appendonly',
       'no',
     ],
     healthcheck: {
-      test: ['CMD-SHELL', 'redis-cli -a \'${REDIS_PASS}\' ping | grep PONG'],
+      test: [
+        'CMD-SHELL',
+        `redis-cli -a '${process.env.REDIS_PASS}' ping | grep PONG`,
+      ],
       interval: '10s',
       timeout: '10s',
       retries: 30,
@@ -321,7 +323,6 @@ const SERVICES = {
   },
   'monitor-infra': {
     image: 'server',
-    container_name: 'monitor-infra',
     depends_on: [
       'broker',
       'schema-registry',
@@ -344,8 +345,6 @@ const SERVICES = {
     ],
     volumes: [
       './env:/usr/src/env',
-      './.env:/usr/src/.env',
-      './firebaseAdminKey.json:/usr/src/firebaseAdminKey.json',
       '/var/run/docker.sock:/var/run/docker.sock',
     ],
     deploy: {
@@ -356,7 +355,6 @@ const SERVICES = {
   },
   server: {
     image: 'server',
-    container_name: 'server',
     depends_on: [
       'monitor-infra',
       'redis',
@@ -374,8 +372,6 @@ const SERVICES = {
     ],
     volumes: [
       './env:/usr/src/env',
-      './.env:/usr/src/.env',
-      './firebaseAdminKey.json:/usr/src/firebaseAdminKey.json',
       '/etc/letsencrypt:/etc/letsencrypt',
     ],
     deploy: {
@@ -386,7 +382,6 @@ const SERVICES = {
   },
   'server-script': {
     image: 'server',
-    container_name: 'server-script',
     depends_on: [
       'broker',
       'schema-registry',
@@ -405,8 +400,6 @@ const SERVICES = {
     command: 'tail -f /dev/null',
     volumes: [
       './env:/usr/src/env',
-      './.env:/usr/src/.env',
-      './firebaseAdminKey.json:/usr/src/firebaseAdminKey.json',
       '/var/run/docker.sock:/var/run/docker.sock',
     ],
     deploy: {
@@ -417,7 +410,6 @@ const SERVICES = {
   },
   autoheal: {
     restart: 'always',
-    container_name: 'autoheal',
     image: 'willfarrell/autoheal',
     environment: [
       'AUTOHEAL_CONTAINER_LABEL=all',
@@ -432,6 +424,11 @@ const SERVICES = {
     },
   },
 };
+
+if (process.env.PRODUCTION
+  && !SERVICES.materialize.command.includes('--introspection-frequency off')) {
+  throw new Error('MZ introspection-frequency should be off');
+}
 
 const filteredServices = omit(SERVICES, OMIT_SERVICES);
 if (!process.env.JS_VERSION) {

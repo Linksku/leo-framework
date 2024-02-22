@@ -2,9 +2,9 @@ import Swipeable from 'components/frame/Swipeable';
 import ErrorBoundary from 'components/ErrorBoundary';
 import { useAnimation } from 'hooks/useAnimation';
 
-import styles from './SlideUpsStyles.scss';
+import styles from './SlideUps.scss';
 
-export default React.memo(function SlideUps() {
+export default function SlideUps() {
   const {
     hideSlideUp,
     slideUpShown,
@@ -42,7 +42,7 @@ export default React.memo(function SlideUps() {
         }}
         style={dialogStyle(
           {
-            filter: x => `opacity(${x}%)`,
+            opacity: x => x / 100,
           },
           {
             stylesForFinalVal: {
@@ -82,11 +82,18 @@ export default React.memo(function SlideUps() {
       >
         <div className={styles.dragSymbol} />
         <div className={styles.containerInner}>
-          <ErrorBoundary>
+          <ErrorBoundary
+            renderLoading={() => (
+              <Spinner
+                verticalMargin={30}
+                dimRem={3}
+              />
+            )}
+          >
             {slideUpElement}
           </ErrorBoundary>
         </div>
       </Swipeable>
     </>
   );
-});
+}

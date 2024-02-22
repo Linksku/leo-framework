@@ -1,11 +1,31 @@
+interface AccountStatusApiParams {
+
+}
+
 interface AddMeetupPollOptionApiParams {
   pollId: number;
   option: string;
 }
 
+interface AddUserToChatApiParams {
+  chatId: number;
+  userId: number;
+}
+
+interface AllUserClubsInfoApiParams {
+
+}
+
+interface AppleLoginUserApiParams {
+  type: 'login' | 'register';
+  name?: string;
+  jwt: string;
+}
+
 interface ApproveMeetupResponseApiParams {
   meetupResponseId: number;
   approved: boolean;
+  rejectReason?: string | null;
 }
 
 interface BatchedApiParams {
@@ -55,6 +75,7 @@ interface ClubInviteApiParams {
 interface ClubsApiParams {
   parentClubId?: number | null;
   parentClubName?: string | null;
+  ancestorClubId?: number | null;
   siblingClubId?: number | null;
   search?: string;
   joinType?: 'joinedFirst' | 'onlyJoined';
@@ -89,6 +110,12 @@ interface CreateClubInviteApiParams {
   clubId: number;
 }
 
+interface CreateMeetupInvitesApiParams {
+  meetupId: number;
+  inviteToken?: string | null;
+  inviteeIds: number[];
+}
+
 interface CreateMeetupPollApiParams {
   meetupId: number;
   title: string;
@@ -99,10 +126,12 @@ interface CreateMeetupResponseApiParams {
   meetupId: number;
   status: 'going' | 'interested' | 'notGoing';
   inviteToken: string | null;
+  fetchUpsells?: boolean;
 }
 
 interface CreateOrEditMeetupApiParams {
   editMeetupId?: number;
+  cloneMeetupId?: number;
   clubName: string;
   startTime: number;
   endTime?: number;
@@ -121,14 +150,17 @@ interface CreateOrEditMeetupApiParams {
   attendanceInstructions?: string | null;
   link?: string;
   description?: string | null;
+  minAttendees?: number;
   maxCapacity?: number;
   friendsOnly?: boolean;
   responseApproval: 'none' | 'always' | 'nonFollowees';
   minAge?: number;
   maxAge?: number;
+  inviteAllFromCloned?: boolean;
 }
 
-interface CreatePostApiParams {
+interface CreateOrEditPostApiParams {
+  editPostId?: number;
   clubName: string;
   content?: string | null;
   media?: Express.Multer.File;
@@ -157,13 +189,8 @@ interface CreateReplyApiParams {
 }
 
 interface CreateReportApiParams {
-  entityType: 'club' | 'meetupReply' | 'post' | 'postReply' | 'roomReply' | 'user';
+  entityType: 'club' | 'meetup' | 'meetupReply' | 'post' | 'postReply' | 'roomReply' | 'user';
   entityId: number;
-}
-
-interface CreateRoomApiParams {
-  clubId: number;
-  cityId: number | null;
 }
 
 interface CurrentUserApiParams {
@@ -173,6 +200,10 @@ interface CurrentUserApiParams {
 interface CurrentUserClubMembershipsApiParams {
   limit?: number;
   cursor?: string;
+}
+
+interface DeleteAccountApiParams {
+  currentPassword: string | null;
 }
 
 interface DeleteMeetupApiParams {
@@ -205,6 +236,11 @@ interface FollowUserApiParams {
   followeeId: number;
 }
 
+interface GoogleLoginUserApiParams {
+  token: string;
+  type: 'login' | 'register';
+}
+
 interface JoinClubApiParams {
   clubId: number;
 }
@@ -227,9 +263,32 @@ interface MeetupApiParams {
   inviteToken: string | null;
 }
 
+interface MeetupInvitableUsersApiParams {
+  meetupId: number;
+  inviteToken?: string | null;
+  myMeetupId?: number | null;
+  limit?: number;
+  cursor?: string;
+}
+
+interface MeetupInvitesApiParams {
+  meetupId: number;
+  inviteToken?: string | null;
+  limit?: number;
+  cursor?: string;
+}
+
 interface MeetupMessageAllApiParams {
   meetupId: number;
   content: string;
+}
+
+interface MeetupPollResponsesApiParams {
+  pollId: number;
+  optionId: number;
+  inviteToken?: string | null;
+  limit?: number;
+  cursor?: string;
 }
 
 interface MeetupPollsApiParams {
@@ -242,14 +301,15 @@ interface MeetupResponsesApiParams {
   status: 'going' | 'interested' | 'notGoing' | 'unapproved';
   inviteToken: string | null;
   limit?: number;
+  order?: 'time' | 'userScore';
   cursor?: string;
 }
 
 interface MeetupsApiParams {
   clubName: string;
   unauthClubs?: string[];
-  attendingType?: 'hosting' | 'attending' | 'notAttending';
-  followingType?: 'following' | 'notFollowing' | 'friends';
+  connectionType?: 'hosting' | 'attending' | 'invited' | 'connected' | 'notConnected';
+  followingType?: 'following' | 'notFollowing' | 'friends' | 'self';
   location?: 'city' | 'online';
   afterTime?: number;
   beforeTime?: number;
@@ -261,8 +321,14 @@ interface MyClubsRoomsViewApiParams {
   unauthClubs: string[];
 }
 
+interface MyInvitableMeetupsApiParams {
+  meetupId: number;
+  limit?: number;
+  cursor?: string;
+}
+
 interface NotifsApiParams {
-  scope: 'general' | 'chat' | 'chatRequest';
+  scope: NotifScope;
   limit?: number;
   cursor?: string;
 }
@@ -282,6 +348,7 @@ interface PostReplyThreadsApiParams {
 
 interface PostsApiParams {
   clubName: string;
+  subclubPosts?: boolean;
   onlyFollowing?: boolean;
   unauthClubs: string[];
   location: 'city' | 'global' | 'globalOnly';
@@ -332,7 +399,17 @@ interface RegenerateMeetupInviteTokenApiParams {
 }
 
 interface RegisterPushNotifTokenApiParams {
-  platform: 'web' | 'android' | 'ios';
+  platform:
+    | 'desktop-web'
+    | 'android-web'
+    | 'android-standalone'
+    | 'android-native'
+    | 'ios-web'
+    | 'ios-standalone'
+    | 'ios-native'
+    | 'other-web'
+    | 'other-standalone'
+    | 'other-native';
   deviceId: string;
   registrationToken: string;
 }
@@ -352,6 +429,11 @@ interface RelatedUsersApiParams {
   isOnboarding?: boolean;
   cursor?: string;
   limit?: number;
+}
+
+interface RemoveUserFromChatApiParams {
+  chatId: number;
+  userId: number;
 }
 
 interface RepliesApiParams {
@@ -376,7 +458,9 @@ interface ResetPasswordApiParams {
 }
 
 interface RoomApiParams {
-  roomId: number;
+  roomId?: number;
+  clubId?: number;
+  cityId?: number | null;
 }
 
 interface RoomsApiParams {
@@ -401,6 +485,10 @@ interface SearchCitiesApiParams {
 
 interface SeenNotifsApiParams {
   scope: 'general' | 'chat' | 'chatRequest';
+}
+
+interface SendEmailVerificationApiParams {
+
 }
 
 interface SseOtpApiParams {
@@ -432,9 +520,16 @@ interface ToggleMeetupPollResponseApiParams {
   optionId: number;
 }
 
+interface ToggleUnsubNotifApiParams {
+  entityType: UnsubNotifEntity;
+  entityId: number;
+}
+
 interface TopLevelClubsApiParams {
   showAdult?: boolean;
   order?: 'members' | 'name' | 'membersWithJitter';
+  limit?: number | -1;
+  cursor?: string;
 }
 
 interface TopPostRepliesApiParams {
@@ -446,6 +541,19 @@ interface TopUsersApiParams {
   unauthClubs: string[];
   cursor?: string;
   limit?: number;
+}
+
+interface UnauthMeetupRegisterApiParams {
+  email: string;
+  name: string;
+  meetupId: number;
+  status: 'going' | 'interested' | 'notGoing';
+  inviteToken: string;
+}
+
+interface UnauthMeetupVerifyEmailApiParams {
+  status: 'going' | 'interested' | 'notGoing';
+  token: string;
 }
 
 interface UnblockClubApiParams {
@@ -468,18 +576,35 @@ interface UnseenNotifIdsApiParams {
 
 }
 
+interface UnsubNotifApiParams {
+  entityType: UnsubNotifEntity;
+  entityId: number;
+}
+
 interface UpdateAccountSettingsApiParams {
   email?: string;
   newPassword?: string;
-  currentPassword: string;
+  currentPassword: string | null;
 }
 
-interface UpdateClubPrivacyApiParams {
+interface UpdateClubsOrderApiParams {
+  clubIdsOrder: number[];
+  clubVisibilities: {
+    clubId: number;
+    visibility: 'public' | 'mutual' | 'private';
+  }[];
+}
+
+interface UpdateClubVisibilityApiParams {
   clubId: number;
-  privacy: 'public' | 'mutual' | 'private';
+  visibility: 'public' | 'mutual' | 'private';
 }
 
-interface UpdateCurrentUserApiParams {
+interface UpdateUserCityApiParams {
+  cityId: number | null;
+}
+
+interface UpdateUserProfileApiParams {
   name: string;
   birthday: string;
   cityId?: number | null;
@@ -495,15 +620,6 @@ interface UpdateCurrentUserApiParams {
   }[];
   photo?: Express.Multer.File;
   clearedPhoto?: boolean;
-  clubIdsOrder: number[];
-  clubsPrivacy: {
-    clubId: number;
-    privacy: 'public' | 'mutual' | 'private';
-  }[];
-}
-
-interface UpdateUserCityApiParams {
-  cityId: number | null;
 }
 
 interface UserApiParams {
@@ -546,10 +662,23 @@ interface UserViewApiParams {
   userId: number;
 }
 
+interface VerifyEmailApiParams {
+  token: string;
+}
+
 interface VerifyResetPasswordApiParams {
-  userId: number;
   token: string;
   password: string;
+}
+
+interface AccountStatusApiData {
+  hasPassword: boolean;
+  emailVerified: boolean;
+}
+
+interface AppleLoginUserApiData {
+  currentUserId: number;
+  authToken: string;
 }
 
 interface BatchedApiData {
@@ -625,16 +754,17 @@ interface CreateClubInviteApiData {
   clubInviteToken: string;
 }
 
+interface CreateMeetupResponseApiData {
+  showCreatePostUpsell?: boolean;
+  showVerifyEmailUpsell?: boolean;
+}
+
 interface CreateOrEditMeetupApiData {
   meetupId?: number;
 }
 
-interface CreatePostApiData {
+interface CreateOrEditPostApiData {
   postId?: number;
-}
-
-interface CreateRoomApiData {
-  roomId?: number;
 }
 
 interface CurrentUserApiData {
@@ -657,9 +787,32 @@ interface FavoriteClubsApiData {
   type: 'favorite' | 'top';
 }
 
+interface GoogleLoginUserApiData {
+  currentUserId: number;
+  authToken: string;
+}
+
 interface LoginUserApiData {
   currentUserId: number;
   authToken: string;
+}
+
+interface MeetupInvitableUsersApiData {
+  items: number[];
+  cursor?: string;
+  hasCompleted: boolean;
+}
+
+interface MeetupInvitesApiData {
+  items: number[];
+  cursor?: string;
+  hasCompleted: boolean;
+}
+
+interface MeetupPollResponsesApiData {
+  items: number[];
+  cursor?: string;
+  hasCompleted: boolean;
 }
 
 interface MeetupResponsesApiData {
@@ -681,6 +834,12 @@ interface MyClubsRoomsViewApiData {
   globalHasCompleted?: boolean;
   subclubsRooms: string[];
   subclubsHasCompleted?: boolean;
+}
+
+interface MyInvitableMeetupsApiData {
+  items: number[];
+  cursor?: string;
+  hasCompleted: boolean;
 }
 
 interface NotifsApiData {
@@ -782,12 +941,18 @@ interface TopUsersApiData {
   hasCompleted: boolean;
 }
 
+interface UnauthMeetupVerifyEmailApiData {
+  currentUserId: number;
+  authToken: string;
+  meetupId: number;
+}
+
 interface UnreadChatsCountApiData {
   count: number;
 }
 
 interface UnseenNotifIdsApiData {
-  notifIds: Partial<Record<'general' | 'chat' | 'chatRequest', number[]>>;
+  notifIds: Partial<Record<NotifScope, number[]>>;
 }
 
 interface UpdateAccountSettingsApiData {
@@ -818,13 +983,21 @@ interface UsersApiData {
   hasCompleted: boolean;
 }
 
+interface VerifyEmailApiData {
+  hasVerified: boolean;
+}
+
 interface VerifyResetPasswordApiData {
   currentUserId: number;
   authToken: string;
 }
 
 type ApiNameToParams = {
+  'accountStatus': AccountStatusApiParams,
   'addMeetupPollOption': AddMeetupPollOptionApiParams,
+  'addUserToChat': AddUserToChatApiParams,
+  'allUserClubsInfo': AllUserClubsInfoApiParams,
+  'appleLoginUser': AppleLoginUserApiParams,
   'approveMeetupResponse': ApproveMeetupResponseApiParams,
   'batched': BatchedApiParams,
   'blockClub': BlockClubApiParams,
@@ -841,16 +1014,17 @@ type ApiNameToParams = {
   'createChat': CreateChatApiParams,
   'createClub': CreateClubApiParams,
   'createClubInvite': CreateClubInviteApiParams,
+  'createMeetupInvites': CreateMeetupInvitesApiParams,
   'createMeetupPoll': CreateMeetupPollApiParams,
   'createMeetupResponse': CreateMeetupResponseApiParams,
   'createOrEditMeetup': CreateOrEditMeetupApiParams,
-  'createPost': CreatePostApiParams,
+  'createOrEditPost': CreateOrEditPostApiParams,
   'createReaction': CreateReactionApiParams,
   'createReply': CreateReplyApiParams,
   'createReport': CreateReportApiParams,
-  'createRoom': CreateRoomApiParams,
   'currentUser': CurrentUserApiParams,
   'currentUserClubMemberships': CurrentUserClubMembershipsApiParams,
+  'deleteAccount': DeleteAccountApiParams,
   'deleteMeetup': DeleteMeetupApiParams,
   'deletePost': DeletePostApiParams,
   'deleteReaction': DeleteReactionApiParams,
@@ -858,16 +1032,21 @@ type ApiNameToParams = {
   'existingChatWithUser': ExistingChatWithUserApiParams,
   'favoriteClubs': FavoriteClubsApiParams,
   'followUser': FollowUserApiParams,
+  'googleLoginUser': GoogleLoginUserApiParams,
   'joinClub': JoinClubApiParams,
   'joinClubs': JoinClubsApiParams,
   'leaveClub': LeaveClubApiParams,
   'loginUser': LoginUserApiParams,
   'meetup': MeetupApiParams,
+  'meetupInvitableUsers': MeetupInvitableUsersApiParams,
+  'meetupInvites': MeetupInvitesApiParams,
   'meetupMessageAll': MeetupMessageAllApiParams,
+  'meetupPollResponses': MeetupPollResponsesApiParams,
   'meetupPolls': MeetupPollsApiParams,
   'meetupResponses': MeetupResponsesApiParams,
   'meetups': MeetupsApiParams,
   'myClubsRoomsView': MyClubsRoomsViewApiParams,
+  'myInvitableMeetups': MyInvitableMeetupsApiParams,
   'notifs': NotifsApiParams,
   'onboardCompleteProfile': OnboardCompleteProfileApiParams,
   'post': PostApiParams,
@@ -883,6 +1062,7 @@ type ApiNameToParams = {
   'registerPushNotifToken': RegisterPushNotifTokenApiParams,
   'registerUser': RegisterUserApiParams,
   'relatedUsers': RelatedUsersApiParams,
+  'removeUserFromChat': RemoveUserFromChatApiParams,
   'replies': RepliesApiParams,
   'reply': ReplyApiParams,
   'resetPassword': ResetPasswordApiParams,
@@ -891,34 +1071,45 @@ type ApiNameToParams = {
   'roomsInClub': RoomsInClubApiParams,
   'searchCities': SearchCitiesApiParams,
   'seenNotifs': SeenNotifsApiParams,
+  'sendEmailVerification': SendEmailVerificationApiParams,
   'sseOtp': SseOtpApiParams,
   'sseSubscribe': SseSubscribeApiParams,
   'sseUnsubscribe': SseUnsubscribeApiParams,
   'status': StatusApiParams,
   'toggleMeetupPollResponse': ToggleMeetupPollResponseApiParams,
+  'toggleUnsubNotif': ToggleUnsubNotifApiParams,
   'topLevelClubs': TopLevelClubsApiParams,
   'topPostReplies': TopPostRepliesApiParams,
   'topUsers': TopUsersApiParams,
+  'unauthMeetupRegister': UnauthMeetupRegisterApiParams,
+  'unauthMeetupVerifyEmail': UnauthMeetupVerifyEmailApiParams,
   'unblockClub': UnblockClubApiParams,
   'unblockUser': UnblockUserApiParams,
   'unfollowUser': UnfollowUserApiParams,
   'unreadChatsCount': UnreadChatsCountApiParams,
   'unseenNotifIds': UnseenNotifIdsApiParams,
+  'unsubNotif': UnsubNotifApiParams,
   'updateAccountSettings': UpdateAccountSettingsApiParams,
-  'updateClubPrivacy': UpdateClubPrivacyApiParams,
-  'updateCurrentUser': UpdateCurrentUserApiParams,
+  'updateClubsOrder': UpdateClubsOrderApiParams,
+  'updateClubVisibility': UpdateClubVisibilityApiParams,
   'updateUserCity': UpdateUserCityApiParams,
+  'updateUserProfile': UpdateUserProfileApiParams,
   'user': UserApiParams,
   'userClubsWithPosts': UserClubsWithPostsApiParams,
   'userFollows': UserFollowsApiParams,
   'userFriends': UserFriendsApiParams,
   'users': UsersApiParams,
   'userView': UserViewApiParams,
+  'verifyEmail': VerifyEmailApiParams,
   'verifyResetPassword': VerifyResetPasswordApiParams,
 };
 
 type ApiNameToData = {
+  'accountStatus': AccountStatusApiData,
   'addMeetupPollOption': null,
+  'addUserToChat': null,
+  'allUserClubsInfo': null,
+  'appleLoginUser': AppleLoginUserApiData,
   'approveMeetupResponse': null,
   'batched': BatchedApiData,
   'blockClub': null,
@@ -935,16 +1126,17 @@ type ApiNameToData = {
   'createChat': CreateChatApiData,
   'createClub': CreateClubApiData,
   'createClubInvite': CreateClubInviteApiData,
+  'createMeetupInvites': null,
   'createMeetupPoll': null,
-  'createMeetupResponse': null,
+  'createMeetupResponse': CreateMeetupResponseApiData,
   'createOrEditMeetup': CreateOrEditMeetupApiData,
-  'createPost': CreatePostApiData,
+  'createOrEditPost': CreateOrEditPostApiData,
   'createReaction': null,
   'createReply': null,
   'createReport': null,
-  'createRoom': CreateRoomApiData,
   'currentUser': CurrentUserApiData,
   'currentUserClubMemberships': CurrentUserClubMembershipsApiData,
+  'deleteAccount': null,
   'deleteMeetup': null,
   'deletePost': null,
   'deleteReaction': null,
@@ -952,16 +1144,21 @@ type ApiNameToData = {
   'existingChatWithUser': ExistingChatWithUserApiData,
   'favoriteClubs': FavoriteClubsApiData,
   'followUser': null,
+  'googleLoginUser': GoogleLoginUserApiData,
   'joinClub': null,
   'joinClubs': null,
   'leaveClub': null,
   'loginUser': LoginUserApiData,
   'meetup': null,
+  'meetupInvitableUsers': MeetupInvitableUsersApiData,
+  'meetupInvites': MeetupInvitesApiData,
   'meetupMessageAll': null,
+  'meetupPollResponses': MeetupPollResponsesApiData,
   'meetupPolls': null,
   'meetupResponses': MeetupResponsesApiData,
   'meetups': MeetupsApiData,
   'myClubsRoomsView': MyClubsRoomsViewApiData,
+  'myInvitableMeetups': MyInvitableMeetupsApiData,
   'notifs': NotifsApiData,
   'onboardCompleteProfile': OnboardCompleteProfileApiData,
   'post': null,
@@ -977,6 +1174,7 @@ type ApiNameToData = {
   'registerPushNotifToken': null,
   'registerUser': RegisterUserApiData,
   'relatedUsers': RelatedUsersApiData,
+  'removeUserFromChat': null,
   'replies': RepliesApiData,
   'reply': null,
   'resetPassword': null,
@@ -985,33 +1183,44 @@ type ApiNameToData = {
   'roomsInClub': null,
   'searchCities': SearchCitiesApiData,
   'seenNotifs': null,
+  'sendEmailVerification': null,
   'sseOtp': SseOtpApiData,
   'sseSubscribe': null,
   'sseUnsubscribe': null,
   'status': StatusApiData,
   'toggleMeetupPollResponse': ToggleMeetupPollResponseApiData,
+  'toggleUnsubNotif': null,
   'topLevelClubs': TopLevelClubsApiData,
   'topPostReplies': TopPostRepliesApiData,
   'topUsers': TopUsersApiData,
+  'unauthMeetupRegister': null,
+  'unauthMeetupVerifyEmail': UnauthMeetupVerifyEmailApiData,
   'unblockClub': null,
   'unblockUser': null,
   'unfollowUser': null,
   'unreadChatsCount': UnreadChatsCountApiData,
   'unseenNotifIds': UnseenNotifIdsApiData,
+  'unsubNotif': null,
   'updateAccountSettings': UpdateAccountSettingsApiData,
-  'updateClubPrivacy': null,
-  'updateCurrentUser': null,
+  'updateClubsOrder': null,
+  'updateClubVisibility': null,
   'updateUserCity': null,
+  'updateUserProfile': null,
   'user': null,
   'userClubsWithPosts': UserClubsWithPostsApiData,
   'userFollows': UserFollowsApiData,
   'userFriends': UserFriendsApiData,
   'users': UsersApiData,
   'userView': null,
+  'verifyEmail': VerifyEmailApiData,
   'verifyResetPassword': VerifyResetPasswordApiData,
 };
 
-type ApiName = 'addMeetupPollOption'
+type ApiName = 'accountStatus'
+  | 'addMeetupPollOption'
+  | 'addUserToChat'
+  | 'allUserClubsInfo'
+  | 'appleLoginUser'
   | 'approveMeetupResponse'
   | 'batched'
   | 'blockClub'
@@ -1028,16 +1237,17 @@ type ApiName = 'addMeetupPollOption'
   | 'createChat'
   | 'createClub'
   | 'createClubInvite'
+  | 'createMeetupInvites'
   | 'createMeetupPoll'
   | 'createMeetupResponse'
   | 'createOrEditMeetup'
-  | 'createPost'
+  | 'createOrEditPost'
   | 'createReaction'
   | 'createReply'
   | 'createReport'
-  | 'createRoom'
   | 'currentUser'
   | 'currentUserClubMemberships'
+  | 'deleteAccount'
   | 'deleteMeetup'
   | 'deletePost'
   | 'deleteReaction'
@@ -1045,16 +1255,21 @@ type ApiName = 'addMeetupPollOption'
   | 'existingChatWithUser'
   | 'favoriteClubs'
   | 'followUser'
+  | 'googleLoginUser'
   | 'joinClub'
   | 'joinClubs'
   | 'leaveClub'
   | 'loginUser'
   | 'meetup'
+  | 'meetupInvitableUsers'
+  | 'meetupInvites'
   | 'meetupMessageAll'
+  | 'meetupPollResponses'
   | 'meetupPolls'
   | 'meetupResponses'
   | 'meetups'
   | 'myClubsRoomsView'
+  | 'myInvitableMeetups'
   | 'notifs'
   | 'onboardCompleteProfile'
   | 'post'
@@ -1070,6 +1285,7 @@ type ApiName = 'addMeetupPollOption'
   | 'registerPushNotifToken'
   | 'registerUser'
   | 'relatedUsers'
+  | 'removeUserFromChat'
   | 'replies'
   | 'reply'
   | 'resetPassword'
@@ -1078,32 +1294,42 @@ type ApiName = 'addMeetupPollOption'
   | 'roomsInClub'
   | 'searchCities'
   | 'seenNotifs'
+  | 'sendEmailVerification'
   | 'sseOtp'
   | 'sseSubscribe'
   | 'sseUnsubscribe'
   | 'status'
   | 'toggleMeetupPollResponse'
+  | 'toggleUnsubNotif'
   | 'topLevelClubs'
   | 'topPostReplies'
   | 'topUsers'
+  | 'unauthMeetupRegister'
+  | 'unauthMeetupVerifyEmail'
   | 'unblockClub'
   | 'unblockUser'
   | 'unfollowUser'
   | 'unreadChatsCount'
   | 'unseenNotifIds'
+  | 'unsubNotif'
   | 'updateAccountSettings'
-  | 'updateClubPrivacy'
-  | 'updateCurrentUser'
+  | 'updateClubsOrder'
+  | 'updateClubVisibility'
   | 'updateUserCity'
+  | 'updateUserProfile'
   | 'user'
   | 'userClubsWithPosts'
   | 'userFollows'
   | 'userFriends'
   | 'users'
   | 'userView'
+  | 'verifyEmail'
   | 'verifyResetPassword';
 
-type AuthApiName = 'addMeetupPollOption'
+type AuthApiName = 'accountStatus'
+| 'addMeetupPollOption'
+| 'addUserToChat'
+| 'allUserClubsInfo'
 | 'approveMeetupResponse'
 | 'blockClub'
 | 'blockUser'
@@ -1112,16 +1338,17 @@ type AuthApiName = 'addMeetupPollOption'
 | 'createChat'
 | 'createClub'
 | 'createClubInvite'
+| 'createMeetupInvites'
 | 'createMeetupPoll'
 | 'createMeetupResponse'
 | 'createOrEditMeetup'
-| 'createPost'
+| 'createOrEditPost'
 | 'createReaction'
 | 'createReply'
 | 'createReport'
-| 'createRoom'
 | 'currentUser'
 | 'currentUserClubMemberships'
+| 'deleteAccount'
 | 'deleteMeetup'
 | 'deletePost'
 | 'deleteReaction'
@@ -1131,7 +1358,10 @@ type AuthApiName = 'addMeetupPollOption'
 | 'joinClub'
 | 'joinClubs'
 | 'leaveClub'
+| 'meetupInvitableUsers'
+| 'meetupInvites'
 | 'meetupMessageAll'
+| 'myInvitableMeetups'
 | 'notifs'
 | 'postReplyThreads'
 | 'reactionCounts'
@@ -1140,14 +1370,19 @@ type AuthApiName = 'addMeetupPollOption'
 | 'readNotif'
 | 'regenerateMeetupInviteToken'
 | 'registerPushNotifToken'
+| 'removeUserFromChat'
 | 'seenNotifs'
+| 'sendEmailVerification'
 | 'toggleMeetupPollResponse'
+| 'toggleUnsubNotif'
 | 'unblockClub'
 | 'unblockUser'
 | 'unfollowUser'
 | 'unreadChatsCount'
 | 'unseenNotifIds'
+| 'unsubNotif'
 | 'updateAccountSettings'
-| 'updateClubPrivacy'
-| 'updateCurrentUser'
-| 'updateUserCity';
+| 'updateClubsOrder'
+| 'updateClubVisibility'
+| 'updateUserCity'
+| 'updateUserProfile';

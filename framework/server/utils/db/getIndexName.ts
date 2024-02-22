@@ -1,6 +1,10 @@
-export default function getIndexName(table: string, _cols: string | string[]) {
+export default function getIndexName(
+  table: string,
+  _cols: string | string[],
+  isForeignKey = false,
+) {
   const cols = Array.isArray(_cols) ? _cols : [_cols];
-  const name = `${table}_${cols.join('_')}_idx`
+  const name = `${table}_${cols.join('_')}_${isForeignKey ? 'fk' : 'idx'}`
     .replaceAll(' DESC NULLS LAST', '');
 
   if (name.includes(' ')

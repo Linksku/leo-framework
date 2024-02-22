@@ -5,8 +5,12 @@ import { formatModelPojo, parseModel } from 'utils/models/formatModelPartials';
 import modelInstanceToPojo from 'utils/models/modelInstanceToPojo';
 import isSchemaNullable from 'utils/models/isSchemaNullable';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
-import { IS_PROFILING_API } from 'serverSettings';
-import { ModelRelationsSpecs, getRelationsMap, ModelRelationsMap } from '../helpers/modelRelations';
+import { IS_PROFILING_API } from 'consts/infra';
+import {
+  ModelRelationsSpecs,
+  getRelationsMap,
+  ModelRelationsMap,
+} from '../helpers/modelRelations';
 import AjvValidator from './AjvValidator';
 import CustomQueryBuilder from './CustomQueryBuilder';
 
@@ -64,7 +68,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
   static _cols: ObjectOf<string> | undefined;
 
   // Relies on Objection to add quotes
-  static get cols(): ModelColsMap<IBaseModel> {
+  static get cols(): ModelColsMap<ModelType> {
     if (!this._cols) {
       const cols: ObjectOf<string> = {
         all: `${this.tableName}.*`,
@@ -74,12 +78,12 @@ class BaseModel extends ObjectionModel implements IBaseModel {
       }
       this._cols = cols;
     }
-    return this._cols as ModelColsMap<IBaseModel>;
+    return this._cols as ModelColsMap<ModelType>;
   }
 
   static _colsQuoted: ObjectOf<string> | undefined;
 
-  static get colsQuoted(): ModelColsMap<IBaseModel> {
+  static get colsQuoted(): ModelColsMap<ModelType> {
     if (!this._colsQuoted) {
       const cols: ObjectOf<string> = {
         all: `"${this.tableName}".*`,
@@ -89,27 +93,27 @@ class BaseModel extends ObjectionModel implements IBaseModel {
       }
       this._colsQuoted = cols;
     }
-    return this._colsQuoted as ModelColsMap<IBaseModel>;
+    return this._colsQuoted as ModelColsMap<ModelType>;
   }
 
-  static as<T extends ModelClass>(this: T, name: string): ModelColsMap<ModelTypeToInterface<T['type']>> {
+  static as<T extends ModelClass>(this: T, name: string): ModelColsMap<T['type']> {
     const cols: ObjectOf<string> = {
       all: `${name}.*`,
     };
     for (const prop of Object.keys(this.schema)) {
       cols[prop] = `${name}.${prop}`;
     }
-    return cols as ModelColsMap<ModelTypeToInterface<T['type']>>;
+    return cols as ModelColsMap<T['type']>;
   }
 
-  static asQuoted<T extends ModelClass>(this: T, name: string): ModelColsMap<ModelTypeToInterface<T['type']>> {
+  static asQuoted<T extends ModelClass>(this: T, name: string): ModelColsMap<T['type']> {
     const cols: ObjectOf<string> = {
       all: `"${name}".*`,
     };
     for (const prop of Object.keys(this.schema)) {
       cols[prop] = `"${name}"."${prop}"`;
     }
-    return cols as ModelColsMap<ModelTypeToInterface<T['type']>>;
+    return cols as ModelColsMap<T['type']>;
   }
 
   static uniqueIndexes: (string | string[])[] = [];
@@ -128,11 +132,14 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     expression: string,
   })[] = [];
 
+  static mzIndexes: (string | string[])[] = [];
+
   static get primaryIndex() {
     if (!this.uniqueIndexes.length) {
       throw new Error(`${this.name}.primaryIndex: no unique indexes.`);
     }
-    return this.uniqueIndexes[0];
+    const index = this.uniqueIndexes[0];
+    return Array.isArray(index) && index.length === 1 ? index[0] : index;
   }
 
   static _uniqueIndexes: ModelIndex<ModelClass>[] | undefined;
@@ -147,21 +154,17 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     return this._uniqueIndexes as ModelIndex<T>[];
   }
 
-  static _uniqueColumnsSet: Set<ModelKey<ModelClass>> | undefined;
+  static _uniqueSingleColumnsSet: Set<ModelKey<ModelClass>> | undefined;
 
-  static getUniqueColumnsSet<T extends ModelClass>(this: T): Set<ModelKey<T>> {
-    if (!this._uniqueColumnsSet) {
-      this._uniqueColumnsSet = new Set(
+  static getUniqueSingleColumnsSet<T extends ModelClass>(this: T): Set<ModelKey<T>> {
+    if (!this._uniqueSingleColumnsSet) {
+      this._uniqueSingleColumnsSet = new Set(
         this.uniqueIndexes
-          .map(idx => (
-            Array.isArray(idx) && idx.length === 1 ? idx[0] : idx
-          ) as ModelKey<ModelClass>)
-          .filter(
-            idx => !Array.isArray(idx) || idx.length === 1,
-          ),
+          .filter(index => typeof index === 'string' || index.length === 1)
+          .map(index => (typeof index === 'string' ? index : index[0]) as ModelKey<ModelClass>),
       );
     }
-    return this._uniqueColumnsSet as Set<ModelKey<T>>;
+    return this._uniqueSingleColumnsSet as Set<ModelKey<T>>;
   }
 
   static _normalIndexes: ModelIndex<ModelClass>[] | undefined;
@@ -217,7 +220,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
       const required: string[] = [];
       for (const pair of TS.objEntries(this.schema)) {
         if (
-          (pair[0] as string !== 'id' && !hasDefault(pair[1] as JsonSchema))
+          (pair[0] as string !== 'id' && !hasDefault(pair[1]))
           || this.isMV
         ) {
           required.push(pair[0]);
@@ -231,7 +234,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
         additionalProperties: false,
       };
     }
-    return this._jsonSchema as ModelJsonSchema;
+    return this._jsonSchema;
   }
 
   static override pickJsonSchemaProperties = true;
@@ -239,7 +242,6 @@ class BaseModel extends ObjectionModel implements IBaseModel {
   static override useLimitInFirst = true;
 
   static override virtualAttributes = [
-    'extras',
     'includedRelations',
   ];
 
@@ -266,9 +268,6 @@ class BaseModel extends ObjectionModel implements IBaseModel {
 
   declare cls: ModelClass;
 
-  // todo: mid/hard get rid of extras and put everything in models or cache
-  declare extras?: ObjectOf<any>;
-
   declare includedRelations?: string[];
 
   getId(): ApiEntityId {
@@ -282,9 +281,9 @@ class BaseModel extends ObjectionModel implements IBaseModel {
 
   $toDatabaseJson: may have Knex.raw
 
-  $toCacheJson: Pojo, no extras/relations/type
+  $toCachePojo: Pojo, no relations/type
 
-  $toApiJson: Pojo, with extras/relations/type, may have fields removed
+  $toApiPojo: Pojo, with relations/type, may have fields removed
   */
 
   override $toJson<T extends Model>(this: T, _opt: any) {
@@ -292,7 +291,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
   }
 
   override toJSON<T extends Model>(this: T, _opt: any) {
-    // low/mid deep freeze pojo after removing extras
+    // low/easy deep freeze pojo
     return modelInstanceToPojo(this) as T['cls']['Interface'];
   }
 
@@ -311,7 +310,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     });
   }
 
-  static fromCacheJson<T extends ModelClass>(this: T, obj: ObjectOf<any>): ModelInstance<T> {
+  static fromCachePojo<T extends ModelClass>(this: T, obj: ObjectOf<any>): ModelInstance<T> {
     obj = parseModel(this, obj as Partial<T['Interface']>);
     const ent = new this();
     for (const pair of TS.objEntries(obj)) {
@@ -326,30 +325,30 @@ class BaseModel extends ObjectionModel implements IBaseModel {
     return ent;
   }
 
-  $toCacheJson<T extends Model>(this: T): ObjectOf<any> {
+  $toCachePojo<T extends Model>(this: T): ObjectOf<any> {
     return formatModelPojo(
       this.constructor as ModelClass,
       modelInstanceToPojo(this, false),
     );
   }
 
-  $formatApiJson<T extends Partial<IBaseModel>>(obj: T): T {
+  $formatApiPojo<T extends ModelSerializedForApi>(obj: T): T {
     return obj;
   }
 
-  $toApiJson<T extends Model>(this: T): ModelSerializedForApi {
+  $toApiPojo<T extends Model>(this: T): ModelSerializedForApi {
     const Model = this.constructor as RRModelClass;
-    const { extras, includedRelations } = this;
 
     const obj = modelInstanceToPojo(this, false);
     const formatted = formatModelPojo<RRModelClass>(Model, obj);
-    return deepFreezeIfDev(this.$formatApiJson({
+    return deepFreezeIfDev(this.$formatApiPojo({
       type: Model.type,
       id: this.getId(),
       ...formatted,
-      ...(extras ? { extras } : null),
-      ...(includedRelations ? { includedRelations: [...new Set(includedRelations)] } : null),
-    }));
+      ...(this.includedRelations
+        ? { includedRelations: [...new Set(this.includedRelations)] }
+        : null),
+    } as ModelSerializedForApi));
   }
 }
 

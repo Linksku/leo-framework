@@ -1,5 +1,3 @@
-import type { BackButtonListenerEvent } from '@capacitor/app';
-import { App as Capacitor } from '@capacitor/app';
 // Include in main bundle
 import '@capacitor/app/dist/esm/web.js';
 
@@ -8,6 +6,8 @@ import useEffectInitialMount from 'hooks/useEffectInitialMount';
 import useWindowEvent from 'hooks/useWindowEvent';
 import getUrlParams from 'utils/getUrlParams';
 import prefetchRoute from 'utils/prefetchRoute';
+import stringifyUrlQuery from 'utils/stringifyUrlQuery';
+import { ABSOLUTE_URL_REGEX } from 'consts/browsers';
 
 type Direction = 'none' | 'back' | 'forward';
 
@@ -98,15 +98,27 @@ function buildHistoryStateFromLocation(id: number): HistoryState {
   });
 }
 
-function getFullPath(path: string, queryStr: string | null, hash: string | null) {
-  let fullPath = `${window.location.origin}${path}`;
+function getPath(path: string, queryStr: string | null, hash: string | null) {
+  let newPath = path;
   if (queryStr) {
-    fullPath += `?${queryStr}`;
+    newPath += `?${queryStr}`;
   }
   if (hash) {
-    fullPath += `#${hash}`;
+    newPath += `#${hash}`;
   }
-  return fullPath;
+  return newPath;
+}
+
+function getFullPath(path: string, queryStr: string | null, hash: string | null) {
+  return window.location.origin + getPath(path, queryStr, hash);
+}
+
+export function getPathFromState(state: HistoryState) {
+  return getPath(state.path, state.queryStr, state.hash);
+}
+
+function getFullPathFromState(state: HistoryState) {
+  return getFullPath(state.path, state.queryStr, state.hash);
 }
 
 function getNativeHistoryState({
@@ -161,10 +173,7 @@ export function getPartsFromPath(
 
   let queryStr: string | null = null;
   if (query) {
-    queryStr = new URLSearchParams(
-      // @ts-ignore URLSearchParams can accept numbers
-      query,
-    ).toString();
+    queryStr = stringifyUrlQuery(query);
   } else if (questionIdx >= 0) {
     if (hashIdx < 0) {
       queryStr = _path.slice(questionIdx + 1);
@@ -190,7 +199,7 @@ let HistoryState = (() => {
   try {
     nativeHistoryState = TS.assertType<NativeHistoryState>(
       window.history?.state,
-      val => typeof val === 'object' && val
+      val => TS.isObj(val)
         && typeof val.id === 'number'
         && typeof val.path === 'string'
         && (val.queryStr === null || typeof val.queryStr === 'string')
@@ -209,7 +218,8 @@ let HistoryState = (() => {
             && (val.prevHash === null || typeof val.prevHash === 'string')
           )
         )
-        && ['none', 'back', 'forward'].includes(val.direction),
+        && typeof val.direction === 'string'
+        && TS.includes(['none', 'back', 'forward'], val.direction),
     );
   } catch {}
 
@@ -250,7 +260,7 @@ let HistoryState = (() => {
       : null,
     direction: nativeHistoryState?.direction ?? 'none',
     isReplaced: !!nativeHistoryState,
-    popHandlers: [] as (() => boolean)[],
+    popHandlers: [] as unknown as Stable<(() => boolean)[]>,
     lastPopStateTime: Number.MIN_SAFE_INTEGER,
     // After navigating back and un-suspending, WDYR would consider context unchanged
     navCountHack: 0,
@@ -270,7 +280,6 @@ export const [
 ] = constate(
   function HistoryStore() {
     const update = useUpdate();
-    const catchAsync = useCatchAsync();
 
     const pushPath = useCallback((
       _path: string,
@@ -317,6 +326,19 @@ export const [
           hash,
         });
       const newBackState = curState;
+
+      window.history.replaceState(
+        getNativeHistoryState({
+          curState,
+          backState,
+          forwardState: newCurState,
+          direction: 'forward',
+        }),
+        '',
+        getFullPathFromState(curState),
+      );
+
+      prefetchRoute(newCurState.path);
       HistoryState = markStable({
         ...HistoryState,
         curState: newCurState,
@@ -325,10 +347,8 @@ export const [
         direction: 'forward',
         isReplaced: false,
         navCountHack: navCountHack + 1,
-        popHandlers: [],
+        popHandlers: [] as unknown as Stable<(() => boolean)[]>,
       });
-
-      prefetchRoute(newCurState.path);
       window.history.pushState(
         getNativeHistoryState({
           curState: newCurState,
@@ -337,7 +357,7 @@ export const [
           direction: 'forward',
         }),
         '',
-        getFullPath(newCurState.path, newCurState.queryStr, newCurState.hash),
+        getFullPathFromState(newCurState),
       );
 
       update();
@@ -390,7 +410,7 @@ export const [
           direction,
         }),
         '',
-        getFullPath(newCurState.path, newCurState.queryStr, newCurState.hash),
+        getFullPathFromState(newCurState),
       );
 
       update();
@@ -413,6 +433,7 @@ export const [
       }
 
       if (!process.env.PRODUCTION && curState.id <= FIRST_ID) {
+        // todo: low/mid clicking back multiple times quickly can cause invalid state id
         throw new Error(`HistoryStore.addHomeToHistory: invalid state id: ${curState.id}`);
       }
 
@@ -421,12 +442,6 @@ export const [
         path: '/',
         queryStr: null,
         hash: null,
-      });
-      HistoryState = markStable({
-        ...HistoryState,
-        backState: newBackState,
-        isReplaced: true,
-        navCountHack: navCountHack + 1,
       });
 
       window.history.replaceState(
@@ -440,6 +455,12 @@ export const [
         getFullPath('/', null, null),
       );
 
+      HistoryState = markStable({
+        ...HistoryState,
+        backState: newBackState,
+        isReplaced: true,
+        navCountHack: navCountHack + 1,
+      });
       window.history.pushState(
         getNativeHistoryState({
           curState,
@@ -448,11 +469,7 @@ export const [
           direction,
         }),
         '',
-        getFullPath(
-          curState.path,
-          curState.queryStr,
-          curState.hash,
-        ),
+        getFullPathFromState(curState),
       );
 
       update();
@@ -473,7 +490,9 @@ export const [
         lastPopStateTime,
         navCountHack,
       } = HistoryState;
-      const newStateId = typeof event.state?.id === 'number' ? event.state.id as number : FIRST_ID;
+      const newStateId = TS.isObj(event.state) && typeof event.state.id === 'number'
+        ? event.state.id
+        : FIRST_ID;
       const newDirection = newStateId >= curState.id ? 'forward' : 'back';
 
       function _pushLastState() {
@@ -485,11 +504,7 @@ export const [
             direction,
           }),
           '',
-          getFullPath(
-            curState.path,
-            curState.queryStr,
-            curState.hash,
-          ),
+          getFullPathFromState(curState),
         );
         update();
       }
@@ -520,19 +535,13 @@ export const [
       let newCurState: HistoryState;
       let newBackState: HistoryState | null = null;
       let newForwardState: HistoryState | null = null;
-      if (newDirection === 'back') {
-        if (!process.env.PRODUCTION && (
-          backState?.id !== nativeHistoryState?.id
-          || backState?.path !== nativeHistoryState?.path
-          || backState?.queryStr !== nativeHistoryState?.queryStr
-          || backState?.hash !== nativeHistoryState?.hash
-        )) {
-          ErrorLogger.error(getErr(
-            'History.onPopstate: backState mismatch',
-            { backState, nativeHistoryState },
-          ));
-        }
-
+      if (newDirection === 'back' && (!nativeHistoryState
+        || (backState
+          && backState.id === nativeHistoryState.id
+          && backState.path === nativeHistoryState.path
+          && backState.queryStr === nativeHistoryState.queryStr
+          && backState.hash === nativeHistoryState.hash
+        ))) {
         newCurState = TS.notNull(backState);
         newForwardState = curState;
         newBackState = nativeHistoryState?.backId && nativeHistoryState?.backPath
@@ -543,21 +552,13 @@ export const [
             hash: nativeHistoryState.backHash,
           })
           : null;
-      } else {
-        if (!process.env.PRODUCTION
-          && !(direction === 'none' && !forwardState)
-          && (
-            forwardState?.id !== nativeHistoryState?.id
-            || forwardState?.path !== nativeHistoryState?.path
-            || forwardState?.queryStr !== nativeHistoryState?.queryStr
-            || forwardState?.hash !== nativeHistoryState?.hash
-          )) {
-          ErrorLogger.error(getErr(
-            'History.onPopstate: forwardState mismatch',
-            { forwardState, nativeHistoryState },
-          ));
-        }
-
+      } else if (newDirection === 'forward' && (!nativeHistoryState
+        || (forwardState
+          && forwardState.id === nativeHistoryState.id
+          && forwardState.path === nativeHistoryState.path
+          && forwardState.queryStr === nativeHistoryState.queryStr
+          && forwardState.hash === nativeHistoryState.hash
+        ))) {
         newCurState = forwardState
           ?? (nativeHistoryState
             ? buildHistoryState({
@@ -576,6 +577,51 @@ export const [
             hash: nativeHistoryState.forwardHash,
           })
           : null;
+      } else if (nativeHistoryState) {
+        // Could be caused by popping more than 1 history item at once
+        if (!process.env.PRODUCTION) {
+          ErrorLogger.warn(
+            new Error('HistoryStore.popstate: mismatched state'),
+            {
+              newDirection,
+              nativeHistoryState,
+              curState,
+              backState,
+              forwardState,
+            },
+          );
+        }
+
+        newCurState = buildHistoryState({
+          id: nativeHistoryState.id,
+          path: nativeHistoryState.path,
+          queryStr: nativeHistoryState.queryStr,
+          hash: nativeHistoryState.hash,
+        });
+        newBackState = nativeHistoryState.backId && nativeHistoryState.backPath
+          ? buildHistoryState({
+            id: nativeHistoryState.backId,
+            path: nativeHistoryState.backPath,
+            queryStr: nativeHistoryState.backQueryStr,
+            hash: nativeHistoryState.backHash,
+          })
+          : null;
+        newForwardState = nativeHistoryState.forwardId && nativeHistoryState.forwardPath
+          ? buildHistoryState({
+            id: nativeHistoryState.forwardId,
+            path: nativeHistoryState.forwardPath,
+            queryStr: nativeHistoryState.forwardQueryStr,
+            hash: nativeHistoryState.forwardHash,
+          })
+          : null;
+      } else {
+        throw getErr('HistoryStore.popstate: unexpected state', {
+          newDirection,
+          nativeHistoryState,
+          curState,
+          backState,
+          forwardState,
+        });
       }
 
       HistoryState = markStable({
@@ -588,17 +634,15 @@ export const [
         lastPopStateTime: performance.now(),
         navCountHack: navCountHack + 1,
       });
-
-      const newNativeState = getNativeHistoryState({
-        curState: newCurState,
-        backState: newBackState,
-        forwardState: newForwardState,
-        direction: newDirection,
-      });
       window.history.replaceState(
-        newNativeState,
+        getNativeHistoryState({
+          curState: newCurState,
+          backState: newBackState,
+          forwardState: newForwardState,
+          direction: newDirection,
+        }),
         '',
-        getFullPath(newCurState.path, newCurState.queryStr, newCurState.hash),
+        getFullPathFromState(newCurState),
       );
 
       if (document.activeElement instanceof HTMLElement) {
@@ -615,40 +659,20 @@ export const [
       const el = (event.target as HTMLElement).closest('a');
       const href = el?.getAttribute('href');
 
-      if (!process.env.PRODUCTION && el) {
+      if (!el || !href) {
+        return;
+      }
+
+      if (!process.env.PRODUCTION) {
         throw new Error(`HistoryStore.handleClick: use <Link> instead of <a> for ${href}`);
       }
 
-      if (href?.startsWith('/')) {
+      if (href && !ABSOLUTE_URL_REGEX.test(href)) {
         event.preventDefault();
 
         pushPath(href);
       }
     }, [pushPath]));
-
-    useEffect(() => {
-      // Capacitor Android.
-      const backButtonListener = Capacitor.addListener('backButton', (event: BackButtonListenerEvent) => {
-        while (HistoryState.popHandlers.length) {
-          const handler = HistoryState.popHandlers.shift();
-          if (handler?.()) {
-            return;
-          }
-        }
-
-        if (event.canGoBack) {
-          window.history.back();
-        } else {
-          catchAsync(Capacitor.exitApp(), 'Capacitor.exitApp');
-        }
-      });
-
-      return () => {
-        // Error if remove() is called before Capacitor loads
-        backButtonListener.remove()
-          .catch(NOOP);
-      };
-    }, [replacePath, pushPath, catchAsync]);
 
     useEffectInitialMount(() => {
       const {
@@ -666,7 +690,7 @@ export const [
           direction,
         }),
         '',
-        getFullPath(curState.path, curState.queryStr, curState.hash),
+        getFullPathFromState(curState),
       );
 
       if (!backState && curState.path !== '/') {
@@ -688,6 +712,7 @@ export const [
       direction,
       isReplaced,
       navCountHack,
+      popHandlers,
     } = HistoryState;
     return useMemo(
       () => ({
@@ -703,6 +728,7 @@ export const [
         direction,
         isReplaced,
         navCountHack,
+        popHandlers,
         pushPath,
         replacePath,
         addHomeToHistory,
@@ -719,6 +745,7 @@ export const [
         pushPath,
         replacePath,
         addHomeToHistory,
+        popHandlers,
         addPopHandler,
       ],
     );

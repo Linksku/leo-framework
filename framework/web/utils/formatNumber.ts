@@ -3,7 +3,7 @@ export default function formatNumber(
   minFormat = 1000,
 ): string {
   if (n < minFormat) {
-    return `${n}`;
+    return n.toString();
   }
 
   if (n >= 10_000_000) {
@@ -18,5 +18,5 @@ export default function formatNumber(
   if (n >= 1000) {
     return `${Math.round(n / 100) / 10}k`;
   }
-  return `${n}`;
+  return n.toString();
 }

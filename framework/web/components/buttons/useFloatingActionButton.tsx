@@ -1,7 +1,8 @@
 import useVisibilityObserver from 'hooks/useVisibilityObserver';
 import { useAnimatedValue, useAnimation } from 'hooks/useAnimation';
+import IconButton from 'components/base/IconButton';
 
-import styles from './useFloatingActionButtonStyles.scss';
+import styles from './useFloatingActionButton.scss';
 
 export default function useFloatingActionButton({
   Svg,
@@ -11,6 +12,7 @@ export default function useFloatingActionButton({
   boxShadow,
   svgClassName,
   className,
+  'aria-label': ariaLabel,
   ...props
 }: {
   Svg: React.SVGFactory,
@@ -19,6 +21,7 @@ export default function useFloatingActionButton({
   visibilityOffset?: string,
   boxShadow?: string,
   svgClassName?: string,
+  'aria-label': string,
 } & Parameters<typeof Button>[0]) {
   const animatedOpacity = useAnimatedValue(
     hideType ? 0 : 100,
@@ -54,15 +57,15 @@ export default function useFloatingActionButton({
       [visibilityRef, visibilityOffset],
     ),
     btn: (
-      <Button
+      <IconButton
         {...props}
         ref={animationRef}
-        LeftSvg={Svg}
-        leftSvgClassName={svgClassName}
+        Svg={Svg}
+        svgClassName={svgClassName}
         style={{
           ...animationStyle(
             {
-              filter: x => `opacity(${x}%)`,
+              opacity: x => x / 100,
               ...(anchorTo === 'top' ? null : {
                 // Temp fix for useAnimation overriding transform
                 transform: _ => 'translateY(-100%)',
@@ -80,6 +83,7 @@ export default function useFloatingActionButton({
           [styles.fromTop]: anchorTo === 'top',
           [styles.fromBottom]: anchorTo === 'bottom',
         })}
+        aria-label={ariaLabel}
       />
     ),
   };

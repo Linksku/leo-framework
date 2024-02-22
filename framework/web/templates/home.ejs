@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<%- include('partials/assets') %>
+<link rel="preload" href="<%= assetsUrl %>/js/chunks/deferred<%= fileVersion %>.js" as="script" fetchpriority="low">
+<link rel="stylesheet" href="<%= assetsUrl %>/css/chunks/deferred<%= fileVersion %>.css" media="none" onload="if(media!='all')media='all'">
+
+<script>
+if (localStorage.getItem('authToken')) {
+  document.write('<link rel="preload" href="<%= assetsUrl %>/js/chunks/HomeAuthRoute<%= fileVersion %>.js" as="script" fetchpriority="low">');
+  document.write('<link rel="stylesheet" href="<%= assetsUrl %>/css/chunks/HomeAuthRoute<%= fileVersion %>.css" media="none" onload="if(media!=\'all\')media=\'all\'">');
+} else {
+  document.write('<link rel="preload" href="<%= assetsUrl %>/js/chunks/HomeUnauthRoute<%= fileVersion %>.js" as="script" fetchpriority="low">');
+  document.write('<link rel="stylesheet" href="<%= assetsUrl %>/css/chunks/HomeUnauthRoute<%= fileVersion %>.css" media="none" onload="if(media!=\'all\')media=\'all\'">');
+}
+</script>
+
+<%- include('partials/metaTags') %>
+</head>
+<body>
+  <div id="react"></div>
+</body>
+</html>

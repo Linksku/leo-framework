@@ -1,0 +1,112 @@
+.leftSvg,
+.rightSvg {
+  fill: #fff;
+  height: 1.8rem;
+  width: 1.8rem;
+  transition: fill 0.2s;
+}
+
+.leftSvgWithLabel {
+  margin-right: 0.7rem;
+}
+
+.rightSvgWithLabel {
+  margin-left: 0.7rem;
+}
+
+.btn {
+  @extend %oneLine;
+
+  padding: 0.4rem 0.8rem;
+  line-height: 2.4rem;
+  background-color: $primaryColor;
+  color: #fff;
+  border: 0.5px solid $primaryColor;
+  margin: 0;
+  border-radius: 5px;
+  overflow: visible;
+  text-transform: none;
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 1.6rem;
+  text-decoration: none;
+  outline: none !important;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, color 0.2s;
+
+  p & {
+    color: #fff;
+  }
+
+  &.fullWidth {
+    width: 100%;
+  }
+
+  &:active,
+  &.active {
+    background-color: $activePrimaryColorBg;
+    border-color: $activePrimaryColorBorder;
+  }
+
+  &.disabled,
+  &.disabled:active {
+    background-color: #ccc;
+    border-color: transparent;
+    color: #fff;
+    text-shadow: 0 0 1px rgb(0 0 0 / 20%);
+
+    .leftSvg,
+    .rightSvg {
+      fill: #fff;
+    }
+  }
+
+  &.outline {
+    border: 2px solid $primaryColor;
+    color: $primaryColor;
+    background-color: #fff;
+
+    .leftSvg:not(.disabled),
+    .rightSvg:not(.disabled) {
+      fill: $primaryColor;
+    }
+
+    &:active,
+    &.active {
+      color: $activePrimaryColorBg;
+      background-color: $activeBackgroundColor;
+    }
+
+    &.disabled,
+    &.disabled:active {
+      background-color: #fff;
+      border-color: $fadedPrimaryColorBg;
+      color: $fadedPrimaryColorBg;
+
+      .leftSvg,
+      .rightSvg {
+        fill: $fadedPrimaryColorBg;
+      }
+    }
+  }
+
+  &.borderless {
+    border: 0 !important;
+    color: $primaryColor;
+    background-color: transparent !important;
+  }
+
+  &.small {
+    padding: 0.3rem 0.7rem;
+    line-height: 2.2rem;
+    font-size: 1.4rem;
+    border-radius: 4px;
+
+    &.outline {
+      border-width: 1px;
+    }
+  }
+}

@@ -1,11 +1,11 @@
 import redlock from 'services/redlock';
 import { INIT_INFRA_LOCK_NAME, INIT_INFRA_LOCK_TTL, INIT_INFRA_REDIS_KEY } from 'consts/infra';
 import exec from 'utils/exec';
-import seedDb from 'config/seedDb';
-import { APP_NAME_LOWER } from 'settings';
+import { seedDb } from 'config/functions';
+import { APP_NAME_LOWER } from 'config';
 import { redisMaster } from 'services/redis';
 import initInfraWrap from 'utils/infra/initInfraWrap';
-import destroyDockerCompose from './mv/steps/destroyDockerCompose';
+import deleteDockerCompose from './mv/steps/deleteDockerCompose';
 import startDockerCompose from './mv/steps/startDockerCompose';
 import destroyMVInfra from './mv/destroyMVInfra';
 import resetDb from './db/resetDb';
@@ -43,7 +43,7 @@ export default async function recreateInfra() {
   const lock = await redlock.acquire([INIT_INFRA_LOCK_NAME], INIT_INFRA_LOCK_TTL);
   await redisMaster.setex(INIT_INFRA_REDIS_KEY, INIT_INFRA_LOCK_TTL / 1000, '1');
   try {
-    await destroyDockerCompose();
+    await deleteDockerCompose();
   } catch (err) {
     await lock.release();
     throw err;

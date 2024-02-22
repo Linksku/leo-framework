@@ -21,7 +21,7 @@ if [ -n "$PREVPID" ] ; then
   kill -9 ${PREVPID};
 fi
 
-mkdir build/$NODE_ENV/server
+mkdir -p build/$NODE_ENV/server
 touch build/$NODE_ENV/server/main.js
 touch build/$NODE_ENV/server-script/monitorInfra.js
 

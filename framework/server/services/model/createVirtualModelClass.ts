@@ -37,12 +37,12 @@ export function processVirtualModelConfig<Config extends VirtualModelConfig<Mode
     ...config,
     uniqueIndexes: [idColumn],
     staticProps: {
-      ...config.staticProps,
       idColumn,
       virtualAttributes: [
         ...VirtualModel.virtualAttributes,
         ...Object.keys(config.schema),
       ],
+      ...config.staticProps,
     },
   };
 }

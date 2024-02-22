@@ -1,0 +1,53 @@
+diff --git a/lib/lib.dom.d.ts b/lib/lib.dom.d.ts
+index ac946bae15f0c3cc49ad8c5d2c4b455ab92e425e..10e1d2fe47574659095221718493f6ca0a8dfbda 100644
+--- a/lib/lib.dom.d.ts
++++ b/lib/lib.dom.d.ts
+@@ -15880,7 +15880,7 @@ interface Navigator extends NavigatorAutomationInformation, NavigatorBadge, Navi
+     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/mediaSession) */
+     readonly mediaSession: MediaSession;
+     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/permissions) */
+-    readonly permissions: Permissions;
++    readonly permissions?: Permissions;
+     /**
+      * Available only in secure contexts.
+      *
+@@ -16421,7 +16421,7 @@ declare var Notification: {
+     readonly permission: NotificationPermission;
+     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/requestPermission_static) */
+     requestPermission(deprecatedCallback?: NotificationPermissionCallback): Promise<NotificationPermission>;
+-};
++} | undefined;
+ 
+ /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed) */
+ interface OES_draw_buffers_indexed {
+@@ -22622,7 +22622,7 @@ interface URLSearchParams {
+ 
+ declare var URLSearchParams: {
+     prototype: URLSearchParams;
+-    new(init?: string[][] | Record<string, string> | string | URLSearchParams): URLSearchParams;
++    new(init?: string[][] | Partial<Record<string, string | number>> | string | URLSearchParams): URLSearchParams;
+ };
+ 
+ /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/UserActivation) */
+diff --git a/lib/lib.webworker.d.ts b/lib/lib.webworker.d.ts
+index 82f0b0b308186c7bb3cd226062c92728877f48dc..447748fd27efabc7e84995e086212d8020010df0 100644
+--- a/lib/lib.webworker.d.ts
++++ b/lib/lib.webworker.d.ts
+@@ -4159,7 +4159,7 @@ declare var Notification: {
+     new(title: string, options?: NotificationOptions): Notification;
+     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Notification/permission_static) */
+     readonly permission: NotificationPermission;
+-};
++} | undefined;
+ 
+ /**
+  * The parameter passed into the onnotificationclick handler, the NotificationEvent interface represents a notification click event that is dispatched on the ServiceWorkerGlobalScope of a ServiceWorker.
+@@ -5650,7 +5650,7 @@ interface URLSearchParams {
+ 
+ declare var URLSearchParams: {
+     prototype: URLSearchParams;
+-    new(init?: string[][] | Record<string, string> | string | URLSearchParams): URLSearchParams;
++    new(init?: string[][] | Partial<Record<string, string | number>> | string | URLSearchParams): URLSearchParams;
+ };
+ 
+ /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoColorSpace) */

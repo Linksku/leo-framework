@@ -5,22 +5,27 @@ function getTimeAgo(time: number) {
   }
   const minutes = seconds / 60;
   if (minutes < 59.5) {
-    return `${Math.round(minutes)} minute${minutes < 1.5 ? '' : 's'} ago`;
+    const rounded = Math.round(minutes);
+    return `${rounded} ${pluralize('minute', minutes)} ago`;
   }
   const hours = minutes / 60;
   if (hours < 23.5) {
-    return `${Math.round(hours)} hour${hours < 1.5 ? '' : 's'} ago`;
+    const rounded = Math.round(hours);
+    return `${rounded} ${pluralize('hour', hours)} ago`;
   }
   const days = hours / 24;
   if (days < 6.5) {
-    return `${Math.round(days)} day${days < 1.5 ? '' : 's'} ago`;
+    const rounded = Math.round(days);
+    return `${rounded} ${pluralize('day', days)} ago`;
   }
   const weeks = days / 7;
   if (weeks < 51.5) {
-    return `${Math.round(weeks)} week${weeks < 1.5 ? '' : 's'} ago`;
+    const rounded = Math.round(weeks);
+    return `${rounded} ${pluralize('week', weeks)} ago`;
   }
   const years = weeks / 52;
-  return `${Math.round(years)} year${years < 1.5 ? '' : 's'} ago`;
+  const rounded = Math.round(years);
+  return `${rounded} ${pluralize('year', years)} ago`;
 }
 
 export default getTimeAgo;

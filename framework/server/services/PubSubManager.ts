@@ -1,9 +1,9 @@
 import { redisSub, redisPub } from 'services/redis';
-import getServerId from 'utils/getServerId';
+import getServerId from 'core/getServerId';
 import { PUB_SUB } from 'consts/coreRedisNamespaces';
 import safeParseJson from 'utils/safeParseJson';
 
-type Message = {
+export type PubSubMessage = {
   data: string,
   serverId: number,
 };
@@ -27,7 +27,7 @@ const PubSubManager = {
   publish(eventType: string, data: string) {
     printEventType('PubSub.publish', eventType);
 
-    const msg: Message = {
+    const msg: PubSubMessage = {
       data,
       serverId,
     };
@@ -94,7 +94,7 @@ const PubSubManager = {
     }
 
     const eventType = channel.slice(PUB_SUB.length + 1);
-    const msg = safeParseJson<Message>(msgStr);
+    const msg = safeParseJson<PubSubMessage>(msgStr);
     if (!msg) {
       ErrorLogger.error(
         new Error(`PubSubManager.handleMessage(${channel}): invalid msg`),

@@ -15,7 +15,7 @@ addHealthcheck('bullCron', {
   },
   // runOnAllServers has to be true because otherwise healthchecks won't run when Redis is down
   runOnAllServers: true,
-  resourceUsage: 'high',
+  resourceUsage: 'mid',
   stability: 'mid',
   timeout: 30 * 1000,
 });

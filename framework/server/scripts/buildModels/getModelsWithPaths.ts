@@ -19,7 +19,10 @@ function filterModels(models: ModelsArr) {
       throw new TypeError(`models: ${filepath} isn't a model`);
     }
 
-    if (Model.name !== path.basename(filepath).split('.')[0]) {
+    const expectedName = Model.name.endsWith('MV') || Model.name.startsWith('Virtual')
+      ? Model.name
+      : `${Model.name}Model`;
+    if (expectedName !== path.basename(filepath).split('.')[0]) {
       throw new Error(`models: ${Model.name} !== ${filepath.slice(0, filepath.lastIndexOf('.'))}`);
     }
 

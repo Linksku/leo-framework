@@ -15,7 +15,8 @@ addHealthcheck('mzSinks', {
       return;
     }
 
-    const sinks = await knexMZ('mz_sinks')
+    const sinks = await knexMZ<{ name: string }>('mz_sinks')
+      .select('name')
       .where('name', 'like', `${MZ_SINK_PREFIX}%`);
     if (sinks.length === 0) {
       throw new Error('mzSinksHealthcheck: no sinks');
@@ -26,7 +27,9 @@ addHealthcheck('mzSinks', {
         .filter(model => model.getReplicaTable())
         .map(model => model.type),
     );
-    const existingSinkModels = new Set(sinks.map(sink => sink.name.slice(MZ_SINK_PREFIX.length)));
+    const existingSinkModels = new Set(sinks.map(
+      sink => sink.name.slice(MZ_SINK_PREFIX.length) as ModelType,
+    ));
     if (existingSinkModels.size < modelsWithSinks.size) {
       const missingSinks = [...modelsWithSinks].filter(model => !existingSinkModels.has(model));
       throw getErr('mzSinksHealthcheck: missing sinks', { missingSinks });
@@ -37,6 +40,7 @@ addHealthcheck('mzSinks', {
     }
   },
   resourceUsage: 'mid',
+  usesResource: 'mz',
   stability: 'mid',
-  timeout: 10 * 1000,
+  timeout: 2 * 60 * 1000,
 });

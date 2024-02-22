@@ -5,9 +5,19 @@ import path from 'path';
 import { mkdirp } from 'mkdirp';
 
 import ucFirst from 'utils/ucFirst';
-import 'routes/apiRoutes';
-import 'config/apis';
+import 'core/apiRoutes';
 import { getApis } from 'services/ApiManager';
+
+function validateSchema(apiName: string, schema: JSONSchema4) {
+  const { required, properties } = schema;
+  if (Array.isArray(required)) {
+    for (const key of required) {
+      if (!properties || !properties[key]) {
+        throw new Error(`buildApiTypes.validateSchema(${apiName}): invalid required "${key}"`);
+      }
+    }
+  }
+}
 
 // todo: low/mid handle image field types
 export default async function buildApiTypes() {
@@ -17,6 +27,8 @@ export default async function buildApiTypes() {
 
   for (const api of apis) {
     if (api.config.paramsSchema) {
+      validateSchema(api.config.name, api.config.paramsSchema);
+
       // eslint-disable-next-line no-await-in-loop
       const fields = await compile(
         api.config.paramsSchema as JSONSchema4,
@@ -33,6 +45,8 @@ ${fields.split('\n').slice(1, -2).join('\n').replaceAll('"', '\'')}
     }
 
     if (api.config.dataSchema) {
+      validateSchema(api.config.name, api.config.dataSchema);
+
       // eslint-disable-next-line no-await-in-loop
       const fields = await compile(
         api.config.dataSchema as JSONSchema4,

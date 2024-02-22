@@ -4,8 +4,8 @@ const ENDING_SPECIAL_CHARS = /[()*,./:;=^_`{}~-]$/g;
 
 export default function tokenizeString(str: string): string[] {
   return str
-    .trim()
     .replaceAll(WHITESPACE, ' ')
+    .trim()
     .split(' ')
     .map(
       w => w

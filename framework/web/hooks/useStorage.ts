@@ -1,6 +1,7 @@
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
-import { DEFAULT_COOKIES_TTL } from 'settings';
+import { DEFAULT_COOKIES_TTL } from 'consts/server';
 import safeParseJson from 'utils/safeParseJson';
+import stringify from 'utils/stringify';
 
 function setItem(
   storage: Storage,
@@ -44,7 +45,7 @@ function useStorage<T>(
       exp: number,
     }>(
       data,
-      val => val && typeof val === 'object' && val.exp,
+      val => TS.isObj(val) && typeof val.exp === 'number',
     );
 
     if (parsed && parsed.exp > Date.now()) {
@@ -53,8 +54,7 @@ function useStorage<T>(
       }
 
       if (!process.env.PRODUCTION) {
-        setItem(storage, key, initialVal, opts);
-        throw new Error(`useStorage: ${key} failed validator: ${parsed.val}`);
+        ErrorLogger.error(new Error(`useStorage: ${key} failed validator: ${stringify(parsed.val)}`));
       }
     }
 
@@ -66,7 +66,7 @@ function useStorage<T>(
     setState(s => {
       const newState = val instanceof Function ? val(s) : val;
       if (!process.env.PRODUCTION && !validator(newState)) {
-        throw new Error(`useStorage.setValue: "${newState}" failed validator.`);
+        throw new Error(`useStorage.setValue: "${stringify(newState)}" failed validator.`);
       }
 
       if (newState === initialVal || newState == null) {

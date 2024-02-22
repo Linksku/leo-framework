@@ -1,12 +1,13 @@
 import Knex from 'knex';
 import pg from 'pg';
 
-import { API_TIMEOUT } from 'settings';
+import { API_TIMEOUT } from 'consts/server';
 import {
   PG_RR_HOST,
-  PG_RR_POOL_MAX,
   PG_RR_PORT,
+  PG_RR_DB,
   PG_RR_SCHEMA,
+  PG_RR_POOL_MAX,
 } from 'consts/infra';
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
 import './initKnex';
@@ -26,7 +27,7 @@ const knexRR = ServiceContextLocalStorage.run(
       port: PG_RR_PORT,
       user: process.env.PG_RR_USER,
       password: process.env.PG_RR_PASS,
-      database: process.env.PG_RR_DB,
+      database: PG_RR_DB,
       charset: 'utf8',
       timezone: 'utc',
       dateStrings: true,

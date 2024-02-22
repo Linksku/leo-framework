@@ -7,32 +7,42 @@ export const allRouteConfigs = allRoutes.map(route => {
   if (route[0] instanceof RegExp) {
     const matches = route[0].toString().match(/^\/\^\\(\/[\w-]+)/);
     regexPrefix = matches ? matches[1] : null;
+  } else if (!process.env.PRODUCTION && route[0] !== route[0].toLowerCase()) {
+    ErrorLogger.warn(new Error(`pathToRoute: "${route[0]}" isn't lowercase`));
   }
+
+  let Component: React.ComponentType<any> | null = null;
   return {
     pattern: route[0],
     importComponent: route[1],
-    Component: React.lazy(route[1]),
+    getComponent() {
+      if (!Component) {
+        // React.lazy stores network errors permanently
+        Component = React.lazy(() => route[1]()
+          .catch(err => {
+            Component = null;
+            throw err;
+          }));
+      }
+      return Component;
+    },
     regexPrefix,
     ...route[2],
   } as RouteConfig;
 });
 
 export type MatchedRoute = {
-  routeConfig: RouteConfig | null,
+  path: string,
+  routeConfig: RouteConfig,
   matches: Stable<string[]>,
 };
 
-const MATCHES_CACHE: Map<
+const MATCHES_CACHE = new Map<
   string,
-  Stable<MatchedRoute>
-> = new Map();
+  Stable<MatchedRoute> | null
+>();
 
-const DEFAULT_RET: Stable<MatchedRoute> = markStable({
-  routeConfig: null,
-  matches: EMPTY_ARR,
-});
-
-function _pathToRouteImpl(path: string): MatchedRoute {
+function _pathToRouteImpl(path: string): MatchedRoute | null {
   for (const route of allRouteConfigs) {
     if (route.regexPrefix && !path.startsWith(route.regexPrefix)) {
       continue;
@@ -46,23 +56,34 @@ function _pathToRouteImpl(path: string): MatchedRoute {
     }
 
     if (matches) {
+      while (matches.length && matches.at(-1) === undefined) {
+        matches.pop();
+      }
       return {
+        path,
         routeConfig: route,
         matches: markStable(matches),
       };
     }
   }
 
-  return DEFAULT_RET;
+  return null;
 }
 
 export default function pathToRoute(
   path: Nullish<string>,
-): Stable<MatchedRoute> {
-  if (!path) {
-    return DEFAULT_RET;
+): Stable<MatchedRoute> | null {
+  if (path == null) {
+    return null;
+  }
+  if (!process.env.PRODUCTION && path === '') {
+    ErrorLogger.warn(new Error('pathToRoute: empty path'));
   }
 
+  path = path.toLowerCase();
+  if (path !== '/' && path.endsWith('/')) {
+    path = path.slice(0, -1);
+  }
   if (MATCHES_CACHE.has(path)) {
     return TS.defined(MATCHES_CACHE.get(path));
   }

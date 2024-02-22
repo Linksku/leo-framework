@@ -1,3 +1,4 @@
+// todo: low/easy subdirectories for migrations
 export function getAllMigrations() {
   // eslint-disable-next-line unicorn/prefer-module
   const allMigrations = require.context('../../../../../app/server/migrations', false, /\.ts$/);
@@ -18,7 +19,9 @@ export function getMigration(filename: string) {
     down?: AnyFunction,
   }>(
     file,
-    val => val && typeof val.up === 'function' && (!val.down || typeof val.up === 'function'),
+    val => TS.isObj(val)
+      && typeof val.up === 'function'
+      && (!val.down || typeof val.down === 'function'),
   );
 }
 

@@ -6,6 +6,11 @@ import {
   chalk,
   path,
 } from 'zx';
+import '../framework/server/core/initEnv.cjs';
+
+if (!process.env.SERVER || !process.env.NODE_ENV) {
+  throw new Error('Env vars not set.');
+}
 
 process.env.FORCE_COLOR = '3';
 
@@ -21,11 +26,11 @@ console.log(chalk.green(`Built ${buildPath}`));
 
 const runInDocker = argv.docker ?? process.env.SERVER === 'production';
 if (runInDocker) {
-  await $`docker start server-script`.quiet();
-  await $`docker exec -u 0 server-script sh -c "mkdir -p ${path.dirname(buildPath)}"`.quiet();
+  await $`yarn dc start server-script`.quiet();
+  await $`yarn dc exec -u 0 server-script sh -c "mkdir -p ${path.dirname(buildPath)}"`.quiet();
   await $`yarn dc cp ${buildPath} server-script:/usr/src/${buildPath}`.quiet();
   await $`
-    docker exec -it -u 0 server-script \\
+    yarn dc exec -it -u 0 server-script \\
     node --experimental-specifier-resolution=node --no-warnings /usr/src/${buildPath} ${process.argv.slice(4)}
   `;
 } else {

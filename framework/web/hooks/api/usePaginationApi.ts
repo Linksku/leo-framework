@@ -3,7 +3,7 @@ import equal from 'fast-deep-equal';
 import type { ApiReturn } from 'hooks/api/useApi';
 import { useThrottle } from 'utils/throttle';
 import usePrevious from 'hooks/usePrevious';
-import type { ApiOpts } from './useApi';
+import type { UseApiOpts } from './useApi';
 
 export type PaginatedApiName = {
   [Name in ApiName]: ApiNameToData[Name] extends PaginatedApiRet
@@ -35,11 +35,12 @@ export default function usePaginationApi<
     // Note: could have more than maxItems if first page has few items or if ents were created
     maxItems,
     initialCursor,
+    paginationEntityType,
     ...apiOpts
   }: {
     throttleTimeout?: number,
     maxItems?: number,
-  } & Partial<ApiOpts<Name>>,
+  } & Partial<UseApiOpts<Name>>,
 ): PaginatedApiReturn<Name> {
   const { fetchNextPage } = useApiStore();
 
@@ -47,15 +48,13 @@ export default function usePaginationApi<
   const prevParams = usePrevious(apiParams);
   if (!process.env.PRODUCTION && prevName
     && (apiName !== prevName || !equal(apiParams, prevParams))) {
-    if (apiName !== prevName) {
-      // eslint-disable-next-line no-console
-      console.log(prevName, apiName);
-    } else {
-      // eslint-disable-next-line no-console
-      console.log(prevParams, apiParams);
-    }
     // todo: low/mid handle api params changing and remove keys on scrollers
-    throw new Error(`usePaginationApi(${apiName}): api changed`);
+    throw getErr(
+      `usePaginationApi(${apiName}): api changed`,
+      apiName !== prevName
+        ? { prevName, apiName }
+        : { prevParams, apiParams },
+    );
   }
 
   const {
@@ -65,18 +64,34 @@ export default function usePaginationApi<
     ...apiState
   } = useApi(
     apiName,
-    // @ts-ignore apiParams hack
-    apiParams,
+    // TS union type that is too complex to represent
+    apiParams as any,
     {
       refetchOnFocus: false,
       refetchOnMount: false,
       refetchIfStale: false,
       ...apiOpts,
       initialCursor,
+      paginationEntityType,
       returnState: true,
       isPaginated: true,
     },
   );
+
+  if (!process.env.PRODUCTION && paginationEntityType) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const ents = useEntitiesArr(
+      paginationEntityType,
+      data?.items ?? EMPTY_ARR,
+      { allowMissing: true },
+    );
+    if (data?.items.length && data.items.length !== ents.length) {
+      throw getErr(
+        `usePaginationApi(${apiName}): missing ${paginationEntityType} ents`,
+        { ents, items: data.items },
+      );
+    }
+  }
 
   const hasCompleted = !!(data?.hasCompleted
     || (maxItems && data?.items && data.items.length >= maxItems));
@@ -97,7 +112,7 @@ export default function usePaginationApi<
   return {
     ...apiState,
     fetching,
-    items: (data?.items ?? EMPTY_ARR) as Stable<(string | number)[]>,
+    items: data?.items ?? EMPTY_ARR,
     cursor: data?.cursor ?? null,
     hasCompleted,
     error,

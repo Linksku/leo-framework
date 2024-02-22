@@ -11,7 +11,7 @@ import type { default as _modelQuery } from '../../services/model/modelQuery';
 import type { raw as _raw } from '../../services/knex/knexRR';
 import type { default as _rawSelect } from '../../utils/db/rawSelect';
 import type { default as _SchemaConstants } from '../../consts/schema';
-import type { default as _UserFacingError } from '../../utils/UserFacingError';
+import type { default as _UserFacingError } from '../../core/UserFacingError';
 import type { default as _wrapPromise } from '../../utils/wrapPromise';
 
 declare global {

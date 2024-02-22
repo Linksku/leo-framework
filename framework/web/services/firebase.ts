@@ -1,10 +1,16 @@
 import { initializeApp } from 'firebase/app';
+import {
+  FIREBASE_PROJECT_ID,
+  FIREBASE_KEY,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_APP_ID,
+} from 'config';
 
 export default initializeApp({
-  apiKey: process.env.FIREBASE_KEY,
-  authDomain: `${process.env.FIREBASE_ID}.firebaseapp.com`,
-  projectId: process.env.FIREBASE_ID,
-  storageBucket: `${process.env.FIREBASE_ID}.appspot.com`,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
+  apiKey: FIREBASE_KEY,
+  authDomain: `${FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: `${FIREBASE_PROJECT_ID}.appspot.com`,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
 });

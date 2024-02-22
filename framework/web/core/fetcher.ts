@@ -1,6 +1,6 @@
 import removeUndefinedValues from 'utils/removeUndefinedValues';
 import promiseTimeout from 'utils/promiseTimeout';
-import { API_TIMEOUT, API_POST_TIMEOUT } from 'settings';
+import { API_TIMEOUT, API_POST_TIMEOUT } from 'consts/server';
 import TimeoutError from 'core/TimeoutError';
 import safeParseJson from 'utils/safeParseJson';
 import getUrlParams from 'utils/getUrlParams';
@@ -26,14 +26,14 @@ function _createFullUrl(url: string, params: ObjectOf<string | number | boolean>
     return url;
   }
 
-  let newUrl = `${url}${url.includes('?') ? '&' : '?'}`;
+  let newUrl = url + (url.includes('?') ? '&' : '?');
   for (const k of Object.keys(newParams)) {
     newUrl += `${encodeURIComponent(k)}=${encodeURIComponent(newParams[k])}&`;
   }
   return newUrl.slice(0, -1);
 }
 
-async function _getFetchResponse(
+async function _getResponse(
   url: string,
   method: string,
   body = null as BodyInit | null,
@@ -110,7 +110,7 @@ function _fetchJson(
     status: number,
   }>>(
     (async () => {
-      const { res, status } = await _getFetchResponse(url, method, body, opts);
+      const { res, status } = await _getResponse(url, method, body, opts);
       if (!res) {
         return { status };
       }
@@ -152,12 +152,12 @@ const fetcher = {
     );
   },
 
-  async getStream(
+  async getResponse(
     url: string,
     params: ObjectOf<string | number | boolean> = {},
     opts: FetcherOpts = {},
   ) {
-    const { res, status } = await _getFetchResponse(
+    const { res, status } = await _getResponse(
       _createFullUrl(url, params),
       opts.method || 'GET',
       null,
@@ -167,7 +167,7 @@ const fetcher = {
       return { status };
     }
     return {
-      stream: res.body?.getReader(),
+      res,
       status,
     };
   },

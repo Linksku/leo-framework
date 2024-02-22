@@ -1,6 +1,8 @@
 // If ref needs to be used before useLayoutEffect, use useLatestImmediate.
-// Should be fine if used in event handlers
-export default function useLatest<T>(val: T): React.MutableRefObject<T> {
+// For callbacks, use useLatestCallback
+export default function useLatest<T extends ObjectOf<any> | Primitive>(
+  val: T & (T extends AnyFunction ? never : unknown),
+): React.MutableRefObject<T> {
   const ref = useRef(val);
 
   useLayoutEffect(() => {

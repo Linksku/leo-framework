@@ -1,6 +1,7 @@
 import './pgHealthcheck';
 import './replicationSlotsHealthcheck';
 import './rrEntitiesHealthcheck';
+import './dockerComposeHealthcheck';
 import './dbzConnectorsHealthcheck';
 import './dbzConnectorTopicsHealthcheck';
 import './mzSourcesHealthcheck';
@@ -9,6 +10,7 @@ import './mzSinksHealthcheck';
 import './mzSinkTopicsHealthcheck';
 import './mzSinkPrometheusHealthcheck';
 import './mzSinkConnectorsHealthcheck';
+import './kafkaConnectHealthcheck';
 import './rrMVsHealthcheck';
 import './mzUpdatingHealthcheck';
 import './redisHealthcheck';

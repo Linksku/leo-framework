@@ -6,7 +6,7 @@ import { $, argv } from 'zx';
 
 const actualTZ = new Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-require('../framework/server/helpers/initDotenv.cjs');
+require('../framework/server/core/initEnv.cjs');
 
 let args = ['run'];
 if (argv._.length) {

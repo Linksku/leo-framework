@@ -8,7 +8,8 @@ import { getModelCacheKey } from './utils/getModelCacheKey';
 const redisCache = new BaseRedisCache<Model | null>({
   redisNamespace: MODEL_INSTANCE,
   serialize: instance => (instance
-    ? JSON.stringify(instance.$toCacheJson())
+    // todo: low/mid use schema in stringify, e.g. fast-json-stringify
+    ? JSON.stringify(instance.$toCachePojo())
     : 'null'),
   unserialize: (json, key) => {
     if (!json) {
@@ -25,7 +26,7 @@ const redisCache = new BaseRedisCache<Model | null>({
     const Model = getModelClass(modelType);
     try {
       const parsed = JSON.parse(json);
-      return Model.fromCacheJson(parsed);
+      return Model.fromCachePojo(parsed);
     } catch {
       ErrorLogger.error(
         new Error(`modelsCache(${key}): data isn't JSON`),
@@ -90,6 +91,7 @@ export default {
       return fromRedis;
     }
 
+    // todo: low/mid errors may be cached and reused, causing long debugCtx
     const instance = await getModelDataLoader(Model).load(partial);
     if (instance) {
       wrapPromise(
@@ -124,7 +126,6 @@ export default {
     return set(rc, Model, ent);
   },
 
-  // If an model is deleted, use set(null).
   handleDelete<T extends ModelClass>(
     rc: Nullish<RequestContext>,
     Model: T,

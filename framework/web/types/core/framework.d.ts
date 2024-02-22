@@ -8,12 +8,6 @@ declare module '*.svg' {
   export default content;
 }
 
-declare namespace __WebpackModuleApi {
-  export interface NodeProcess {
-    env: FrameworkEnv;
-  }
-}
-
 // Merge with lib.dom.d.ts
 interface RequestInit {
   priority?: 'high' | 'low' | 'auto';
@@ -22,17 +16,29 @@ interface RequestInit {
 interface Navigator {
   readonly userAgentData?: {
     readonly brands: {
-      readonly brand: string;
-      readonly version: string;
-    }[];
-    readonly mobile: boolean;
-    readonly platform: string;
+      readonly brand: string,
+      readonly version: string,
+    }[],
+    readonly mobile: boolean,
+    readonly platform: string,
   };
 
   readonly virtualKeyboard?: {
-    readonly show: () => void;
-    readonly hide: () => void;
+    overlaysContent: boolean,
+    readonly show: () => void,
+    readonly hide: () => void,
   };
+}
+
+interface ScreenOrientation {
+  lock?: (
+    orientation: 'portrait'
+      | 'landscape'
+      | 'portrait-primary'
+      | 'portrait-secondary'
+      | 'landscape-primary'
+      | 'landscape-secondary',
+  ) => Promise<void>;
 }
 
 type HistoryState = Stable<{
@@ -44,10 +50,10 @@ type HistoryState = Stable<{
   key: string,
 }>;
 
-type RouteConfig = Stable<StableObjShallow<{
+type RouteConfig = Stable<StableShallow<{
   pattern: string | RegExp,
   importComponent: () => Promise<{ default: React.ComponentType<unknown> }>,
-  Component: React.LazyExoticComponent<React.ComponentType<unknown>>,
+  getComponent: () => React.LazyExoticComponent<React.ComponentType<unknown>>,
   regexPrefix: string | null,
   homeTab?: string,
   auth?: boolean,

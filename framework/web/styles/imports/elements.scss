@@ -58,9 +58,10 @@ h4 {
 
   font-family: $headingFontFamily;
   font-variant-ligatures: none;
-  font-size: 1em;
+  font-size: 1.6rem;
   font-weight: 500;
   margin-top: 0;
+  padding-bottom: 1px;
   margin-bottom: 0;
 }
 
@@ -70,6 +71,7 @@ h4 {
 // Main heading.
 h2 {
   font-size: 1.8rem;
+  font-weight: 400;
   margin-bottom: 0.5rem;
 }
 
@@ -95,6 +97,7 @@ label[for] {
 
 a,
 [role=button],
+[role=link],
 [tabindex],
 button,
 input[type=button],

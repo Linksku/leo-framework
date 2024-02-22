@@ -65,7 +65,6 @@ async function insertBulk<T extends EntityClass, Obj extends ModelPartialExact<T
   for (let i = 0; i < objs.length; i += MAX_BULK_INSERTS) {
     const slice = objs.slice(i, i + MAX_BULK_INSERTS);
 
-    // todo: mid/mid handle $beforeInsert
     let query = entityQuery(this, trx ?? knexBT)
       .insert(slice)
       .returning('*');
@@ -80,7 +79,7 @@ async function insertBulk<T extends EntityClass, Obj extends ModelPartialExact<T
     }
 
     // eslint-disable-next-line no-await-in-loop
-    const rows = (await query) as EntityInstance<T>[];
+    const rows = await query;
     const inserted = rows.map(r => {
       if (r.id) {
         return r;
@@ -98,11 +97,13 @@ async function insertBulk<T extends EntityClass, Obj extends ModelPartialExact<T
     allInserted = [...allInserted, ...inserted];
 
     // eslint-disable-next-line no-await-in-loop
-    await RequestContextLocalStorage.exit(
-      () => Promise.all(inserted.flatMap(ent => {
+    await RequestContextLocalStorage.exit(() => {
+      let hasInserted = false;
+      const promises = inserted.flatMap(ent => {
         if (!ent) {
           return null;
         }
+        hasInserted = true;
         if (onDuplicate === 'update') {
           return [
             modelsCache.handleUpdate(rc, this, ent),
@@ -113,13 +114,12 @@ async function insertBulk<T extends EntityClass, Obj extends ModelPartialExact<T
           modelsCache.handleInsert(rc, this, ent),
           modelIdsCache.handleInsert(rc, this, ent),
         ];
-      })),
-    );
-  }
-
-  const allInsertedNonNull = TS.filterNulls(allInserted);
-  if (allInsertedNonNull.length) {
-    await updateLastWriteTime(this.type);
+      });
+      if (hasInserted) {
+        promises.push(updateLastWriteTime(this.type));
+      }
+      return Promise.all(promises);
+    });
   }
 
   return allInserted;

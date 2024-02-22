@@ -2,7 +2,7 @@ import { useDrag } from '@use-gesture/react';
 
 import FixedRatioContainer from 'components/common/FixedRatioContainer';
 
-import styles from './ImageCropperStyles.scss';
+import styles from './ImageCropper.scss';
 
 export default function ImageCropper({
   url,
@@ -218,7 +218,11 @@ export default function ImageCropper({
   return (
     <div
       ref={ref => {
-        ref?.addEventListener('touchStart', e => e.stopPropagation(), { capture: true });
+        ref?.addEventListener(
+          'touchStart',
+          e => e.stopPropagation(),
+          { capture: true },
+        );
       }}
       onPointerDown={e => {
         if (!disabled) {

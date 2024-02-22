@@ -1,5 +1,5 @@
 import exec from 'utils/exec';
-import { NUM_CORES, TOTAL_MEMORY_GB } from 'serverSettings';
+import { NUM_CORES, TOTAL_MEMORY_GB } from 'consts/infra';
 import dockerServices, { getResourceLimits } from '../../../../docker-compose';
 
 const UNIT_TO_DIVISOR = {
@@ -18,12 +18,14 @@ export default async function getDockerStats() {
   }[]>(
     out.stdout.trim().split('\n')
       .map(json => JSON.parse(json)),
-    val => Array.isArray(val) && val.every(v => v.Name && v.CPUPerc && v.MemPerc),
+    val => Array.isArray(val) && val.every(
+      v => TS.isObj(v) && v.Name && v.CPUPerc && v.MemPerc,
+    ),
   );
 
   const stats: ObjectOf<{
     cpuCores: number,
-    cpuPercentLimit: number,
+    cpuPercentLimit: number | null,
     cpuPercentTotal: number,
     memGb: number,
     memPercentLimit: number,
@@ -45,7 +47,9 @@ export default async function getDockerStats() {
 
     stats[d.Name] = {
       cpuCores,
-      cpuPercentLimit: cpuCores / Number.parseFloat(limits.cpus) * 100,
+      cpuPercentLimit: limits
+        ? cpuCores / Number.parseFloat(limits.cpus) * 100
+        : null,
       cpuPercentTotal: cpuCores / NUM_CORES * 100,
       memGb,
       memPercentLimit: Number.parseFloat(d.MemPerc),

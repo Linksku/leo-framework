@@ -1,6 +1,6 @@
 import { HomeFooterInner } from 'config/homeComponents';
 
-import styles from './HomeFooterStyles.scss';
+import styles from './HomeFooter.scss';
 
 export default React.memo(function HomeFooter() {
   return (

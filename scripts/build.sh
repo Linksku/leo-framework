@@ -1,9 +1,7 @@
 #!/bin/bash
-
 # Exit if anything fails
 set -e
 
-set -o allexport; source ./env; set +o allexport
 export NODE_ENV=production
 export SERVER=$BUILD_SERVER
 

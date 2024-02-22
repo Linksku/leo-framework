@@ -1,10 +1,10 @@
 import Swipeable from 'components/frame/Swipeable';
 import ErrorBoundary from 'components/ErrorBoundary';
 import LoadingRoute from 'routes/LoadingRoute';
-import { useInnerContainerRef } from 'stores/RouteStore';
+import { useInnerContainerRef, useIsRouteActive } from 'stores/RouteStore';
 import { CONTAINER_MAX_WIDTH, IOS_EDGE_SWIPE_PX } from 'consts/ui';
 
-import styles from './HomeWrapInnerStyles.scss';
+import styles from './HomeWrapInner.scss';
 
 export default function HomeWrapInner({
   children,
@@ -21,8 +21,9 @@ export default function HomeWrapInner({
   const { stackToAnimatedVal } = useStacksNavStore();
   const { isPrevHome } = useHomeNavStore();
   const windowSize = useWindowSize();
+  const isRouteActive = useIsRouteActive();
 
-  let maxSwipeStartDist = Math.max(IOS_EDGE_SWIPE_PX, windowSize.width / 10);
+  let maxSwipeStartDist = Math.max(IOS_EDGE_SWIPE_PX, windowSize.width / 6);
   if (windowSize.width > CONTAINER_MAX_WIDTH) {
     maxSwipeStartDist += (windowSize.width - CONTAINER_MAX_WIDTH) / 2;
   }
@@ -61,7 +62,7 @@ export default function HomeWrapInner({
             }
           },
           onNavigate(direction) {
-            if (direction === 'left' && prevState && !isPrevHome) {
+            if (direction === 'left' && prevState && !isPrevHome && isRouteActive) {
               if (lastNavDirection === 'back') {
                 window.history.forward();
               } else if (lastNavDirection === 'forward') {
@@ -71,6 +72,13 @@ export default function HomeWrapInner({
           },
           getElement(direction) {
             return direction === 'left' ? null : sidebarRef.current;
+          },
+          dragOpts: {
+            pointer: {
+              // Fixes L-shaped swipes not working
+              //   https://github.com/pmndrs/use-gesture/discussions/640#discussioncomment-7611402
+              touch: true,
+            },
           },
         }}
         className={styles.swipeable}

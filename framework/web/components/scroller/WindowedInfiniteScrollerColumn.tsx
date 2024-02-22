@@ -1,7 +1,9 @@
 import useLatest from 'hooks/useLatest';
 import { useHadRouteBeenActive } from 'stores/RouteStore';
+import useRefInitialState from 'hooks/useRefInitialState';
+import isBot from 'utils/isBot';
 
-import styles from './WindowedInfiniteScrollerColumnStyles.scss';
+import styles from './WindowedInfiniteScrollerColumn.scss';
 
 export type Row<ItemType extends string | number> = {
   item: ItemType,
@@ -71,7 +73,7 @@ function _WindowedInfiniteScrollerListItem<
   const [visible, setVisible] = useState(defaultVisible);
   const [block, setBlock] = useState(defaultBlock);
 
-  const ref = useRef(useMemo(() => ({
+  const ref = useRefInitialState(() => ({
     height: null as number | null,
     innerRef: null as HTMLDivElement | null,
     outerRef: null as HTMLDivElement | null,
@@ -83,7 +85,7 @@ function _WindowedInfiniteScrollerListItem<
             : entry.contentBoxSize) as ResizeObserverSize;
           const { innerRef, outerRef, height: prevHeight } = ref.current;
           const newHeight = Math.ceil(contentBoxSize.blockSize);
-          if (innerRef && outerRef && prevHeight
+          if (innerRef && outerRef && prevHeight != null
             && prevHeight !== newHeight) {
             ref.current.height = newHeight;
             scrollParentRelative(newHeight - prevHeight);
@@ -92,15 +94,14 @@ function _WindowedInfiniteScrollerListItem<
         }
       }
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), []));
+  }));
 
   const handleOuterLoad = useCallback((outerRef: HTMLDivElement | null) => {
     ref.current.outerRef = outerRef;
     if (outerRef && ref.current.height) {
       outerRef.style.height = `${ref.current.height}px`;
     }
-  }, []);
+  }, [ref]);
 
   const handleInnerLoad = useCallback((newInnerRef: HTMLDivElement | null) => {
     const {
@@ -132,7 +133,7 @@ function _WindowedInfiniteScrollerListItem<
     }
 
     ref.current.innerRef = newInnerRef;
-  }, [item, scrollParentRelative, onInnerLoad]);
+  }, [ref, item, scrollParentRelative, onInnerLoad]);
 
   useEffect(() => {
     if (ref.current.outerRef) {
@@ -150,19 +151,19 @@ function _WindowedInfiniteScrollerListItem<
     return () => {
       onUnmount(item);
     };
-  }, [item, aboveItem, belowItem, onMount, onUnmount]);
+  }, [ref, item, aboveItem, belowItem, onMount, onUnmount]);
 
   return (
     <div
       ref={handleOuterLoad}
       className={styles.listItem}
       style={{
-        display: visible || block ? 'block' : 'none',
+        display: visible || block || isBot() ? 'block' : 'none',
         height: ref.current.height ? `${ref.current.height}px` : '1px',
         overflowAnchor: isOverflowAnchor ? 'auto' : undefined,
       }}
     >
-      {visible && (
+      {(visible || isBot()) && (
         <div
           ref={handleInnerLoad}
           className={styles.listItemInner}

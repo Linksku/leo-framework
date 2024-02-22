@@ -2,7 +2,7 @@
 
 import { $, argv } from 'zx';
 
-require('../framework/server/helpers/initDotenv.cjs');
+require('../framework/server/core/initEnv.cjs');
 
 const gitStatus = await $`git status --porcelain`;
 if (gitStatus.stdout) {
@@ -16,7 +16,6 @@ if (gitLog.stdout) {
   process.exit(1);
 }
 
-await $`yarn clean`;
 await $`yarn build:types`;
 await $`yarn pgdump`;
 

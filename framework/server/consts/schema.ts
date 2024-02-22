@@ -97,7 +97,12 @@ const SchemaConstants = TS.literal({
     additionalProperties: false,
   },
   password: { type: 'string', minLength: 8, maxLength: 64 },
-  type: { type: 'string', minLength: 1, maxLength: 30 },
+  dbEnum: { type: 'string', minLength: 1, maxLength: 30 },
+  secretToken: {
+    type: 'string',
+    minLength: 1,
+    maxLength: 22,
+  },
 } as const);
 
 type SchemaConstantsType = typeof SchemaConstants;

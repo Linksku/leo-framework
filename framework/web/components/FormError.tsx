@@ -1,4 +1,4 @@
-import styles from './FormErrorStyles.scss';
+import styles from './FormError.scss';
 
 export default function FormError({ error, marginBottom }: {
   error: Nullish<string>,

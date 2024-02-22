@@ -5,10 +5,10 @@ import filterNulls from './filterNulls';
 import getAs from './getAs';
 import getProp from './getProp';
 import hasDefinedProp from './hasDefinedProp';
-import hasOwnProp from './hasOwnProp';
 import hasProp from './hasProp';
 import inArray from './inArray';
 import includes from './includes';
+import isObj from './isObj';
 import isType from './isType';
 import last from './last';
 import literal from './literal';
@@ -31,10 +31,10 @@ export default {
   getAs,
   getProp,
   hasDefinedProp,
-  hasOwnProp,
   hasProp,
   inArray,
   includes,
+  isObj,
   isType,
   last,
   literal,

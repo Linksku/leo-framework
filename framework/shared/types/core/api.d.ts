@@ -3,7 +3,6 @@ type ApiEntityId = number | string;
 type ModelSerializedForApi = {
   type: RRModelType,
   id: ApiEntityId,
-  extras?: ObjectOf<any>,
   includedRelations?: string[],
 };
 
@@ -45,6 +44,7 @@ type ApiErrorData = {
 type ApiErrorResponse = {
   status: number,
   error: ApiErrorData,
+  data?: null,
 };
 
 type ApiResponse<Name extends ApiName> = ApiSuccessResponse<Name> | ApiErrorResponse;
@@ -58,7 +58,7 @@ type _ApiAllRelations = Partial<{
 interface ApiAllRelations extends _ApiAllRelations {}
 
 type ApiParams<Name extends ApiName> = ApiNameToParams[Name] & {
-  // todo: low/mid clean up relations error
+  // todo: low/mid clean up relations error message
   relations?: ApiAllRelations,
 };
 

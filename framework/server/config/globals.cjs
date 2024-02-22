@@ -18,7 +18,7 @@ const globals = {
   raw: ['./framework/server/services/knex/knexRR', 'raw'],
   rawSelect: ['./framework/server/utils/db/rawSelect', 'default'],
   SchemaConstants: ['./framework/server/consts/schema', 'default'],
-  UserFacingError: ['./framework/server/utils/UserFacingError', 'default'],
+  UserFacingError: ['./framework/server/core/UserFacingError', 'default'],
   wrapPromise: ['./framework/server/utils/wrapPromise', 'default'],
 };
 

@@ -10,20 +10,21 @@ export default async function createIndex({
   name,
   table,
   cols: _cols,
-  col,
+  col: _col,
   expression,
 }: {
-  db: 'bt' | 'rr',
+  db?: 'bt' | 'rr',
   primary?: boolean,
   unique?: boolean,
   name?: string,
   table: string,
-  cols?: string[],
+  cols?: string | string[],
   col?: string,
   expression?: string,
 }) {
-  const cols = _cols ?? [TS.defined(col)];
-  name ??= getIndexName(table, cols);
+  const col = typeof _cols === 'string' ? _cols : _col;
+  const cols = Array.isArray(_cols) ? _cols : [TS.defined(col)];
+  name = name ?? getIndexName(table, cols);
   const Model = getModelClass(table as ModelType);
 
   for (const c of cols) {
@@ -33,18 +34,28 @@ export default async function createIndex({
   }
 
   const expressionCols = expression == null ? cols : [];
-  expression ??= `btree (${cols.map(
+  expression = expression ?? `btree (${cols.map(
     c => (isColDescNullsLast(Model, c) ? '?? DESC NULLS LAST' : '??'),
   ).join(', ')})`;
 
-  const knex = db === 'bt' ? knexBT : knexRR;
   if (primary) {
     try {
-      await knex.raw(`
-        ALTER TABLE ONLY ??
-        ADD CONSTRAINT ??
-        PRIMARY KEY (${cols.map(_ => '??').join(', ')})
-      `, [table, name, ...cols]);
+      await Promise.all([
+        db !== 'rr'
+          ? knexBT.raw(`
+              ALTER TABLE ONLY ??
+              ADD CONSTRAINT ??
+              PRIMARY KEY (${cols.map(_ => '??').join(', ')})
+            `, [table, name, ...cols])
+          : null,
+        db !== 'bt'
+          ? knexRR.raw(`
+            ALTER TABLE ONLY ??
+            ADD CONSTRAINT ??
+            PRIMARY KEY (${cols.map(_ => '??').join(', ')})
+          `, [table, name, ...cols])
+          : null,
+      ]);
 
       if (db === 'bt' && cols.length === 1 && cols[0] === 'id') {
         await knexBT.raw(`
@@ -67,13 +78,26 @@ export default async function createIndex({
     }
   } else {
     try {
-      await knex.raw(`
-        CREATE ${unique ? 'UNIQUE ' : ''}INDEX IF NOT EXISTS ??
-        ON ??
-        USING ${expression}
-        ${unique ? 'NULLS NOT DISTINCT' : ''}
-        `, [name, table, ...expressionCols],
-      );
+      await Promise.all([
+        db !== 'rr'
+          ? knexBT.raw(`
+            CREATE ${unique ? 'UNIQUE ' : ''}INDEX IF NOT EXISTS ??
+            ON ??
+            USING ${expression}
+            ${unique ? 'NULLS NOT DISTINCT' : ''}
+            `, [name, table, ...expressionCols],
+          )
+          : null,
+        db !== 'bt'
+          ? knexRR.raw(`
+            CREATE ${unique ? 'UNIQUE ' : ''}INDEX IF NOT EXISTS ??
+            ON ??
+            USING ${expression}
+            ${unique ? 'NULLS NOT DISTINCT' : ''}
+            `, [name, table, ...expressionCols],
+          )
+          : null,
+      ]);
     } catch (err) {
       throw getErr(err, { ctx: 'createIndex', table, cols });
     }

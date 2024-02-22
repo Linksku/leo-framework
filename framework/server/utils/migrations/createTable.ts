@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { ENABLE_DBZ } from 'consts/mz';
+import { DBZ_FOR_INSERT_ONLY, DBZ_FOR_UPDATEABLE } from 'consts/mz';
 import knexBT from 'services/knex/knexBT';
 import knexRR from 'services/knex/knexRR';
 
@@ -18,9 +18,13 @@ export default async function createTable({ isMV, table, cb }: {
     }
 
     if (!isMV) {
+      const Model = getModelClass<EntityType>(table as EntityType);
+      const usesDbz = Model.useInsertOnlyPublication
+        ? DBZ_FOR_INSERT_ONLY
+        : DBZ_FOR_UPDATEABLE;
       await knexBT.raw(`
         ALTER TABLE ??
-        REPLICA IDENTITY ${ENABLE_DBZ ? 'DEFAULT' : 'FULL'}
+        REPLICA IDENTITY ${usesDbz ? 'DEFAULT' : 'FULL'}
       `, [table]);
     }
   } catch (err) {

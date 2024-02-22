@@ -1,4 +1,4 @@
-import styles from './FixedRatioContainerStyles.scss';
+import styles from './FixedRatioContainer.scss';
 
 export type Props = {
   height?: number | string,

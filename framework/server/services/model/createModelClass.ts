@@ -23,6 +23,7 @@ type ModelConfigStaticProps<Type> = {
     col: string,
     expression: string,
   })[],
+  mzIndexes?: (string | string[])[],
   relations?: ModelRelationsSpecs,
 };
 
@@ -34,6 +35,7 @@ const HANDLED_STATIC_PROPS = [
   'uniqueIndexes',
   'normalIndexes',
   'expressionIndexes',
+  'mzIndexes',
   'relations',
 ] as const;
 
@@ -59,8 +61,8 @@ export function processModelConfig<
     & {
       Interface: ModelTypeToInterface<Config['type']>,
       schema: ModelSchema<ModelTypeToInterface<Config['type']>>,
-      cols: ModelColsMap<ModelTypeToInterface<Config['type']>>,
-      colsQuoted: ModelColsMap<ModelTypeToInterface<Config['type']>>,
+      cols: ModelColsMap<Config['type']>,
+      colsQuoted: ModelColsMap<Config['type']>,
     },
   Config['props'] & ModelTypeToInterface<Config['type']>
 > {
@@ -116,8 +118,8 @@ export function processModelConfig<
       ...({} as {
         Interface: ModelTypeToInterface<Config['type']>,
         schema: ModelSchema<ModelTypeToInterface<Config['type']>>,
-        cols: ModelColsMap<ModelTypeToInterface<Config['type']>>,
-        colsQuoted: ModelColsMap<ModelTypeToInterface<Config['type']>>,
+        cols: ModelColsMap<Config['type']>,
+        colsQuoted: ModelColsMap<Config['type']>,
        }),
     },
     props: {

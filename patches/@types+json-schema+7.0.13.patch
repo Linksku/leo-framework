@@ -1,0 +1,15 @@
+diff --git a/node_modules/@types/json-schema/index.d.ts b/node_modules/@types/json-schema/index.d.ts
+index a6d8f5d..6610f0e 100644
+--- a/node_modules/@types/json-schema/index.d.ts
++++ b/node_modules/@types/json-schema/index.d.ts
+@@ -93,6 +93,10 @@ export interface JSONSchema4 {
+     maxLength?: number | undefined;
+     minLength?: number | undefined;
+     pattern?: string | undefined;
++    instanceof?: string | undefined;
++    instanceOf?: never;
++    tsType?: string | undefined;
++    maxPrecision?: number | undefined;
+ 
+     /**
+      * May only be defined when "items" is defined, and is a tuple of JSONSchemas.

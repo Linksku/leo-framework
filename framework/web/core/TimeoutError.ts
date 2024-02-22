@@ -1,6 +1,6 @@
-export default class TimeoutError extends Error {
-  status: number;
+import ApiError from 'core/ApiError';
 
+export default class TimeoutError extends ApiError {
   constructor(msg: string) {
     super(msg);
 

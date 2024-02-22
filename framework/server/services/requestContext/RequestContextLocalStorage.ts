@@ -1,6 +1,19 @@
 import { AsyncLocalStorage } from 'async_hooks';
 
-import detectOs from 'utils/detectOs';
+import getOsFromUa from 'utils/getOsFromUa';
+
+export const PLATFORM_TYPES = [
+  'desktop-web',
+  'android-web',
+  'android-standalone',
+  'android-native',
+  'ios-web',
+  'ios-standalone',
+  'ios-native',
+  'other-web',
+  'other-standalone',
+  'other-native',
+] satisfies PlatformType[];
 
 export function createRequestContext(req: ExpressRequest): RequestContext {
   const params: ObjectOf<unknown> | undefined = req.method === 'GET'
@@ -19,9 +32,13 @@ export function createRequestContext(req: ExpressRequest): RequestContext {
     apiParams: typeof apiParams === 'object' && apiParams !== null ? apiParams : undefined,
     currentUserId: req.currentUserId ?? null,
     userAgent: userAgent ?? null,
-    os: userAgent ? detectOs(userAgent) : null,
+    os: userAgent ? getOsFromUa(userAgent) : null,
+    platform: typeof params?.platform === 'string'
+      && TS.includes(PLATFORM_TYPES, params.platform)
+      ? params.platform
+      : null,
     language,
-    redisCache: new Map<string, any>(),
+    reqCache: new Map<string, any>(),
     debug,
     loadTesting,
     numDbQueries: 0,

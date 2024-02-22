@@ -1,16 +1,17 @@
-const started = new Set();
-const ended = new Set();
+const started = new Map<string, number>();
+const ended = new Set<string>();
 
 export default !process.env.PRODUCTION
   ? function useTimeComponentPerf(name: string) {
     if (!started.has(name)) {
-      console.time(name);
-      started.add(name);
+      started.set(name, performance.now());
     }
 
     useEffect(() => {
-      if (!ended.has(name)) {
-        console.timeEnd(name);
+      const startTime = started.get(name);
+      if (startTime && !ended.has(name)) {
+        // eslint-disable-next-line no-console
+        console.log(`${name}: ${Math.round((performance.now() - startTime) * 10) / 10}ms`);
         ended.add(name);
       }
     }, [name]);

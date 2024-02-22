@@ -6,6 +6,7 @@ addHealthcheck('mzSinkConnectors', {
     await verifyMZSinkConnectors();
   },
   resourceUsage: 'mid',
+  usesResource: 'kafka',
   stability: 'mid',
   timeout: 10 * 1000,
 });

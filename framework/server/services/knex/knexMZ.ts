@@ -1,12 +1,14 @@
 import Knex from 'knex';
 import pg from 'pg';
 
-import { API_TIMEOUT } from 'settings';
+import { API_TIMEOUT } from 'consts/server';
 import {
   MZ_HOST,
-  MZ_POOL_MAX,
   MZ_PORT,
+  MZ_DB,
+  MZ_POOL_MAX,
 } from 'consts/infra';
+import { MZ_QUERY_TIMEOUT } from 'consts/mz';
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
 import './initKnex';
 import beforeQuery from './beforeQuery';
@@ -24,10 +26,11 @@ const knexMZ = ServiceContextLocalStorage.run(
       port: MZ_PORT,
       user: process.env.MZ_USER,
       password: process.env.MZ_PASS,
-      database: process.env.MZ_DB,
+      database: MZ_DB,
       charset: 'utf8',
       timezone: 'utc',
       dateStrings: true,
+      query_timeout: MZ_QUERY_TIMEOUT,
     },
     pool: {
       min: 0,

@@ -3,6 +3,6 @@ export default [] as [
   (() => Promise<{ default: React.ComponentType<any> | React.NamedExoticComponent<any> }>),
   Omit<
     RouteConfig,
-    'pattern' | 'importComponent' | 'Component' | 'regexPrefix'
+    'pattern' | 'importComponent' | 'getComponent' | 'regexPrefix'
   >?,
 ][];

@@ -6,7 +6,6 @@ import buildClass from './buildClass';
 
 type MaterializedViewConfigStaticProps = {
   replicaTable?: Nullish<string>,
-  mzIndexes?: (string | string[])[],
   MVQueryDeps: ModelClass[],
   getMVQuery: () => QueryBuilder<Model>,
   extendMVQuery?: ((query: QueryBuilder<Model>) => QueryBuilder<Model>)[],
@@ -23,7 +22,6 @@ export type MaterializedViewConfig<
 
 export function processMaterializedViewConfig<Config extends MaterializedViewConfig<ModelType>>({
   replicaTable,
-  mzIndexes,
   MVQueryDeps,
   getMVQuery,
   extendMVQuery,
@@ -53,7 +51,6 @@ export function processMaterializedViewConfig<Config extends MaterializedViewCon
     uniqueIndexes: config.uniqueIndexes ?? ['id'],
     staticProps: {
       replicaTable,
-      mzIndexes,
       MVQueryDeps,
       getMVQuery,
       extendMVQuery,

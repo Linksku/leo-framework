@@ -1,6 +1,7 @@
 import type { Knex } from 'knex';
 import pg from 'pg';
 
+import { MZ_TIMESTAMP_FREQUENCY } from 'consts/mz';
 import retry from 'utils/retry';
 
 export default async function verifyCreatedTables(
@@ -17,9 +18,12 @@ export default async function verifyCreatedTables(
         for (const model of remainingModels) {
           let result: pg.QueryResult<any>;
           try {
-            result = await knex.raw(
-              `SELECT * FROM "${model.tableName}" WHERE false${dbType === 'mz' ? ' AS OF now()' : ''}`,
-            );
+            result = await knex.raw(`
+              SELECT *
+              FROM "${model.tableName}"
+              WHERE false
+              ${dbType === 'mz' ? `AS OF now() + INTERVAL '${MZ_TIMESTAMP_FREQUENCY} MILLISECOND'` : ''}
+            `);
           } catch (err) {
             if (!(err instanceof Error && err.message.includes('not valid for all inputs'))) {
               printDebug(err, 'warn');

@@ -12,8 +12,9 @@ addHealthcheck('mzSinkPrometheus', {
     }
   },
   resourceUsage: 'mid',
+  usesResource: 'mz',
   stability: 'low',
   // From Materialize's metrics-scraping-interval
   minUpdateFreq: 30 * 1000,
-  timeout: 10 * 1000,
+  timeout: 30 * 1000,
 });

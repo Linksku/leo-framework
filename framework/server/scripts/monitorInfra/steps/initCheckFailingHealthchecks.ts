@@ -1,8 +1,9 @@
 import { HealthcheckName, SERVER_STATUS_MAX_STALENESS } from 'services/healthcheck/HealthcheckManager';
 import promiseTimeout from 'utils/promiseTimeout';
 import { getFailingServices, fixFailingInfra } from 'scripts/fixInfra';
-import recreateMZ from 'scripts/recreateMZ';
+import recreateMVInfra from 'scripts/recreateMVInfra';
 import getServersStatus from 'scripts/getServersStatus';
+import checkPendingMigrations from 'scripts/mv/steps/checkPendingMigrations';
 
 const STABLE_HEALTHCHECKS: HealthcheckName[] = [
   'rrEntities',
@@ -11,7 +12,6 @@ const STABLE_HEALTHCHECKS: HealthcheckName[] = [
 ];
 
 export default async function initCheckFailingHealthchecks() {
-  printDebug('Check healthchecks on init', 'highlight');
   let failing = new Set<HealthcheckName>();
   let numFails = 0;
   const serversStatus = await getServersStatus({ silent: true });
@@ -22,7 +22,7 @@ export default async function initCheckFailingHealthchecks() {
   while (true) {
     try {
       failing = await promiseTimeout(
-        getFailingServices(true, true),
+        getFailingServices({ forceRerun: true, printFails: true }),
         5 * 60 * 1000,
         new Error('initCheckFailingHealthchecks: getFailingServices timed out'),
       );
@@ -36,7 +36,7 @@ export default async function initCheckFailingHealthchecks() {
     if (!failing.size
       || (failing.size === 1 && failing.has('mzSinkPrometheus'))) {
       if (numFails) {
-        printDebug('Fixed healthchecks', 'success');
+        printDebug('-- initCheckFailingHealthchecks: Fixed infra --\n\n', 'success');
       } else {
         printDebug('Healthy init', 'success');
       }
@@ -46,7 +46,7 @@ export default async function initCheckFailingHealthchecks() {
     numFails++;
     if (numFails < minFails && !STABLE_HEALTHCHECKS.some(name => failing.has(name))) {
       printDebug(
-        `Failed ${numFails} time${numFails === 1 ? '' : 's'} during init: ${[...failing].join(', ')}`,
+        `Failed ${numFails} ${pluralize('time', numFails)} during init: ${[...failing].join(', ')}`,
         'success',
       );
       await pause(30 * 1000);
@@ -54,18 +54,28 @@ export default async function initCheckFailingHealthchecks() {
     }
 
     try {
-      if (numFails === 1) {
-        await withErrCtx(fixFailingInfra(failing), 'initCheckFailingHealthchecks: fixFailingInfra');
-      } else {
-        printDebug('Recreate MZ', 'info');
-        await withErrCtx(recreateMZ({
-          forceDeleteDBZConnectors: true,
-          deleteMZSources: true,
-          deleteMZSinkConnectors: true,
-        }), 'initCheckFailingHealthchecks: recreateMZ');
+      // todo: mid/mid don't fix infra when recreating infra
+      await checkPendingMigrations();
+      if (numFails > minFails) {
+        printDebug(`initCheckFailingHealthchecks: Recreating MV infra, failing: ${[...failing].join(', ')}`, 'info');
+
+        try {
+          await recreateMVInfra();
+          failing = await getFailingServices({ forceRerun: true });
+          if (!failing.size) {
+            continue;
+          }
+          printDebug(`initCheckFailingHealthchecks: still failing after recreateMVInfra: ${[...failing].join(', ')}`, 'warn');
+        } catch (err) {
+          ErrorLogger.error(err, { ctx: 'initCheckFailingHealthchecks: recreateMVInfra' });
+          printDebug('initCheckFailingHealthchecks: recreateMVInfra error\n', 'error');
+        }
       }
+
+      await withErrCtx(fixFailingInfra(failing), 'initCheckFailingHealthchecks: fixFailingInfra');
     } catch (err) {
       ErrorLogger.error(err, { ctx: 'initCheckFailingHealthchecks: fixFailingInfra' });
+      printDebug('initCheckFailingHealthchecks: fixFailingInfra error\n', 'error');
     }
     await pause(30 * 1000);
   }

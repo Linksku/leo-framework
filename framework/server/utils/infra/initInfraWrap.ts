@@ -15,13 +15,18 @@ async function initInfraWrap(
     setInitInfra?: boolean,
   } = {},
 ) {
+  // todo: mid/mid ignore error if redis is unavailable
   await usingRedlock(lockName, INIT_INFRA_LOCK_TTL, async acquiredNewLock => {
     const dockerStatsTimer = setInterval(async () => {
       try {
         const stats = await getDockerStats();
         for (const pair of TS.objEntries(stats)) {
           if (pair[1].memPercentLimit > 95) {
-            printDebug(`initInfraWrap: Docker container "${pair[0]}" using >95% memory`, 'warn');
+            printDebug(
+              `initInfraWrap: Docker container "${pair[0]}" using >95% memory`,
+              'warn',
+              { prod: 'always' },
+            );
           }
         }
       } catch (err) {

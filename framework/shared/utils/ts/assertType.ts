@@ -1,11 +1,11 @@
 export default function assertType<T>(
   val: any,
-  validator: (val2: any) => boolean,
+  validator: (val2: unknown) => boolean,
   err?: Error,
 ): T {
   try {
     if (validator(val)) {
-      return val;
+      return val as T;
     }
   } catch {}
 

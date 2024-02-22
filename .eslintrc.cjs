@@ -43,6 +43,7 @@ const config = {
   ],
   plugins: [
     'css-modules',
+    'eslint-plugin-local-rules',
   ],
   env: {
     node: true,
@@ -76,6 +77,7 @@ const config = {
     process: false,
   },
   rules: {
+    'local-rules/no-nullish-coalescing-assignment': 2,
     'no-underscore-dangle': 0,
     'no-multi-assign': 0,
     'no-plusplus': 0,
@@ -83,7 +85,6 @@ const config = {
     'no-param-reassign': 0,
     'no-unused-expressions': 1, /* Temporarily disable until do expressions are supported. */
     'lines-between-class-members': 0,
-    'no-restricted-globals': 0,
     'no-restricted-syntax': [2, 'ForInStatement', 'WithStatement'],
     eqeqeq: [2, 'always', {
       null: 'ignore',
@@ -99,7 +100,8 @@ const config = {
       tabWidth: 2,
       ignoreTemplateLiterals: true,
       // Note: this allows any lines with short strings
-      ignoreStrings: true,
+      ignoreStrings: false,
+      ignorePattern: '^import |\'[^\']{50,}|"[^"]{50,}|`[^`]{50,}',
       ignoreRegExpLiterals: true,
       ignoreUrls: true,
     }],
@@ -350,7 +352,8 @@ const config = {
     {
       files: ['*.ts', '*.tsx'],
       extends: [
-        'plugin:@typescript-eslint/recommended',
+        // 'plugin:@typescript-eslint/recommended',
+        'plugin:@typescript-eslint/recommended-type-checked',
       ],
       plugins: [
         '@typescript-eslint',
@@ -440,7 +443,10 @@ const config = {
           named: 'never',
           asyncArrow: 'always',
         }],
-        '@typescript-eslint/no-meaningless-void-operator': 2,
+        '@typescript-eslint/no-unsafe-member-access': 1,
+        '@typescript-eslint/no-unsafe-assignment': 0,
+        '@typescript-eslint/no-unsafe-return': 0,
+        '@typescript-eslint/no-unsafe-argument': 0,
       },
     },
     // App web
@@ -490,7 +496,7 @@ const config = {
         'framework/web/**/*.tsx',
       ],
       parserOptions: {
-        project: 'framework/web/tsconfig.json',
+        project: 'framework/web/tsconfig-build.json',
       },
       extends: [
         'airbnb/hooks',
@@ -552,7 +558,7 @@ const config = {
         'framework/server/**/*.ts',
       ],
       parserOptions: {
-        project: 'framework/server/tsconfig.json',
+        project: 'framework/server/tsconfig-build.json',
       },
       settings: {
         'import/resolver': {
@@ -599,7 +605,7 @@ const config = {
         'framework/shared/**/*.ts',
       ],
       parserOptions: {
-        project: 'framework/shared/tsconfig.json',
+        project: 'framework/shared/tsconfig-build.json',
       },
       settings: {
         'import/resolver': {

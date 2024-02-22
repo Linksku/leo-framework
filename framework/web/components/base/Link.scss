@@ -1,0 +1,11 @@
+.disabled {
+  cursor: default;
+}
+
+.blue {
+  color: $primaryColor;
+}
+
+.activeBg:not(.disabled):active {
+  background-color: $activeBackgroundColor;
+}

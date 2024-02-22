@@ -1,4 +1,5 @@
 import knexBT from 'services/knex/knexBT';
+import getIndexName from 'utils/db/getIndexName';
 
 export default async function createForeignKey({
   name,
@@ -13,7 +14,7 @@ export default async function createForeignKey({
   toTable: string,
   toCol?: string,
 }) {
-  name ??= `${table}_${col}_fk`;
+  name = name ?? getIndexName(table, col, true);
   const Model = getModelClass(table as ModelType);
   const ToModel = getModelClass(toTable as ModelType);
 

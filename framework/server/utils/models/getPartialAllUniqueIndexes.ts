@@ -5,7 +5,7 @@ export default function getPartialAllUniqueIndexes<T extends ModelClass>(
   const keys = Object.keys(partial);
   if (keys.length === 1) {
     const key = keys[0] as ModelKey<T>;
-    return Model.getUniqueColumnsSet().has(key)
+    return Model.getUniqueSingleColumnsSet().has(key)
       ? [[key]]
       : [];
   }

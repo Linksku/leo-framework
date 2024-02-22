@@ -1,0 +1,11 @@
+.oneLine {
+  @extend %oneLine;
+}
+
+.multiLine {
+  overflow: hidden;
+  white-space: normal;
+  // stylelint-disable-next-line value-no-vendor-prefix
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}

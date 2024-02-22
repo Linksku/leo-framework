@@ -1,9 +1,21 @@
+import type { EntitiesMap } from 'stores/EntitiesStore';
+import stringify from 'utils/stringify';
 import useGetAllEntities from './useGetAllEntities';
+
+const EntitiesByUniqueFields = new Map<
+  EntityType,
+  Map<
+    string, // field name
+    WeakMap<
+      EntitiesMap, // all entities map
+      Stable<Map<any, Entity>> // field values to entities
+    >
+  >
+>();
 
 export default function useGetEntitiesByUniqueFields<T extends EntityType>(
   type: T | null,
 ) {
-  const { entitiesByUniqueFieldsRef } = useEntitiesStore();
   const getAllEntities = useGetAllEntities(type);
 
   return useCallback(<Fields extends (keyof Entity<T>)[]>(
@@ -16,10 +28,10 @@ export default function useGetEntitiesByUniqueFields<T extends EntityType>(
       return EMPTY_MAP;
     }
 
-    if (!entitiesByUniqueFieldsRef.current.has(type)) {
-      entitiesByUniqueFieldsRef.current.set(type, new Map());
+    if (!EntitiesByUniqueFields.has(type)) {
+      EntitiesByUniqueFields.set(type, new Map());
     }
-    const fieldsToEntities = TS.defined(entitiesByUniqueFieldsRef.current.get(type));
+    const fieldsToEntities = TS.defined(EntitiesByUniqueFields.get(type));
     const fieldsKey = fields.join(',');
     const entitiesToIndex = TS.mapValOrSetDefault(
       fieldsToEntities,
@@ -40,12 +52,12 @@ export default function useGetEntitiesByUniqueFields<T extends EntityType>(
             field => entity[field],
           ).join(',');
         if (!process.env.PRODUCTION && entitiesMap.has(key)) {
-          throw new Error(`useGetEntitiesByUniqueFields: duplicate ${type} ${fields.join(',')}=${key}`);
+          throw new Error(`useGetEntitiesByUniqueFields: duplicate ${type} ${fields.join(',')}=${stringify(key)}`);
         }
         entitiesMap.set(key, entity);
       }
       entitiesToIndex.set(allEntities, entitiesMap);
     }
     return entitiesToIndex.get(allEntities) as any;
-  }, [type, entitiesByUniqueFieldsRef, getAllEntities]);
+  }, [type, getAllEntities]);
 }

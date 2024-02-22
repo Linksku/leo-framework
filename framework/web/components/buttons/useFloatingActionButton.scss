@@ -1,0 +1,27 @@
+.visibilityDiv {
+  width: 0;
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.btn {
+  position: fixed;
+  right: $containerPadding;
+  z-index: $zIndexFixed;
+  line-height: normal;
+
+  @include gtLg {
+    right: calc((100vw - $containerMaxWidth) / 2 + $containerPadding);
+  }
+
+  &.fromTop {
+    top: calc(#{$headerHeight} + #{$offsetTop} + 1rem);
+  }
+
+  &.fromBottom {
+    top: calc(var(--vh100, 100vh) - #{$footerHeight} + #{$offsetTop} - 1rem);
+    transform: translateY(-100%);
+  }
+}

@@ -20,8 +20,15 @@ function getSchemaTypeError({ schema, colName, colType }: {
     if (!['smallint', 'int', 'integer', 'bigint'].includes(colType)) {
       return 'isn\'t integer';
     }
-    if (/^(net|num)[A-Z]/.test(colName) && colType === 'bigint') {
+    if ((/^(net|num|min|max|total)[A-Z]/.test(colName) || /[A-Z]Count$/.test(colName))
+      && colType === 'bigint') {
       return 'isn\'t smaller int';
+    }
+    if ((colName === 'id' || colName.endsWith('Id')) && colType !== 'bigint') {
+      return 'isn\'t bigint';
+    }
+    if (schema.maximum && schema.maximum < 2 ** 16 && colType !== 'smallint') {
+      return 'isn\'t smallint';
     }
   } else if (nonNullType === 'boolean') {
     if (!['boolean'].includes(colType)) {
@@ -41,7 +48,6 @@ function getSchemaTypeError({ schema, colName, colType }: {
   return null;
 }
 
-// todo: low/easy handle schema checks better, e.g. low maximum -> smallint
 export default function doesPgTypeMatchSchema({
   Model,
   colName,

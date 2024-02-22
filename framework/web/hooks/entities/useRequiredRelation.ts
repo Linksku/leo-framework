@@ -12,8 +12,9 @@ export default function useRequiredRelation<
   relationName: RelationName,
 ): Stable<Exclude<RelationType, null>> {
   const ent = useRelation(entityType, entityId, relationName);
-  if (ent) {
-    throw new Error(`Required relation ${entityType}.${entityId}.${relationName} not found.`);
+  if (!ent) {
+    const id = Array.isArray(entityId) ? entityId.join(',') : entityId;
+    throw new Error(`Required relation ${entityType}.${id}.${relationName} not found.`);
   }
 
   return ent as unknown as Stable<Exclude<RelationType, null>>;

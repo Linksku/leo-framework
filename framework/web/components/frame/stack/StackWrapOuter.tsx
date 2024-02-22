@@ -4,9 +4,8 @@ import ErrorBoundary from 'components/ErrorBoundary';
 import ErrorPage from 'components/ErrorPage';
 import { CONTAINER_MAX_WIDTH, IOS_EDGE_SWIPE_PX } from 'consts/ui';
 
-import styles from './StackWrapOuterStyles.scss';
+import styles from './StackWrapOuter.scss';
 
-// todo: mid/mid swipe to go forward stack
 export default function StackWrapOuter({
   children,
 }: React.PropsWithChildren) {
@@ -63,7 +62,7 @@ export default function StackWrapOuter({
 
   const enableSwipeFromLeft = isRouteActive && !routeOpts.disableBackSwipe;
   const enableSwipeFromRight = (isRouteActive || isForwardStack) && !!forwardState;
-  let maxSwipeStartDist = Math.max(IOS_EDGE_SWIPE_PX, windowSize.width / 10);
+  let maxSwipeStartDist = Math.max(IOS_EDGE_SWIPE_PX, windowSize.width / 6);
   if (windowSize.width > CONTAINER_MAX_WIDTH) {
     maxSwipeStartDist += (windowSize.width - CONTAINER_MAX_WIDTH) / 2;
   }
@@ -76,10 +75,7 @@ export default function StackWrapOuter({
           ? 'horizontal'
           : (enableSwipeFromLeft ? 'right' : 'left'),
         elementDim: windowSize.width,
-        maxSwipeStartDist: [
-          undefined,
-          maxSwipeStartDist,
-        ],
+        maxSwipeStartDist,
         setPercent(p, duration, dir) {
           if (dir === 'right') {
             animatedLeftPercent.setVal(
@@ -98,9 +94,9 @@ export default function StackWrapOuter({
         },
         onNavigate(dir) {
           if (dir === 'right') {
-            goBackStack.current();
+            goBackStack();
           } else {
-            goForwardStack.current();
+            goForwardStack();
           }
         },
       }}

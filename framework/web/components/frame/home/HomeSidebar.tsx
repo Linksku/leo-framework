@@ -3,7 +3,7 @@ import { useAnimation } from 'hooks/useAnimation';
 import { HomeSidebarInner } from 'config/homeComponents';
 import ErrorBoundary from 'components/ErrorBoundary';
 
-import styles from './HomeSidebarStyles.scss';
+import styles from './HomeSidebar.scss';
 
 export default React.memo(function HomeSidebar() {
   const {
@@ -35,7 +35,7 @@ export default React.memo(function HomeSidebar() {
         }}
         style={overlayStyle(
           {
-            filter: x => `opacity(${x}%)`,
+            opacity: x => x / 100,
             pointerEvents: (_, x) => (x < 50 ? 'none' : 'auto'),
           },
           {

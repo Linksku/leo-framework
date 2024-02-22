@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 
-import { HOME_URL } from 'settings';
+import { HOME_URL } from 'consts/server';
 import TestIds from '../../../app/shared/consts/testIds';
 
 Cypress.Commands.addAll({

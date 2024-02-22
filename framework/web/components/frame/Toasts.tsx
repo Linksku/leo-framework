@@ -1,6 +1,6 @@
-import styles from './ToastsStyles.scss';
+import styles from './Toasts.scss';
 
-export default React.memo(function Toasts() {
+export default function Toasts() {
   const { toast, hideToast, isHidingToast } = useToastsStore();
 
   if (!toast) {
@@ -23,4 +23,4 @@ export default React.memo(function Toasts() {
       </div>
     </div>
   );
-});
+}

@@ -1,14 +1,16 @@
+import type { Alert } from 'stores/AlertsStore';
 import usePrevious from 'hooks/usePrevious';
 import useUpdate from 'hooks/useUpdate';
 import ErrorBoundary from 'components/ErrorBoundary';
 
-import styles from './AlertsStyles.scss';
+import styles from './Alerts.scss';
 
-export default React.memo(function Alerts() {
+export default function Alerts() {
   const ref = useRef({
     isHiding: false,
     hideTimer: -1,
   });
+  const [disabledOkAlert, setDisabledOkAlert] = useState<Alert | null>(null);
   const { alerts, hideLastAlert } = useAlertsStore();
   const disabled = !alerts.length;
   const prevAlerts = usePrevious(alerts);
@@ -60,8 +62,10 @@ export default React.memo(function Alerts() {
     if (disabled) {
       return;
     }
+
     const ret = onOk?.();
     if (ret instanceof Promise) {
+      setDisabledOkAlert(curAlert);
       ret
         .then(ret2 => {
           if (ret2 !== false) {
@@ -70,6 +74,10 @@ export default React.memo(function Alerts() {
         })
         .catch(err => {
           ErrorLogger.warn(err);
+        })
+        .finally(() => {
+          // Intentionally use stale curAlert
+          setDisabledOkAlert(s => (s === curAlert ? null : s));
         });
     } else if (ret !== false) {
       hideAlert();
@@ -101,7 +109,11 @@ export default React.memo(function Alerts() {
         {title && <h2 className={styles.title}>{title}</h2>}
         {msg && (
           <ErrorBoundary>
-            <div className={styles.msg}>{msg}</div>
+            <div className={styles.msg}>
+              {typeof msg === 'string'
+                ? <p>{msg}</p>
+                : msg}
+            </div>
           </ErrorBoundary>
         )}
 
@@ -111,7 +123,7 @@ export default React.memo(function Alerts() {
               <Button
                 label={okText}
                 onClick={handleOk}
-                disabled={disabled}
+                disabled={disabled || disabledOkAlert === curAlert}
                 fullWidth
                 {...okBtnProps}
               />
@@ -134,4 +146,4 @@ export default React.memo(function Alerts() {
       </div>
     </div>
   );
-});
+}

@@ -1,28 +1,33 @@
-import type { HeadersInit, RequestInit, Response } from 'undici';
-
-import { URLSearchParams } from 'url';
 import promiseTimeout from 'utils/promiseTimeout';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 import safeParseJson from 'utils/safeParseJson';
+import stringifyUrlQuery from 'utils/stringifyUrlQuery';
+import ApiError from 'core/ApiError';
 
 export default async function fetchJson(
   url: string,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
-  params: Nullish<ObjectOf<any>> = null,
-  timeout = 15 * 1000,
+  {
+    method = 'GET',
+    params = null,
+    timeout = 15 * 1000,
+    headers = Object.create(null),
+  }: {
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    params?: ObjectOf<any> | null,
+    timeout?: number,
+    headers?: Record<string, string>,
+  } = {},
 ): Promise<{
   data?: unknown,
   status: number,
 }> {
-  const headers: HeadersInit = Object.create(null);
   const opts: RequestInit = {
     method,
     headers,
   };
 
   if (method === 'GET' && params) {
-    const qs = new URLSearchParams(params);
-    url += `${url.includes('?') ? '&' : '?'}${qs.toString()}`;
+    url += (url.includes('?') ? '&' : '?') + stringifyUrlQuery(params);
   }
 
   if (method !== 'GET') {
@@ -33,7 +38,7 @@ export default async function fetchJson(
   const res: Response = await promiseTimeout(
     fetch(url, opts),
     timeout,
-    new Error(`fetchJson(${url}): timed out`),
+    new ApiError(`fetchJson(${url}): timed out`, 503),
   );
   if (res.status === 204) {
     return {
@@ -44,7 +49,11 @@ export default async function fetchJson(
   const text = await res.text();
   const data = safeParseJson(text);
   if (data === undefined) {
-    throw getErr(`fetchJson(${url}): unable to parse JSON`, { text });
+    throw new ApiError(
+      `fetchJson(${url}): unable to parse JSON`,
+      res.status,
+      { text: text.slice(0, 100) },
+    );
   }
 
   return {

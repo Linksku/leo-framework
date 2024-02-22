@@ -25,8 +25,9 @@ export default function createClass<
 
       for (const [k, v] of Object.entries(config.props)) {
         if (v !== undefined) {
+          const val = typeof v === 'function' ? (v as AnyFunction).bind(this) : v;
           // @ts-ignore wontfix add key
-          this[k] = v.bind(this);
+          this[k] = val;
         }
       }
     }

@@ -1,7 +1,7 @@
 import redisFlushAll from 'utils/infra/redisFlushAll';
 import { MODEL_NAMESPACES } from 'consts/coreRedisNamespaces';
 import initInfraWrap from 'utils/infra/initInfraWrap';
-import { APP_NAME_LOWER } from 'settings';
+import { APP_NAME_LOWER } from 'config';
 import exec from 'utils/exec';
 import destroyMZ from './mv/destroyMZ';
 import initMZ from './mv/initMZ';

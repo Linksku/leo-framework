@@ -4,6 +4,7 @@ import { AsyncLocalStorage } from 'async_hooks';
 
 import redlock from 'services/redlock';
 import redis from 'services/redis';
+import promiseTimeout from 'utils/promiseTimeout';
 
 export type RedlockContext = {
   lockNames: Set<string>,
@@ -13,7 +14,7 @@ const RedlockContextLocalStorage = new AsyncLocalStorage<RedlockContext>();
 
 export default async function usingRedlock(
   lockName: string,
-  timeout: number,
+  duration: number,
   cb: (acquiredNewLock: boolean) => Promise<void>,
 ) {
   const redlockContext = RedlockContextLocalStorage.getStore();
@@ -36,7 +37,7 @@ export default async function usingRedlock(
   // Mostly copied from node-redlock
   async function extendLock() {
     try {
-      lock = await lock.extend(timeout);
+      lock = await lock.extend(duration);
       queueExtendLock();
     } catch (_err) {
       if (lock.expiration > Date.now()) {
@@ -47,8 +48,15 @@ export default async function usingRedlock(
       let err = _err;
       if (err instanceof Error && err.message.includes('Cannot extend an already-expired lock')) {
         try {
-          lock = await redlock.acquire([lockName], timeout);
+          lock = await promiseTimeout(
+            redlock.acquire([lockName], duration),
+            5000,
+            new Error(`usingRedlock(${lockName}): timed out acquiring lock`),
+          );
         } catch (err2) {
+          ErrorLogger.warn(err2, {
+            ctx: `usingRedlock(${lockName})`,
+          });
           err = err2;
         }
 
@@ -68,7 +76,11 @@ export default async function usingRedlock(
 
   // todo: mid/mid free lock before exiting
   try {
-    lock = await redlock.acquire([lockName], timeout);
+    lock = await promiseTimeout(
+      redlock.acquire([lockName], duration),
+      5000,
+      new Error(`usingRedlock(${lockName}): timed out acquiring lock`),
+    );
   } catch (err) {
     if (!(err instanceof ExecutionError)
       || !err.message.includes('The operation was unable to achieve a quorum during its retry window')) {

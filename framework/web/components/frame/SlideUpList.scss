@@ -1,0 +1,24 @@
+.list {
+  padding-bottom: 0.5rem;
+}
+
+.listItem {
+  @extend %oneLine;
+
+  padding: 0.8rem $containerPadding;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+
+  svg {
+    margin-right: 1rem;
+    height: 2.4rem;
+    width: 2.4rem;
+    flex-shrink: 0;
+  }
+
+  > div {
+    display: flex;
+    align-items: center;
+  }
+}

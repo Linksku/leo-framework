@@ -1,0 +1,12 @@
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+index 6834c6dd4619712d102eb71f627ee3af8894278f..8eeb2beb11bf91d299f376a22ee7b45eb3dd46ed 100644
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -1,6 +1,6 @@
+ import { registerPlugin } from '@capacitor/core';
+ const App = registerPlugin('App', {
+-    web: () => import('./web').then(m => new m.AppWeb()),
++    web: () => import(/* webpackChunkName: 'capacitor' */ './web').then(m => new m.AppWeb()),
+ });
+ export * from './definitions';
+ export { App };

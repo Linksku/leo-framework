@@ -1,6 +1,6 @@
 import pg from 'pg';
 
-import { PG_BT_HOST, PG_BT_PORT } from 'consts/infra';
+import { PG_BT_HOST, PG_BT_PORT, PG_BT_DB } from 'consts/infra';
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
 
 if (!process.env.PG_BT_USER) {
@@ -15,7 +15,7 @@ export default ServiceContextLocalStorage.run(
       port: PG_BT_PORT,
       user: process.env.PG_BT_USER,
       password: process.env.PG_BT_PASS,
-      database: process.env.PG_BT_DB,
+      database: PG_BT_DB,
     });
 
     client.on('error', err => {

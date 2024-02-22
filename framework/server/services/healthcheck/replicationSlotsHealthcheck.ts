@@ -15,13 +15,16 @@ addHealthcheck('replicationSlots', {
 
     if (missingPubTables.length || extraPubTables.length) {
       throw getErr(
-        'replicationSlotsHealthcheck: invalid pub BT_PUB_ALL_TABLES',
+        'replicationSlotsHealthcheck: invalid pub tables',
         { missingPubTables, extraPubTables },
       );
     }
 
     if (missingSlots.length || extraSlots.length) {
-      throw getErr('replicationSlotsHealthcheck: invalid slots', { missingSlots, extraSlots });
+      throw getErr('replicationSlotsHealthcheck: invalid slots', {
+        missingSlots,
+        extraSlots,
+      });
     }
 
     if (extendedSlots.length) {
@@ -33,6 +36,7 @@ addHealthcheck('replicationSlots', {
     }
   },
   resourceUsage: 'mid',
+  usesResource: 'bt',
   stability: 'high',
   timeout: 10 * 1000,
 });

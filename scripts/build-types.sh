@@ -2,6 +2,7 @@
 
 start_time=$(date -d "1 minute ago" +"%Y-%m-%d %T")
 
+# todo: low/mid pause monitor-infra when rebuilding models
 if [ -e ./framework/server/config/__generated__/allModels.ts ]; then
   echo "export const frameworkModels = [];
 

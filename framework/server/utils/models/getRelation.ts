@@ -12,7 +12,7 @@ export default function getRelation(
   }
   const [name, nestedName] = parts;
   if (!TS.hasProp(modelRelations, name)) {
-    throw new UserFacingError(`Invalid relation "${modelType}.${relationName}"`, 400);
+    throw new Error(`getRelation(${modelType}): non-existant relation "${relationName}"`);
   }
   const relation = TS.defined(modelRelations[name]);
   if (!nestedName) {
@@ -21,7 +21,7 @@ export default function getRelation(
 
   const nestedModel = relation.toModel;
   if (!TS.hasProp(nestedModel.relationsMap, nestedName)) {
-    throw new UserFacingError(`Invalid nested relation "${nestedModel.type}.${nestedName}"`, 400);
+    throw new Error(`getRelation(${modelType}): invalid nested relation "${nestedModel.type}.${nestedName}"`);
   }
 
   return [relation, TS.defined(nestedModel.relationsMap[nestedName])];

@@ -1,0 +1,13 @@
+diff --git a/node_modules/@use-gesture/core/dist/declarations/src/types/state.d.ts b/node_modules/@use-gesture/core/dist/declarations/src/types/state.d.ts
+index 15af087..4a308b2 100644
+--- a/node_modules/@use-gesture/core/dist/declarations/src/types/state.d.ts
++++ b/node_modules/@use-gesture/core/dist/declarations/src/types/state.d.ts
+@@ -175,7 +175,7 @@ export type CommonGestureState = {
+      * The arguments passed to the bind function (only relevant in React when
+      * using `<div {...bind(someArgument)} />`)
+      */
+-    args?: any;
++    args?: any[];
+ };
+ export type CoordinatesState = CommonGestureState & {
+     /**

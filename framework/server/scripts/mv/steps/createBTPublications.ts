@@ -1,40 +1,66 @@
+import throttledPromiseAll from 'utils/throttledPromiseAll';
 import EntityModels from 'services/model/allEntityModels';
 import knexBT from 'services/knex/knexBT';
 import {
-  ENABLE_DBZ,
   BT_PUB_UPDATEABLE,
   BT_PUB_INSERT_ONLY,
   BT_PUB_ALL_TABLES,
+  DBZ_FOR_UPDATEABLE,
+  DBZ_FOR_INSERT_ONLY,
+  BT_REPLICA_IDENTITY_FOR_DBZ,
+  BT_REPLICA_IDENTITY_FOR_MZ,
+  MZ_ENABLE_SKIP_COLUMNS,
+  DBZ_ENABLE_SKIP_COLUMNS,
 } from 'consts/mz';
 import fetchBTPublications from '../helpers/fetchBTPublications';
 
 function getPublicationTables(models: EntityClass[]) {
-  return models.map(model => {
-    if (!model.skipColumnsForMZ.length) {
-      return `"${model.tableName}"`;
+  return models.map(Model => {
+    const usesDbz = Model.useInsertOnlyPublication
+      ? DBZ_FOR_INSERT_ONLY
+      : DBZ_FOR_UPDATEABLE;
+    if (!Model.skipColumnsForMZ.length
+      || (usesDbz ? !DBZ_ENABLE_SKIP_COLUMNS : !MZ_ENABLE_SKIP_COLUMNS)) {
+      return `"${Model.tableName}"`;
     }
-    const columnsForMZ = Object.keys(model.schema)
-      .filter(col => !model.skipColumnsForMZ.includes(col));
-    return `"${model.tableName}" (${columnsForMZ.map(col => `"${col}"`).join(',')})`;
+
+    // Note: this doesn't work with MZ's PG CDC.
+    // With this enabled, PG disallows updates and MZ breaks after inserts.
+    const columnsForMZ = Object.keys(Model.schema)
+      .filter(col => !Model.skipColumnsForMZ.includes(col));
+    return `"${Model.tableName}" (${columnsForMZ.map(col => `"${col}"`).join(',')})`;
   });
 }
 
 export default async function createBTPublications() {
   const startTime = performance.now();
   const updateableModels = EntityModels
-    .filter(model => !model.useInsertOnlyPublication);
+    .filter(Model => !Model.useInsertOnlyPublication);
   const insertOnlyModels = EntityModels
-    .filter(model => model.useInsertOnlyPublication);
+    .filter(Model => Model.useInsertOnlyPublication);
 
-  for (const model of EntityModels) {
-    await knexBT.raw(`
-      ALTER TABLE "${model.tableName}"
-      REPLICA IDENTITY ${ENABLE_DBZ ? 'DEFAULT' : 'FULL'}
-    `);
-  }
+  await throttledPromiseAll(5, EntityModels, async Model => {
+    const usesDbz = Model.useInsertOnlyPublication
+      ? DBZ_FOR_INSERT_ONLY
+      : DBZ_FOR_UPDATEABLE;
+    const rows = await knexBT<{ relreplident: string }>('pg_class')
+      .select('relreplident')
+      .where('oid', raw(`'"${Model.tableName}"'::regclass`));
+    const expectedReplicaIdentity: 'DEFAULT' | 'FULL' = usesDbz
+      ? BT_REPLICA_IDENTITY_FOR_DBZ
+      : BT_REPLICA_IDENTITY_FOR_MZ;
+    const expectedReplicaIdentityChar = expectedReplicaIdentity === 'DEFAULT' ? 'd' : 'f';
+    if (!rows.length || rows[0].relreplident !== expectedReplicaIdentityChar) {
+      await knexBT.raw(`
+        ALTER TABLE "${Model.tableName}"
+        REPLICA IDENTITY ${expectedReplicaIdentity}
+      `);
+    }
+  });
   const pubnames = await fetchBTPublications();
 
-  if (ENABLE_DBZ && updateableModels.length && !pubnames.includes(BT_PUB_UPDATEABLE)) {
+  if ((DBZ_FOR_INSERT_ONLY || DBZ_FOR_UPDATEABLE)
+    && updateableModels.length && !pubnames.includes(BT_PUB_UPDATEABLE)) {
     printDebug('Creating updateable tables publication', 'highlight');
     await knexBT.raw(`
       CREATE PUBLICATION "${BT_PUB_UPDATEABLE}"
@@ -42,14 +68,15 @@ export default async function createBTPublications() {
     `);
   }
 
-  /* for (const model of EntityModels) {
+  /* for (const Model of EntityModels) {
     await knexBT.raw(`
-      CREATE PUBLICATION "${BT_PUB_MODEL_PREFIX}${model.tableName.toLowerCase()}"
-      FOR TABLE "${model.tableName}"
+      CREATE PUBLICATION "${BT_PUB_MODEL_PREFIX}${Model.tableName.toLowerCase()}"
+      FOR TABLE "${Model.tableName}"
     `);
   } */
 
-  if (ENABLE_DBZ && insertOnlyModels.length && !pubnames.includes(BT_PUB_INSERT_ONLY)) {
+  if ((DBZ_FOR_INSERT_ONLY || DBZ_FOR_UPDATEABLE)
+    && insertOnlyModels.length && !pubnames.includes(BT_PUB_INSERT_ONLY)) {
     printDebug('Creating insert-only publication', 'highlight');
     await knexBT.raw(`
       CREATE PUBLICATION "${BT_PUB_INSERT_ONLY}"
@@ -64,7 +91,7 @@ export default async function createBTPublications() {
     printDebug('Creating replica publication', 'highlight');
     await knexBT.raw(`
       CREATE PUBLICATION "${BT_PUB_ALL_TABLES}"
-      FOR TABLE ${EntityModels.map(model => `"${model.tableName}"`).join(',')}
+      FOR TABLE ${EntityModels.map(Model => `"${Model.tableName}"`).join(',')}
     `);
   }
 

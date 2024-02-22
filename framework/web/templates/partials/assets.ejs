@@ -1,0 +1,9 @@
+<script defer src="<%= assetsUrl %>/js/main<%= fileVersion %>.js" charset="utf-8" fetchpriority="high"></script>
+
+<style>html{background-color:#fafafa}#react{visibility:hidden}</style>
+<link rel="stylesheet" href="<%= assetsUrl %>/css/main<%= fileVersion %>.css" media="none" fetchpriority="high" onload="if(media!='all')media='all'">
+
+<script>screen.orientation?.lock?.('portrait').catch(() => {});</script>
+<link rel="preload" href="https://fonts.gstatic.com/s/intertight/v7/NGSwv5HMAFg6IuGlBNMjxLsH8ag.woff2" as="font" type="font/woff2" crossorigin fetchpriority="low">
+<link rel="preconnect" href="<%= apiUrl %>">
+<link rel="preconnect" href="<%= spacesHost %>">

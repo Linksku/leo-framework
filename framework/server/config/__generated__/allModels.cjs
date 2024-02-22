@@ -1,8 +1,8 @@
 const frameworkModels = [
   {
     type: 'mzTest',
-    path: 'framework/server/models/mz/MzTest.ts',
-    // Model: require('../../models/mz/MzTest').default,
+    path: 'framework/server/models/mz/MzTestModel.ts',
+    // Model: require('../../models/mz/MzTestModel').default,
     isRR: true,
   },
   {
@@ -12,27 +12,45 @@ const frameworkModels = [
     isRR: true,
   },
   {
+    type: 'notif',
+    path: 'framework/server/models/notif/NotifModel.ts',
+    // Model: require('../../models/notif/NotifModel').default,
+    isRR: true,
+  },
+  {
+    type: 'unsubNotif',
+    path: 'framework/server/models/notif/UnsubNotifModel.ts',
+    // Model: require('../../models/notif/UnsubNotifModel').default,
+    isRR: true,
+  },
+  {
     type: 'user',
-    path: 'framework/server/models/user/User.ts',
-    // Model: require('../../models/user/User').default,
+    path: 'framework/server/models/user/UserModel.ts',
+    // Model: require('../../models/user/UserModel').default,
     isRR: true,
   },
   {
     type: 'userAuth',
-    path: 'framework/server/models/user/UserAuth.ts',
-    // Model: require('../../models/user/UserAuth').default,
+    path: 'framework/server/models/user/UserAuthModel.ts',
+    // Model: require('../../models/user/UserAuthModel').default,
     isRR: true,
   },
   {
     type: 'userDevice',
-    path: 'framework/server/models/user/UserDevice.ts',
-    // Model: require('../../models/user/UserDevice').default,
+    path: 'framework/server/models/notif/UserDeviceModel.ts',
+    // Model: require('../../models/notif/UserDeviceModel').default,
     isRR: true,
   },
   {
     type: 'userMeta',
-    path: 'framework/server/models/user/UserMeta.ts',
-    // Model: require('../../models/user/UserMeta').default,
+    path: 'framework/server/models/user/UserMetaModel.ts',
+    // Model: require('../../models/user/UserMetaModel').default,
+    isRR: true,
+  },
+  {
+    type: 'virtualRenderedNotif',
+    path: 'framework/server/models/notif/VirtualRenderedNotif.ts',
+    // Model: require('../../models/notif/VirtualRenderedNotif').default,
     isRR: true,
   },
 ];

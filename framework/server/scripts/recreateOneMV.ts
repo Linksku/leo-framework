@@ -1,7 +1,6 @@
 import type { Arguments } from 'yargs';
 
 import {
-  ENABLE_DBZ,
   MZ_SINK_CONNECTOR_PREFIX,
   MZ_SINK_PREFIX,
   MZ_SINK_TOPIC_PREFIX,
@@ -30,7 +29,7 @@ export default async function recreateOneMV(args?: Arguments) {
   if (!isModelType(arg)) {
     throw new Error('recreateOneMV: modelType required');
   }
-  const modelType = arg as ModelType;
+  const modelType = arg;
   const Model = getModelClass(modelType);
   if (!Model.isMV) {
     throw new Error('recreateOneMV: model isn\'t MV');
@@ -44,12 +43,8 @@ export default async function recreateOneMV(args?: Arguments) {
     for (const connector of connectors) {
       await deleteKafkaConnector(connector);
     }
-    await knexMZ.raw('DROP SINK IF EXISTS ??', [`${MZ_SINK_PREFIX}${modelType}`]);
-    await deleteKafkaTopics(new RegExp(
-      ENABLE_DBZ
-        ? `^${MZ_SINK_TOPIC_PREFIX}${modelType}($|-consistency$)`
-        : `^${MZ_SINK_TOPIC_PREFIX}${modelType}-`,
-    ));
+    await knexMZ.raw('DROP SINK IF EXISTS ??', [MZ_SINK_PREFIX + modelType]);
+    await deleteKafkaTopics(new RegExp(`^${MZ_SINK_TOPIC_PREFIX}${modelType}($|-)`));
     await deleteSchemaRegistry(new RegExp(`^${MZ_SINK_TOPIC_PREFIX}${modelType}-(key|value)$`));
     await knexMZ.raw('DROP VIEW IF EXISTS ?? CASCADE', [modelType]);
     printDebug(`Destroyed ${modelType} MV`, 'success');

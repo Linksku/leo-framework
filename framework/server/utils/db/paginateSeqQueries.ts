@@ -12,8 +12,12 @@ export default async function paginateSeqQueries<
   Queries extends {
     query: QueryBuilder<Model>,
     orderBy: OrderByColumns,
+    getItem?: (ent: unknown) => ApiEntityId,
   }[],
   QB extends Queries[number]['query'],
+  Item extends Queries[number]['getItem'] extends AnyFunction
+    ? ReturnType<Queries[number]['getItem']>
+    : undefined,
 >(
   queries: Queries,
   {
@@ -25,7 +29,7 @@ export default async function paginateSeqQueries<
     exactLimit?: boolean,
     cursor?: string,
   },
-): Promise<PaginatedResponse<QB['ModelType']>> {
+): Promise<PaginatedResponse<QB['ModelType'], Item>> {
   if (!queries.length) {
     if (process.env.PRODUCTION) {
       return EMPTY_PAGINATION;
@@ -42,10 +46,15 @@ export default async function paginateSeqQueries<
   const initialCursor: string | undefined = cursor
     ? cursor.slice(cursorSplitIdx + 1) || undefined
     : undefined;
-  let res = await paginateQuery(queries[queryIdx].query, queries[queryIdx].orderBy, {
-    limit,
-    cursor: initialCursor,
-  });
+  let res = await paginateQuery(
+    queries[queryIdx].query,
+    queries[queryIdx].orderBy,
+    {
+      limit,
+      cursor: initialCursor,
+      getItem: queries[queryIdx].getItem,
+    },
+  );
 
   while (
     res.data.items.length < (exactLimit ? limit : limit / 2)
@@ -65,6 +74,7 @@ export default async function paginateSeqQueries<
       {
         limit: limit - res.data.items.length,
         cursor: undefined,
+        getItem: queries[queryIdx].getItem,
       },
     );
     res.entities.unshift(...prevRes.entities);
@@ -74,12 +84,12 @@ export default async function paginateSeqQueries<
   if (queryIdx < queries.length - 1) {
     res.data.cursor = `${queryIdx + 1},`;
     res.data.hasCompleted = false;
-    return res;
+    return res as PaginatedResponse<QB['ModelType'], Item>;
   }
 
   if (!process.env.PRODUCTION && !res.data.hasCompleted && !res.data.cursor) {
     throw new Error('paginateSeqQueries: result is missing cursor.');
   }
-  res.data.cursor = `${queryIdx},${res.data.cursor}`;
-  return res;
+  res.data.cursor = `${queryIdx},${res.data.cursor ?? ''}`;
+  return res as PaginatedResponse<QB['ModelType'], Item>;
 }

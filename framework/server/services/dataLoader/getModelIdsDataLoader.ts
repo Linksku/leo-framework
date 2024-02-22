@@ -1,6 +1,8 @@
 import type DataLoader from 'dataloader';
+import { IS_PROFILING_API } from 'consts/infra';
 
-import createDataLoader from 'utils/createDataLoader';
+import createDataLoader from 'core/createDataLoader';
+import stringify from 'utils/stringify';
 
 type ModelIdsDataLoader = DataLoader<
   ModelPartial<ModelClass>,
@@ -22,6 +24,8 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
   if (!typeDataLoaders[indexStr]) {
     typeDataLoaders[indexStr] = createDataLoader(
       async (partials: readonly ModelPartial<T>[]) => {
+        const startTime = performance.now();
+
         const selectCols = new Set([
           ...primaryIndexArr,
           ...partials.flatMap(partial => Object.keys(partial)),
@@ -32,7 +36,7 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
         }
         const rows = await query;
 
-        return partials.map(partial => {
+        const results = partials.map(partial => {
           const matchedRows = rows.filter(row => {
             for (const pair of TS.objEntries(partial)) {
               // @ts-ignore wontfix no overlap
@@ -64,7 +68,7 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
               && typeof row[primaryIndex] !== 'number'
               && typeof row[primaryIndex] !== 'string') {
               throw getErr(
-                `getModelIdsDataLoader(${Model.type}): ${primaryIndex} isn't a number or string`,
+                `getModelIdsDataLoader(${Model.type}): ${stringify(primaryIndex)} isn't a number or string`,
                 {
                   val: row[primaryIndex],
                   valType: typeof row[primaryIndex],
@@ -74,6 +78,13 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
             return row[primaryIndex] as unknown as number | string;
           });
         });
+
+        if (IS_PROFILING_API) {
+          // eslint-disable-next-line no-console
+          console.log(`modelIdsDataLoader(${Model.type}): ${results.length} ${pluralize('result', results.length)} in ${Math.round(performance.now() - startTime)}ms`);
+        }
+
+        return results;
       },
       {
         objKeys: true,

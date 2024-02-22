@@ -5,8 +5,15 @@ export const forbiddenSubStrs = [
   'jailbait',
   'negro',
   'nigg',
-  // todo: low/mid allow words like retardant
   'retard',
+];
+
+export const allowedForbiddenSubStrs = [
+  'montenegro',
+  'negroni',
+  'pachinko',
+  'retardant',
+  'winegrow',
 ];
 
 export const forbiddenWords = new Set([
@@ -34,4 +41,19 @@ export const unsafeSubStrs = [
   'sex',
   'slut',
   'shit',
+];
+
+export const allowedUnsafeSubStrs = [
+  'brainfuck',
+  'dickens',
+  'dickins',
+  'essex',
+  'pussycat',
+  'sextant',
+  'sextet',
+  'sexual',
+  'shitake',
+  'sussex',
+  'takeshita',
+  'unisex',
 ];

@@ -3,21 +3,21 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "node": ">=16",
+  "packageManager": "yarn@4.0.2",
   "scripts": {
-    "postinstall": "patch-package",
     "dc": "node ./docker-compose.js | docker compose -f -"
   },
   "dependencies": {
-    "bcrypt": "^5.1.0",
-    "bull": "^4.10.4",
-    "dotenv": "^16.0.3",
+    "bcrypt": "^5.1.1",
+    "bull": "^4.11.5",
+    "dotenv": "^16.3.1",
     "fluent-ffmpeg": "^2.1.2",
-    "json-schema-to-typescript": "^13.0.1",
-    "kafkajs": "^2.2.4",
-    "knex": "^2.4.2",
-    "patch-package": "^7.0.0",
-    "pg": "^8.11.0",
-    "sharp": "^0.32.1"
+    "json-schema-to-typescript": "^13.1.1",
+    "kafkajs": "patch:kafkajs@npm%3A2.2.4#~/.yarn/patches/kafkajs-npm-2.2.4-8837bee290.patch",
+    "knex": "patch:knex@npm%3A3.0.1#~/.yarn/patches/knex-npm-3.0.1-cc91fa07c1.patch",
+    "pg": "^8.11.3",
+    "sharp": "^0.32.6"
   },
   "license": "MIT"
 }

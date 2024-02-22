@@ -1,6 +1,4 @@
-import UserSvg from 'fa5/svg/user-light.svg';
-
-import Img from 'components/common/Img';
+import UserSvg from 'svgs/fa5/user-light.svg';
 
 type Props = {
   sizeRem?: number,

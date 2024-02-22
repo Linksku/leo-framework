@@ -1,3 +1,4 @@
+import pgdump from 'scripts/db/pgdump';
 import { getMigrationState } from './helpers/migrationState';
 import { getMigration } from './helpers/migrationFiles';
 import syncMVsAfterMigration from './helpers/syncMVsAfterMigration';
@@ -7,6 +8,7 @@ export default async function migrationRedo() {
   if (!rollback) {
     return;
   }
+  await pgdump();
 
   const filesRan: string[] = [];
   let hadError = false;

@@ -1,10 +1,10 @@
 // stylelint-disable-next-line keyframes-name-pattern
 @keyframes :global(keyframesFadeIn) {
   from {
-    filter: opacity(0);
+    opacity: 0;
   }
 
   to {
-    filter: opacity(100%);
+    opacity: 1;
   }
 }

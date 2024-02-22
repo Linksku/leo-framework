@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-import { getEntitiesState } from 'stores/EntitiesStore';
+import { getEntitiesState, EntitiesUsage } from 'stores/EntitiesStore';
 import isDebug from 'utils/isDebug';
 import useCheckEntityExists from './useCheckEntityExists';
 
@@ -34,15 +34,22 @@ export default function useEntity<T extends EntityType>(
       : null),
   );
 
-  if (!process.env.PRODUCTION && isDebug) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const partial = useMemo(() => (id ? { id } as ObjectOf<ApiEntityId> : null), [id]);
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useCheckEntityExists(
-      entityType,
-      partial,
-      entity,
-    );
+  if (!process.env.PRODUCTION) {
+    const usage = entity && EntitiesUsage.get(entity);
+    if (usage) {
+      usage.lastReadTime = performance.now();
+    }
+
+    if (isDebug) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const partial = useMemo(() => (id ? { id } as ObjectOf<ApiEntityId> : null), [id]);
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      useCheckEntityExists(
+        entityType,
+        partial,
+        entity,
+      );
+    }
   }
 
   return entity;

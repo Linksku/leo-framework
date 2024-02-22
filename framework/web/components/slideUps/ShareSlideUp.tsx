@@ -1,45 +1,78 @@
 import CopySvg from 'boxicons/svg/regular/bx-copy.svg';
-import FacebookSvg from 'boxicons/svg/logos/bxl-facebook-square.svg';
-import TwitterSvg from 'boxicons/svg/logos/bxl-twitter.svg';
-import PinterestSvg from 'boxicons/svg/logos/bxl-pinterest.svg';
-import LinkedinSvg from 'boxicons/svg/logos/bxl-linkedin-square.svg';
 import ShareSvg from 'boxicons/svg/regular/bx-share-alt.svg';
+import FacebookSvg from 'boxicons/svg/logos/bxl-facebook-circle.svg';
+import TwitterSvg from 'boxicons/svg/logos/bxl-twitter.svg';
+import RedditSvg from 'boxicons/svg/logos/bxl-reddit.svg';
+import PinterestSvg from 'boxicons/svg/logos/bxl-pinterest.svg';
+import MessengerSvg from 'boxicons/svg/logos/bxl-messenger.svg';
+import InstagramSvg from 'boxicons/svg/logos/bxl-instagram.svg';
+import WhatsAppSvg from 'boxicons/svg/logos/bxl-whatsapp.svg';
 import { Share } from '@capacitor/share';
+import QRCode from 'qrcode';
 
-import { HOME_URL } from 'settings';
+import { FB_APP_ID } from 'config';
+import { HOME_URL } from 'consts/server';
+import detectPlatform from 'utils/detectPlatform';
 import useCopyText from 'hooks/useCopyText';
+import useEffectOncePerDeps from 'hooks/useEffectOncePerDeps';
 
-import styles from './ShareSlideUpStyles.scss';
+import styles from './ShareSlideUp.scss';
 
 const SOCIAL_BTNS: [
+  type: 'mobile' | 'desktop' | 'both',
   string,
   string,
   React.SVGFactory,
   string,
 ][] = [
   [
+    'both',
     'Facebook',
-    `https://www.facebook.com/dialog/share?href=%url%&app_id=${process.env.FB_APP_ID}&display=popup`,
+    `https://www.facebook.com/dialog/share?href=%url%&app_id=${FB_APP_ID}&display=popup`,
     FacebookSvg,
     '#3b5998',
   ],
   [
+    'desktop',
     'Twitter',
     'https://twitter.com/intent/tweet?url=%url%',
     TwitterSvg,
     '#00acee',
   ],
   [
+    'desktop',
+    'Reddit',
+    'https://reddit.com/submit?url=%url%',
+    RedditSvg,
+    '#ff5700',
+  ],
+  [
+    'desktop',
     'Pinterest',
     'https://www.pinterest.com/pin/create/button/?url=%url%',
     PinterestSvg,
     '#c8232c',
   ],
   [
-    'LinkedIn',
-    'https://www.linkedin.com/sharing/share-offsite/?url=%url%',
-    LinkedinSvg,
-    '#0e76a8',
+    'mobile',
+    'Messenger',
+    `fb-messenger://share/?link=%url%&app_id=${FB_APP_ID}`,
+    MessengerSvg,
+    '#398eff',
+  ],
+  [
+    'mobile',
+    'Instagram',
+    'instagram://sharesheet?text=%url%',
+    InstagramSvg,
+    '#e1306c',
+  ],
+  [
+    'mobile',
+    'WhatsApp',
+    'whatsapp://send?text=%url%',
+    WhatsAppSvg,
+    '#25d366',
   ],
 ];
 
@@ -48,7 +81,7 @@ type Props = {
   hideSocialBtns?: boolean,
 };
 
-// todo mid/mid add title/image to share slideup
+// todo: mid/mid add title/image to share slideup
 export default function ShareSlideUp({
   path,
   hideSocialBtns,
@@ -56,9 +89,45 @@ export default function ShareSlideUp({
   const inputRef = useRef<HTMLInputElement>(null);
   const hideSlideUp = useHideSlideUp();
   const copyText = useCopyText();
-  const url = `${HOME_URL}${path}`;
+  const url = useMemo(
+    () => (path.startsWith('/')
+      ? HOME_URL + path
+      : new URL(path, window.location.href).href),
+    [path],
+  );
 
-  // todo: mid/mid native fb etc sharing
+  const { width } = useWindowSize();
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  useEffectOncePerDeps(() => {
+    QRCode.toDataURL(url, { width }, (err, dataUrl) => {
+      if (!process.env.PRODUCTION && err) {
+        ErrorLogger.warn(err);
+      }
+
+      setQrDataUrl(dataUrl);
+    });
+  }, [url]);
+
+  const platform = detectPlatform();
+  const isMobile = platform.os === 'android' || platform.os === 'ios';
+  const nativeShareBtn = (
+    <div
+      onClick={async () => {
+        try {
+          await Share.share({
+            url,
+          });
+          hideSlideUp();
+        } catch {}
+      }}
+      className={styles.listItem}
+      role="button"
+      tabIndex={0}
+    >
+      <ShareSvg />
+      Open Share Dialog
+    </div>
+  );
   return (
     <div className={styles.container}>
       <Input
@@ -67,55 +136,54 @@ export default function ShareSlideUp({
         readOnly
         onClick={() => {
           if (inputRef.current) {
-            (inputRef.current as any).select?.();
+            inputRef.current.select();
             copyText(url);
           }
         }}
         marginBottom="0.5rem"
       />
-      <div
+      <Link
         onClick={() => {
           copyText(url);
         }}
+        activeBg
         className={styles.listItem}
-        role="button"
-        tabIndex={0}
       >
         <CopySvg />
         Copy URL
-      </div>
-      {!hideSocialBtns && SOCIAL_BTNS.map(([name, template, Svg, fill]) => (
-        <Link
-          key={name}
-          href={template.replace('%url%', encodeURIComponent(url))}
-          className={styles.listItem}
-          target="_blank"
-          rel="noreferrer noopener nofollow"
-        >
-          <Svg
-            style={{
-              fill,
-            }}
-          />
-          {name}
-        </Link>
-      ))}
-      <div
-        onClick={async () => {
-          try {
-            await Share.share({
-              url,
-            });
-            hideSlideUp();
-          } catch {}
-        }}
-        className={styles.listItem}
-        role="button"
-        tabIndex={0}
-      >
-        <ShareSvg />
-        Open Share Dialog
-      </div>
+      </Link>
+      {platform.isNative && nativeShareBtn}
+      {isMobile && <div className={styles.mobileSeparator} />}
+      {!hideSocialBtns && SOCIAL_BTNS
+        .filter(btn => btn[0] === 'both'
+          || (btn[0] === 'mobile' && isMobile)
+          || (btn[0] === 'desktop' && !isMobile))
+        .map(([_, name, template, Svg, fill]) => (
+          <Link
+            key={name}
+            href={template.replace('%url%', encodeURIComponent(url))}
+            target="_blank"
+            rel="noreferrer noopener nofollow"
+            activeBg
+            className={styles.listItem}
+          >
+            <Svg
+              style={{
+                fill,
+              }}
+            />
+            {name}
+          </Link>
+        ))}
+      {!platform.isNative && nativeShareBtn}
+
+      {qrDataUrl && (
+        <img
+          src={qrDataUrl}
+          alt="QR"
+          className={styles.qr}
+        />
+      )}
     </div>
   );
 }

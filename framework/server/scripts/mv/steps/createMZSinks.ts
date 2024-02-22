@@ -1,5 +1,4 @@
-import pLimit from 'p-limit';
-
+import throttledPromiseAll from 'utils/throttledPromiseAll';
 import { MZ_SINK_CONNECTOR_PREFIX, MZ_SINK_PREFIX } from 'consts/mz';
 import { PG_BT_POOL_MAX, PG_RR_POOL_MAX } from 'consts/infra';
 import knexRR from 'services/knex/knexRR';
@@ -11,8 +10,6 @@ import createMZSink from '../helpers/createMZSink';
 import createMZSinkConnector from '../helpers/createMZSinkConnector';
 import verifyCreatedTables from '../helpers/verifyCreatedTables';
 
-const limiter = pLimit(5);
-
 export default async function createMZSinks() {
   const startTime = performance.now();
 
@@ -23,7 +20,7 @@ export default async function createMZSinks() {
   const existingSinks = new Set(await showMzSystemRows('SHOW SINKS'));
   const existingSinksModels = new Set(
     modelsWithSink
-      .filter(model => existingSinks.has(`${MZ_SINK_PREFIX}${model.tableName}`))
+      .filter(model => existingSinks.has(MZ_SINK_PREFIX + model.tableName))
       .map(model => model.type),
   );
 
@@ -47,7 +44,10 @@ export default async function createMZSinks() {
     printDebug(`createMZSinks: extra connectors: ${extraConnectors.join(', ')}`, 'warn');
   }
 
-  const maxConnectionsRows = await knexRR.raw('SHOW max_connections');
+  const maxConnectionsRows = await rawSelect(
+    'rr',
+    'SHOW max_connections',
+  );
   const maxConnections = TS.parseIntOrNull(maxConnectionsRows?.rows?.[0]?.max_connections);
   const requiredConnections = modelsWithSink.length
     + PG_BT_POOL_MAX
@@ -60,28 +60,26 @@ export default async function createMZSinks() {
 
   printDebug('Creating Materialize sinks', 'info');
   const createdSinks = new Set<ModelType>();
-  await Promise.all(
-    modelsWithSink.map(model => limiter(async () => {
-      if (!existingSinksModels.has(model.type)) {
-        await createMZSink({
-          modelType: model.type,
-          primaryKey: Array.isArray(model.primaryIndex) ? model.primaryIndex : [model.primaryIndex],
-        });
-        createdSinks.add(model.type);
-      }
+  await throttledPromiseAll(5, modelsWithSink, async model => {
+    if (!existingSinksModels.has(model.type)) {
+      await createMZSink({
+        modelType: model.type,
+        primaryKey: Array.isArray(model.primaryIndex) ? model.primaryIndex : [model.primaryIndex],
+      });
+      createdSinks.add(model.type);
+    }
 
-      // Note: with pg cdc, might need to delete old connector
-      if (!existingConnectorModels.has(model.type)) {
-        await createMZSinkConnector({
-          name: model.type,
-          replicaTable: TS.notNull(model.getReplicaTable()),
-          primaryKey: model.primaryIndex,
-          timestampProps: [...getDateProps(model.getSchema() as unknown as JsonSchemaProperties)],
-        });
-        createdSinks.add(model.type);
-      }
-    })),
-  );
+    // Note: with pg cdc, might need to delete old connector
+    if (!existingConnectorModels.has(model.type)) {
+      await createMZSinkConnector({
+        name: model.type,
+        replicaTable: TS.notNull(model.getReplicaTable()),
+        primaryKey: model.primaryIndex,
+        timestampProps: [...getDateProps(model.getSchema() as unknown as JsonSchemaProperties)],
+      });
+      createdSinks.add(model.type);
+    }
+  });
 
   await verifyCreatedTables(
     'rr',

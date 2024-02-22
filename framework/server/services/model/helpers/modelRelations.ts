@@ -1,11 +1,14 @@
 import getNonNullSchema from 'utils/models/getNonNullSchema';
+import isUniqueModelCols from 'utils/models/isUniqueModelCols';
 
 export type ModelRelationSpec = {
   name?: string,
+  consts?: ObjectOf<string>,
   through?: {
     model: RRModelType,
     from: string,
     to: string,
+    // Can add through consts if needed
   },
 };
 
@@ -25,50 +28,49 @@ export type ModelRelation = {
   relationType: ModelRelationType,
   fromModel: RRModelClass,
   fromCol: string,
+  through?: ModelRelationThrough,
   toModel: RRModelClass,
   toCol: string,
-  through?: ModelRelationThrough,
+  consts?: ObjectOf<string>,
 };
 
+// Key is relation name
 export type ModelRelationsMap = ObjectOf<ModelRelation>;
 
 function getRelationType({
   fromModel,
   fromCol,
+  through,
   toModel,
   toCol,
-  through,
-}: {
-  fromModel: RRModelClass,
-  fromCol: string,
-  toModel: RRModelClass,
-  toCol: string,
-  through?: {
-    model: RRModelClass,
-    from: string,
-    to: string,
-  },
-}) {
-  const isFromUnique = fromModel.getUniqueColumnsSet().has(fromCol as ModelKey<RRModelClass>);
-  const isFromArray = getNonNullSchema(
-    fromModel.getSchema()[fromCol as ModelKey<RRModelClass>],
-  ).nonNullType === 'array';
-  const isToUnique = toModel.getUniqueColumnsSet().has(toCol as ModelKey<RRModelClass>);
-  const isToArray = getNonNullSchema(
-    toModel.getSchema()[toCol as ModelKey<RRModelClass>],
-  ).nonNullType === 'array';
+  consts,
+}: Pick<
+  ModelRelation,
+  'fromModel' | 'fromCol' | 'through' | 'toModel' | 'toCol' | 'consts'
+>): ModelRelationType {
+  const isFromUnique = fromModel.getUniqueSingleColumnsSet().has(fromCol as ModelKey<RRModelClass>);
+  const isFromArray = getNonNullSchema(fromModel.getSchema()[fromCol as ModelKey<RRModelClass>])
+    .nonNullType === 'array';
+  const isToUnique = toModel.getUniqueSingleColumnsSet().has(toCol as ModelKey<RRModelClass>);
+  const isToArray = getNonNullSchema(toModel.getSchema()[toCol as ModelKey<RRModelClass>])
+    .nonNullType === 'array';
+
+  if (isFromArray && !isToUnique) {
+    throw new Error(`getRelationType(${fromModel.name}): "${fromCol}" can't reference non-unique`);
+  }
   if (isToArray) {
-    throw new Error(`getRelationType(${fromModel.name}): to column can't be array`);
+    throw new Error(`getRelationType(${fromModel.name}): "${fromCol}" can't reference array`);
+  }
+  if (consts && isToUnique) {
+    throw new Error(`getRelationType(${fromModel.name}): unnecessary consts for "${fromCol}"`);
   }
 
   if (!through) {
     if (isFromArray) {
+      // Could be hasMany, but can't tell the difference
       return 'manyToMany';
     }
     if (isFromUnique && isToUnique) {
-      if (fromCol === 'id' && toCol === 'id') {
-        throw new Error(`getRelationType(${fromModel.name}): unknown relation from "id" to "id".`);
-      }
       if (fromCol === 'id') {
         return 'hasOne';
       }
@@ -78,6 +80,9 @@ function getRelationType({
       throw new Error(`getRelationType(${fromModel.name}): unknown relation when neither is "id".`);
     }
     if (isFromUnique) {
+      if (consts && isUniqueModelCols(toModel, [toCol, ...TS.objKeys(consts)])) {
+        return 'hasOne';
+      }
       return 'hasMany';
     }
     if (isToUnique) {
@@ -176,30 +181,48 @@ export function getRelationsMap(
         }
       }
 
+      if (config.consts) {
+        for (const col of TS.objKeys(config.consts)) {
+          if (!TS.hasProp(toModel.getSchema(), col)) {
+            throw new Error(`getRelationsMap(${Model.name}): consts col "${toModel.type}.${col}" doesn't exist.`);
+          }
+        }
+
+        if (config.consts[toCol]) {
+          throw new Error(`getRelationsMap(${Model.name}): can't have consts col "${toModel.type}.${toCol}".`);
+        }
+      }
+
       const relationType = getRelationType({
         fromModel: Model,
         fromCol,
+        through: config.through && throughModel
+          ? {
+            model: throughModel,
+            from: config.through.from,
+            to: config.through.to,
+          }
+          : undefined,
         toModel,
         toCol,
-        through: config.through && throughModel ? {
-          model: throughModel,
-          from: config.through.from,
-          to: config.through.to,
-        } : undefined,
+        consts: config.consts,
       });
+
       relationsMap[name] = {
         name,
+        relationType,
         fromModel: Model,
         fromCol,
-        toModel,
-        toCol,
-        relationType,
         through: config.through
           ? {
             model: TS.notNull(throughModel),
             from: config.through.from,
             to: config.through.to,
-          } : undefined,
+          }
+          : undefined,
+        toModel,
+        toCol,
+        consts: config.consts,
       };
     }
   }

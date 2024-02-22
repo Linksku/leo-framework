@@ -1,14 +1,13 @@
 import type SentryType from '@sentry/browser';
 import type { SeverityLevel } from '@sentry/types';
 
-import detectOs from 'utils/detectOs';
-import isOsMobile from 'utils/isOsMobile';
+import detectPlatform from 'utils/detectPlatform';
 import formatErr from 'utils/formatErr';
 import getUrlParams from 'utils/getUrlParams';
 
 const WARN_THROTTLE_DURATION = 10 * 60 * 1000;
 const ERROR_THROTTLE_DURATION = 60 * 1000;
-const lastLoggedTimes: Map<string, number> = new Map();
+const lastLoggedTimes = new Map<string, number>();
 
 let Sentry: {
   configureScope: typeof SentryType.configureScope,
@@ -34,10 +33,10 @@ const _queueError = (level: SeverityLevel, err: Error) => {
   lastLoggedTimes.set(msg, performance.now());
 
   if (Sentry) {
-    const debugCtx: ObjectOf<any> = Object.create(null);
+    const serializedCtx: ObjectOf<any> = Object.create(null);
     if (err.debugCtx) {
       for (const [k, v] of Object.entries(err.debugCtx)) {
-        debugCtx[k] = `${typeof v === 'object' ? JSON.stringify(v) : v}`.slice(0, 1000);
+        serializedCtx[k] = `${typeof v === 'object' ? JSON.stringify(v) : v}`.slice(0, 1000);
       }
     }
 
@@ -46,7 +45,7 @@ const _queueError = (level: SeverityLevel, err: Error) => {
     Sentry.captureException(newErr, {
       level,
       contexts: {
-        debugCtx,
+        debugCtx: serializedCtx,
       },
     });
   } else {
@@ -54,8 +53,10 @@ const _queueError = (level: SeverityLevel, err: Error) => {
   }
 };
 
-function _isErrorDoubleInvoked(err: Error) {
-  if (process.env.PRODUCTION || !err.stack) {
+function _isErrorDoubleInvoked(err: unknown) {
+  if (process.env.PRODUCTION
+    || !TS.isObj(err)
+    || typeof err.stack !== 'string') {
     return false;
   }
 
@@ -73,8 +74,25 @@ export const setErrorLoggerUserId = (userId: Nullish<IUser['id']>) => {
 };
 
 const ErrorLogger = {
-  warn(_err: Error, debugCtx?: ObjectOf<any>, consoleLog = true) {
-    const err = debugCtx ? getErr(_err, debugCtx) : _err;
+  warn<T>(
+    _err: T & (
+      T extends Error ? unknown
+      : unknown extends T ? unknown
+      : never
+    ),
+    debugCtx?: ObjectOf<any>,
+    consoleLog = true,
+  ) {
+    let err: Error;
+    if (_err instanceof Error) {
+      err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
+    } else {
+      err = getErr('ErrorLogger.warn: got non-Error', {
+        ...debugCtx,
+        nonError: _err,
+      });
+    }
+
     if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
       console.warn(formatErr(err));
@@ -82,8 +100,25 @@ const ErrorLogger = {
     _queueError('warning', err);
   },
 
-  error(_err: Error, debugCtx?: ObjectOf<any>, consoleLog = true) {
-    const err = debugCtx ? getErr(_err, debugCtx) : _err;
+  error<T>(
+    _err: T & (
+      T extends Error ? unknown
+      : unknown extends T ? unknown
+      : never
+    ),
+    debugCtx?: ObjectOf<any>,
+    consoleLog = true,
+  ) {
+    let err: Error;
+    if (_err instanceof Error) {
+      err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
+    } else {
+      err = getErr('ErrorLogger.error: got non-Error', {
+        ...debugCtx,
+        nonError: _err,
+      });
+    }
+
     if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
       console.error(formatErr(err));
@@ -91,8 +126,25 @@ const ErrorLogger = {
     _queueError('error', err);
   },
 
-  fatal(_err: Error, debugCtx?: ObjectOf<any>, consoleLog = true) {
-    const err = debugCtx ? getErr(_err, debugCtx) : _err;
+  fatal<T>(
+    _err: T & (
+      T extends Error ? unknown
+      : unknown extends T ? unknown
+      : never
+    ),
+    debugCtx?: ObjectOf<any>,
+    consoleLog = true,
+  ) {
+    let err: Error;
+    if (_err instanceof Error) {
+      err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
+    } else {
+      err = getErr('ErrorLogger.fatal: got non-Error', {
+        ...debugCtx,
+        nonError: _err,
+      });
+    }
+
     if (consoleLog && !_isErrorDoubleInvoked(err)) {
       // eslint-disable-next-line no-console
       console.error(formatErr(err));
@@ -113,7 +165,7 @@ export const loadErrorLogger = (userId : EntityId | null) => {
     .then(module => {
       Sentry = module.default;
       Sentry.configureScope(scope => {
-        const os = detectOs(window.navigator.userAgent);
+        const platform = detectPlatform();
         const params = getUrlParams();
 
         scope.setUser({ id: latestUserId?.toString() });
@@ -122,8 +174,8 @@ export const loadErrorLogger = (userId : EntityId | null) => {
         scope.setTag('callsite', 'web');
 
         scope.setTag('userAgent', window.navigator.userAgent);
-        scope.setTag('os', os);
-        scope.setTag('isMobile', isOsMobile(os));
+        scope.setTag('os', platform.os);
+        scope.setTag('platform', platform.type);
         scope.setTag('language', window.navigator.language);
         scope.setTag('path', window.location.pathname);
         scope.setTag('hash', window.location.hash.slice(1));

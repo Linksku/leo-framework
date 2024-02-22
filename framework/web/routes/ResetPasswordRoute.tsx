@@ -2,19 +2,22 @@ import StackWrapInner from 'components/frame/stack/StackWrapInner';
 import Form from 'components/common/Form';
 import HookFormErrors from 'components/HookFormErrors';
 
-import styles from './ResetPasswordRouteStyles.scss';
+import styles from './ResetPasswordRoute.scss';
 
 export default React.memo(function ResetPasswordRoute() {
+  const query = useRouteQuery();
+  const defaultEmail = query?.email;
+
   const { register, handleSubmit, control } = useForm({
     reValidateMode: 'onBlur',
     defaultValues: {
-      email: '',
+      email: typeof defaultEmail === 'string' ? defaultEmail : '',
     },
   });
   const { errors } = useFormState({ control });
   const showAlert = useShowAlert();
   const authState = useAuthState();
-  const { backState } = useRouteStore();
+  const { backState, isRouteActive } = useRouteStore();
   const pushPath = usePushPath();
 
   const { fetching, fetchApi: resetPassword, error: apiError } = useDeferredApi(
@@ -26,9 +29,10 @@ export default React.memo(function ResetPasswordRoute() {
       returnState: true,
       onFetch() {
         showAlert({
-          msg: 'A password reset email was sent',
+          title: 'Success',
+          msg: 'If that email exists in our system, a password reset email was sent',
           onClose() {
-            if (backState) {
+            if (isRouteActive && backState) {
               window.history.back();
             } else {
               pushPath('/login');
@@ -69,7 +73,12 @@ export default React.memo(function ResetPasswordRoute() {
           />
         </Form>
 
-        <p><Link href="/login">Log In</Link></p>
+        <p>
+          <Link href="/login" replace>Log In</Link>
+        </p>
+        <p>
+          <Link href="/support">Support</Link>
+        </p>
       </div>
     </StackWrapInner>
   );

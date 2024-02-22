@@ -17,7 +17,9 @@ export async function getMigrationState(): Promise<MigrationState> {
   try {
     return TS.assertType<MigrationState>(
       data,
-      val => val && typeof val.lastMigration === 'string' && val.lastMigration.endsWith('.ts'),
+      val => TS.isObj(val)
+        && typeof val.lastMigration === 'string'
+        && val.lastMigration.endsWith('.ts'),
     );
   } catch {}
   return {
@@ -25,7 +27,10 @@ export async function getMigrationState(): Promise<MigrationState> {
   };
 }
 
-export async function updateMigrationState(lastMigration: string, rollback?: MigrationState['rollback']) {
+export async function updateMigrationState(
+  lastMigration: string,
+  rollback?: MigrationState['rollback'],
+) {
   const update = {
     lastMigration,
     rollback: rollback ?? {

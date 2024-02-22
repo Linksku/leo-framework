@@ -2,7 +2,11 @@ import type { SeverityLevel } from '@sentry/types';
 import * as Sentry from '@sentry/node';
 import mapValues from 'lodash/mapValues.js';
 
+import type setErrorLoggerScopeType from './setErrorLoggerScope';
 import formatErr from 'utils/formatErr';
+import { SENTRY_DSN_SERVER } from 'config/serverConfig';
+
+let setErrorLoggerScope: typeof setErrorLoggerScopeType | undefined;
 
 if (!process.env.PRODUCTION) {
   Error.stackTraceLimit = 30;
@@ -10,8 +14,8 @@ if (!process.env.PRODUCTION) {
 
 if (process.env.PRODUCTION) {
   Sentry.init({
-    dsn: process.env.SENTRY_DSN_SERVER,
-    tracesSampleRate: process.env.PRODUCTION ? 0.01 : 1,
+    dsn: SENTRY_DSN_SERVER,
+    tracesSampleRate: 1,
   });
 }
 
@@ -38,8 +42,11 @@ function _log(level: SeverityLevel, err: Error) {
 
   try {
     Sentry.withScope(scope => {
-      // eslint-disable-next-line unicorn/prefer-module
-      require('./setErrorLoggerScope').default(scope);
+      if (!setErrorLoggerScope) {
+        // eslint-disable-next-line unicorn/prefer-module
+        setErrorLoggerScope = require('./setErrorLoggerScope').default;
+      }
+      setErrorLoggerScope?.(scope);
 
       Sentry.captureException(err, {
         level,
@@ -66,6 +73,11 @@ const ErrorLogger = {
     debugCtx?: ObjectOf<any>,
     consoleLog = true,
   ) {
+    const skipLog = process.env.PRODUCTION && Math.random() > 0.01;
+    if (skipLog && !consoleLog) {
+      return;
+    }
+
     let err: Error;
     if (_err instanceof Error) {
       err = debugCtx ? getErr(_err as Error, debugCtx) : _err;
@@ -79,7 +91,9 @@ const ErrorLogger = {
     if (consoleLog) {
       printDebug(err, 'warn');
     }
-    _log('warning', err);
+    if (!skipLog) {
+      _log('warning', err);
+    }
   },
 
   error<T>(
@@ -143,7 +157,7 @@ const ErrorLogger = {
 
   async flushAndExit(code?: number) {
     try {
-      await Sentry.close(2000);
+      await Sentry.close(10_000);
     } catch (err) {
       printDebug(err, 'error', { prod: 'always' });
     }

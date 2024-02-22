@@ -9,7 +9,9 @@ export default async function checkDockerComposeUsage() {
     for (const [service, stats] of TS.objEntries(allStats)) {
       if (totalStats[service]) {
         for (const [key, val] of TS.objEntries(stats)) {
-          TS.defined(totalStats[service])[key] += val;
+          if (val) {
+            TS.defined(totalStats[service])[key] += val;
+          }
         }
       } else {
         totalStats[service] = stats;
@@ -19,7 +21,9 @@ export default async function checkDockerComposeUsage() {
   }
   for (const [service, stats] of TS.objEntries(totalStats)) {
     for (const [key, val] of TS.objEntries(stats)) {
-      TS.defined(totalStats[service])[key] = val / NUM_RUNS;
+      if (val) {
+        TS.defined(totalStats[service])[key] = val / NUM_RUNS;
+      }
     }
   }
 
@@ -29,11 +33,14 @@ export default async function checkDockerComposeUsage() {
     memGb,
     memPercentLimit,
   }] of TS.objEntries(totalStats)) {
-    const cpuLimit = cpuCores / cpuPercentLimit * 100;
-    const memLimit = memGb / memPercentLimit * 100;
-
     console.log(service);
-    console.log(`  CPU usage: ${cpuPercentLimit.toFixed(1)}% (${cpuCores.toFixed(2)} / ${cpuLimit.toFixed(1)} cores), ${(cpuLimit - cpuCores).toFixed(1)} free`);
+    if (cpuPercentLimit) {
+      const cpuLimit = cpuCores / cpuPercentLimit * 100;
+      console.log(`  CPU usage: ${cpuPercentLimit.toFixed(1)}% (${cpuCores.toFixed(2)} / ${cpuLimit.toFixed(1)} cores), ${(cpuLimit - cpuCores).toFixed(1)} free`);
+    } else {
+      console.log(`  CPU usage: ?% (${cpuCores.toFixed(2)} / ? cores), ? free`);
+    }
+    const memLimit = memGb / memPercentLimit * 100;
     console.log(`  Mem usage: ${memPercentLimit.toFixed(1)}% (${memGb.toFixed(2)} / ${memLimit.toFixed(1)}GB), ${(memLimit - memGb).toFixed(1)} free`);
     console.log('');
   }

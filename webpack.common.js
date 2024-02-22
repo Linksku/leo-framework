@@ -14,25 +14,6 @@ if (!process.env.SERVER || !process.env.NODE_ENV) {
 
 const ENV_KEYS = [
   'SERVER',
-  'DOMAIN_NAME',
-  'PORT',
-  'BASE_PATH',
-  'TZ',
-  'PG_BT_DB',
-  'MZ_DB',
-  'PG_RR_DB',
-  'MOBILE_APP_ID',
-  'APP_NAME',
-  'APP_NAME_LOWER',
-  'FB_APP_ID',
-  'GA_ID',
-  'SENTRY_DSN_WEB',
-  'SENTRY_DSN_SERVER',
-  'FIREBASE_ID',
-  'FIREBASE_KEY',
-  'FIREBASE_MESSAGING_SENDER_ID',
-  'FIREBASE_APP_ID',
-  'FIREBASE_WEB_PUSH_KEY',
 ];
 const ENV_OBJ = Object.create(null);
 for (const k of ENV_KEYS) {

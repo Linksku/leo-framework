@@ -3,7 +3,7 @@ import type { Arguments } from 'yargs';
 import redisFlushAll from 'utils/infra/redisFlushAll';
 import { MODEL_NAMESPACES } from 'consts/coreRedisNamespaces';
 
-export default async function flushRedis(args?: Arguments) {
+export default async function flushRedis(args?: Arguments<{ prefix?: string }>) {
   const prefix = args?._[2] ?? args?.prefix;
   if (!prefix || typeof prefix !== 'string') {
     throw new Error('Prefix required (maybe "model" or "all")');

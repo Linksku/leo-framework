@@ -9,9 +9,10 @@ addHealthcheck('mzUpdating', {
     'dbzConnectors',
   ],
   cb: async function mzUpdatingHealthcheck() {
-    await checkMZUpdating(60 * 1000);
+    await checkMZUpdating(2 * 60 * 1000);
   },
   resourceUsage: 'high',
+  usesResource: 'mz',
   stability: 'low',
-  timeout: 60 * 1000,
+  timeout: 2 * 60 * 1000,
 });

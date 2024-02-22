@@ -1,6 +1,6 @@
 import { getEntitiesState } from 'stores/EntitiesStore';
 import useEntitiesByUniqueField from 'hooks/entities/useEntitiesByUniqueField';
-import { API_TIMEOUT } from 'settings';
+import { API_TIMEOUT } from 'consts/server';
 import useShallowMemoArr from 'hooks/useShallowMemoArr';
 import useRelationConfig from 'hooks/entities/useRelationConfig';
 import { useHadRouteBeenActive, useIsRouteVisible } from 'stores/RouteStore';
@@ -34,7 +34,7 @@ function useCheckRelationExists(
   const id = Array.isArray(entityId) ? entityId.join(',') : entityId;
   const key = `${entityType}, ${id}, ${relationName}`;
   const err = new Error(`useRelation(${key}): missing relation`);
-  const checkRelationExists = useDynamicCallback(() => {
+  const checkRelationExists = useLatestCallback(() => {
     if (!shouldCheck || !id) {
       return;
     }
@@ -55,7 +55,7 @@ function useCheckRelationExists(
       return undefined;
     }
 
-    timerRef.current = setTimeout(() => checkRelationExists(), API_TIMEOUT);
+    timerRef.current = window.setTimeout(() => checkRelationExists(), API_TIMEOUT);
 
     return () => {
       clearTimeout(timerRef.current);

@@ -1,5 +1,5 @@
-import { IS_PROFILING_API } from 'serverSettings';
-import { ENABLE_DBZ } from 'consts/mz';
+import { IS_PROFILING_API } from 'consts/infra';
+import { MZ_ENABLE_CONSISTENCY_TOPIC } from 'consts/mz';
 import initCheckFailingHealthchecks from './steps/initCheckFailingHealthchecks';
 import monitorHealthchecks from './steps/monitorHealthchecks';
 import monitorMZPrometheus from './steps/monitorMZPrometheus';
@@ -10,11 +10,13 @@ export default async function monitorInfra() {
     return;
   }
 
+  printDebug('\n\n-- Start monitorInfra --', 'highlight');
   await withErrCtx(initCheckFailingHealthchecks(), 'monitorInfra: initCheckFailingHealthchecks');
 
   await Promise.all([
     withErrCtx(monitorHealthchecks(), 'monitorInfra: monitorHealthchecks'),
     withErrCtx(monitorMZPrometheus(), 'monitorInfra: monitorMZPrometheus'),
-    ENABLE_DBZ && withErrCtx(monitorMZSinkTopics(), 'monitorInfra: monitorMZSinkTopics'),
+    MZ_ENABLE_CONSISTENCY_TOPIC
+      && withErrCtx(monitorMZSinkTopics(), 'monitorInfra: monitorMZSinkTopics'),
   ]);
 }

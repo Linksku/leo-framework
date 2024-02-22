@@ -1,36 +1,37 @@
-import type { UseApiState, ShouldAddCreatedEntity } from 'stores/ApiStore';
-import useDynamicCallback from 'hooks/useDynamicCallback';
-import useUpdate from 'hooks/useUpdate';
-import { useHadRouteBeenActive, useIsRouteVisible } from 'stores/RouteStore';
+import equal from 'fast-deep-equal';
 
-export type ApiOpts<Name extends ApiName> = {
+import type { UseApiState, ShouldAddCreatedEntity, ApiOpts } from 'stores/ApiStore';
+import type ApiError from 'core/ApiError';
+import useLatestCallback from 'hooks/useLatestCallback';
+import useUpdate from 'hooks/useUpdate';
+import useRefInitialState from 'hooks/useRefInitialState';
+import { useHadRouteBeenActive, useIsRouteVisible } from 'stores/RouteStore';
+import { API_TIMEOUT } from 'consts/server';
+
+export type UseApiOpts<Name extends ApiName> = {
   shouldFetch?: boolean,
   returnState?: boolean,
   onFetch?: (results: ApiData<Name>) => void,
-  onError?: (err: Error) => void,
+  onError?: (err: ApiError) => void,
   isPaginated?: boolean,
   initialCursor?: string,
   shouldAddCreatedEntity?: ShouldAddCreatedEntity<EntityType>,
   shouldRemoveDeletedEntity?: boolean,
   paginationEntityType?: EntityType,
   addEntitiesToEnd?: boolean,
-  refetchKey?: string,
-  refetchOnFocus?: boolean,
   refetchOnMount?: boolean,
-  refetchIfStale?: boolean,
-  showToastOnError?: boolean,
-};
+} & Partial<ApiOpts>;
 
 export type ApiReturn<Name extends ApiName> = {
   data: ApiData<Name> | null,
   fetching: boolean,
   isFirstFetch: boolean,
-  error: Error | null,
+  error: ApiError | null,
   addedEntityIds: Stable<EntityId[]>,
   deletedEntityIds: Stable<Set<EntityId>>,
 };
 
-function useApi<Name extends ApiName, Params, Opt extends ApiOpts<Name>>(
+function useApi<Name extends ApiName, Params, Opt extends UseApiOpts<Name>>(
   name: Name,
   params: Params & Stable<NoExtraProps<ApiParams<Name>, Params>>,
   opts: Opt,
@@ -39,7 +40,7 @@ function useApi<Name extends ApiName, Params, Opt extends ApiOpts<Name>>(
 function useApi<Name extends ApiName, Params>(
   name: Name,
   params: Params & Stable<NoExtraProps<ApiParams<Name>, Params>>,
-  opts?: ApiOpts<Name> & { returnState?: false },
+  opts?: UseApiOpts<Name> & { returnState?: false },
 ): null;
 
 // Note: probably can't use suspense with batching
@@ -57,24 +58,25 @@ function useApi<Name extends ApiName>(
     shouldRemoveDeletedEntity,
     paginationEntityType,
     addEntitiesToEnd,
-    refetchKey,
+    cacheBreaker,
     refetchOnFocus,
     refetchOnMount,
     refetchIfStale,
     showToastOnError,
-  }: ApiOpts<Name> = {},
+    batchInterval,
+  }: UseApiOpts<Name> = {},
 ): ApiReturn<Name> | null {
   useDebugValue(name);
 
   let isRouteVisible = true;
   let hadBeenActive = true;
   try {
-    // Doesn't rerender if isRouteVisible updates
     // eslint-disable-next-line react-hooks/rules-of-hooks
     isRouteVisible = useIsRouteVisible();
     // eslint-disable-next-line react-hooks/rules-of-hooks
     hadBeenActive = useHadRouteBeenActive();
   } catch {}
+  // todo: mid/mid don't fetch if inactive route fetches new api
   if (!hadBeenActive || !isRouteVisible) {
     shouldFetch = false;
   }
@@ -84,34 +86,22 @@ function useApi<Name extends ApiName>(
     subscribeApiHandlers,
     clearCache,
   } = useApiStore();
-  const stateRef = useRef<UseApiState<Name>>(
-    useMemo(
-      () => {
-        const apiState = getApiState({
-          name,
-          params,
-          initialCursor,
-          refetchKey,
-          shouldFetch,
-        });
-        if (!hadBeenActive) {
-          return { ...apiState, fetching: true };
-        }
-        return apiState;
-      },
-      [
-        getApiState,
-        name,
-        params,
-        initialCursor,
-        refetchKey,
-        shouldFetch,
-        hadBeenActive,
-      ],
-    ),
-  );
+  const stateRef = useRefInitialState<UseApiState<Name>>(() => {
+    const apiState = getApiState({
+      name,
+      params,
+      initialCursor,
+      cacheBreaker,
+      shouldFetch,
+    });
+    if (!hadBeenActive) {
+      return { ...apiState, fetching: true };
+    }
+    return apiState;
+  });
   const ref = useRef({
-    ranFirstEffect: false,
+    firstEffectTime: null as number | null,
+    firstEffectParams: null as any,
     isFirstTime: true,
   });
 
@@ -125,11 +115,11 @@ function useApi<Name extends ApiName>(
   }
 
   const update = useUpdate();
-  const onFetchWrap = useDynamicCallback((results: ApiData<Name>) => {
+  const onFetchWrap = useLatestCallback((results: ApiData<Name>) => {
     ref.current.isFirstTime = false;
     onFetch?.(results);
   });
-  const onErrorWrap = useDynamicCallback((err: Error) => {
+  const onErrorWrap = useLatestCallback((err: ApiError) => {
     ref.current.isFirstTime = false;
     onError?.(err);
   });
@@ -139,18 +129,22 @@ function useApi<Name extends ApiName>(
       return undefined;
     }
 
-    if (!ref.current.ranFirstEffect) {
-      ref.current.ranFirstEffect = true;
+    if (ref.current.firstEffectTime === null) {
+      ref.current.firstEffectTime = performance.now();
+      ref.current.firstEffectParams = params;
       if (refetchOnMount) {
         clearCache(name, params);
       }
+    } else if (!process.env.PRODUCTION
+      && performance.now() - ref.current.firstEffectTime < API_TIMEOUT
+      && !equal(ref.current.firstEffectParams, params)) {
+      ErrorLogger.warn(new Error(`useApi(${name}): params changed on load`));
     }
 
-    // todo: low/mid fetch before render
     const unsub = subscribeApiHandlers({
       name,
       params,
-      refetchKey,
+      cacheBreaker,
       state: stateRef.current,
       update: returnState ? update : NOOP,
       onFetch: onFetchWrap,
@@ -164,15 +158,17 @@ function useApi<Name extends ApiName>(
       refetchOnFocus,
       refetchIfStale,
       showToastOnError,
+      batchInterval,
     });
     return unsub;
   }, [
+    stateRef,
     clearCache,
     refetchOnMount,
     subscribeApiHandlers,
     name,
     params,
-    refetchKey,
+    cacheBreaker,
     update,
     returnState,
     onFetchWrap,
@@ -187,6 +183,7 @@ function useApi<Name extends ApiName>(
     refetchOnFocus,
     refetchIfStale,
     showToastOnError,
+    batchInterval,
   ]);
 
   if (!returnState) {

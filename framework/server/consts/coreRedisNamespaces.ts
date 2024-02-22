@@ -1,14 +1,8 @@
-export const MODEL_INSTANCE = process.env.PRODUCTION
-  ? 'mInst'
-  : 'modelInstance';
+export const MODEL_INSTANCE = 'mInst';
 
-export const MODEL_IDS = process.env.PRODUCTION
-  ? 'mIds'
-  : 'modelIds';
+export const MODEL_IDS = 'mIds';
 
-export const MODEL_COUNT = process.env.PRODUCTION
-  ? 'mCount'
-  : 'modelCount';
+export const MODEL_COUNT = 'mCount';
 
 export const LAST_WRITE_TIME = 'lastWriteTime';
 

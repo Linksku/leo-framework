@@ -5,7 +5,7 @@ import webpackPreprocessor from '@cypress/webpack-preprocessor';
 import Chance from 'chance';
 
 import webpackConfig from './webpack.common.js';
-import { HOME_URL } from './framework/shared/settings.js';
+import { HOME_URL } from './framework/shared/consts/server.js';
 
 const chance = new Chance();
 

@@ -40,7 +40,9 @@ export default async function verifyMZSinkConnectors() {
     for (const c of failedTasks) {
       const trace = get(c, 'status.tasks')?.find(t => t.state === 'FAILED')
         ?.trace.split('\n');
-      const reason = trace?.filter(line => line.startsWith('Caused by:')) ?? trace?.[0];
+      const reason = trace?.length
+        ? (trace.filter(line => line.startsWith('Caused by:')) ?? trace[0]).join('\n')
+        : 'none';
       traces.push(`${c.name}: ${reason}`);
     }
     throw getErr('verifyMZSinkConnectors: failed tasks', {

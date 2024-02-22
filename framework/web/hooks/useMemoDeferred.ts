@@ -13,5 +13,5 @@ export default function useMemoDeferred<T>(
   }, [cb]);
 
   const prevCb = usePrevious(cb);
-  return cb === prevCb ? value : defaultValue;
+  return cb === prevCb ? (value as Stable<T>) : defaultValue;
 }

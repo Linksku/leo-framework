@@ -1,6 +1,8 @@
 import type { ExecOptions } from 'child_process';
 import childProcess from 'child_process';
 
+import stringify from 'utils/stringify';
+
 export default function exec(
   cmd: string,
   _opts?: {
@@ -23,11 +25,15 @@ export default function exec(
 
     if (stream) {
       child.stdout?.on('data', data => {
-        process.stdout.write(data.toString());
+        process.stdout.write(
+          data instanceof Buffer ? data.toString() : stringify(data),
+        );
       });
 
       child.stderr?.on('data', data => {
-        process.stdout.write(data.toString());
+        process.stdout.write(
+          data instanceof Buffer ? data.toString() : stringify(data),
+        );
       });
     }
   });

@@ -7,8 +7,9 @@ export const DEFAULT_DURATION = 300;
 export const DEFAULT_EASING = 'easeInOutQuad';
 
 type AnimatedValueOpts = {
-  minVal?: number,
-  maxVal?: number,
+  minVal?: number | null,
+  maxVal?: number | null,
+  initialDuration?: number,
   debugName?: string,
 };
 
@@ -25,30 +26,29 @@ type ValToStyle = Partial<{
 type Style = Partial<React.CSSProperties>;
 
 export class AnimatedValue {
-  minVal: number;
-  maxVal: number;
+  minVal: number | null;
+  maxVal: number | null;
   startVal: number;
   finalVal: number;
   debugName: string;
+  curKeyframe: Keyframe;
   lastSetValTime = Number.MIN_SAFE_INTEGER;
-  lastDuration = 0;
   easing?: keyof typeof easings;
   listeners: Set<(prevKeyframe: Keyframe, newKeyframe: Keyframe) => void>;
-  curKeyframe: Keyframe;
   timer: number | null = null;
 
   constructor(initialVal: number, opts?: AnimatedValueOpts) {
-    this.minVal = opts?.minVal ?? 0;
-    this.maxVal = opts?.maxVal ?? 100;
+    this.minVal = opts?.minVal === null ? null : (opts?.minVal ?? 0);
+    this.maxVal = opts?.maxVal === null ? null : (opts?.maxVal ?? 100);
     this.startVal = initialVal;
     this.finalVal = initialVal;
     this.debugName = opts?.debugName ?? '';
-    this.listeners = new Set();
     this.curKeyframe = {
       val: initialVal,
-      duration: 0,
+      duration: opts?.initialDuration ?? DEFAULT_DURATION,
       isFinal: true,
     } as Keyframe;
+    this.listeners = new Set();
   }
 
   getCurPercent() {
@@ -56,10 +56,10 @@ export class AnimatedValue {
       return 0;
     }
     const elapsed = performance.now() - this.lastSetValTime;
-    if (elapsed >= this.lastDuration) {
+    if (elapsed >= this.curKeyframe.duration) {
       return 1;
     }
-    return elapsed / this.lastDuration;
+    return elapsed / this.curKeyframe.duration;
   }
 
   getCurVal() {
@@ -72,11 +72,22 @@ export class AnimatedValue {
       return false;
     }
     const elapsed = performance.now() - this.lastSetValTime;
-    return elapsed < this.lastDuration;
+    return elapsed < this.curKeyframe.duration;
   }
 
   // todo: low/mid animation easing with keyframes
-  getNextKeyframe(keyframeVals: number[], lastKeyframeVal: number | null): Keyframe {
+  getNextKeyframe(
+    keyframeVals: number[],
+    // lastKeyframeVal is for stepped animations, it's different from Keyframe.val
+    lastKeyframeVal: number | null,
+  ): Keyframe {
+    if (this.curKeyframe.isFinal && !this.isAnimating()) {
+      // useAnimation renders each keyframe at most once,
+      //   but can render the same value multiple times.
+      //   E.g. once to get to 100%, then once to update styles at 100%.
+      return { ...this.curKeyframe };
+    }
+
     const increasing = this.finalVal >= this.startVal;
     const curVal = lastKeyframeVal != null
       ? (increasing
@@ -93,13 +104,14 @@ export class AnimatedValue {
       }
     }
 
-    const timeToNextKeyframe = this.lastDuration <= 0 || this.finalVal === this.startVal
+    const timeToNextKeyframe = this.curKeyframe.duration <= 0
+      || this.finalVal === this.startVal
       ? 0
-      : Math.max(
+      : Math.round(Math.max(
         0,
-        (Math.abs((nextKeyframeVal - curVal) / (this.finalVal - this.startVal))
-          * this.lastDuration),
-      );
+        Math.abs((nextKeyframeVal - curVal) / (this.finalVal - this.startVal))
+        * this.curKeyframe.duration,
+      ));
     return {
       val: nextKeyframeVal,
       duration: timeToNextKeyframe,
@@ -107,35 +119,27 @@ export class AnimatedValue {
     };
   }
 
-  addListener(fn: (prevKeyframe: Keyframe, newKeyframe: Keyframe) => void) {
-    this.listeners.add(fn);
-
-    return () => {
-      this.listeners.delete(fn);
-    };
-  }
-
   renderKeyframe() {
+    const prevKeyframe = this.curKeyframe;
     const newKeyframe = this.getNextKeyframe(
-      [this.minVal, this.maxVal],
+      TS.filterNulls([this.minVal, this.maxVal]),
       null,
     );
     for (const fn of this.listeners) {
       fn(this.curKeyframe, newKeyframe);
     }
+    this.curKeyframe = newKeyframe;
 
     // Render last keyframe twice for stylesForFinalVal
-    if (!this.curKeyframe.isFinal) {
+    if (!prevKeyframe.isFinal) {
       if (this.timer) {
         clearTimeout(this.timer);
       }
-      this.timer = setTimeout(() => {
+      this.timer = window.setTimeout(() => {
         this.renderKeyframe();
         this.timer = null;
       }, newKeyframe.duration);
     }
-
-    this.curKeyframe = newKeyframe;
   }
 
   setVal(finalVal: number, duration?: number, easing?: keyof typeof easings) {
@@ -145,23 +149,42 @@ export class AnimatedValue {
       }
       duration = 0;
     }
-    if (finalVal === this.finalVal && (duration == null || duration === this.lastDuration)) {
+    if (this.minVal && finalVal < this.minVal) {
+      if (!process.env.PRODUCTION) {
+        throw new Error(`AnimatedVal.setVal(${this.debugName}): finalVal < minVal: ${finalVal}`);
+      }
+      finalVal = this.minVal;
+    }
+    if (this.maxVal && finalVal > this.maxVal) {
+      if (!process.env.PRODUCTION) {
+        throw new Error(`AnimatedVal.setVal(${this.debugName}): finalVal > maxVal: ${finalVal}`);
+      }
+      finalVal = this.maxVal;
+    }
+    const curVal = this.getCurVal();
+    if (finalVal === this.finalVal && finalVal === curVal) {
       return;
     }
 
-    const curVal = this.getCurVal();
     this.startVal = curVal;
     this.finalVal = finalVal;
-    this.lastSetValTime = performance.now();
-    this.lastDuration = duration ?? DEFAULT_DURATION;
-    this.easing = easing;
     this.curKeyframe = {
       val: curVal,
-      duration: 0,
-      isFinal: false,
+      duration: duration ?? DEFAULT_DURATION,
+      isFinal: curVal === finalVal && !this.timer,
     };
+    this.lastSetValTime = performance.now();
+    this.easing = easing;
 
     this.renderKeyframe();
+  }
+
+  addListener(fn: (prevKeyframe: Keyframe, newKeyframe: Keyframe) => void) {
+    this.listeners.add(fn);
+
+    return () => {
+      this.listeners.delete(fn);
+    };
   }
 }
 
@@ -173,7 +196,11 @@ function getStyles(
   keyframe: Keyframe,
 ): {
   styles: Style,
-  transitionStyles: Style,
+  transitionStyles: {
+    transitionProperty: string | undefined,
+    transitionDuration: string | undefined,
+    transitionTimingFunction: string | undefined,
+  },
 } {
   const easing = animatedVal.easing ?? defaultEasing;
 
@@ -186,12 +213,15 @@ function getStyles(
             / Math.abs(animatedVal.finalVal - animatedVal.startVal),
         ) * (animatedVal.finalVal - animatedVal.startVal))
       : keyframe.val;
-    // "as any" for perf
-    styles[pair[0]] = (pair[1] as any)?.(easedVal, keyframe.val);
+    // "as AnyFunction" for perf
+    styles[pair[0]] = (pair[1] as AnyFunction)?.(
+      easedVal,
+      keyframe.val,
+    );
   }
 
   if (styles.transform) {
-    if (!styles.transform.includes('translateZ(')) {
+    if (typeof styles.transform === 'string' && !styles.transform.includes('translateZ(')) {
       styles.transform += ' translateZ(0)';
     }
   } else {
@@ -217,7 +247,23 @@ function getStyles(
   };
 }
 
-export function useAnimatedValue(initialVal: number, opts?: AnimatedValueOpts) {
+function paintStyles(elem: HTMLElement, styles: Style) {
+  for (const pair of TS.objEntries(styles, true)) {
+    if (pair[1] == null) {
+      elem.style.removeProperty(styleDeclarationToCss(pair[0]));
+    } else {
+      elem.style.setProperty(
+        styleDeclarationToCss(pair[0]),
+        pair[1].toString(),
+      );
+    }
+  }
+}
+
+export function useAnimatedValue(
+  initialVal: number,
+  opts?: AnimatedValueOpts,
+) {
   return useConst(() => new AnimatedValue(initialVal, opts));
 }
 
@@ -234,8 +280,10 @@ export function useAnimation<T extends HTMLElement>(
     keyframeVals: [] as number[],
     skipTransitionProps: null as string[] | null,
     hasCommited: false,
+    hadFirstPaint: false,
     hadFirstTransition: false,
     lastRenderedKeyframe: animatedVal.curKeyframe,
+    paintRaf: null as number | null,
   });
 
   const animationStyle = useCallback((
@@ -276,6 +324,7 @@ export function useAnimation<T extends HTMLElement>(
       ref.current.skipTransitionProps,
       ref.current.lastRenderedKeyframe,
     );
+
     const additionalStyles = ref.current.stylesForFinalVal !== null
       && !animatedVal.isAnimating()
       && ref.current.stylesForFinalVal[animatedVal.getCurVal()]
@@ -298,6 +347,7 @@ export function useAnimation<T extends HTMLElement>(
       hasCommited,
       stylesForFinalVal,
       lastRenderedKeyframe,
+      paintRaf,
     } = ref.current;
     const animationElem = animationRef.current;
 
@@ -315,49 +365,59 @@ export function useAnimation<T extends HTMLElement>(
       }
       return;
     }
+
+    if (!process.env.PRODUCTION && !hadFirstTransition && !valToStyle.transform) {
+      const curTransform = animationElem.style.transform;
+      animationElem.style.removeProperty('transform');
+      const cssTransform = getComputedStyle(animationElem).getPropertyValue('transform');
+      if (cssTransform && cssTransform !== 'none') {
+        ErrorLogger.warn(new Error(`useAnimation(${debugName}): transform will be overridden`));
+      }
+      animationElem.style.transform = curTransform;
+    }
+
     if (newKeyframe.val === prevKeyframe.val) {
+      // After animation completes, runs handleVal again with the same val to set stylesForFinalVal
       const additionalStyles = stylesForFinalVal?.[newKeyframe.val];
-      if (additionalStyles
-        && !animatedVal.isAnimating()) {
-        for (const pair of TS.objEntries(additionalStyles)) {
-          animationElem.style.setProperty(
-            styleDeclarationToCss(pair[0]),
-            pair[1].toString(),
-          );
+      // Note: it's possible that newKeyframe.isFinal = true and animatedVal.isAnimating() = true
+      if (additionalStyles && newKeyframe.isFinal) {
+        if (paintRaf) {
+          cancelAnimationFrame(paintRaf);
+          ref.current.paintRaf = null;
         }
+        paintStyles(animationElem, additionalStyles);
       }
-      ref.current.lastRenderedKeyframe = newKeyframe;
-      return;
-    }
 
-    if (!hadFirstTransition) {
-      if (!process.env.PRODUCTION && !valToStyle.transform) {
-        const curTransform = animationElem.style.transform;
-        animationElem.style.removeProperty('transform');
-        const cssTransform = getComputedStyle(animationElem).getPropertyValue('transform');
-        if (cssTransform && cssTransform !== 'none') {
-          ErrorLogger.warn(new Error(`useAnimation(${debugName}): transform will be overridden`));
+      if (prevKeyframe === lastRenderedKeyframe
+        && newKeyframe.duration === prevKeyframe.duration) {
+        ref.current.lastRenderedKeyframe = newKeyframe;
+        return;
+      }
+
+      // This can prob be ignored and removed
+      if (!process.env.PRODUCTION && prevKeyframe.duration !== lastRenderedKeyframe.duration) {
+        ErrorLogger.warn(
+          new Error(`useAnimation(${debugName}): prevKeyframe !== lastRenderedKeyframe`),
+          { prevKeyframe, lastRenderedKeyframe },
+        );
+      }
+    } else {
+      const removeStyles = stylesForFinalVal !== null
+        && stylesForFinalVal[prevKeyframe.val]
+        && newKeyframe.val !== prevKeyframe.val
+        ? stylesForFinalVal[prevKeyframe.val]
+        : null;
+      if (removeStyles) {
+        for (const pair of TS.objEntries(removeStyles)) {
+          animationElem.style.removeProperty(styleDeclarationToCss(pair[0]));
         }
-        animationElem.style.transform = curTransform;
-      }
 
-      ref.current.hadFirstTransition = true;
-    }
-
-    const removeStyles = stylesForFinalVal !== null
-      && stylesForFinalVal[prevKeyframe.val]
-      && newKeyframe.val !== prevKeyframe.val
-      ? stylesForFinalVal[prevKeyframe.val]
-      : null;
-    if (removeStyles) {
-      for (const pair of TS.objEntries(removeStyles)) {
-        animationElem.style.removeProperty(styleDeclarationToCss(pair[0]));
-      }
-
-      if (removeStyles.display) {
-        // Force repaint.
-        // eslint-disable-next-line no-unused-expressions, @typescript-eslint/no-unused-expressions
-        animationElem.scrollTop;
+        if (removeStyles.display) {
+          // Force repaint.
+          // eslint-disable-next-line no-unused-expressions, @typescript-eslint/no-unused-expressions
+          animationElem.scrollTop;
+          ref.current.hadFirstPaint = true;
+        }
       }
     }
 
@@ -368,43 +428,61 @@ export function useAnimation<T extends HTMLElement>(
       skipTransitionProps,
       newKeyframe,
     );
-    let didUpdateTransitions = false;
+    // eslint-disable-next-line unicorn/consistent-destructuring
+    let needForcePaint = !ref.current.hadFirstPaint;
     for (const pair of TS.objEntries(transitionStyles)) {
       const key = styleDeclarationToCss(pair[0]);
       const val = pair[1].toString();
-      if (didUpdateTransitions || val !== animationElem.style.getPropertyValue(key)) {
+      if (needForcePaint || val !== animationElem.style.getPropertyValue(key)) {
         animationElem.style.setProperty(key, val);
-        didUpdateTransitions = true;
+        needForcePaint = true;
       }
     }
-    if (didUpdateTransitions) {
+    if (paintRaf) {
+      cancelAnimationFrame(paintRaf);
+    }
+    if (needForcePaint) {
       // Force repaint.
       // eslint-disable-next-line no-unused-expressions, @typescript-eslint/no-unused-expressions
       animationElem.scrollTop;
-    }
-    for (const pair of TS.objEntries(styles, true)) {
-      if (pair[1] == null) {
-        animationElem.style.removeProperty(styleDeclarationToCss(pair[0]));
-      } else {
-        animationElem.style.setProperty(
-          styleDeclarationToCss(pair[0]),
-          pair[1].toString(),
-        );
-      }
+
+      paintStyles(animationElem, styles);
+    } else {
+      // Chrome seems to drop frames automatically, but FF needs RAF
+      ref.current.paintRaf = requestAnimationFrame(() => {
+        paintStyles(animationElem, styles);
+      });
     }
 
     ref.current.lastRenderedKeyframe = newKeyframe;
+    ref.current.hadFirstPaint = true;
+    ref.current.hadFirstTransition = true;
   }, [animatedVal, debugName, getIsMounted]);
 
   useLayoutEffect(() => {
     ref.current.hasCommited = true;
 
-    if (ref.current.lastRenderedKeyframe.val !== animatedVal.curKeyframe.val) {
+    if (ref.current.lastRenderedKeyframe !== animatedVal.curKeyframe) {
+      // For when handleVal bailed because !hasCommited
       handleVal(ref.current.lastRenderedKeyframe, animatedVal.curKeyframe);
     }
   });
 
   useEffect(() => {
+    // After first paint: https://github.com/facebook/react/issues/20863#issuecomment-940156386
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        ref.current.hadFirstPaint = true;
+      }, 0);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (ref.current.lastRenderedKeyframe !== animatedVal.curKeyframe) {
+      // For when setVal was called before addListener
+      handleVal(ref.current.lastRenderedKeyframe, animatedVal.curKeyframe);
+    }
+
     const unsub = animatedVal.addListener(handleVal);
     return unsub;
   }, [animatedVal, handleVal]);

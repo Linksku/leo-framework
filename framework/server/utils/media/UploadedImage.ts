@@ -64,11 +64,15 @@ export default class UploadedImage {
 
   async getSharpImg() {
     if (!this.sharp) {
-      const stream = await this.getImgStream();
-      this.sharp = stream.pipe(sharp({
-        animated: true,
-        ...this.sharpOptions,
-      }));
+      try {
+        const stream = await this.getImgStream();
+        this.sharp = stream.pipe(sharp({
+          animated: true,
+          ...this.sharpOptions,
+        }));
+      } catch (err) {
+        throw getErr(err, { ctx: 'UploadedImage.getSharpImg' });
+      }
     }
     return TS.defined(this.sharp);
   }
@@ -76,7 +80,11 @@ export default class UploadedImage {
   async getMetadata() {
     if (!this.metadata) {
       const img = await this.getSharpImg();
-      this.metadata = await img.metadata();
+      try {
+        this.metadata = await img.metadata();
+      } catch (err) {
+        throw getErr(err, { ctx: 'UploadedImage.getMetadata' });
+      }
     }
     return this.newHeight && this.newWidth
       ? {
@@ -184,10 +192,12 @@ export default class UploadedImage {
 
   async fit({
     maxDim,
+    minRatio = 1,
     maxRatio = 1,
     fit = 'cover',
   }: {
     maxDim: number,
+    minRatio?: number,
     maxRatio?: number,
     fit?: keyof FitEnum,
   }) {
@@ -201,6 +211,7 @@ export default class UploadedImage {
       height,
       width,
       maxDim,
+      minRatio,
       maxRatio,
     });
 
@@ -234,25 +245,16 @@ export default class UploadedImage {
       .withMetadata()
       .flatten({
         background: { r: 255, g: 255, b: 255 },
+      })
+      .toFormat('webp')
+      .webp({
+        quality,
+        effort: isAnimated ? 0 : 4,
       });
-    img = isAnimated
-      ? img
-        // webp doesn't have enough support, e.g. AWS Rekognition
-        .toFormat('webp')
-        .webp({
-          quality,
-          effort: isAnimated ? 0 : 4,
-        })
-      : img
-        .toFormat('jpeg')
-        .jpeg({
-          quality,
-          progressive: true,
-        });
     return {
       buffer: await img.toBuffer(),
-      format: isAnimated ? 'webp' : 'jpeg',
-      extension: isAnimated ? 'webp' : 'jpg',
+      format: 'webp',
+      extension: 'webp',
     };
   }
 }

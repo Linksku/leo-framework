@@ -1,7 +1,15 @@
 import promiseTimeout from 'utils/promiseTimeout';
 import formatErr from 'utils/formatErr';
+import stringify from 'utils/stringify';
 
-export const FORCE_STOP_RETRY = Symbol('FORCE_STOP_RETRY');
+const FORCE_STOP_SYMBOL = Symbol('FORCE_STOP');
+
+export function forceStopRetry(err: unknown) {
+  return {
+    FORCE_STOP_SYMBOL,
+    err,
+  };
+}
 
 export default async function retry(
   fn: (() => void) | (() => Promise<void>),
@@ -57,18 +65,19 @@ export default async function retry(
       }
       return;
     } catch (err) {
-      if (err === FORCE_STOP_RETRY) {
-        if (lastErr instanceof Error) {
-          throw getErr(lastErr, { ctx });
+      if (TS.isObj(err) && err.FORCE_STOP_SYMBOL === FORCE_STOP_SYMBOL) {
+        if (err.err instanceof Error) {
+          throw getErr(err.err, { ctx, lastErr });
         }
-        if (lastErr != null) {
-          throw lastErr;
-        }
-        throw new Error('retry: force stopped');
+        throw getErr('retry: force stopped', {
+          ctx,
+          err: err.err,
+          lastErr,
+        });
       }
 
       if (!process.env.PRODUCTION && !(err instanceof Error)) {
-        printDebug(`retry(${ctx}): err isn't Error: ${err}`, 'warn');
+        printDebug(`retry(${ctx}): err isn't Error: ${stringify(err)}`, 'warn');
       }
 
       lastErr = err;

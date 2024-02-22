@@ -7,4 +7,4 @@ export default useForm as <
   // eslint-disable-next-line @typescript-eslint/ban-types
   TContext extends object = object>(
   props: UseFormProps<TFieldValues, TContext>
-) => StableObjShallow<UseFormReturn<TFieldValues>>;
+) => StableShallow<UseFormReturn<TFieldValues>>;

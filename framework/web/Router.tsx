@@ -5,9 +5,11 @@ import StackWrapOuter from 'components/frame/stack/StackWrapOuter';
 import StackWrapInner from 'components/frame/stack/StackWrapInner';
 import HomeHeader from 'components/frame/home/HomeHeader';
 import HomeFooter from 'components/frame/home/HomeFooter';
+import HomeSidebar from 'components/frame/home/HomeSidebar';
 import SlideUpsDeferred from 'components/frame/SlideUpsDeferred';
 import AlertsDeferred from 'components/frame/AlertsDeferred';
 import ToastsDeferred from 'components/frame/ToastsDeferred';
+import EventHandlersDeferred from 'core/eventHandlers/EventHandlersDeferred';
 import pathToRoute, { MatchedRoute, allRouteConfigs } from 'utils/pathToRoute';
 import LoadingRoute from 'routes/LoadingRoute';
 import LoadingHomeInnerRoute from 'routes/LoadingHomeInnerRoute';
@@ -26,7 +28,7 @@ import useUpdatedState from 'hooks/useUpdatedState';
 import '@capacitor/splash-screen/dist/esm/web.js';
 import 'components/frame/stack/StackWrapInner';
 
-import styles from './RouterStyles.scss';
+import styles from './Router.scss';
 
 const FROZEN_PATHS_PER_HOME_TAB = 3;
 const seenComponents = new Set<React.ComponentType>();
@@ -38,7 +40,6 @@ const Route = React.memo(function _Route({
   isFrozen = false,
   isCurStack,
   isHome,
-  Component,
 }: {
   routeConfig: RouteConfig,
   matches: Stable<string[]>,
@@ -46,8 +47,8 @@ const Route = React.memo(function _Route({
   isFrozen?: boolean,
   isCurStack: boolean,
   isHome: boolean,
-  Component: React.ComponentType,
 }) {
+  const Component = routeConfig.getComponent();
   // This allows route transitions to begin before the route content renders
   // If component was never loaded, render immediately to run import()
   const [skipRender, setSkipRender] = useState(
@@ -134,7 +135,7 @@ const HomeTabs = React.memo(function _HomeTabs() {
 
   const homeTabsLastStates = useUpdatedState(
     () => {
-      const lastStates: Map<string, {
+      const lastStates = new Map<string, {
         routeConfig: RouteConfig,
         lastPaths: {
           key: string,
@@ -142,7 +143,7 @@ const HomeTabs = React.memo(function _HomeTabs() {
           matches: Stable<string[]>,
         }[],
         lastPathsAccessOrder: string[],
-      }> = markStable(new Map());
+      }>();
       for (const routeConfig of allRouteConfigs) {
         if (routeConfig.homeTab) {
           lastStates.set(routeConfig.homeTab, {
@@ -156,7 +157,7 @@ const HomeTabs = React.memo(function _HomeTabs() {
     },
     s => {
       const lastRoute = pathToRoute(homeState?.path);
-      if (!homeState || !lastRoute?.routeConfig?.homeTab) {
+      if (!homeState || !lastRoute?.routeConfig.homeTab) {
         return s;
       }
 
@@ -194,7 +195,6 @@ const HomeTabs = React.memo(function _HomeTabs() {
       if (!lastPaths.length) {
         return null;
       }
-      const HomeComponent = routeConfig.Component;
       return lastPaths.map(p => (
         <Route
           key={p.key}
@@ -206,16 +206,15 @@ const HomeTabs = React.memo(function _HomeTabs() {
             ? p.state.key !== curStack?.key
             : p.state.key !== backStack?.key}
           isHome
-          Component={HomeComponent}
         />
       ));
     });
 });
 
 const Stacks = React.memo(function _Stacks({ curRoute, backRoute, forwardRoute }: {
-  curRoute: MatchedRoute,
-  backRoute: MatchedRoute,
-  forwardRoute: MatchedRoute,
+  curRoute: MatchedRoute | null,
+  backRoute: MatchedRoute | null,
+  forwardRoute: MatchedRoute | null,
 }) {
   const {
     curStack,
@@ -227,25 +226,23 @@ const Stacks = React.memo(function _Stacks({ curRoute, backRoute, forwardRoute }
   const {
     routeConfig: curRouteConfig,
     matches: curMatches,
-  } = curRoute;
+  } = curRoute ?? {};
   const {
     routeConfig: backRouteConfig,
     matches: backMatches,
-  } = backRoute;
+  } = backRoute ?? {};
   const {
     routeConfig: forwardRouteConfig,
     matches: forwardMatches,
-  } = forwardRoute;
-  const CurComponent = curRouteConfig?.Component;
-  const ForwardComponent = forwardRouteConfig?.Component;
-  const BackComponent = backRouteConfig?.Component;
-  const isCurAuth = !curRouteConfig?.auth || currentUserId;
-  const isForwardAuth = !forwardRouteConfig?.auth || currentUserId;
-  const isBackAuth = !backRouteConfig?.auth || currentUserId;
+  } = forwardRoute ?? {};
+  const isCurAuth = !curRouteConfig?.auth || !!currentUserId;
+  const isForwardAuth = !forwardRouteConfig?.auth || !!currentUserId;
+  const isBackAuth = !backRouteConfig?.auth || !!currentUserId;
 
   return (
     <>
-      {backStack && !backRouteConfig?.homeTab && BackComponent && isBackAuth && (
+      {backStack && backRouteConfig && !backRouteConfig.homeTab
+        && backMatches && isBackAuth && (
         <Route
           key={backStack.key}
           routeConfig={backRouteConfig}
@@ -253,10 +250,10 @@ const Stacks = React.memo(function _Stacks({ curRoute, backRoute, forwardRoute }
           historyState={backStack}
           isCurStack={false}
           isHome={false}
-          Component={BackComponent}
         />
       )}
-      {curStack && !curRouteConfig?.homeTab && CurComponent && isCurAuth && (
+      {curStack && curRouteConfig && !curRouteConfig.homeTab
+        && curMatches && isCurAuth && (
         <Route
           key={curStack.key}
           routeConfig={curRouteConfig}
@@ -264,10 +261,10 @@ const Stacks = React.memo(function _Stacks({ curRoute, backRoute, forwardRoute }
           historyState={curStack}
           isCurStack
           isHome={false}
-          Component={CurComponent}
         />
       )}
-      {forwardStack && !forwardRouteConfig?.homeTab && ForwardComponent && isForwardAuth && (
+      {forwardStack && forwardRouteConfig && !forwardRouteConfig.homeTab
+        && forwardMatches && isForwardAuth && (
         <Route
           key={forwardStack.key}
           routeConfig={forwardRouteConfig}
@@ -275,13 +272,13 @@ const Stacks = React.memo(function _Stacks({ curRoute, backRoute, forwardRoute }
           historyState={forwardStack}
           isCurStack={false}
           isHome={false}
-          Component={ForwardComponent}
         />
       )}
     </>
   );
 });
 
+// todo: low/mid navigation fails if debugger triggers
 export default function Router() {
   const isHome = useIsHome();
   const {
@@ -296,8 +293,8 @@ export default function Router() {
   const curRoute = pathToRoute(curStack.path);
   const backRoute = pathToRoute(backStack?.path);
   const forwardRoute = pathToRoute(forwardStack?.path);
-  const isCurAuth = !curRoute.routeConfig?.auth || currentUserId;
-  const isForwardAuth = !forwardRoute.routeConfig?.auth || currentUserId;
+  const isCurAuth = !curRoute?.routeConfig.auth || authState === 'in';
+  const isForwardAuth = !forwardRoute?.routeConfig.auth || authState === 'in';
 
   useTimeComponentPerf(`Render Router:${curStack.path}`);
 
@@ -322,7 +319,7 @@ export default function Router() {
   );
 
   if ((authState !== 'in' || isReloadingAfterAuth)
-    && (curRoute.routeConfig?.auth || forwardRoute.routeConfig?.auth)) {
+    && (curRoute?.routeConfig.auth || forwardRoute?.routeConfig.auth)) {
     return (
       <LoadingRoute />
     );
@@ -333,19 +330,26 @@ export default function Router() {
     <>
       <IosFocusHack />
 
-      <HomeTabs />
-      {!skipRenderHome && <HomeHeader />}
-      {!skipRenderHome && <HomeFooter />}
-
+      {/* Stacks first for SEO */}
       <Stacks
         curRoute={curRoute}
         backRoute={backRoute}
         forwardRoute={forwardRoute}
       />
 
+      {!skipRenderHome && (
+        <>
+          <HomeTabs />
+          <HomeHeader />
+          <HomeFooter />
+          <HomeSidebar />
+        </>
+      )}
+
       <SlideUpsDeferred />
       <AlertsDeferred />
       <ToastsDeferred />
+      <EventHandlersDeferred />
     </>
   );
 }

@@ -1,11 +1,11 @@
 import useUpdate from 'hooks/useUpdate';
+import { EntityEventsCounts } from 'stores/EntitiesStore';
 import type { EntityEvents } from './useHandleEntityEvents';
 import useHandleEntityEvents from './useHandleEntityEvents';
 
 export default function useEntityEventsCount<T extends EntityType>(
   events: EntityEvents<T>,
 ): number {
-  const { eventsCountRef } = useEntitiesStore();
   const update = useUpdate();
 
   useHandleEntityEvents(
@@ -14,7 +14,7 @@ export default function useEntityEventsCount<T extends EntityType>(
   );
 
   return events.reduce((sum, event) => {
-    const eventsCounts = eventsCountRef.current[event.actionType]?.get(event.entityType);
+    const eventsCounts = EntityEventsCounts[event.actionType]?.get(event.entityType);
     if (event.id) {
       return sum + (eventsCounts?.get(event.id) ?? 0);
     }

@@ -1,5 +1,6 @@
-FROM node:18.12.0-slim
-COPY --from=docker:24.0.1 /usr/local/bin/docker /usr/local/bin/
+FROM node:20.9.0-slim
+COPY --from=docker:24.0.6 /usr/local/bin/docker /usr/local/bin/
+COPY --from=mwader/static-ffmpeg:6.1 /ffmpeg /usr/local/bin/
 
 ENV IS_DOCKER=1
 EXPOSE 80
@@ -8,22 +9,26 @@ WORKDIR /usr/src
 
 RUN apt-get -y update \
   && apt-get -y install curl \
-  && apt-get -y install ffmpeg \
-  && apt-get clean \
-  && mkdir -p /usr/local/lib/docker/cli-plugins \
-  && curl -SL https://github.com/docker/compose/releases/download/v2.11.2/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose \
+  && apt-get clean
+RUN mkdir -p /usr/local/lib/docker/cli-plugins \
+  && curl -SL https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose \
   && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-COPY package.docker.json package.json
-COPY patches patches
-COPY docker-compose.js docker-compose.js
-COPY framework/server/helpers/initDotenv.cjs framework/server/helpers/initDotenv.cjs
+COPY .yarnrc.yml \
+  yarn.lock \
+  docker-compose.js \
+  ./
 COPY env env
-COPY .env .env
+COPY package.docker.json package.json
+COPY framework/server/core/initEnv.cjs framework/server/core/initEnv.cjs
+COPY .yarn/patches .yarn/patches
 COPY build/production build/production
+RUN touch /var/run/docker.sock
 
 # Sync with webpack.server.js
-RUN yarn --production \
+RUN corepack enable \
+  && yarn set version stable \
+  && yarn workspaces focus --production \
   && yarn cache clean
 
 USER 1000

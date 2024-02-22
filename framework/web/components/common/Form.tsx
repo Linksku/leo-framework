@@ -4,16 +4,17 @@ type Props = {
   disableEnter?: boolean,
 } & React.FormHTMLAttributes<HTMLFormElement>;
 
-export default function Form({
+function Form({
   onSubmit,
   disableEnter,
   children,
   ...props
-}: React.PropsWithChildren<Props>) {
+}: React.PropsWithChildren<Props>, ref?: React.ForwardedRef<HTMLFormElement>) {
   const catchAsync = useCatchAsync();
   return (
     <form
       {...props}
+      ref={ref}
       onSubmit={e => {
         const ret = onSubmit(e);
         if (ret instanceof Promise) {
@@ -32,3 +33,5 @@ export default function Form({
     </form>
   );
 }
+
+export default React.forwardRef(Form);

@@ -7,6 +7,7 @@ function _shouldIgnoreError(entry: LogEntry) {
     && entry.log.error?.includes('This server does not host this topic-partition');
 }
 
+// todo: low/mid try Redpanda
 export default new Kafka({
   brokers: [`${KAFKA_BROKER_HOST}:${KAFKA_BROKER_PORT}`],
   requestTimeout: 10 * 1000,

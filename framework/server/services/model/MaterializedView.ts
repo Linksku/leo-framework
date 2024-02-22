@@ -15,8 +15,6 @@ class MaterializedView extends Model {
     return this.replicaTable === undefined ? this.tableName : this.replicaTable;
   }
 
-  static mzIndexes: (string | string[])[] = [];
-
   static MVQueryDeps: ModelClass[] = [];
 
   static getMVQuery: () => QueryBuilder<Model>;

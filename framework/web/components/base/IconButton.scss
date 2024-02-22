@@ -1,0 +1,27 @@
+.btn {
+  background-color: $primaryColor;
+  border-radius: 50% !important;
+  padding: 1.2rem;
+  box-shadow: 0 0 3px rgb(0 0 0 / 30%);
+
+  &:active {
+    background-color: $activePrimaryColorBg;
+  }
+
+  svg {
+    display: block;
+    height: 2rem;
+    width: 2rem;
+    fill: #fff;
+  }
+}
+
+.small {
+  padding: 0.7rem !important;
+  box-shadow: 0 0 2px rgb(0 0 0 / 30%);
+
+  svg {
+    height: 1.6rem;
+    width: 1.6rem;
+  }
+}

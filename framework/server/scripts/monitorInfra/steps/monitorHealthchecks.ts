@@ -4,7 +4,8 @@ import type { HealthcheckName } from 'services/healthcheck/HealthcheckManager';
 import retry from 'utils/retry';
 import promiseTimeout from 'utils/promiseTimeout';
 import { getFailingServices, fixFailingInfra } from 'scripts/fixInfra';
-import recreateMZ from 'scripts/recreateMZ';
+import recreateMVInfra from 'scripts/recreateMVInfra';
+import checkPendingMigrations from 'scripts/mv/steps/checkPendingMigrations';
 
 const GET_FAILING_TIMEOUT = 5 * 60 * 1000;
 
@@ -19,7 +20,7 @@ export default async function monitorHealthchecks() {
 
     try {
       failing = await promiseTimeout(
-        getFailingServices(false, true),
+        getFailingServices({ printFails: true }),
         GET_FAILING_TIMEOUT,
         new Error('monitorHealthchecks: getFailingServices timed out'),
       );
@@ -29,16 +30,16 @@ export default async function monitorHealthchecks() {
 
     if (failing.size
       && !(failing.size === 1 && failing.has('mzSinkPrometheus'))) {
-      // Laptop likely just unpaused
       if (!process.env.PRODUCTION
         && performance.now() - iterationStartTime > GET_FAILING_TIMEOUT * 3) {
+        // Laptop likely just unpaused
         try {
           for (let i = 0; i < 3; i++) {
             await pause(30 * 1000);
             failing = await promiseTimeout(
-              getFailingServices(true),
+              getFailingServices({ forceRerun: true }),
               5 * 60 * 1000,
-              new Error('initCheckFailingHealthchecks: getFailingServices timed out'),
+              new Error('monitorHealthchecks: getFailingServices timed out'),
             );
             if (!failing.size) {
               continue outer;
@@ -66,21 +67,36 @@ export default async function monitorHealthchecks() {
         let isFirstRun = true;
         await retry(
           async () => {
-            if (isFirstRun) {
-              await withErrCtx(fixFailingInfra(failing), 'monitorHealthchecks: fixFailingInfra');
-            } else {
-              await withErrCtx(recreateMZ({
-                forceDeleteDBZConnectors: true,
-                deleteMZSources: true,
-                deleteMZSinkConnectors: true,
-              }), 'monitorHealthchecks: recreateMZ');
+            await checkPendingMigrations();
+            if (!isFirstRun) {
+              printDebug('monitorHealthchecks: recreating MV infra', 'info');
+
+              try {
+                await recreateMVInfra();
+                failing = await getFailingServices({ forceRerun: true });
+                if (!failing.size) {
+                  return;
+                }
+                printDebug(`monitorHealthchecks: still failing after recreateMVInfra: ${[...failing].join(', ')}`, 'warn');
+              } catch (err) {
+                printDebug('monitorHealthchecks: recreateMVInfra error', 'error');
+                ErrorLogger.error(err, { ctx: 'monitorHealthchecks: recreateMVInfra' });
+              }
             }
+
+            try {
+              await withErrCtx(fixFailingInfra(failing), 'monitorHealthchecks: fixFailingInfra');
+            } catch (err) {
+              printDebug('monitorHealthchecks: fixFailingInfra error', 'error');
+              throw err;
+            }
+
             isFirstRun = false;
-            failing = await getFailingServices(true);
+            failing = await getFailingServices({ forceRerun: true });
 
             if (failing.size === 1 && failing.has('mzUpdating')) {
               await pause(60 * 1000);
-              failing = await getFailingServices(true);
+              failing = await getFailingServices({ forceRerun: true });
             }
 
             if (failing.size) {
