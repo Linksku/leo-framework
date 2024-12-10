@@ -9,8 +9,10 @@ import destroyMVInfra from './mv/destroyMVInfra';
 import initMVInfra from './mv/initMVInfra';
 import checkPendingMigrations from './mv/steps/checkPendingMigrations';
 
-// todo: mid/hard instead of recreating everything, update only downstream from changed MVs
-export default async function recreateMVInfra(args?: Arguments<{ f: boolean }>) {
+export default async function recreateMVInfra(args?: Arguments<{
+  f: boolean,
+  waitForComplete: boolean,
+}>) {
   if (process.env.SERVER === 'production') {
     await checkPendingMigrations();
 
@@ -36,6 +38,6 @@ export default async function recreateMVInfra(args?: Arguments<{ f: boolean }>) 
   printDebug('Destroyed MV infra', 'success');
 
   await initInfraWrap(async () => {
-    await initMVInfra();
+    await initMVInfra({ waitForComplete: args?.waitForComplete });
   });
 }

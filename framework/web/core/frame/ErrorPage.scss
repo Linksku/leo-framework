@@ -1,0 +1,40 @@
+.container {
+  padding: 5rem $containerPadding 7rem $containerPadding;
+  overflow: hidden;
+  text-align: center;
+  width: 100%;
+  background-color: #fff;
+
+  @include gtLg {
+    min-height: auto;
+  }
+}
+
+.fullHeight {
+  min-height: calc(var(--vh100, 100vh) - #{$headerHeight});
+}
+
+.fullHeightHome {
+  min-height: calc(var(--vh100, 100vh) - #{$headerHeight} - #{$footerHeight});
+}
+
+.title {
+  margin-bottom: 2rem;
+  white-space: initial;
+}
+
+.content {
+  text-wrap: balance;
+  padding: 0 2rem;
+}
+
+.link {
+  color: $primaryColor;
+}
+
+.btns {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}

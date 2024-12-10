@@ -23,7 +23,7 @@ export default async function getVideoMetadata(video: FfmpegCommand) {
     const parts = stream.r_frame_rate.split('/');
     const num = TS.parseIntOrNull(parts[0]);
     const denom = TS.parseIntOrNull(parts[1]);
-    if (num && denom && num > denom) {
+    if (num && denom) {
       fps = num / denom;
     }
   }

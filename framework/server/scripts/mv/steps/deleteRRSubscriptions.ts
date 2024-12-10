@@ -4,7 +4,7 @@ import { RR_SUB_ALL_TABLES, BT_SLOT_RR } from 'consts/mz';
 import knexRR from 'services/knex/knexRR';
 
 export default async function deleteRRSubscriptions() {
-  printDebug('Deleting replica subscription', 'highlight');
+  printDebug('Deleting RR subscription', 'highlight');
   await deleteRRSubscription(RR_SUB_ALL_TABLES);
   await deleteBTReplicationSlot(BT_SLOT_RR);
 

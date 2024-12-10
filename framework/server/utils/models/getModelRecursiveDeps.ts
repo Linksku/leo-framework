@@ -1,4 +1,4 @@
-import type { MaterializedViewClass } from 'services/model/MaterializedView';
+import type { MaterializedViewClass } from 'core/models/MaterializedView';
 
 const memo = new Map<ModelType, ModelClass[]>();
 export default function getModelRecursiveDeps(Model: ModelClass): ModelClass[] {

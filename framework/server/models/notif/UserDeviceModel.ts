@@ -1,4 +1,4 @@
-import createEntityClass from 'services/model/createEntityClass';
+import createEntityClass from 'core/models/createEntityClass';
 
 export default createEntityClass(
   {
@@ -8,10 +8,10 @@ export default createEntityClass(
       id: SchemaConstants.id,
       userId: SchemaConstants.id,
       platform: SchemaConstants.dbEnum,
-      deviceId: SchemaConstants.content,
+      deviceId: { ...SchemaConstants.content, maxLength: 255 },
       lastSeenTime: SchemaConstants.timestampDefaultNow,
       userAgent: SchemaConstants.content.orNull(),
-      registrationToken: SchemaConstants.content.orNull(),
+      registrationToken: { ...SchemaConstants.content.orNull(), maxLength: 255 },
     },
     uniqueIndexes: [
       'id',

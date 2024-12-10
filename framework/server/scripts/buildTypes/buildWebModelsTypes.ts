@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 
-import models, { frameworkModels } from 'services/model/allModels';
+import models, { frameworkModels } from 'core/models/allModels';
 
 function getOutput(forFramework: boolean) {
   let filteredModels = forFramework

@@ -5,13 +5,15 @@ import fetchJson from 'utils/fetchJson';
 import generateUuid from 'utils/generateUuid';
 import { MZ_ENABLE_CONSISTENCY_TOPIC, MZ_SINK_CONNECTOR_PREFIX, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
 import {
-  SCHEMA_REGISTRY_PORT,
   INTERNAL_DOCKER_HOST,
   PG_RR_PORT,
   PG_RR_DB,
+} from 'consts/infra';
+import {
+  SCHEMA_REGISTRY_PORT,
   KAFKA_CONNECT_HOST,
   KAFKA_CONNECT_PORT,
-} from 'consts/infra';
+} from 'consts/mz';
 
 const BASE_KAFKA_CONNECT_CONFIG = {
   'connector.class': 'io.confluent.connect.jdbc.JdbcSinkConnector',

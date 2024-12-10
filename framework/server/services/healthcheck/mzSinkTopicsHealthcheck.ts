@@ -6,7 +6,7 @@ import {
   MZ_ENABLE_CONSISTENCY_TOPIC,
   MZ_SINK_CONSISTENCY_TOPIC_REGEX,
 } from 'consts/mz';
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import listKafkaTopics from 'utils/infra/listKafkaTopics';
 import getKafkaTopicsWithoutMessages from 'utils/infra/getKafkaTopicsWithoutMessages';
 import { RECREATE_MZ_SINKS_REDIS_KEY } from 'consts/infra';
@@ -14,7 +14,7 @@ import { redisMaster } from 'services/redis';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('mzSinkTopics', {
-  cb: async function mzSinkTopicsHealthcheck() {
+  run: async function mzSinkTopicsHealthcheck() {
     if (await redisMaster.exists(RECREATE_MZ_SINKS_REDIS_KEY)) {
       return;
     }
@@ -64,7 +64,7 @@ addHealthcheck('mzSinkTopics', {
 addHealthcheck('mzSinkTopicMessages', {
   disabled: !DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY,
   deps: ['mzSinks', 'mzSinkTopics'],
-  cb: async function mzSinkTopicMessagesHealthcheck() {
+  run: async function mzSinkTopicMessagesHealthcheck() {
     if (await redisMaster.exists(RECREATE_MZ_SINKS_REDIS_KEY)) {
       return;
     }

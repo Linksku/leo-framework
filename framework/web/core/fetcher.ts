@@ -9,6 +9,7 @@ import isDebug from 'utils/isDebug';
 type FetcherOpts = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   authToken?: string | null,
+  headers?: ObjectOf<string>,
   contentType?: string,
   cache?: RequestCache,
   redirect?: RequestRedirect,
@@ -16,29 +17,35 @@ type FetcherOpts = {
   timeout?: number,
 };
 
-function _createFullUrl(url: string, params: ObjectOf<string | number | boolean> = {}) {
+type FetchJsonResponse = {
+  data?: JsonPrimitive | ObjectOf<any> | any[] | undefined,
+  status: number,
+};
+
+function _createFullUrl(url: string, params: ObjectOf<string | number> = {}) {
   params = {
     ...params,
-    DEBUG: isDebug || !!getUrlParams().get('debug') || undefined,
+    DEBUG: isDebug || !!getUrlParams().get('debug') ? 1 : undefined,
   };
   const newParams = removeUndefinedValues(params);
   if (!Object.keys(newParams).length) {
     return url;
   }
 
-  let newUrl = url + (url.includes('?') ? '&' : '?');
-  for (const k of Object.keys(newParams)) {
-    newUrl += `${encodeURIComponent(k)}=${encodeURIComponent(newParams[k])}&`;
-  }
-  return newUrl.slice(0, -1);
+  const searchParams = new URLSearchParams(
+    // @ts-expect-error URLSearchParams can accept numbers
+    newParams,
+  );
+  return `${url}${url.includes('?') ? '&' : '?'}${searchParams.toString()}`;
 }
 
 async function _getResponse(
   url: string,
   method: string,
-  body = null as BodyInit | null,
+  body?: BodyInit,
   {
     authToken = null as string | null,
+    headers: additionalHeaders,
     contentType = 'application/json',
     cache = 'default' as RequestCache,
     redirect = 'error' as RequestRedirect,
@@ -48,7 +55,9 @@ async function _getResponse(
   res?: Response,
   status: number,
 }> {
-  const headers: HeadersInit = Object.create(null);
+  const headers: HeadersInit = additionalHeaders
+    ? { ...additionalHeaders }
+    : Object.create(null);
   const request: RequestInit = {
     method,
     cache,
@@ -67,9 +76,6 @@ async function _getResponse(
     request.body = body;
   }
 
-  if (!process.env.PRODUCTION && authToken === null) {
-    authToken = window.localStorage.getItem('authToken');
-  }
   if (authToken !== null) {
     headers.authorization = authToken;
   }
@@ -97,18 +103,10 @@ async function _getResponse(
 function _fetchJson(
   url: string,
   method: string,
-  body = null as BodyInit | null,
+  body?: BodyInit,
   opts: FetcherOpts = {},
-) {
-  const timeoutErr = new TimeoutError(
-    !process.env.PRODUCTION
-      ? `Fetch(${url}) timed out`
-      : 'Request timed out',
-  );
-  return promiseTimeout<Promise<{
-    data?: JsonPrimitive | ObjectOf<any> | any[] | undefined,
-    status: number,
-  }>>(
+): Promise<FetchJsonResponse> {
+  return promiseTimeout<Promise<FetchJsonResponse>>(
     (async () => {
       const { res, status } = await _getResponse(url, method, body, opts);
       if (!res) {
@@ -118,12 +116,10 @@ function _fetchJson(
       const text = await res.text();
       const data = safeParseJson(text);
       if (data === undefined) {
-        const err = getErr('fetcher: unable to parse JSON', {
+        throw getErr('fetcher: unable to parse JSON', {
           url,
           text: text.slice(0, 200),
         });
-        ErrorLogger.warn(err);
-        throw err;
       }
 
       return {
@@ -131,36 +127,45 @@ function _fetchJson(
         status,
       };
     })(),
-    opts.timeout
-      // Allow for a bit of transport time
-      ?? ((method === 'GET' ? API_TIMEOUT : API_POST_TIMEOUT) + 1000),
-    timeoutErr,
+    {
+      timeout: opts.timeout
+        // Allow for a bit of transport time
+        ?? ((method === 'GET' ? API_TIMEOUT : API_POST_TIMEOUT) + 1000),
+      getErr: () => new TimeoutError(
+        !process.env.PRODUCTION
+          ? `Fetch(${url}) timed out`
+          : 'Request timed out',
+      ),
+    },
   );
 }
 
 const fetcher = {
   get(
     url: string,
-    params: ObjectOf<string | number | boolean> = {},
+    params: ObjectOf<string | number> = {},
     opts: FetcherOpts = {},
-  ) {
+  ): Promise<FetchJsonResponse> {
     return _fetchJson(
       _createFullUrl(url, params),
       opts.method || 'GET',
-      null,
+      undefined,
       opts,
     );
   },
 
   async getResponse(
     url: string,
-    params: ObjectOf<string | number | boolean> = {},
+    params: ObjectOf<string | number> = {},
     opts: FetcherOpts = {},
-  ) {
+  ): Promise<{
+    res?: Response,
+    status: number,
+  }> {
     const { res, status } = await _getResponse(
       _createFullUrl(url, params),
       opts.method || 'GET',
-      null,
+      undefined,
       opts,
     );
     if (!res) {
@@ -172,12 +177,20 @@ const fetcher = {
     };
   },
 
-  post(url: string, _body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+  post(
+    url: string,
+    _body: ObjectOf<any> = {},
+    opts: FetcherOpts = {},
+  ): Promise<FetchJsonResponse> {
     const body = Object.keys(_body).length ? JSON.stringify(_body) : '';
     return _fetchJson(_createFullUrl(url), opts.method || 'POST', body, opts);
   },
 
-  postForm(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
+  postForm(
+    url: string,
+    body: ObjectOf<any> = {},
+    opts: FetcherOpts = {},
+  ): Promise<FetchJsonResponse> {
     opts.contentType = 'multipart/form-data';
     const formData = new FormData();
     for (const key of Object.keys(body)) {
@@ -195,30 +208,6 @@ const fetcher = {
       opts.method || 'POST',
       formData,
       opts,
-    );
-  },
-
-  patch(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
-    return fetcher.post(
-      _createFullUrl(url),
-      body,
-      { method: 'PATCH', ...opts },
-    );
-  },
-
-  put(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
-    return fetcher.post(
-      _createFullUrl(url),
-      body,
-      { method: 'PUT', ...opts },
-    );
-  },
-
-  delete(url: string, body: ObjectOf<any> = {}, opts: FetcherOpts = {}) {
-    return fetcher.post(
-      _createFullUrl(url),
-      body,
-      { method: 'DELETE', ...opts },
     );
   },
 };

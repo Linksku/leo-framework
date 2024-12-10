@@ -3,7 +3,7 @@ import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { compile } from 'json-schema-to-typescript';
 
-import allModels, { ModelsArr, frameworkModels } from 'services/model/allModels';
+import allModels, { ModelsArr, frameworkModels } from 'core/models/allModels';
 import isSchemaNullable from 'utils/models/isSchemaNullable';
 
 function isValidValSchema(val: JsonSchema): boolean {
@@ -48,14 +48,17 @@ async function getOutput(models: ModelsArr) {
       }
 
       throw new Error(
-        `buildSharedModelsTypes.getOutput: ${Model.name}.${prop} must be auto-incremented (id), required, nullable or have default.`,
+        `buildSharedModelsTypes.getOutput: ${Model.name}.${prop} must be id, required, nullable or have default.`,
       );
     }
 
     const fields = await compile(
       Model.jsonSchema as JsonSchema,
       'Foo',
-      { bannerComment: '' },
+      {
+        bannerComment: '',
+        maxItems: 2,
+      },
     );
     interfaces.push(`interface I${Model.name} extends IBaseModel {
 ${
@@ -77,7 +80,7 @@ ${
       if (relation.relationType === 'hasOne'
         || (
           relation.relationType === 'belongsToOne'
-            && isSchemaNullable(TS.getProp(Model.schema, relation.fromCol))
+            && isSchemaNullable(TS.defined(TS.getProp(Model.schema, relation.fromCol)))
         )) {
         modelRelations[name] = {
           Model: relation.toModel,

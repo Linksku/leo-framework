@@ -1,0 +1,57 @@
+.container {
+  padding: 0 5%;
+  display: block;
+}
+
+.inner {
+  padding: 1.5rem $containerPadding * 1.5;
+  margin: 1rem auto 2rem auto;
+  display: flex;
+  align-items: center;
+  border-radius: 5px;
+  background-color: color.scale($primaryColor, $lightness: 95%);
+  border: 0.5px solid color.scale($primaryColor, $lightness: 90%);
+}
+
+.centered {
+  justify-content: center;
+}
+
+.icon {
+  height: 1.8rem;
+  width: 1.8rem;
+  fill: $primaryColor;
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+.msg {
+  flex-grow: 1;
+}
+
+.centeredMsg {
+  text-align: center;
+  text-wrap: balance;
+}
+
+.warning {
+  .inner {
+    background-color: color.scale(#ffeb3b, $lightness: 90%);
+    border-color: color.scale(#ffeb3b, $lightness: 40%);
+  }
+
+  .icon {
+    fill: color.scale(#ffeb3b, $lightness: -40%);
+  }
+}
+
+.error {
+  .inner {
+    background-color: color.scale(#f00, $lightness: 95%);
+    border-color: color.scale(#f00, $lightness: 90%);
+  }
+
+  .icon {
+    fill: color.scale(#f00, $lightness: 50%);
+  }
+}

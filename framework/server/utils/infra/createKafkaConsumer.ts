@@ -1,12 +1,12 @@
 import type { ConsumerConfig } from 'kafkajs';
-import kafka from 'services/kafka';
+import getKafka from 'services/getKafka';
 import randInt from 'utils/randInt';
 
 export default function createKafkaConsumer({ groupId, ctx, ...consumerConfig }: {
   groupId?: string,
   ctx: string,
 } & Partial<ConsumerConfig>) {
-  const consumer = kafka.consumer({
+  const consumer = getKafka().consumer({
     groupId: groupId ?? `${randInt(0, Number.MAX_SAFE_INTEGER)}`,
     ...consumerConfig,
   });

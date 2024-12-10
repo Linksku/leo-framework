@@ -1,57 +1,69 @@
-import type { CronRepeatOptions, EveryRepeatOptions, Job } from 'bull';
 import cluster from 'cluster';
+import type { RepeatOptions, Job, Queue } from 'bullmq';
 
 import throttledPromiseAll from 'utils/throttledPromiseAll';
-import createBullQueue, { wrapProcessJob } from 'core/createBullQueue';
+import createBullQueue, { createBullWorker } from 'services/bull/createBullQueue';
+import promiseTimeout from 'utils/promiseTimeout';
 
 type CronConfig = {
   handler: (job: Job) => void | Promise<void>,
-  repeat: CronRepeatOptions | EveryRepeatOptions,
+  repeat: RepeatOptions,
   timeout: number,
 };
 
+const QUEUE_PREFIX = 'Cron.';
+
 const cronConfigs = new Map<string, CronConfig>();
+
+const queues = new Map<string, Queue>();
+
 const MAX_STALE_TIME = 24 * 60 * 60 * 1000;
 let started = false;
 let lastRunTime = 0;
-export const queue = createBullQueue('CronManager');
 
 setInterval(() => {
+  // todo: high/hard figure out why cron often stops in prod
   if (started && performance.now() - lastRunTime > 10 * 60 * 1000) {
     printDebug('Cron hasn\'t ran for 10min, restarting worker.', 'warn', { prod: 'always' });
     cluster.worker?.kill();
   }
 }, 60 * 1000);
 
-async function startCronJob(name: string, { handler, repeat, timeout }: CronConfig) {
-  wrapPromise(
-    queue.process(
-      name,
-      wrapProcessJob(async job => {
-        lastRunTime = performance.now();
+async function startCronJob(name: string) {
+  const config = TS.defined(cronConfigs.get(name));
 
-        try {
-          const ret = handler(job);
-          if (ret instanceof Promise) {
-            await ret;
-          }
-        } catch (err) {
-          throw getErr(err, {
-            jobName: name,
-          });
-        }
-      }),
-    ),
-    'fatal',
-    `Define cron job ${name}`,
+  const queue = createBullQueue(QUEUE_PREFIX + name);
+  queues.set(name, queue);
+
+  // todo: low/mid warn when cron job times out
+  await queue.add(
+    name,
+    {},
+    {
+      repeat: config.repeat,
+      // timeout,
+      removeOnComplete: true,
+      removeOnFail: true,
+    },
   );
 
-  await queue.add(name, null, {
-    repeat,
-    timeout,
-    removeOnComplete: true,
-    removeOnFail: true,
-  });
+  createBullWorker(
+    QUEUE_PREFIX + name,
+    async job => {
+      lastRunTime = performance.now();
+
+      try {
+        const ret = config.handler(job);
+        if (ret instanceof Promise) {
+          await ret;
+        }
+      } catch (err) {
+        throw getErr(err, {
+          jobName: job.name,
+        });
+      }
+    },
+  );
 }
 
 export function defineCronJob(
@@ -65,20 +77,29 @@ export function defineCronJob(
     throw new Error(`defineCronJob: "${name}" already exists`);
   }
 
+  cronConfigs.set(name, config);
   if (started) {
-    wrapPromise(startCronJob(name, config), 'fatal', `startCronJob(${name})`);
-  } else {
-    cronConfigs.set(name, config);
+    wrapPromise(startCronJob(name), 'fatal', `startCronJob(${name})`);
   }
 }
 
-export async function getExistingJobs() {
-  const jobs = await queue.getRepeatableJobs();
-  return jobs.map(job => job.name).filter(name => cronConfigs.has(name));
+export async function getExistingJobs(filterUnknown = true) {
+  const jobs = await throttledPromiseAll(5, queues.values(), queue => promiseTimeout(
+    queue.getRepeatableJobs(),
+    {
+      timeout: 5 * 1000,
+      getErr: () => new Error('CronManager.getExistingJobs: getRepeatableJobs timed out'),
+    },
+  ));
+
+  const jobsFlat = jobs.flat();
+  return filterUnknown
+    ? jobsFlat.filter(job => cronConfigs.has(job.name))
+    : jobsFlat;
 }
 
-export function getCronConfigs() {
-  return cronConfigs;
+export function getCronJobNames() {
+  return [...cronConfigs.keys()];
 }
 
 // Note: if Bull jobs don't run, flushRedis might help
@@ -89,43 +110,45 @@ export async function startCronJobs() {
   started = true;
   lastRunTime = performance.now();
 
-  const existingJobs = await queue.getRepeatableJobs();
-  const removableJobs = existingJobs
-    .filter(job => !cronConfigs.has(job.name));
-  await throttledPromiseAll(
-    10,
-    existingJobs
-      .filter(job => !cronConfigs.has(job.name)),
-    job => queue.removeRepeatableByKey(job.key),
-  );
-  const { cleanedPaused, cleanedFailed } = await promiseObj({
-    cleanedPaused: queue.clean(MAX_STALE_TIME, 'paused'),
-    cleanedFailed: queue.clean(MAX_STALE_TIME, 'failed'),
+  // const existingJobs = await getExistingJobs(false);
+  // const removableJobs = existingJobs
+  //   .filter(job => !cronConfigs.has(job.name));
+  // await throttledPromiseAll(
+  //   10,
+  //   removableJobs,
+  //   job => queue.removeRepeatableByKey(job.key),
+  // );
+  let totalRemoved = 0;
+  await throttledPromiseAll(5, queues.values(), async queue => {
+    const { cleanedPaused, cleanedFailed } = await promiseObj({
+      cleanedPaused: queue.clean(MAX_STALE_TIME, 1000, 'paused'),
+      cleanedFailed: queue.clean(MAX_STALE_TIME, 1000, 'failed'),
+    });
+    totalRemoved += cleanedPaused.length + cleanedFailed.length;
   });
-  if (removableJobs.length || cleanedPaused.length || cleanedFailed.length) {
-    printDebug(`Removed ${removableJobs.length + cleanedPaused.length + cleanedFailed.length} old cron jobs`, 'info');
+  if (totalRemoved) {
+    printDebug(`Removed ${totalRemoved} old cron jobs`, 'info');
   }
 
   await throttledPromiseAll(
     10,
-    [...cronConfigs.entries()],
-    ([name, config]) => startCronJob(name, config),
+    [...cronConfigs.keys()],
+    name => startCronJob(name),
   );
 }
 
 // Note: this doesn't seem to always work
 export async function restartMissingCronJobs() {
-  const existingJobs = await queue.getRepeatableJobs();
-  const existingJobNames = new Set(existingJobs.map(job => job.name));
   await throttledPromiseAll(
     10,
-    [...cronConfigs]
-      .filter(pair => !existingJobNames.has(pair[0])),
-    ([name, config]) => queue.add(name, null, {
-      repeat: config.repeat,
-      timeout: config.timeout,
-      removeOnComplete: true,
-      removeOnFail: true,
-    }),
+    [...queues.entries()],
+    async ([name, queue]) => {
+      const config = TS.defined(cronConfigs.get(name));
+      await queue.add(name, null, {
+        repeat: config.repeat,
+        removeOnComplete: true,
+        removeOnFail: true,
+      });
+    },
   );
 }

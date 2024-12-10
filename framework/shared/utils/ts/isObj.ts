@@ -1,3 +1,3 @@
-export default function isObj(obj: any): obj is ObjectOf<any> {
+export default function isObj(obj: unknown): obj is ObjectOf<any> {
   return !!obj && typeof obj === 'object';
 }

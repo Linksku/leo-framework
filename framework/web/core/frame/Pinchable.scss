@@ -1,0 +1,36 @@
+.container {
+  position: relative;
+  touch-action: none;
+  transition: transform 0.2s;
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.isPinching {
+  z-index: $zIndexStack + 1;
+
+  &:active {
+    transform: none;
+  }
+}
+
+.pinchableOverlay {
+  @include fadeIn(0.2s);
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #000;
+  filter: opacity(0);
+  will-change: filter;
+}
+
+.pinchableElem {
+  position: relative;
+  transition: transform 0.1s, transform-origin 0.1s;
+  will-change: transform;
+}

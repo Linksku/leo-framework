@@ -1,0 +1,40 @@
+.img,
+.svg {
+  height: 100%;
+  width: 100%;
+}
+
+.thumbBg {
+  position: absolute;
+  top: -1%;
+  left: -1%;
+  height: 102%;
+  width: 102%;
+  z-index: -1;
+  object-fit: cover;
+  filter: blur(5px) blur(5px) opacity(0.5);
+}
+
+.fadeIn {
+  @include fadeIn(0.2s);
+}
+
+.initialLoad {
+  animation-duration: 0.4s;
+}
+
+.offCenter {
+  object-position: 50% 38%;
+}
+
+.spinner {
+  position: absolute;
+}
+
+.withBoxShadow {
+  box-shadow: 0 0 1px rgb(0 0 0 / 20%);
+}
+
+.svg {
+  fill: $fadedTextColor;
+}

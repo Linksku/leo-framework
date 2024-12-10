@@ -1,12 +1,15 @@
-import { IS_PROFILING_API } from 'consts/infra';
+import { IS_PROFILING_APIS } from 'config';
 import { MZ_ENABLE_CONSISTENCY_TOPIC } from 'consts/mz';
+import EntityModels from 'core/models/allEntityModels';
 import initCheckFailingHealthchecks from './steps/initCheckFailingHealthchecks';
 import monitorHealthchecks from './steps/monitorHealthchecks';
 import monitorMZPrometheus from './steps/monitorMZPrometheus';
 import monitorMZSinkTopics from './steps/monitorMZSinkTopics';
 
 export default async function monitorInfra() {
-  if (IS_PROFILING_API) {
+  if (IS_PROFILING_APIS
+    // Rebuilding generated models
+    || (!process.env.PRODUCTION && !EntityModels.length)) {
     return;
   }
 

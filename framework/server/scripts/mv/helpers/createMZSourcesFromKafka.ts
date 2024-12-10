@@ -1,14 +1,23 @@
 import throttledPromiseAll from 'utils/throttledPromiseAll';
 import knexMZ from 'services/knex/knexMZ';
 import { MZ_TIMESTAMP_FREQUENCY, MZ_KAFKA_CONSUMER_PREFIX } from 'consts/mz';
-import { KAFKA_BROKER_INTERNAL_PORT, SCHEMA_REGISTRY_PORT } from 'consts/infra';
+import {
+  KAFKA_BROKER_INTERNAL_HOST,
+  KAFKA_BROKER_INTERNAL_PORT,
+  SCHEMA_REGISTRY_PORT,
+} from 'consts/mz';
 import retry, { forceStopRetry } from 'utils/retry';
 import showMzSystemRows from 'utils/db/showMzSystemRows';
 import getEntitiesForMZSources from './getEntitiesForMZSources';
 
 export default async function createMZSourcesFromKafka(
   models: ModelClass[],
-  { topicPrefix, insertOnly }: {
+  {
+    service,
+    topicPrefix,
+    insertOnly,
+  }: {
+    service: 'dbz',
     topicPrefix: string,
     insertOnly: boolean,
   },
@@ -16,12 +25,12 @@ export default async function createMZSourcesFromKafka(
   const startTime = performance.now();
 
   const existingSources = new Set(await showMzSystemRows('SHOW SOURCES'));
-  const allDeps = new Set(getEntitiesForMZSources('kafka') as ModelClass[]);
+  const allDeps = new Set(getEntitiesForMZSources(service) as ModelClass[]);
   const sourcesToCreate = models
     .filter(model => allDeps.has(model)
       && !existingSources.has(model.tableName));
   if (!sourcesToCreate.length) {
-    printDebug('All Kafka sources already created', 'info');
+    printDebug(`All Kafka ${topicPrefix} sources already created`, 'info');
     return;
   }
   printDebug(`Creating MZ sources from Kafka ${topicPrefix}`, 'highlight');
@@ -38,12 +47,12 @@ export default async function createMZSourcesFromKafka(
           */
           await knexMZ.raw(`
             CREATE SOURCE "${model.tableName}"
-            FROM KAFKA BROKER 'broker:${KAFKA_BROKER_INTERNAL_PORT}'
+            FROM KAFKA BROKER '${KAFKA_BROKER_INTERNAL_HOST}:${KAFKA_BROKER_INTERNAL_PORT}'
             TOPIC '${topicPrefix}${model.tableName}'
             WITH (
               ${process.env.PRODUCTION
                 ? ''
-                // docker exec $(yarn dc ps -q broker) /opt/bitnami/kafka/bin/kafka-consumer-groups.sh --list --bootstrap-server broker:29092
+                // docker exec $(yarn dc ps -q broker) kafka-consumer-groups --list --bootstrap-server broker:29092
                 : `
                   group_id_prefix = '${MZ_KAFKA_CONSUMER_PREFIX}',
                   enable_auto_commit = true,

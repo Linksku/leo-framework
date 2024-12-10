@@ -1,4 +1,4 @@
-import StackWrapInner from 'components/frame/stack/StackWrapInner';
+import StackWrapInner from 'core/frame/stack/StackWrapInner';
 import SupportEmail from 'components/SupportEmail';
 import { BUG_REPORTS_FORM } from 'config';
 

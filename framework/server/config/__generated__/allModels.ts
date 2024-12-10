@@ -1,5 +1,11 @@
 const frameworkModels: any[] = [
   {
+    type: 'ftueSeenTime',
+    path: 'framework/server/models/FtueSeenTimeModel.ts',
+    Model: require('../../models/FtueSeenTimeModel').default,
+    isRR: true,
+  },
+  {
     type: 'mzTest',
     path: 'framework/server/models/mz/MzTestModel.ts',
     Model: require('../../models/mz/MzTestModel').default,
@@ -15,6 +21,18 @@ const frameworkModels: any[] = [
     type: 'notif',
     path: 'framework/server/models/notif/NotifModel.ts',
     Model: require('../../models/notif/NotifModel').default,
+    isRR: true,
+  },
+  {
+    type: 'notifSetting',
+    path: 'framework/server/models/notif/NotifSettingModel.ts',
+    Model: require('../../models/notif/NotifSettingModel').default,
+    isRR: true,
+  },
+  {
+    type: 'unsubEmail',
+    path: 'framework/server/models/notif/UnsubEmailModel.ts',
+    Model: require('../../models/notif/UnsubEmailModel').default,
     isRR: true,
   },
   {

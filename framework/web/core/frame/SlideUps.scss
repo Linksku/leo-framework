@@ -1,0 +1,42 @@
+.overlay {
+  position: fixed;
+  height: var(--vh100, 100vh);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: $zIndexSlideUp - 1;
+  background-color: rgb(0 0 0 / 70%);
+  touch-action: none;
+}
+
+.dragSymbol {
+  background-color: $fadedTextColor;
+  height: 4px;
+  width: 24px;
+  margin: 0.5rem auto 2px auto;
+  border-radius: 2px;
+  cursor: grab;
+}
+
+.container {
+  display: flex;
+  transform: translateY(100%) translateZ(0);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: calc(var(--vh100, 100vh) * 0.8);
+  min-height: 5rem;
+  z-index: $zIndexSlideUp;
+  background-color: #fff;
+  flex-direction: column;
+  touch-action: none;
+}
+
+.containerInner {
+  @extend %maxWidthContainer;
+  @extend %scrollableY;
+
+  padding-bottom: $insetBottom;
+  flex-grow: 1;
+}

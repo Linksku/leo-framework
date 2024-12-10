@@ -3,7 +3,7 @@ import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('replicationSlots', {
   deps: ['pgBT'],
-  cb: async function replicationSlotsHealthcheck() {
+  run: async function replicationSlotsHealthcheck() {
     const {
       missingPubTables,
       extraPubTables,

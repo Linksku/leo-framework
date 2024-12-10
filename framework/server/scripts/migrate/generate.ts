@@ -1,7 +1,7 @@
-import type { Arguments } from 'yargs';
-import dayjs from 'dayjs';
 import { promises as fs } from 'fs';
 import path from 'path';
+import type { Arguments } from 'yargs';
+import dayjs from 'dayjs';
 import { mkdirp } from 'mkdirp';
 
 import prompt from 'utils/prompt';
@@ -37,7 +37,7 @@ function getMigration({
   }
   const Model = getModelClass(modelType);
   let columnType = '';
-  let schema: JsonSchema | null = null;
+  let schema: Nullish<JsonSchema> = null;
   if (isColumnCommand) {
     schema = TS.getProp(Model.getSchema(), columnName);
     columnType = schema
@@ -81,7 +81,7 @@ await createIndex({
   col: '${columnName}',
   type: '${columnType}',
   nullable: ${schema && isSchemaNullable(schema) ? 'true' : 'false'},
-  default: ${stringify(schema?.default ?? '')},
+  default: ${schema?.default instanceof Date ? schema.default.getTime() : stringify(schema?.default ?? '')},
   dropDefault: ${!schema || !TS.hasProp(schema, 'default')},
 });`;
   const dropColumn = `await dropColumn({
@@ -104,7 +104,7 @@ await createIndex({
       ],
       up: Model.isMV
         ? createTable
-        : `// Reminder to add to createEachModel
+        : `// Reminder to add to createEachModel and deleteUserData
 ${createTable}`,
       down: dropTable,
     };
@@ -206,7 +206,7 @@ export async function down() {
   const fileDescription = command && command !== 'none'
     ? `${command}_${modelType}${isColumnCommand ? `_${columnName}` : ''}`
     : 'custom';
-  const filename = `app/server/migrations/${dayjs().format('YYYY-MM-DD_HHmmss')}_${fileDescription}.ts`;
+  const filename = `app/server/migrations/${dayjs().format('YYYY/YYYY-MM-DD_HHmmss')}_${fileDescription}.ts`;
   await fs.writeFile(
     path.resolve(`./${filename}`),
     fileContent,

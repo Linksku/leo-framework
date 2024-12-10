@@ -5,12 +5,32 @@ import { MODEL_INSTANCE } from 'consts/coreRedisNamespaces';
 import BaseRedisCache from './BaseRedisCache';
 import { getModelCacheKey } from './utils/getModelCacheKey';
 
-const redisCache = new BaseRedisCache<Model | null>({
+function onlyLocalCache<T extends ModelClass>(Model: T, index: ModelIndex<T>): boolean {
+  if (!Model.cacheable) {
+    return true;
+  }
+
+  if (Model.isEntity) {
+    // Don't cache non-id columns to Redis because cache invalidation is unreliable
+    if (Array.isArray(index)) {
+      return index.length !== 1 || index[0] !== 'id';
+    }
+    return index !== 'id';
+  }
+
+  return false;
+}
+
+export const redisCache = new BaseRedisCache<Model | null>({
   redisNamespace: MODEL_INSTANCE,
-  serialize: instance => (instance
-    // todo: low/mid use schema in stringify, e.g. fast-json-stringify
-    ? JSON.stringify(instance.$toCachePojo())
-    : 'null'),
+  serialize: instance => {
+    if (!instance) {
+      return 'null';
+    }
+
+    const Model = instance.constructor as ModelClass;
+    return Model.stringify(instance.$toCachePojo());
+  },
   unserialize: (json, key) => {
     if (!json) {
       return undefined;
@@ -43,11 +63,14 @@ async function set<T extends ModelClass>(
   Model: T,
   ent: ModelInstance<T>,
 ): Promise<void> {
-  const allCacheKeys = Model.getUniqueIndexes()
-    .map(index => getModelCacheKey(Model, index, ent));
   try {
-    await Promise.all(allCacheKeys.map(
-      key => redisCache.setWithRc(rc, key, ent, !Model.cacheable),
+    await Promise.all(Model.getUniqueIndexes().map(
+      index => redisCache.setWithRc(
+        rc,
+        getModelCacheKey(Model, index, ent),
+        ent,
+        onlyLocalCache(Model, index),
+      ),
     ));
   } catch (err) {
     ErrorLogger.warn(err, { ctx: `modelsCache.set(${Model.type})` });
@@ -59,11 +82,14 @@ async function setNull<T extends ModelClass>(
   Model: T,
   partial: ModelPartial<T>,
 ): Promise<void> {
-  const allCacheKeys = getPartialAllUniqueIndexes(Model, partial)
-    .map(index => getModelCacheKey(Model, index, partial));
   try {
-    await Promise.all(allCacheKeys.map(
-      key => redisCache.setWithRc(rc, key, null, !Model.cacheable),
+    await Promise.all(getPartialAllUniqueIndexes(Model, partial).map(
+      index => redisCache.setWithRc(
+        rc,
+        getModelCacheKey(Model, index, partial),
+        null,
+        onlyLocalCache(Model, index),
+      ),
     ));
   } catch (err) {
     ErrorLogger.warn(err, { ctx: `modelsCache.setNull(${Model.type})` });
@@ -85,7 +111,7 @@ export default {
     const fromRedis = await redisCache.getWithRc(
       rc,
       cacheKey,
-      !Model.cacheable,
+      onlyLocalCache(Model, uniqueIndex),
     );
     if (fromRedis !== undefined) {
       return fromRedis;

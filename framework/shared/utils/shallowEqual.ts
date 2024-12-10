@@ -1,5 +1,5 @@
 // Compares equality of objects 1 level deep.
-export default function shallowEqual(objA: any, objB: any) {
+export default function shallowEqual(objA: any, objB: any): boolean {
   if (objA === objB) {
     return true;
   }
@@ -17,9 +17,9 @@ export default function shallowEqual(objA: any, objB: any) {
         return false;
       }
     }
-  } else if (typeof objA === 'object' && typeof objB === 'object') {
-    const keysA = Object.keys(objA);
-    const keysB = Object.keys(objB);
+  } else if (TS.isObj(objA) && TS.isObj(objB)) {
+    const keysA = TS.objKeys(objA);
+    const keysB = TS.objKeys(objB);
 
     if (keysA.length !== keysB.length) {
       return false;

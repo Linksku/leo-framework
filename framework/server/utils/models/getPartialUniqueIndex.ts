@@ -11,14 +11,18 @@ export default function getPartialUniqueIndex<T extends ModelClass>(
   }
 
   outer: for (const index of Model.getUniqueIndexes()) {
-    if (index.length > keys.length) {
+    if (Array.isArray(index) && index.length > keys.length) {
       continue;
     }
 
-    for (const col of index) {
-      if (!Object.prototype.hasOwnProperty.call(partial, col)) {
-        continue outer;
+    if (Array.isArray(index)) {
+      for (const col of index) {
+        if (!Object.prototype.hasOwnProperty.call(partial, col)) {
+          continue outer;
+        }
       }
+    } else if (!Object.prototype.hasOwnProperty.call(partial, index)) {
+      continue;
     }
     return index;
   }

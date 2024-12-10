@@ -12,10 +12,14 @@ export default function getPartialAllUniqueIndexes<T extends ModelClass>(
 
   const ret: ModelIndex<T>[] = [];
   outer: for (const index of Model.getUniqueIndexes()) {
-    for (const col of index) {
-      if (!keys.includes(col)) {
-        continue outer;
+    if (Array.isArray(index)) {
+      for (const col of index) {
+        if (!keys.includes(col)) {
+          continue outer;
+        }
       }
+    } else if (!keys.includes(index)) {
+      continue;
     }
     ret.push(index);
   }

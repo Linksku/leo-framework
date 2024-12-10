@@ -1,6 +1,6 @@
 import getModelDataLoader from 'services/dataLoader/getModelDataLoader';
-import MaterializedView from 'services/model/MaterializedView';
-import RequestContextLocalStorage from 'services/requestContext/RequestContextLocalStorage';
+import MaterializedView from 'core/models/MaterializedView';
+import RequestContextLocalStorage from 'core/requestContext/RequestContextLocalStorage';
 import waitForKafkaSinkMsg from 'utils/models/waitForKafkaSinkMsg';
 
 export default async function waitForModelRRInsert<
@@ -15,6 +15,12 @@ export default async function waitForModelRRInsert<
     throwIfTimeout = false,
     timeoutErrMsg = '',
     otherErrMsg = '',
+    /* Temporarily disable waitForKafkaSinkMsg because:
+    - could be called after msg arrive
+    - first message is slow
+    - when recreating MZ, Node receives too many messagess
+    */
+    waitForSink = false,
   } = {},
 ) {
   if (!process.env.PRODUCTION && !Model.getReplicaTable()) {
@@ -22,19 +28,25 @@ export default async function waitForModelRRInsert<
   }
   const startTime = performance.now();
 
-  if (Model.prototype instanceof MaterializedView && Model.getReplicaTable()) {
+  if (waitForSink && TS.extends(Model, MaterializedView) && Model.getReplicaTable()) {
     try {
       await waitForKafkaSinkMsg(
         Model.type,
         partial,
-        { timeout: timeout / 2 },
+        { timeout },
       );
     } catch (err) {
       if (err instanceof Error && err.message.includes('didn\'t receive first message')) {
         // pass
       } else if (err instanceof Error && err.message.includes('timed out')) {
         if (timeoutErrMsg) {
-          throw new UserFacingError(timeoutErrMsg, 503, { err });
+          throw new UserFacingError(
+            timeoutErrMsg,
+            {
+              status: 503,
+              debugCtx: { err },
+            },
+          );
         }
         if (throwIfTimeout) {
           throw err;
@@ -45,7 +57,13 @@ export default async function waitForModelRRInsert<
         ));
         return;
       } else if (otherErrMsg) {
-        throw new UserFacingError(otherErrMsg, 503, { err });
+        throw new UserFacingError(
+          otherErrMsg,
+          {
+            status: 503,
+            debugCtx: { err },
+          },
+        );
       } else {
         throw err;
       }
@@ -70,7 +88,13 @@ export default async function waitForModelRRInsert<
     if (performance.now() - startTime >= timeout - retryInterval) {
       if (lastErr) {
         if (otherErrMsg) {
-          throw new UserFacingError(otherErrMsg, 503, { lastErr });
+          throw new UserFacingError(
+            otherErrMsg,
+            {
+              status: 503,
+              debugCtx: { lastErr },
+            },
+          );
         }
         throw lastErr;
       }

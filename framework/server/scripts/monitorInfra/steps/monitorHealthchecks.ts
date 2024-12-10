@@ -14,15 +14,19 @@ export default async function monitorHealthchecks() {
 
   let failing = new Set<HealthcheckName>();
   let startTime = performance.now();
+  let iterationsSinceFix = 0;
   outer: while (1) {
     const iterationStartTime = performance.now();
+    iterationsSinceFix++;
     await pause(30 * 1000);
 
     try {
       failing = await promiseTimeout(
         getFailingServices({ printFails: true }),
-        GET_FAILING_TIMEOUT,
-        new Error('monitorHealthchecks: getFailingServices timed out'),
+        {
+          timeout: GET_FAILING_TIMEOUT,
+          getErr: () => new Error('monitorHealthchecks: getFailingServices timed out'),
+        },
       );
     } catch (err) {
       ErrorLogger.error(err, { ctx: 'monitorHealthchecks' });
@@ -38,8 +42,10 @@ export default async function monitorHealthchecks() {
             await pause(30 * 1000);
             failing = await promiseTimeout(
               getFailingServices({ forceRerun: true }),
-              5 * 60 * 1000,
-              new Error('monitorHealthchecks: getFailingServices timed out'),
+              {
+                timeout: 5 * 60 * 1000,
+                getErr: () => new Error('monitorHealthchecks: getFailingServices timed out'),
+              },
             );
             if (!failing.size) {
               continue outer;
@@ -57,6 +63,11 @@ export default async function monitorHealthchecks() {
           'monitorHealthchecks: failing healthchecks',
           { healthchecks: [...failing] },
         ));
+      }
+
+      if (iterationsSinceFix < 3) {
+        printDebug('Recently fixed infra, skipping', 'info');
+        continue;
       }
       printDebug(
         `Infra was healthy for ${Math.round((performance.now() - startTime) / 1000 / 60)}min, auto fixing`,
@@ -117,6 +128,7 @@ export default async function monitorHealthchecks() {
         printDebug('Fixed infra', 'success');
 
         startTime = performance.now();
+        iterationsSinceFix = 0;
         printDebug('Monitoring after fixing healthchecks', 'highlight');
       } catch (err) {
         const level = err instanceof ExecutionError || err instanceof ResourceLockedError

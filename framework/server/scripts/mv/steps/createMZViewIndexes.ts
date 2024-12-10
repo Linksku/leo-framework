@@ -1,7 +1,7 @@
 import throttledPromiseAll from 'utils/throttledPromiseAll';
 import knexMZ from 'services/knex/knexMZ';
-import EntityModels from 'services/model/allEntityModels';
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import EntityModels from 'core/models/allEntityModels';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import getIndexName from 'utils/db/getIndexName';
 
 export default async function createMZViewIndexes() {
@@ -12,7 +12,7 @@ export default async function createMZViewIndexes() {
     const numDependents = MaterializedViewModels
       .filter(mv => mv.MVQueryDeps.includes(Model)).length;
     if (numDependents <= 1) {
-      printDebug(`createMZViewIndexes: ${Model.type} has unnecessary index`);
+      printDebug(`createMZViewIndexes: ${Model.type} has unnecessary mz index`);
     }
 
     for (const index of Model.mzIndexes) {

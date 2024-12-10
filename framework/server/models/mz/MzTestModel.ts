@@ -1,4 +1,4 @@
-import createEntityClass from 'services/model/createEntityClass';
+import createEntityClass from 'core/models/createEntityClass';
 
 // For testing if MZ is running properly
 export default createEntityClass(

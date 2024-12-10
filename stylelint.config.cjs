@@ -1,7 +1,10 @@
 const lowerCamelCase = '^[a-z][a-zA-Z0-9]+$';
 
 module.exports = {
-  extends: 'stylelint-config-standard-scss',
+  extends: [
+    'stylelint-config-standard-scss',
+    'stylelint-config-css-modules',
+  ],
   plugins: [
     'stylelint-scss',
     'stylelint-no-unsupported-browser-features',

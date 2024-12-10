@@ -36,8 +36,15 @@ if (!process.env.PRODUCTION && isDebug) {
 
       if (!hasDifferentValues) {
         const stack = TS.defined((new Error('WDYR')).stack).split('\n');
+        const stackStr = [stack[0], ...stack.slice(2)].join('\n');
+
+        if (stackStr.includes('useAtomValue')) {
+          // Ignore Jotai + double useEffect
+          return;
+        }
+
         // eslint-disable-next-line no-console
-        console.log([stack[0], ...stack.slice(2)].join('\n'));
+        console.log(stackStr);
       }
       whyDidYouRender.defaultNotifier(props);
     },

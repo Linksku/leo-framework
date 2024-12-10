@@ -1,39 +1,41 @@
-import { useAddPopHandler } from 'stores/HistoryStore';
+import { addPopHandler } from 'stores/history/HistoryStore';
 
 export default function TapToExitHandler() {
-  const { prevState } = useHistoryStore();
-  const latestPrevState = useLatest(prevState);
-  const addPopHandler = useAddPopHandler();
+  const { curState, prevState } = useNavState();
   const showToast = useShowToast();
-  const { isHome, homeTab } = useHomeNavStore();
-  // Allow immediate exit.
-  const canExitRef = useRef(true);
+
+  const hasAttemptedExitRef = useRef(false);
+  const hasVisitedNonHomeRef = useRef(false);
 
   useEffect(() => {
-    if (!prevState
-      && canExitRef.current
-      && (!isHome || homeTab !== HOME_TABS.FEED)) {
-      canExitRef.current = false;
-      addPopHandler(() => {
-        if (!latestPrevState.current
-          && !canExitRef.current
-          && (homeTab === HOME_TABS.FEED && isHome)) {
+    if (curState.path !== '/') {
+      hasVisitedNonHomeRef.current = true;
+    }
+
+    if (hasVisitedNonHomeRef.current && !prevState && curState.path === '/') {
+      hasAttemptedExitRef.current = false;
+
+      const removePopHandler = addPopHandler(() => {
+        if (!hasAttemptedExitRef.current) {
           showToast({
             msg: 'Tap again to exit',
           });
-          canExitRef.current = true;
+          hasAttemptedExitRef.current = true;
           return true;
         }
         return false;
       });
+
+      return () => {
+        removePopHandler();
+      };
     }
+
+    return undefined;
   }, [
+    curState,
     prevState,
-    latestPrevState,
-    addPopHandler,
     showToast,
-    isHome,
-    homeTab,
   ]);
 
   return null;

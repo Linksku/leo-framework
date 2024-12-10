@@ -1,22 +1,22 @@
-import StackWrapInner from 'components/frame/stack/StackWrapInner';
-import Form from 'components/common/Form';
-import HookFormErrors from 'components/HookFormErrors';
+import StackWrapInner from 'core/frame/stack/StackWrapInner';
+import Form from 'components/form/Form';
+import HookFormErrors from 'components/form/HookFormErrors';
+import historyStateQueue from 'core/globalState/historyStateQueue';
 
 import styles from './ResetPasswordRoute.scss';
 
 export default React.memo(function ResetPasswordRoute() {
-  const query = useRouteQuery();
+  const query = useRouteQuery<'ResetPassword'>();
   const defaultEmail = query?.email;
 
   const { register, handleSubmit, control } = useForm({
-    reValidateMode: 'onBlur',
+    mode: 'onBlur',
     defaultValues: {
       email: typeof defaultEmail === 'string' ? defaultEmail : '',
     },
   });
   const { errors } = useFormState({ control });
   const showAlert = useShowAlert();
-  const authState = useAuthState();
   const { backState, isRouteActive } = useRouteStore();
   const pushPath = usePushPath();
 
@@ -33,7 +33,7 @@ export default React.memo(function ResetPasswordRoute() {
           msg: 'If that email exists in our system, a password reset email was sent',
           onClose() {
             if (isRouteActive && backState) {
-              window.history.back();
+              historyStateQueue.back();
             } else {
               pushPath('/login');
             }
@@ -43,12 +43,18 @@ export default React.memo(function ResetPasswordRoute() {
     },
   );
 
-  const disabled = fetching || authState === 'in';
+  const {
+    email: emailError,
+    ...otherErrors
+  } = errors;
+  // Don't disable when logged in; users without password need this
+  const disabled = fetching;
   return (
     <StackWrapInner title="Reset Password">
       <div className={styles.container}>
         <Form
           onSubmit={handleSubmit(data => resetPassword(data))}
+          submitOnEnter
           className={styles.form}
         >
           <Input
@@ -62,7 +68,12 @@ export default React.memo(function ResetPasswordRoute() {
             disabled={disabled}
           />
 
-          <HookFormErrors errors={errors} additionalError={apiError} />
+          <HookFormErrors
+            control={control}
+            errors={otherErrors}
+            additionalError={apiError}
+            marginBottom="2.5rem"
+          />
 
           <Button
             Element="input"

@@ -1,0 +1,61 @@
+.bg,
+.croppedPreview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+$cornerDim: 6px;
+$cornerDraggableDim: 40px;
+
+.corner {
+  position: absolute;
+  height: $cornerDraggableDim;
+  width: $cornerDraggableDim;
+  touch-action: none;
+
+  &::after {
+    content: '';
+    height: $cornerDim;
+    width: $cornerDim;
+    position: absolute;
+    top: math.div($cornerDraggableDim - $cornerDim, 2);
+    left: math.div($cornerDraggableDim - $cornerDim, 2);
+    background-color: color.scale($primaryColor, $alpha: -30%);
+  }
+}
+
+.topLeft {
+  transform: translate(-50%, -50%);
+}
+
+.topRight {
+  transform: translate(50%, -50%);
+}
+
+.botLeft {
+  transform: translate(-50%, 50%);
+}
+
+.botRight {
+  transform: translate(50%, 50%);
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgb(0 0 0 / 70%);
+}
+
+.cropped {
+  position: absolute;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px color.scale($primaryColor, $alpha: -50%);
+  background-color: #fff;
+}

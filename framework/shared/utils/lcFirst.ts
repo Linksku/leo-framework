@@ -1,4 +1,4 @@
-export default function lcFirst(str: string) {
+export default function lcFirst(str: string): string {
   if (!str) {
     return str;
   }

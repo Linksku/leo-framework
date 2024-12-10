@@ -1,0 +1,24 @@
+.container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--vh100, 100vh);
+  z-index: $zIndexAlert;
+  background-color: rgb(94 110 141 / 90%);
+  opacity: 0;
+  transition: opacity 0.1s;
+  cursor: pointer;
+
+  &.visible {
+    @include fadeIn(0.1s);
+
+    opacity: 1;
+  }
+}
+
+.img {
+  position: absolute;
+  max-width: 100%;
+  max-height: var(--vh100, 100vh);
+}

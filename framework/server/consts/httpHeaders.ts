@@ -1,4 +1,11 @@
-import { MAX_CACHE_TTL } from 'consts/infra';
+import { ALLOWED_DOMAIN_NAMES } from 'config/config';
+import { HOME_URL, PROTOCOL } from 'consts/server';
+
+export const CORS_ORIGIN = [
+  HOME_URL,
+  new RegExp(`${PROTOCOL}(?:[^/]+\\.)?(?:${ALLOWED_DOMAIN_NAMES.join('|')})$`, 'i'),
+  'ngrok-free.app',
+];
 
 const COMMON_HEADERS = TS.literal({
   'X-Content-Type-Options': 'nosniff',
@@ -40,7 +47,7 @@ export const API_ROUTES_HEADERS = TS.literal({
 
 export const STREAM_API_HEADERS = TS.literal({
   ...COMMON_HEADERS,
-  'Content-Type': 'text/plain;charset=utf-8',
+  'Content-Type': 'application/json;charset=utf-8',
   'Cache-Control': 'private,max-age=0',
 } as const);
 
@@ -55,5 +62,5 @@ export const SSE_API_HEADERS = TS.literal({
 export const EXPORT_MEETUP_HEADERS = TS.literal({
   ...COMMON_HEADERS,
   'Content-Type': 'text/calendar',
-  'Cache-Control': `private,max-age=${MAX_CACHE_TTL}`,
+  'Cache-Control': `private,max-age=${60 * 60 * 1000}`,
 } as const);

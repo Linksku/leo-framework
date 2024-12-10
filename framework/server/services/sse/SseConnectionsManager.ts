@@ -32,9 +32,10 @@ const SseConnectionsManager = {
     }
 
     if (!SseBroadcastManager) {
-      // eslint-disable-next-line unicorn/prefer-module
-      SseBroadcastManager = require('./SseBroadcastManager')
-        .default as typeof SseBroadcastManagerType;
+      SseBroadcastManager
+        // eslint-disable-next-line unicorn/prefer-module
+        = (require('./SseBroadcastManager') as { default: typeof SseBroadcastManagerType })
+          .default;
     }
     SseBroadcastManager?.unsubscribeAll(sessionId);
     conns.delete(sessionId);

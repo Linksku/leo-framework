@@ -1,11 +1,11 @@
-import type { JSONSchema4 } from 'json-schema';
-import { compile } from 'json-schema-to-typescript';
 import { promises as fs } from 'fs';
 import path from 'path';
+import type { JSONSchema4 } from 'json-schema';
+import { compile } from 'json-schema-to-typescript';
 import { mkdirp } from 'mkdirp';
 
 import ucFirst from 'utils/ucFirst';
-import 'core/apiRoutes';
+import 'routes/apis/apisRoute';
 import { getApis } from 'services/ApiManager';
 
 function validateSchema(apiName: string, schema: JSONSchema4) {
@@ -36,6 +36,7 @@ export default async function buildApiTypes() {
         {
           bannerComment: '',
           unknownAny: false,
+          maxItems: 2,
         },
       );
       paramsInterfaces.push(`interface ${ucFirst(api.config.name)}ApiParams {

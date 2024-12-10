@@ -8,4 +8,4 @@ docker exec -it $(yarn dc ps -q schema-registry) \
   #--from-beginning \
   --max-messages 100
 
-# docker exec $(yarn dc ps -q broker) /opt/bitnami/kafka/bin/kafka-configs.sh --describe --all --bootstrap-server broker:29092 --entity-type topics --entity-name campus_mz_sink_
+# docker exec $(yarn dc ps -q broker) kafka-configs --describe --all --bootstrap-server broker:29092 --entity-type topics --entity-name campus_mz_sink_

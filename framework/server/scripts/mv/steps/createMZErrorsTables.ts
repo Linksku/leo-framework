@@ -12,4 +12,6 @@ export default async function createMZErrorsTables() {
       builder.integer('count').notNullable();
     });
   }
+
+  printDebug('Created MZ errors table', 'success');
 }

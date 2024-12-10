@@ -1,12 +1,4 @@
-const RADIUS_OF_EARTH_IN_KM = 6371;
-
-function toRadian(angle: number) {
-  return (Math.PI / 180) * angle;
-}
-
-function distance(a: number, b: number) {
-  return (Math.PI / 180) * (a - b);
-}
+import { RADIUS_OF_EARTH_IN_KM, DEG_TO_RAD, KM_TO_MILES } from 'consts/geo';
 
 export default function haversine(
   lat1: number,
@@ -14,12 +6,12 @@ export default function haversine(
   lat2: number,
   lng2: number,
   isMiles = false,
-) {
-  const dLat = distance(lat2, lat1);
-  const dLng = distance(lng2, lng1);
+): number {
+  const dLat = DEG_TO_RAD * (lat2 - lat1);
+  const dLng = DEG_TO_RAD * (lng2 - lng1);
 
-  lat1 = toRadian(lat1);
-  lat2 = toRadian(lat2);
+  lat1 *= DEG_TO_RAD;
+  lat2 *= DEG_TO_RAD;
 
   // Haversine Formula
   const a = (Math.sin(dLat / 2) ** 2)
@@ -27,9 +19,7 @@ export default function haversine(
   const c = 2 * Math.asin(Math.sqrt(a));
   const kmDistance = RADIUS_OF_EARTH_IN_KM * c;
 
-  if (isMiles) {
-    return kmDistance / 1.609_34;
-  }
-
-  return kmDistance;
+  return isMiles
+    ? kmDistance * KM_TO_MILES
+    : kmDistance;
 }

@@ -1,3 +1,5 @@
 export default function randInt(low: number, high: number): number {
-  return Math.round(low) + Math.floor(Math.random() * (high - low + 1));
+  low = Math.ceil(low);
+  high = Math.floor(high);
+  return low + Math.floor(Math.random() * (high - low + 1));
 }

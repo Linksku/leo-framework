@@ -1,6 +1,7 @@
-import useVisibilityObserver from 'hooks/useVisibilityObserver';
-import { useAnimatedValue, useAnimation } from 'hooks/useAnimation';
-import IconButton from 'components/base/IconButton';
+import useVisibilityObserver from 'utils/useVisibilityObserver';
+import { useAnimatedValue, useAnimation } from 'core/useAnimation';
+import IconButton from 'components/common/IconButton';
+import { useIsHome } from 'stores/history/HistoryStore';
 
 import styles from './useFloatingActionButton.scss';
 
@@ -9,9 +10,9 @@ export default function useFloatingActionButton({
   hideType,
   anchorTo = 'bottom',
   visibilityOffset = '0',
-  boxShadow,
-  svgClassName,
-  className,
+  containerClassName,
+  overrides,
+  svgOverrides,
   'aria-label': ariaLabel,
   ...props
 }: {
@@ -19,21 +20,24 @@ export default function useFloatingActionButton({
   hideType?: 'scrollOut' | 'scrollIn',
   anchorTo?: 'top' | 'bottom',
   visibilityOffset?: string,
-  boxShadow?: string,
-  svgClassName?: string,
+  containerClassName?: string,
+  svgOverrides?: Parameters<typeof Button>[0]['leftSvgOverrides'],
   'aria-label': string,
-} & Parameters<typeof Button>[0]) {
+} & Omit<Parameters<typeof Button>[0], 'className'>) {
+  const isHome = useIsHome();
+
   const animatedOpacity = useAnimatedValue(
     hideType ? 0 : 100,
     { debugName: 'FAB' },
   );
-  const [animationRef, animationStyle] = useAnimation<HTMLAnchorElement>(animatedOpacity, 'FAB');
+  const [animationRef, animationStyle] = useAnimation<HTMLDivElement>(animatedOpacity, 'FAB');
   const showButton = useCallback(() => {
     animatedOpacity.setVal(100);
   }, [animatedOpacity]);
   const hideButton = useCallback(() => {
     animatedOpacity.setVal(0);
   }, [animatedOpacity]);
+
   const visibilityRef = useVisibilityObserver({
     onVisible: hideType
       ? (hideType === 'scrollIn' ? hideButton : showButton)
@@ -56,12 +60,15 @@ export default function useFloatingActionButton({
       ),
       [visibilityRef, visibilityOffset],
     ),
+    visibilityRef,
     btn: (
-      <IconButton
-        {...props}
+      <div
         ref={animationRef}
-        Svg={Svg}
-        svgClassName={svgClassName}
+        className={cx(styles.container, containerClassName, {
+          [styles.fromTop]: anchorTo === 'top',
+          [styles.fromBottom]: anchorTo === 'bottom' && !isHome,
+          [styles.fromBottomWithFooter]: anchorTo === 'bottom' && isHome,
+        })}
         style={{
           ...animationStyle(
             {
@@ -77,14 +84,20 @@ export default function useFloatingActionButton({
               },
             },
           ),
-          boxShadow,
         }}
-        className={cx(styles.btn, className, {
-          [styles.fromTop]: anchorTo === 'top',
-          [styles.fromBottom]: anchorTo === 'bottom',
-        })}
-        aria-label={ariaLabel}
-      />
+      >
+        <IconButton
+          {...props}
+          Svg={Svg}
+          svgOverrides={svgOverrides}
+          overrides={{
+            animationName: 'none',
+            lineHeight: 'normal',
+            ...overrides,
+          }}
+          aria-label={ariaLabel}
+        />
+      </div>
     ),
   };
 }

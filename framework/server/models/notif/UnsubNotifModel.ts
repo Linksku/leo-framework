@@ -1,4 +1,4 @@
-import createEntityClass from 'services/model/createEntityClass';
+import createEntityClass from 'core/models/createEntityClass';
 import { UNSUB_NOTIF_ENTITIES } from 'config/notifs';
 
 export default createEntityClass(

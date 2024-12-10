@@ -1,6 +1,7 @@
-import type _Entity from 'services/model/Entity';
+import type _Entity from 'core/models/Entity';
 
 declare global {
+  // todo: mid/hard change to string for bigint
   type EntityId = number;
 
   type Entity = _Entity;

@@ -1,4 +1,4 @@
-import createEntityClass from 'services/model/createEntityClass';
+import createEntityClass from 'core/models/createEntityClass';
 import { NOTIF_SCOPES_ARR } from 'config/notifs';
 
 export default createEntityClass(

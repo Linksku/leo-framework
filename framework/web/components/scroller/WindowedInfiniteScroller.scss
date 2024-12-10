@@ -1,0 +1,48 @@
+.columns {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+.column {
+  flex-basis: 0;
+  flex-grow: 1;
+  width: 0;
+  min-width: 0;
+}
+
+.singleColumn > *,
+.column > * {
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  overflow-anchor: none;
+}
+
+.reverse {
+  .columns {
+    align-items: flex-end;
+  }
+
+  .singleColumn,
+  // this is untested
+  .column {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+}
+
+.errorWrap {
+  padding: 3rem $containerPadding;
+  text-align: center;
+  text-wrap: balance;
+  width: 100%;
+}
+
+.errorMsg {
+  color: $fadedTextColor;
+  margin-bottom: 2rem;
+}
+
+.notFoundMsg {
+  padding: 2rem $containerPadding 3rem $containerPadding;
+  color: $fadedTextColor;
+  margin-bottom: 0;
+}

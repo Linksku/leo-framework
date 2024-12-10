@@ -1,10 +1,10 @@
-import useGetIsMounted from 'hooks/useGetIsMounted';
+import useGetIsMounted from 'utils/useGetIsMounted';
 
-const BATCH_INTERVAL = 50;
-const BATCH_TIMEOUT = 500;
-const BATCH_MAX_SIZE = 10;
+const RENDER_BATCH_INTERVAL = 100;
+const RENDER_BATCH_MAX_SIZE = 20;
+const LOAD_BATCH_TIMEOUT = 500;
 
-type Batch = {
+type RenderBatch = {
   startTime: number,
   imgRefs: Map<
     // Use setShowImage as reference to component
@@ -15,6 +15,7 @@ type Batch = {
       setShowImage: SetState<boolean>,
     }
   >,
+  loadBatchTimer: number | null,
 };
 
 export const [
@@ -22,34 +23,67 @@ export const [
   useBatchImagesLoad,
 ] = constate(
   function BatchImagesLoadStore() {
-    const curBatch = useRef<Batch | null>(null);
+    const curRenderBatch = useRef<RenderBatch | null>(null);
 
-    const getCurBatch = useCallback(() => {
-      if (!curBatch.current?.startTime
-        || performance.now() - curBatch.current.startTime > BATCH_INTERVAL
-        || curBatch.current.imgRefs.size >= BATCH_MAX_SIZE) {
-        const imgRefs: Batch['imgRefs'] = new Map();
-        curBatch.current = {
+    // todo: low/mid keep batch open until end of render
+    const getCurRenderBatch = useCallback(() => {
+      if (!curRenderBatch.current?.startTime
+        || performance.now() - curRenderBatch.current.startTime > RENDER_BATCH_INTERVAL
+        || curRenderBatch.current.imgRefs.size >= RENDER_BATCH_MAX_SIZE) {
+        const imgRefs: RenderBatch['imgRefs'] = new Map();
+        curRenderBatch.current = {
           startTime: performance.now(),
           imgRefs,
+          loadBatchTimer: null,
         };
-
-        setTimeout(() => {
-          for (const imgRef of imgRefs.values()) {
-            if (imgRef.hasLoaded && imgRef.getIsMounted()) {
-              imgRef.setShowImage(true);
-            }
-          }
-        }, BATCH_TIMEOUT);
       }
 
-      return curBatch.current;
+      return curRenderBatch.current;
+    }, []);
+
+    const queueBatchedLoad = useCallback((batch: RenderBatch) => {
+      requestAnimationFrame(() => {
+        if (!batch.imgRefs.size) {
+          return;
+        }
+
+        if ([...batch.imgRefs.values()].every(cb => cb.hasLoaded)) {
+          if (batch.loadBatchTimer) {
+            clearTimeout(batch.loadBatchTimer);
+            batch.loadBatchTimer = null;
+          }
+
+          for (const img of batch.imgRefs.values()) {
+            if (img.getIsMounted()) {
+              img.setShowImage(true);
+              batch.imgRefs.delete(img.setShowImage);
+            }
+          }
+
+          return;
+        }
+
+        if (!batch.loadBatchTimer) {
+          batch.loadBatchTimer = window.setTimeout(() => {
+            for (const img of batch.imgRefs.values()) {
+              if (img.hasLoaded && img.getIsMounted()) {
+                img.setShowImage(true);
+                batch.imgRefs.delete(img.setShowImage);
+              }
+            }
+
+            batch.loadBatchTimer = null;
+          }, LOAD_BATCH_TIMEOUT);
+        }
+      });
     }, []);
 
     return useMemo(() => ({
-      getCurBatch,
+      getCurRenderBatch,
+      queueBatchedLoad,
     }), [
-      getCurBatch,
+      getCurRenderBatch,
+      queueBatchedLoad,
     ]);
   },
 );
@@ -61,50 +95,61 @@ export type ImageHandlers = {
   onError: () => void,
 };
 
-export function useImageHandlers() {
-  const { getCurBatch } = useBatchImagesLoad();
+export function useImageHandlers(): {
+  showImage: boolean,
+  ref: (img: HTMLImageElement | null) => void,
+  onLoad: () => void,
+  onError: () => void,
+  } {
+  const { getCurRenderBatch, queueBatchedLoad } = useBatchImagesLoad() ?? {};
   const [showImage, setShowImage] = useState(false);
-  const batch = useRef<Batch | null>(null);
+  const renderBatch = useRef<RenderBatch | null>(null);
 
   const getIsMounted = useGetIsMounted();
   const ref = useCallback((img: HTMLImageElement | null) => {
-    if (!img || batch.current) {
-      return;
-    }
-    if (img.complete) {
-      setShowImage(true);
-      return;
-    }
-
-    batch.current = getCurBatch();
-    batch.current.imgRefs.set(setShowImage, {
-      hasLoaded: false,
-      getIsMounted,
-      setShowImage,
-    });
-  }, [getCurBatch, getIsMounted]);
-
-  const onLoadOrError = useCallback(() => {
-    if (!batch.current) {
-      return;
-    }
-
-    const cbRef = batch.current.imgRefs.get(setShowImage);
-    if (cbRef) {
-      cbRef.hasLoaded = true;
-      if (performance.now() - batch.current.startTime > BATCH_TIMEOUT) {
-        cbRef.setShowImage(true);
-      }
-    }
-
-    if ([...batch.current.imgRefs.values()].every(cb => cb.hasLoaded)) {
-      for (const cb of batch.current.imgRefs.values()) {
-        if (cb.getIsMounted()) {
-          cb.setShowImage(true);
+    let batch = renderBatch.current;
+    if (!img) {
+      if (batch?.imgRefs.has(setShowImage)) {
+        batch.imgRefs.delete(setShowImage);
+        if (!batch.imgRefs.size && batch.loadBatchTimer) {
+          clearTimeout(batch.loadBatchTimer);
+          batch.loadBatchTimer = null;
         }
       }
+      return;
     }
-  }, [batch]);
+    if (batch?.imgRefs.has(setShowImage)) {
+      return;
+    }
+
+    batch = renderBatch.current = getCurRenderBatch();
+    batch.imgRefs.set(
+      // setShowImage is a reference to the img component
+      setShowImage,
+      {
+        hasLoaded: img.complete,
+        getIsMounted,
+        setShowImage,
+      },
+    );
+
+    if (img.complete) {
+      queueBatchedLoad(batch);
+    }
+  }, [getCurRenderBatch, getIsMounted, queueBatchedLoad]);
+
+  const onLoadOrError = useCallback(() => {
+    if (!renderBatch.current) {
+      return;
+    }
+    const imgRef = renderBatch.current.imgRefs.get(setShowImage);
+    if (!imgRef) {
+      return;
+    }
+
+    imgRef.hasLoaded = true;
+    queueBatchedLoad(renderBatch.current);
+  }, [queueBatchedLoad]);
 
   return {
     showImage,

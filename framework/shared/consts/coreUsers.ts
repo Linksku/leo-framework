@@ -1,6 +1,17 @@
+export const USER_ROLES = {
+  USER: 0,
+  EMPLOYEE: 32,
+  ENGINEER: 64,
+  ADMIN: 128,
+};
+
 export const MIN_USER_NAME_LENGTH = 3;
 
 export const MAX_USER_NAME_LENGTH = 31;
+
+export const USER_NAME_REGEX = /^[\w \-'\u0080-\uFFFF]+$/;
+
+export const MENTION_USER_NAME_REGEX = /@[\w \-'\u0080-\uFFFF]+:\d+\b/g;
 
 // 13 for US, 16 for some EU
 export const MIN_USER_AGE = 13;

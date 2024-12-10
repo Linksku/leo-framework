@@ -1,10 +1,10 @@
 import type { SeverityLevel } from '@sentry/types';
-import * as Sentry from '@sentry/node';
+import type * as SentryType from '@sentry/node';
 import mapValues from 'lodash/mapValues.js';
 
-import type setErrorLoggerScopeType from './setErrorLoggerScope';
 import formatErr from 'utils/formatErr';
 import { SENTRY_DSN_SERVER } from 'config/serverConfig';
+import type setErrorLoggerScopeType from './setErrorLoggerScope';
 
 let setErrorLoggerScope: typeof setErrorLoggerScopeType | undefined;
 
@@ -12,20 +12,16 @@ if (!process.env.PRODUCTION) {
   Error.stackTraceLimit = 30;
 }
 
-if (process.env.PRODUCTION) {
-  Sentry.init({
-    dsn: SENTRY_DSN_SERVER,
-    tracesSampleRate: 1,
-  });
-}
+let Sentry: typeof SentryType | null;
+let sentryPromise: Promise<typeof SentryType> | null;
 
 const WARN_THROTTLE_DURATION = 10 * 60 * 1000;
 const ERROR_THROTTLE_DURATION = 60 * 1000;
 const lastLoggedTimes = new Map<string, number>();
 
 // todo: low/mid maybe switch to Pino
-function _log(level: SeverityLevel, err: Error) {
-  if (!process.env.PRODUCTION) {
+async function _log(level: SeverityLevel, err: Error) {
+  if (!process.env.PRODUCTION || process.env.IS_SERVER_SCRIPT) {
     return;
   }
 
@@ -40,15 +36,33 @@ function _log(level: SeverityLevel, err: Error) {
   }
   lastLoggedTimes.set(err.message, performance.now());
 
+  if (!Sentry) {
+    if (!sentryPromise) {
+      sentryPromise = import('@sentry/node')
+        .then(module => {
+          if (process.env.PRODUCTION) {
+            module.init({
+              dsn: SENTRY_DSN_SERVER,
+              release: process.env.JS_VERSION,
+            });
+          }
+          return module;
+        });
+    }
+    Sentry = await sentryPromise;
+  }
+
   try {
     Sentry.withScope(scope => {
       if (!setErrorLoggerScope) {
         // eslint-disable-next-line unicorn/prefer-module
-        setErrorLoggerScope = require('./setErrorLoggerScope').default;
+        setErrorLoggerScope = (require('./setErrorLoggerScope') as {
+          default: typeof setErrorLoggerScopeType,
+        }).default;
       }
       setErrorLoggerScope?.(scope);
 
-      Sentry.captureException(err, {
+      TS.notNull(Sentry).captureException(err, {
         level,
         contexts: {
           debugCtx: mapValues(
@@ -92,7 +106,10 @@ const ErrorLogger = {
       printDebug(err, 'warn');
     }
     if (!skipLog) {
-      _log('warning', err);
+      _log('warning', err)
+        .catch(err2 => {
+          printDebug(err2, 'error');
+        });
     }
   },
 
@@ -118,7 +135,10 @@ const ErrorLogger = {
     if (consoleLog) {
       printDebug(err, 'error', { prod: 'always' });
     }
-    _log('error', err);
+    _log('error', err)
+      .catch(err2 => {
+        printDebug(err2, 'error');
+      });
   },
 
   async fatal<T>(
@@ -141,7 +161,10 @@ const ErrorLogger = {
       }
 
       printDebug(err, 'error', { prod: 'always' });
-      _log('fatal', err);
+      _log('fatal', err)
+        .catch(err2 => {
+          printDebug(err2, 'error');
+        });
     } catch (err2) {
       printDebug(err2, 'error', { prod: 'always' });
     }
@@ -156,10 +179,14 @@ const ErrorLogger = {
   },
 
   async flushAndExit(code?: number) {
-    try {
-      await Sentry.close(10_000);
-    } catch (err) {
-      printDebug(err, 'error', { prod: 'always' });
+    if (sentryPromise) {
+      Sentry ??= await sentryPromise;
+
+      try {
+        await Sentry.close(10_000);
+      } catch (err) {
+        printDebug(err, 'error', { prod: 'always' });
+      }
     }
     // eslint-disable-next-line unicorn/no-process-exit
     process.exit(code);

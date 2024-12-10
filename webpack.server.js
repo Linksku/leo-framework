@@ -25,18 +25,27 @@ export default mergeReplaceArrays(baseConfig, {
     __dirname: true,
   },
   module: {
-    rules: baseConfig.module.rules.map(rule => {
-      if (rule.test.toString() === '/\\.(j|t)sx?$/') {
-        return {
-          ...rule,
-          exclude: [
-            path.resolve('./node_modules'),
-            path.resolve('./framework/web'),
-          ],
-        };
-      }
-      return rule;
-    }),
+    rules: [
+      ...baseConfig.module.rules.map(rule => {
+        if (rule.test.toString() === '/\\.(j|t)sx?$/') {
+          return {
+            ...rule,
+            exclude: [
+              path.resolve('./node_modules'),
+              path.resolve('./framework/web'),
+            ],
+          };
+        }
+        return rule;
+      }),
+      {
+        test: /(?:\.txt|\.json|\.ejs)$/,
+        type: 'asset/source',
+        exclude: [
+          path.resolve('./node_modules'),
+        ],
+      },
+    ],
   },
   plugins: [
     ...baseConfig.plugins,
@@ -53,18 +62,19 @@ export default mergeReplaceArrays(baseConfig, {
       return Array.isArray(v) ? [p, v[1]] : p;
     })),
     new webpack.EnvironmentPlugin({
-      IS_SERVER_SCRIPT: !!process.env.SERVER_SCRIPT_PATH,
+      IS_SERVER_SCRIPT: process.env.SERVER_SCRIPT_PATH ? 'true' : '',
       SERVER_SCRIPT_PATH: process.env.SERVER_SCRIPT_PATH || '',
     }),
   ],
   externalsPresets: { node: true },
   externals: [
-    // Note: these packages have errors when bundled
-    // Sync with package.docker.json
-    // todo: mid/mid generate package.docker.json to use latest versions
+    // These packages have errors when bundled
+    // Syncs with package.docker.json using build-docker-package-json.mjs
     {
+      '@sentry/node': '@sentry/node', // Exclude from server scripts
       bcrypt: 'bcrypt',
-      bull: 'bull',
+      bullmq: 'bullmq',
+      'firebase-admin': 'firebase-admin',
       'fluent-ffmpeg': 'fluent-ffmpeg',
       'json-schema-to-typescript': 'json-schema-to-typescript',
       kafkajs: 'kafkajs',

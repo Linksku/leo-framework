@@ -1,22 +1,26 @@
 import { INIT_INFRA_LOCK_NAME, INIT_INFRA_LOCK_TTL, INIT_INFRA_REDIS_KEY } from 'consts/infra';
-import { redisMaster } from 'services/redis';
-import usingRedlock from 'utils/usingRedlock';
+import { redisMaster, isRedisUnavailableErr } from 'services/redis';
+import usingRedlock from 'services/redis/usingRedlock';
 import getDockerStats from 'utils/infra/getDockerStats';
 
-async function initInfraWrap(
+export default async function initInfraWrap(
   cb: () => Promise<void>,
   {
     lockName = INIT_INFRA_LOCK_NAME,
     redisKey = INIT_INFRA_REDIS_KEY,
     setInitInfra = true,
+    acquireTimeout,
+    allowRedisUnavailable = true,
   }: {
     lockName?: string,
     redisKey?: string,
     setInitInfra?: boolean,
+    acquireTimeout?: number,
+    allowRedisUnavailable?: boolean,
   } = {},
 ) {
-  // todo: mid/mid ignore error if redis is unavailable
-  await usingRedlock(lockName, INIT_INFRA_LOCK_TTL, async acquiredNewLock => {
+  let isRedisUnavailable = false;
+  const cbWrap = async (acquiredNewLock: boolean) => {
     const dockerStatsTimer = setInterval(async () => {
       try {
         const stats = await getDockerStats();
@@ -46,20 +50,28 @@ async function initInfraWrap(
       return;
     }
 
-    await redisMaster.setex(redisKey, INIT_INFRA_LOCK_TTL / 1000, '1');
+    if (!isRedisUnavailable) {
+      await redisMaster.setex(redisKey, INIT_INFRA_LOCK_TTL / 1000, '1');
+    }
 
-    const redisKeyTimer = setInterval(() => {
-      wrapPromise(
-        redisMaster.setex(redisKey, INIT_INFRA_LOCK_TTL / 1000, '1'),
-        'warn',
-        'initInfraWrap: update INIT_INFRA_REDIS_KEY',
-      );
+    const redisKeyTimer = setInterval(async () => {
+      try {
+        await redisMaster.setex(redisKey, INIT_INFRA_LOCK_TTL / 1000, '1');
+      } catch (err) {
+        if (isRedisUnavailableErr(err)) {
+          isRedisUnavailable = true;
+          return;
+        }
+      }
+      isRedisUnavailable = false;
     }, INIT_INFRA_LOCK_TTL / 2);
 
     try {
       await cb();
     } catch (err) {
-      clearInterval(redisKeyTimer);
+      if (redisKeyTimer) {
+        clearInterval(redisKeyTimer);
+      }
       clearInterval(dockerStatsTimer);
 
       if (acquiredNewLock) {
@@ -68,12 +80,26 @@ async function initInfraWrap(
       throw err;
     }
 
-    clearInterval(redisKeyTimer);
+    if (redisKeyTimer) {
+      clearInterval(redisKeyTimer);
+    }
     clearInterval(dockerStatsTimer);
     if (acquiredNewLock) {
       await redisMaster.unlink(redisKey);
     }
-  });
-}
+  };
 
-export default initInfraWrap;
+  try {
+    await usingRedlock(lockName, cbWrap, {
+      duration: INIT_INFRA_LOCK_TTL,
+      acquireTimeout,
+    });
+  } catch (err) {
+    if (!allowRedisUnavailable || !isRedisUnavailableErr(err)) {
+      throw err;
+    }
+    isRedisUnavailable = true;
+
+    await cbWrap(false);
+  }
+}

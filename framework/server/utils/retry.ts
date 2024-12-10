@@ -4,15 +4,18 @@ import stringify from 'utils/stringify';
 
 const FORCE_STOP_SYMBOL = Symbol('FORCE_STOP');
 
-export function forceStopRetry(err: unknown) {
+export function forceStopRetry(err: unknown): {
+  FORCE_STOP_SYMBOL: symbol,
+  err: unknown,
+} {
   return {
     FORCE_STOP_SYMBOL,
     err,
   };
 }
 
-export default async function retry(
-  fn: (() => void) | (() => Promise<void>),
+export default async function retry<T>(
+  fn: (() => Promise<T>) | (() => T),
   {
     times,
     minTime,
@@ -27,7 +30,7 @@ export default async function retry(
     printInterval?: number,
     timeout?: number,
     ctx: string,
-  }) {
+  }): Promise<T> {
   if (!times) {
     if (timeout) {
       times = 9999;
@@ -46,7 +49,7 @@ export default async function retry(
   let lastErr: any;
   for (
     let i = 0;
-    i < times || !minTime || performance.now() - startTime < minTime;
+    i < times || (minTime && performance.now() - startTime < minTime);
     i++
   ) {
     let didCurLoopThrow = false;
@@ -56,14 +59,18 @@ export default async function retry(
         const promise = timeout
           ? promiseTimeout(
             ret,
-            (timeout - (performance.now() - startTime)) * 1.1,
-            getErr('retry: promise timed out', { ctx, lastErr }),
+            {
+              timeout: (timeout - (performance.now() - startTime)) * 1.1,
+              getErr:
+                () => lastErr
+                  ?? getErr(`retry(${ctx}): promise timed out`, { ctx, lastErr }),
+            },
           )
           : ret;
         // eslint-disable-next-line no-await-in-loop
-        await promise;
+        return await promise;
       }
-      return;
+      return ret;
     } catch (err) {
       if (TS.isObj(err) && err.FORCE_STOP_SYMBOL === FORCE_STOP_SYMBOL) {
         if (err.err instanceof Error) {
@@ -116,4 +123,6 @@ export default async function retry(
     // eslint-disable-next-line no-await-in-loop
     await pause(interval);
   }
+
+  throw getErr('retry: ran max times', { ctx, lastErr });
 }

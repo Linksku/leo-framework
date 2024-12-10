@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<%- include('partials/assets') %>
+
+<% if (production) { %>
+<link rel="preload" href="<%= assetsUrl %>/js/chunks/deferred<%= fileVersion %>.js" as="script" fetchpriority="low">
+<link rel="stylesheet" href="<%= assetsUrl %>/css/chunks/deferred<%= fileVersion %>.css" media="none" onload="if(media!='all')media='all'">
+<% } %>
+
+<%- include('partials/metaTags') %>
+<%- include('partials/scripts') %>
+</head>
+<body>
+  <div id="react"></div>
+</body>
+</html>

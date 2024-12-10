@@ -78,10 +78,10 @@ export default async function paginateSeqQueries<
       },
     );
     res.entities.unshift(...prevRes.entities);
-    res.data.items = uniq([...prevRes.data.items, ...res.data.items]);
+    res.data.items = uniq(prevRes.data.items.concat(res.data.items));
   }
 
-  if (queryIdx < queries.length - 1) {
+  if (queryIdx < queries.length - 1 && res.data.hasCompleted) {
     res.data.cursor = `${queryIdx + 1},`;
     res.data.hasCompleted = false;
     return res as PaginatedResponse<QB['ModelType'], Item>;

@@ -3,32 +3,34 @@ import pg from 'pg';
 
 import { MZ_TIMESTAMP_FREQUENCY } from 'consts/mz';
 import retry from 'utils/retry';
+import throttledPromiseAll from 'utils/throttledPromiseAll';
 
 export default async function verifyCreatedTables(
   dbType: 'mz' | 'rr',
   knex: Knex,
   models: ModelClass[],
 ) {
-  printDebug('Verifying tables', 'highlight');
+  printDebug(`Verifying ${dbType.toUpperCase()} tables`, 'highlight');
 
   const remainingModels = new Set(models);
   try {
     await retry(
       async () => {
-        for (const model of remainingModels) {
+        await throttledPromiseAll(3, [...remainingModels], async model => {
           let result: pg.QueryResult<any>;
           try {
             result = await knex.raw(`
               SELECT *
               FROM "${model.tableName}"
               WHERE false
+              LIMIT 1
               ${dbType === 'mz' ? `AS OF now() + INTERVAL '${MZ_TIMESTAMP_FREQUENCY} MILLISECOND'` : ''}
             `);
           } catch (err) {
             if (!(err instanceof Error && err.message.includes('not valid for all inputs'))) {
               printDebug(err, 'warn');
             }
-            continue;
+            return;
           }
           const fields = result.fields.map(f => f.name);
 
@@ -45,7 +47,7 @@ export default async function verifyCreatedTables(
           }
 
           remainingModels.delete(model);
-        }
+        });
 
         if (remainingModels.size) {
           throw getErr(
@@ -56,7 +58,7 @@ export default async function verifyCreatedTables(
       },
       {
         timeout: 5 * 60 * 1000,
-        interval: 1000,
+        interval: 5000,
         ctx: 'verifyCreatedTables',
       },
     );

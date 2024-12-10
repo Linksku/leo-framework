@@ -1,5 +1,5 @@
-import type { ExecOptions } from 'child_process';
 import childProcess from 'child_process';
+import type { ExecOptions } from 'child_process';
 
 import stringify from 'utils/stringify';
 

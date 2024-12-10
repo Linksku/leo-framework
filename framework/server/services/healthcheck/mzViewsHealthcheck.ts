@@ -1,5 +1,5 @@
 import showMzSystemRows from 'utils/db/showMzSystemRows';
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import getEntitiesForMZSources from 'scripts/mv/helpers/getEntitiesForMZSources';
 import { addHealthcheck } from './HealthcheckManager';
 
@@ -11,7 +11,7 @@ const expectedViews: string[] = [
 
 addHealthcheck('mzViews', {
   deps: ['mzSources'],
-  cb: async function mzViewsHealthcheck() {
+  run: async function mzViewsHealthcheck() {
     const views = await showMzSystemRows('SHOW VIEWS');
     if (views.length === 0) {
       throw new Error('mzViewsHealthcheck: no views');

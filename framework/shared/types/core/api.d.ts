@@ -35,10 +35,19 @@ type ApiSuccessResponse<Name extends ApiName> = {
   },
 };
 
+type ApiErrorCode =
+  | 'CREATE_CLUB_ALIAS_EXISTS'
+  | 'CREATE_CLUB_ALREADY_EXISTS'
+  | 'CREATE_CLUB_WRONG_PARENT'
+  | 'POST_IMAGE_DUPLICATED'
+  | 'POST_MEDIA_WRONG_CLUB';
+
 type ApiErrorData = {
   msg: string,
+  code?: ApiErrorCode,
   stack?: string[],
-  debugCtx?: any,
+  data?: ObjectOf<any>,
+  debugCtx?: ObjectOf<any>,
 };
 
 type ApiErrorResponse = {
@@ -60,6 +69,7 @@ interface ApiAllRelations extends _ApiAllRelations {}
 type ApiParams<Name extends ApiName> = ApiNameToParams[Name] & {
   // todo: low/mid clean up relations error message
   relations?: ApiAllRelations,
+  nonce?: string,
 };
 
 type SseResponse = ApiSuccessResponse<any> & {

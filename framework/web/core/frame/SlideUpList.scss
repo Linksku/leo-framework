@@ -1,0 +1,39 @@
+.list {
+  @include fadeIn(0.2s);
+
+  padding-bottom: 0.5rem;
+}
+
+.separator {
+  border-bottom: 0.5px solid $separatorColor;
+  margin: 0.8rem $containerPadding;
+}
+
+.listItem {
+  @extend %oneLine;
+
+  padding: 0.8rem $containerPadding;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+
+  svg {
+    margin-right: 1rem;
+    height: 2.4rem;
+    width: 2.4rem;
+    flex-shrink: 0;
+  }
+
+  > div {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.disabled {
+  color: $fadedTextColor;
+
+  svg {
+    fill: $fadedTextColor;
+  }
+}

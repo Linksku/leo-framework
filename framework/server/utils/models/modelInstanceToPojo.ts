@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 
 function invalidClassName(val: any): string | null {
-  if (val == null || typeof val !== 'object') {
+  if (!TS.isObj(val)) {
     return null;
   }
 
@@ -21,7 +21,7 @@ function invalidClassName(val: any): string | null {
   if (proto === Date.prototype) {
     return null;
   }
-  if (proto !== Object.prototype) {
+  if (proto !== Object.prototype && TS.isObj(proto)) {
     return proto.constructor.name || 'Unknown';
   }
 

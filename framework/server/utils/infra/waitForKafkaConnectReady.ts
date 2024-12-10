@@ -1,12 +1,14 @@
 import retry from 'utils/retry';
 import fetchJson from 'utils/fetchJson';
-import { KAFKA_CONNECT_HOST, KAFKA_CONNECT_PORT } from 'consts/infra';
-import kafkaAdmin from 'services/kafkaAdmin';
+import { KAFKA_CONNECT_HOST, KAFKA_CONNECT_PORT } from 'consts/mz';
+import getKafkaAdmin from 'services/getKafkaAdmin';
 
 export default async function waitForKafkaConnectReady() {
+  printDebug('Waiting for Kafka Connect to be ready', 'highlight');
+
   await retry(
     async () => {
-      await kafkaAdmin.listTopics();
+      await getKafkaAdmin().listTopics();
     },
     {
       interval: 1000,

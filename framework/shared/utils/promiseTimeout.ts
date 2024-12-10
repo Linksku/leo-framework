@@ -1,17 +1,39 @@
+const TIMED_OUT = Symbol('TIMED_OUT');
+
 export default async function promiseTimeout<T extends Promise<any>>(
   promise: T,
-  timeout: number,
-  err: Error,
+  {
+    timeout,
+    getErr,
+    defaultVal,
+  }: {
+    timeout: number,
+    getErr?: () => Error,
+    defaultVal?: any,
+  },
 ): Promise<Awaited<T>> {
   if (timeout <= 0) {
-    throw err;
+    if (getErr) {
+      throw getErr();
+    }
+    return defaultVal;
   }
-  return Promise.race([
+
+  const result = await Promise.race([
     promise,
-    new Promise<never>((_, fail) => {
+    new Promise<typeof TIMED_OUT>(succ => {
       setTimeout(() => {
-        fail(err);
+        succ(TIMED_OUT);
       }, timeout);
     }),
   ]);
+
+  if (result === TIMED_OUT) {
+    if (getErr) {
+      throw getErr();
+    }
+    return defaultVal;
+  }
+
+  return result;
 }

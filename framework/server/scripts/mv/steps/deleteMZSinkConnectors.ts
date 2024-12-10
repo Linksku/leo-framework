@@ -11,9 +11,7 @@ export default async function deleteMZSinkConnectors() {
   if (connectors.length) {
     printDebug(`Deleting ${connectors.length} MZ sink connectors`, 'highlight');
     await throttledPromiseAll(10, connectors, name => retry(
-      async () => {
-        await deleteKafkaConnector(name);
-      },
+      () => deleteKafkaConnector(name),
       {
         timeout: 60 * 1000,
         interval: 1000,

@@ -1,6 +1,15 @@
+import { MAX_PER_PAGE } from 'utils/db/paginateQuery';
+
+export const MODEL_TYPE_MAX_LENGTH = 40;
+
 const id = TS.literal({ type: 'integer', minimum: 1 } as const);
-const idArr = TS.literal({ type: 'array', items: id } as const);
-const url = TS.literal({ type: 'string', format: 'url', maxLength: 255 } as const);
+const idArr = TS.literal({
+  type: 'array',
+  items: id,
+  maxItems: 1000,
+} as const);
+const name = TS.literal({ type: 'string', minLength: 1, maxLength: 50 } as const);
+const httpUrl = TS.literal({ type: 'string', format: 'http-url', maxLength: 1024 } as const);
 const datetime = TS.literal({
   instanceof: 'Date',
   // todo: low/mid extend JsonSchema with custom props
@@ -12,7 +21,7 @@ const SchemaConstants = TS.literal({
   // Core.
   id,
   idArr,
-  limit: { type: 'integer', minimum: 1, maximum: 30 },
+  limit: { type: 'integer', minimum: 1, maximum: MAX_PER_PAGE },
   cursor,
 
   // Standard.
@@ -60,14 +69,19 @@ const SchemaConstants = TS.literal({
     ...datetime,
     default: new Date(0),
   },
-  url,
+  httpUrl,
   emptyStr: { type: 'string', maxLength: 0 },
 
   // Framework-specific.
   content: { type: 'string', minLength: 1, maxLength: 2048 },
   contentOrEmpty: { type: ['string', 'null'], minLength: 0, maxLength: 2048 },
   title: { type: 'string', minLength: 1, maxLength: 100 },
-  name: { type: 'string', minLength: 1, maxLength: 50 },
+  name,
+  nameArr: {
+    type: 'array',
+    items: name,
+    maxItems: 1000,
+  },
   pagination: {
     type: 'object',
     required: ['items', 'hasCompleted'],
@@ -98,6 +112,7 @@ const SchemaConstants = TS.literal({
   },
   password: { type: 'string', minLength: 8, maxLength: 64 },
   dbEnum: { type: 'string', minLength: 1, maxLength: 30 },
+  modelType: { type: 'string', minLength: 1, maxLength: MODEL_TYPE_MAX_LENGTH },
   secretToken: {
     type: 'string',
     minLength: 1,
@@ -118,8 +133,7 @@ for (const val of Object.values(SchemaConstants)) {
         if (this.type) {
           return {
             ...this,
-            type: Array.isArray(this.type) ? [...this.type, 'null'] : [this.type, 'null'],
-            // @ts-ignore tsType
+            type: Array.isArray(this.type) ? this.type.concat(['null']) : [this.type, 'null'],
             ...(this.tsType ? { tsType: `${this.tsType} | null` } : null),
           };
         }
@@ -128,7 +142,6 @@ for (const val of Object.values(SchemaConstants)) {
             this,
             { type: 'null' },
           ],
-          // @ts-ignore tsType
           ...(this.tsType ? { tsType: `${this.tsType} | null` } : null),
         };
       },

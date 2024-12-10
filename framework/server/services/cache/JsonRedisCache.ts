@@ -13,9 +13,9 @@ export default class JsonRedisCache<T extends Json, T2 extends Json = T> extends
     super({
       ...props,
       serialize: obj => (
-        obj
-          ? TS.defined(JSON.stringify(serialize ? serialize(obj) : obj))
-          : 'null'
+        obj == null
+          ? 'null'
+          : TS.defined(JSON.stringify(serialize ? serialize(obj) : obj))
       ),
       unserialize: (json, key) => {
         if (!json) {

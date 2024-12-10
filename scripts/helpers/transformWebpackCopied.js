@@ -1,5 +1,5 @@
-import { APP_NAME, APP_NAME_LOWER } from '../../framework/shared/config/config.js';
-import { ASSETS_URL, BASE_PATH } from '../../framework/shared/consts/server.js';
+import { APP_NAME, APP_NAME_LOWER } from '../../app/shared/config/config.js';
+import { ASSETS_URL } from '../../framework/shared/consts/server.js';
 
 export default function transformWebpackCopied(content, absoluteFrom) {
   if (!['html', 'css', 'js', 'cjs', 'json', 'txt']
@@ -10,6 +10,5 @@ export default function transformWebpackCopied(content, absoluteFrom) {
     .toString()
     .replaceAll('%APP_NAME%', APP_NAME)
     .replaceAll('%APP_NAME_LOWER%', APP_NAME_LOWER)
-    .replaceAll('%BASE_PATH%', BASE_PATH)
     .replaceAll('%ASSETS_URL%', ASSETS_URL);
 }

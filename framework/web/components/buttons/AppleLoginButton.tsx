@@ -2,11 +2,12 @@ import { SignInWithApple } from '@capacitor-community/apple-sign-in';
 import AppleSvg from 'svgs/fa5/apple-brands.svg';
 
 import ApiError from 'core/ApiError';
-import { APPLE_SERVICE_ID } from 'config';
+import { APPLE_SERVICE_ID, APP_NAME } from 'config';
 import { HOME_URL } from 'consts/server';
-import ErrorBoundary from 'components/ErrorBoundary';
-import useEffectInitialMount from 'hooks/useEffectInitialMount';
+import ErrorBoundary from 'core/frame/ErrorBoundary';
+import useEffectInitialMount from 'utils/useEffectInitialMount';
 import detectPlatform from 'utils/detectPlatform';
+import { WEBVIEW_APP_LABEL } from 'utils/get3rdPartyWebviewFromUA';
 
 import styles from './AppleLoginButton.scss';
 
@@ -25,7 +26,9 @@ function AppleLoginButton({
 }: Props) {
   const [initialized, setInitialized] = useState(detectPlatform().isNative);
   const [signingIn, setSigningIn] = useState(false);
+  const initErr = useRef<Error | null>(null);
   const showToast = useShowToast();
+  const showConfirm = useShowConfirm();
   const ref = useRef({ name: '' });
 
   const { fetching, fetchApi: loginUser } = useDeferredApi(
@@ -41,13 +44,18 @@ function AppleLoginButton({
 
   useEffectInitialMount(() => {
     if (!detectPlatform().isNative) {
-      // @ts-ignore missing type
+      // @ts-expect-error missing type
       (SignInWithApple.loadSignInWithAppleJS as () => Promise<void>)()
         .then(() => {
           setInitialized(true);
+          initErr.current = null;
         })
         .catch(err => {
-          ErrorLogger.warn(err, { ctx: 'GoogleAuth.initialize' });
+          ErrorLogger.warn(err, { ctx: 'SignInWithApple.loadSignInWithAppleJS' });
+
+          if (err instanceof Error) {
+            initErr.current = err;
+          }
         });
     }
   });
@@ -58,6 +66,25 @@ function AppleLoginButton({
       LeftSvg={AppleSvg}
       label={type === 'login' ? 'Sign in with Apple' : 'Sign up with Apple'}
       onClick={async () => {
+        const platform = detectPlatform();
+        if (platform.webviewApp
+          && !await showConfirm({
+            title: `Continue in ${WEBVIEW_APP_LABEL[platform.webviewApp]}?`,
+            msg: `${APP_NAME} is currently running inside another app. If Sign in with Apple fails, please try again in a browser.`,
+            showCancel: true,
+          })) {
+          return;
+        }
+
+        if (disabled) {
+          showToast({
+            msg: initErr.current?.message
+              ? `Failed to initialize Sign in with Apple: ${initErr.current.message}`
+              : 'Failed to initialize Sign in with Apple',
+          });
+          return;
+        }
+
         setSigningIn(true);
 
         try {
@@ -73,7 +100,7 @@ function AppleLoginButton({
           console.log('Apple login:', response);
 
           if (response.email) {
-            onSubmitEmail(response.email);
+            onSubmitEmail(response.email ?? '');
           }
           // Name is available only the first time user logs in
           ref.current.name ||= TS.filterNulls([response.givenName, response.familyName]).join(' ');
@@ -83,9 +110,18 @@ function AppleLoginButton({
             jwt: response.identityToken,
           });
         } catch (err) {
-          ErrorLogger.warn(err, { ctx: 'SignInWithApple.authorize' });
-          if (err instanceof Error) {
-            showToast({ msg: err.message });
+          const msg = err instanceof Error
+            ? err.message
+            : (TS.isObj(err) && typeof err.error === 'string' ? err.error : null);
+          if (!msg?.includes('user canceled the sign-in flow')) {
+            ErrorLogger.warn(
+              err instanceof Error || !msg ? err : new Error(msg),
+              { ctx: 'SignInWithApple.authorize' },
+            );
+          }
+
+          if (msg) {
+            showToast({ msg });
           }
         }
         setSigningIn(false);
@@ -96,7 +132,6 @@ function AppleLoginButton({
         borderColor: '#ccc',
       }}
       className={styles.btn}
-      disabled={disabled}
     />
   );
 }

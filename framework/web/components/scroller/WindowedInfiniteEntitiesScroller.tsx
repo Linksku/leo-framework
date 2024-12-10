@@ -1,11 +1,13 @@
-import type { PaginatedEntitiesApiName } from 'hooks/api/usePaginationApi';
-import type { ShouldAddCreatedEntity } from 'stores/ApiStore';
-import usePaginationApi from 'hooks/api/usePaginationApi';
-import usePrevious from 'hooks/usePrevious';
+import type { PaginatedEntitiesApiName } from 'stores/api/usePaginationApi';
+import usePaginationApi from 'stores/api/usePaginationApi';
+import usePrevious from 'utils/usePrevious';
 
-import type { PaginatedApiReturn } from 'hooks/api/usePaginationApi';
-import type { ListItemRendererProps } from './WindowedInfiniteScrollerColumn';
-import WindowedInfiniteScrollerInner, { Props as InnerProps } from './WindowedInfiniteScrollerInner';
+import type { PaginationProps } from 'stores/api/usePaginationApi';
+import type { InnerProps, ScrollerProps } from './WindowedInfiniteScroller';
+
+const WindowedInfiniteScroller = reactLazy(() => import(
+  /* webpackChunkName: 'deferred' */ './WindowedInfiniteScroller'
+), null);
 
 type Props<
   T extends EntityType,
@@ -13,20 +15,14 @@ type Props<
 > = {
   apiName: Name,
   apiParams: Stable<ApiParams<Name>>,
-  apiCacheBreaker?: string,
-  apiInitialCursor?: string,
-  entityType: T,
-  throttleTimeout?: number,
-  maxItems?: number,
-  shouldAddCreatedEntity?: ShouldAddCreatedEntity<T>,
-  shouldRemoveDeletedEntity?: boolean,
+  apiEntityType: T,
+  paginationOpts?: Stable<Exclude<PaginationProps<T>, 'paginationEntityType'>>,
   columns?: number,
 } & Omit<
-  InnerProps<Entity<T>['id']>,
-  keyof PaginatedApiReturn<any>
-    | keyof ListItemRendererProps<Entity<T>['id']>
-    | 'origItems'
-    | 'apiError'
+  ScrollerProps<Entity<T>['id'], any>,
+  keyof InnerProps<string | number>
+    | 'ItemRenderer'
+    | 'otherItemProps'
 >;
 
 function WindowedInfiniteEntitiesScroller<
@@ -34,7 +30,7 @@ function WindowedInfiniteEntitiesScroller<
   Name extends PaginatedEntitiesApiName,
 >(
   props: Props<T, Name>
-    & ListItemRendererProps<Entity<T>['id']>
+    & Pick<ScrollerProps<Entity<T>['id'], any>, 'ItemRenderer'>
     & { otherItemProps?: undefined },
 ): ReactElement;
 
@@ -44,7 +40,7 @@ function WindowedInfiniteEntitiesScroller<
   OtherProps extends ObjectOf<any>,
 >(
   props: Props<T, Name>
-    & ListItemRendererProps<Entity<T>['id'], OtherProps>,
+    & Pick<ScrollerProps<Entity<T>['id'], OtherProps>, 'ItemRenderer' | 'otherItemProps'>
 ): ReactElement;
 
 // todo: low/hard reset state when apiParams changes so key prop isn't needed
@@ -54,20 +50,17 @@ function WindowedInfiniteEntitiesScroller<
 >({
   apiName,
   apiParams,
-  apiCacheBreaker,
-  apiInitialCursor,
-  entityType,
-  throttleTimeout,
-  maxItems,
-  shouldAddCreatedEntity,
-  shouldRemoveDeletedEntity = true,
+  apiEntityType,
+  paginationOpts,
   addedItems,
   deletedItems,
   columns = 1,
   ...props
-}: Props<T, Name> & ListItemRendererProps<Entity<T>['id']>) {
-  const prevCacheBreaker = usePrevious(apiCacheBreaker);
-  if (prevCacheBreaker && prevCacheBreaker !== apiCacheBreaker) {
+}: Props<T, Name>
+  & Pick<ScrollerProps<Entity<T>['id'], any>, 'ItemRenderer' | 'otherItemProps'>,
+): ReactElement {
+  const prevCacheBreaker = usePrevious(paginationOpts?.cacheBreaker);
+  if (prevCacheBreaker && prevCacheBreaker !== paginationOpts?.cacheBreaker) {
     ErrorLogger.warn(new Error(
       'WindowedInfiniteEntitiesScroller: apiCacheBreaker changed without key changing',
     ));
@@ -82,14 +75,8 @@ function WindowedInfiniteEntitiesScroller<
     isFirstFetch,
     fetchNext,
   } = usePaginationApi(apiName, apiParams, {
-    cacheBreaker: apiCacheBreaker,
-    initialCursor: apiInitialCursor,
-    throttleTimeout,
-    maxItems,
-    shouldAddCreatedEntity: shouldAddCreatedEntity as ShouldAddCreatedEntity<EntityType>,
-    shouldRemoveDeletedEntity,
-    paginationEntityType: entityType,
-    addEntitiesToEnd: props.addEntitiesToEnd,
+    paginationEntityType: apiEntityType,
+    ...paginationOpts,
   });
 
   const allDeletedIds = useMemo(
@@ -113,21 +100,20 @@ function WindowedInfiniteEntitiesScroller<
     }
 
     const itemsSet = new Set(items);
-    // todo: low/mid sort scroller entities
     const newAddedItems = markStable([...addedEntityIds, ...(addedItems ?? [])]
       .filter(id => !allDeletedIds.has(id) && !itemsSet.has(id)));
     return newAddedItems.length ? newAddedItems : EMPTY_ARR;
   }, [items, addedEntityIds, addedItems, allDeletedIds]);
 
   return (
-    <WindowedInfiniteScrollerInner
+    <WindowedInfiniteScroller
       key={columns}
       columns={columns}
       origItems={filteredItems}
       addedItems={filteredAddedItems}
       deletedItems={allDeletedIds}
       hasCompleted={hasCompleted}
-      apiError={error}
+      error={error}
       isFirstFetch={isFirstFetch}
       fetchNext={fetchNext}
       {...props}
@@ -135,4 +121,6 @@ function WindowedInfiniteEntitiesScroller<
   );
 }
 
-export default WindowedInfiniteEntitiesScroller;
+export default React.memo(
+  WindowedInfiniteEntitiesScroller,
+) as typeof WindowedInfiniteEntitiesScroller;

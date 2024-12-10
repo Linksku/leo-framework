@@ -21,9 +21,10 @@ export default async function initCheckPgExtensions() {
       continue;
     }
     missing.delete(row.extname);
+    const parsedVer = semver.coerce(row.extversion);
     const expectedVer = PG_EXTENSIONS[row.extname as keyof typeof PG_EXTENSIONS];
-    if (semver.lt(
-      TS.notNull(semver.coerce(row.extversion)),
+    if (!parsedVer || semver.lt(
+      parsedVer,
       expectedVer,
     )) {
       throw new Error(`initCheckPgExtensions: ${row.extname} ${row.extversion} < ${expectedVer}`);

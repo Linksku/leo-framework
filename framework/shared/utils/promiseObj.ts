@@ -1,13 +1,14 @@
 export default async function promiseObj<
   Obj extends ObjectOf<any>,
-  Ret extends {
-    [P in keyof Obj]: Awaited<Obj[P]>;
-  },
->(obj: Obj): Promise<Ret> {
+>(obj: Obj): Promise<{
+  [P in keyof Obj]: Awaited<Obj[P]>;
+}> {
   const entries = TS.objEntries(obj);
   const results = await Promise.all(entries.map(pair => pair[1]));
 
-  const newObj = Object.create(null) as Ret;
+  const newObj = Object.create(null) as {
+    [P in keyof Obj]: Awaited<Obj[P]>;
+  };
   for (let i = 0; i < entries.length; i++) {
     newObj[entries[i][0]] = results[i];
   }

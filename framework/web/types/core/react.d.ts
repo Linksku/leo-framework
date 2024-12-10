@@ -11,7 +11,8 @@ declare class __STABLE {
 type StableObjects =
   | Date
   | Error
-  | RegExp;
+  | RegExp
+  | File;
 
 type Stable<T> = T extends Primitive ? T
   : T extends StableObjects ? T
@@ -23,6 +24,7 @@ type StableTypes = Primitive
   | React.ComponentType<any>
   | React.MutableRefObject<any>
   | React.SVGFactory
+  | HTMLElement
   | __STABLE;
 
 type StableDependencyList = ReadonlyArray<StableTypes>;
@@ -136,3 +138,8 @@ declare function useLayoutEffect(
   effect: React.EffectCallback,
   deps?: StableDependencyList,
 ): void;
+
+declare function useTransition(): [
+  boolean,
+  Stable<React.TransitionStartFunction>,
+];

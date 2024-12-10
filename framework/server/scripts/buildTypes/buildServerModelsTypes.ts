@@ -3,10 +3,10 @@ import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { compile } from 'json-schema-to-typescript';
 
-import allModels, { ModelsArr, frameworkModels } from 'services/model/allModels';
-import Entity from 'services/model/Entity';
-import MaterializedView from 'services/model/MaterializedView';
-import VirtualModel from 'services/model/VirtualModel';
+import allModels, { ModelsArr, frameworkModels } from 'core/models/allModels';
+import Entity from 'core/models/Entity';
+import MaterializedView from 'core/models/MaterializedView';
+import VirtualModel from 'core/models/VirtualModel';
 
 const ModelBaseClasses = [
   MaterializedView,
@@ -27,9 +27,15 @@ async function getOutput(models: ModelsArr) {
     const fields = await compile(
       Model.jsonSchema as JsonSchema,
       'Foo',
-      { bannerComment: '' },
+      {
+        bannerComment: '',
+        maxItems: 2,
+      },
     );
     const clsName = path.basename(modelPath).split('.')[0];
+    const uniqueIndexes = Model.uniqueIndexes.map(
+      index => (Array.isArray(index) ? `['${index.join('\', \'')}']` : `'${index}'`),
+    );
     const modelStr = `class ${clsName} extends ${BaseClass.name} implements I${Model.name} {
   declare static type: '${Model.type}';
   declare static Interface: I${Model.name};
@@ -42,6 +48,10 @@ async function getOutput(models: ModelsArr) {
       ? `['${Model.primaryIndex.join('\', \'')}']`
       : `'${Model.primaryIndex}'`
   };
+  declare static uniqueIndexes: ${uniqueIndexes.length ? `[
+    ${uniqueIndexes.join(',\n    ')},
+  ]` : '[]'};
+  declare static requiredCols: ${Model.requiredCols.length ? `['${Model.requiredCols.join('\', \'')}']` : '[]'};
 
   declare cls: ${Model.name}Class;
   declare relations?: ModelRelationTypes['${Model.type}'];
@@ -68,9 +78,9 @@ type ${Model.name}Class = typeof ${clsName};`;
     }
   }
 
-  return `import Entity from 'services/model/Entity';
-import MaterializedView from 'services/model/MaterializedView';
-import VirtualModel from 'services/model/VirtualModel';
+  return `import Entity from 'core/models/Entity';
+import MaterializedView from 'core/models/MaterializedView';
+import VirtualModel from 'core/models/VirtualModel';
 
 ${localClasses.join('\n\n')}
 

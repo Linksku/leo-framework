@@ -64,9 +64,17 @@ const defaultRoutes: [
     ),
   ],
 
+  // Misc.
+  [
+    '/debug',
+    () => import(
+      /* webpackChunkName: 'DebugRoute' */ 'routes/DebugRoute'
+    ),
+  ],
+
   // 404.
   [
-    /.*/,
+    /.*/i,
     () => import(
       /* webpackChunkName: 'NotFoundRoute' */ 'routes/NotFoundRoute'
     ),

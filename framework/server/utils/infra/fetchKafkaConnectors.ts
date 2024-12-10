@@ -1,5 +1,5 @@
 import fetchJson from 'utils/fetchJson';
-import { KAFKA_CONNECT_HOST, KAFKA_CONNECT_PORT } from 'consts/infra';
+import { KAFKA_CONNECT_HOST, KAFKA_CONNECT_PORT } from 'consts/mz';
 import retry from 'utils/retry';
 
 export type ConnectorStatus = {
@@ -58,7 +58,7 @@ async function fetchKafkaConnectors(
   if (!expand
     && Array.isArray(connectors)
     && connectors.every((v: unknown) => typeof v === 'string')) {
-    return connectors.filter(c => (c as string).startsWith(prefix)) as string[];
+    return connectors.filter(c => c.startsWith(prefix));
   }
 
   if (connectors && typeof connectors === 'object') {

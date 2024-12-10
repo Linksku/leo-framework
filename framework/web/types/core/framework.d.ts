@@ -8,6 +8,10 @@ declare module '*.svg' {
   export default content;
 }
 
+interface Window {
+  __LAST_POPPED_STATE_ID__: number | null;
+}
+
 // Merge with lib.dom.d.ts
 interface RequestInit {
   priority?: 'high' | 'low' | 'auto';
@@ -28,6 +32,8 @@ interface Navigator {
     readonly show: () => void,
     readonly hide: () => void,
   };
+
+  readonly standalone?: boolean;
 }
 
 interface ScreenOrientation {
@@ -50,14 +56,11 @@ type HistoryState = Stable<{
   key: string,
 }>;
 
-type RouteConfig = Stable<StableShallow<{
-  pattern: string | RegExp,
-  importComponent: () => Promise<{ default: React.ComponentType<unknown> }>,
-  getComponent: () => React.LazyExoticComponent<React.ComponentType<unknown>>,
+type RouteConfig = Stable<{
+  pattern: Stable<string | RegExp>,
+  importComponent: Stable<() => Promise<{ default: React.ComponentType<unknown> }>>,
+  getComponent: Stable<() => React.LazyExoticComponent<React.ComponentType<unknown>>>,
   regexPrefix: string | null,
   homeTab?: string,
   auth?: boolean,
-  opts?: {
-    disableBackSwipe?: boolean,
-  },
-}>>;
+}>;

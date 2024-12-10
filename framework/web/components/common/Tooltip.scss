@@ -1,0 +1,55 @@
+.tooltip {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  z-index: $zIndexTooltip;
+  max-width: 60vw;
+  padding: 1rem;
+  background-color: $primaryColor;
+  border-radius: 10px;
+  color: #fff;
+  box-shadow: 0 1px 4px 0.5px rgb(0 0 0 / 40%);
+  text-shadow: 0 0 0.5px rgb(0 0 0 / 20%);
+}
+
+.shown {
+  display: block;
+  opacity: 1;
+}
+
+.hiding {
+  display: block;
+  opacity: 0;
+}
+
+.arrow {
+  position: absolute;
+  z-index: -1;
+  will-change: top, left, right, bottom;
+  background-color: $primaryColor;
+  transform: rotate(45deg);
+  height: 8px;
+  width: 8px;
+}
+
+.title {
+  overflow-wrap: break-word;
+  font-size: 1.1em;
+}
+
+.msg {
+  overflow-wrap: break-word;
+  white-space: pre-line;
+  overflow: hidden;
+  font-size: 1.05em;
+}
+
+.closeBtn {
+  padding: 5px;
+  margin-bottom: -5px;
+  text-align: right;
+}

@@ -1,4 +1,8 @@
-export default function truncateStr(str: string, maxLength: number, ellipsis = '…') {
+export default function truncateStr(
+  str: string,
+  maxLength: number,
+  ellipsis = '…',
+): string {
   if (str.length <= maxLength) {
     return str;
   }
@@ -8,7 +12,7 @@ export default function truncateStr(str: string, maxLength: number, ellipsis = '
     str.lastIndexOf(' '),
     str.lastIndexOf('\n'),
   );
-  if (lastIdx > maxLength * 0.9) {
+  if (lastIdx > (maxLength - ellipsis.length) * 0.9) {
     str = str.slice(0, lastIdx);
   }
   return str + ellipsis;

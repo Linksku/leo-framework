@@ -1,4 +1,4 @@
-// @ts-ignore no module types
+// @ts-expect-error no module types
 import _parsePrometheusTextFormat from 'parse-prometheus-text-format';
 
 import { MZ_HOST, MZ_PORT } from 'consts/infra';
@@ -16,8 +16,10 @@ const parsePrometheusTextFormat = _parsePrometheusTextFormat as (metrics: string
 export default async function fetchMZPrometheusFailingSinkIds() {
   const metricsRes = await promiseTimeout(
     fetch(`http://${MZ_HOST}:${MZ_PORT}/metrics`),
-    30 * 1000,
-    new Error('fetchMZPrometheusFailingSinkIds: fetch MZ metrics timed out'),
+    {
+      timeout: 30 * 1000,
+      getErr: () => new Error('fetchMZPrometheusFailingSinkIds: fetch MZ metrics timed out'),
+    },
   );
   if (metricsRes.status >= 400) {
     throw new Error(`fetchMZPrometheusFailingSinkIds: fetch MZ metrics failed: ${metricsRes.status}`);

@@ -1,15 +1,14 @@
 import type DataLoader from 'dataloader';
-import { IS_PROFILING_API } from 'consts/infra';
+import { IS_PROFILING_APIS } from 'config';
 
-import createDataLoader from 'core/createDataLoader';
-import stringify from 'utils/stringify';
+import createDataLoader from 'utils/createDataLoader';
 
 type ModelIdsDataLoader = DataLoader<
   ModelPartial<ModelClass>,
   (number | string | (number | string)[])[]
 >;
 
-const dataLoaders = new Map<string, ObjectOf<ModelIdsDataLoader>>();
+const dataLoaders = new Map<ModelType, ModelIdsDataLoader>();
 
 export default function getModelIdsDataLoader<T extends ModelClass>(
   Model: T,
@@ -17,29 +16,26 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
   ModelPartial<T>,
   (number | string | (number | string)[])[]
 > {
-  const typeDataLoaders = TS.mapValOrSetDefault(dataLoaders, Model.type, Object.create(null));
-  const primaryIndex = Model.getPrimaryIndex();
-  const primaryIndexArr = Array.isArray(primaryIndex) ? primaryIndex : [primaryIndex];
-  const indexStr = primaryIndexArr.join(',');
-  if (!typeDataLoaders[indexStr]) {
-    typeDataLoaders[indexStr] = createDataLoader(
+  if (!dataLoaders.has(Model.type)) {
+    const primaryIndex = Model.getPrimaryIndex();
+    const primaryIndexArr: string[] = Array.isArray(primaryIndex) ? primaryIndex : [primaryIndex];
+    dataLoaders.set(Model.type, createDataLoader(
       async (partials: readonly ModelPartial<T>[]) => {
         const startTime = performance.now();
 
-        const selectCols = new Set([
-          ...primaryIndexArr,
-          ...partials.flatMap(partial => Object.keys(partial)),
-        ]);
-        let query = modelQuery(Model).select([...selectCols]);
+        const selectCols = [...new Set(
+          primaryIndexArr.concat(partials.flatMap(partial => Object.keys(partial))),
+        )];
+        let query = modelQuery(Model).select(selectCols);
         for (const partial of partials) {
           query = query.orWhere(partial);
         }
         const rows = await query;
 
         const results = partials.map(partial => {
+          const entries = TS.objEntries(partial);
           const matchedRows = rows.filter(row => {
-            for (const pair of TS.objEntries(partial)) {
-              // @ts-ignore wontfix no overlap
+            for (const pair of entries) {
               if (row[pair[0]] !== pair[1]) {
                 return false;
               }
@@ -68,7 +64,7 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
               && typeof row[primaryIndex] !== 'number'
               && typeof row[primaryIndex] !== 'string') {
               throw getErr(
-                `getModelIdsDataLoader(${Model.type}): ${stringify(primaryIndex)} isn't a number or string`,
+                `getModelIdsDataLoader(${Model.type}): ${primaryIndex} isn't a number or string`,
                 {
                   val: row[primaryIndex],
                   valType: typeof row[primaryIndex],
@@ -79,20 +75,20 @@ export default function getModelIdsDataLoader<T extends ModelClass>(
           });
         });
 
-        if (IS_PROFILING_API) {
+        if (IS_PROFILING_APIS) {
           // eslint-disable-next-line no-console
-          console.log(`modelIdsDataLoader(${Model.type}): ${results.length} ${pluralize('result', results.length)} in ${Math.round(performance.now() - startTime)}ms`);
+          console.log(`modelIdsDataLoader(${Model.type}): ${results.length} ${plural('result', results.length)} in ${Math.round(performance.now() - startTime)}ms`);
         }
 
         return results;
       },
       {
-        objKeys: true,
+        cacheKeyFn: key => Model.stringify(key),
         maxBatchSize: 100,
       },
-    );
+    ));
   }
-  return typeDataLoaders[indexStr] as DataLoader<
+  return dataLoaders.get(Model.type) as DataLoader<
     ModelPartial<T>,
     (number | string | (number | string)[])[]
   >;

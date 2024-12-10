@@ -1,14 +1,13 @@
 * {
   box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
 }
 
 html,
 body {
+  overflow: hidden;
   // Doesn't work in iOS: https://bugs.webkit.org/show_bug.cgi?id=176454
   // stylelint-disable-next-line plugin/no-unsupported-browser-features
-  overscroll-behavior-y: none;
-  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 html {
@@ -26,19 +25,14 @@ html {
     font-size: 10px;
   }
 
-  @include gtSm {
+  @include gtMd {
     // stylelint-disable-next-line declaration-property-unit-allowed-list
     font-size: 11px;
   }
 
-  @include gtMd {
-    // stylelint-disable-next-line declaration-property-unit-allowed-list
-    font-size: 12px;
-  }
-
   @include gtLg {
     // stylelint-disable-next-line declaration-property-unit-allowed-list
-    font-size: 13px;
+    font-size: 12px;
   }
 }
 
@@ -48,6 +42,12 @@ body {
   padding-top: $offsetTop;
   // Matches iOS show keyboard animation
   transition: padding-top 0.2s ease-out;
+  // For iOS, copied from @capacitor/text-zoom. Android version is in MainActivity.java
+  // todo: mid/hard text-size-adjust doesn't work for Messenger webview
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  text-size-adjust: 100%;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features, property-no-vendor-prefix
+  -webkit-text-size-adjust: 100%;
 }
 
 h1,
@@ -90,24 +90,20 @@ strong {
   font-weight: 500;
 }
 
-label[for] {
-  display: inline-block;
-  margin-bottom: 1rem;
-}
-
 a,
 [role=button],
 [role=link],
 [tabindex],
 button,
-input[type=button],
-input[type=submit],
-input[type=reset],
-input[type=checkbox],
-input[type=radio],
-input[type=file],
+[type=button],
+[type=submit],
+[type=reset],
+[type=checkbox],
+[type=radio],
+[type=file],
 select,
 label {
+  -webkit-tap-highlight-color: transparent;
   cursor: pointer;
 }
 
@@ -116,7 +112,8 @@ a,
 img {
   // stylelint-disable-next-line property-no-unknown
   user-drag: none;
-  user-select: none;
+  // autoprefixer doesn't add -webkit-user-drag
+  -webkit-user-drag: none;
 }
 
 a,
@@ -124,6 +121,16 @@ a,
   color: inherit;
   text-decoration: none;
   outline: none;
+}
+
+a {
+  user-select: none;
+}
+
+[type=submit],
+[type=submit]:active {
+  // Override Safari: https://trac.webkit.org/browser/trunk/Source/WebCore/css/html.css
+  font-weight: 400;
 }
 
 p {
@@ -151,6 +158,7 @@ table {
 
 th {
   text-align: left;
+  font-weight: 500;
 }
 
 td,
@@ -229,4 +237,8 @@ textarea {
 // iOS date input
 ::-webkit-date-and-time-value {
   text-align: left;
+}
+
+img {
+  image-orientation: from-image;
 }

@@ -1,13 +1,19 @@
-import type { ValidateFunction } from 'ajv';
+import type { CookieOptions } from 'express-serve-static-core';
+
+type ApiCookieName = 'authToken';
 
 declare global {
   type ApiRouteRet<Name extends ApiName> = Pick<
     ApiSuccessResponse<Name>,
     'data' | 'deletedIds'
   > & {
-    entities?: Model[];
-    createdEntities?: Model[];
-    updatedEntities?: Model[];
+    entities?: Model[],
+    createdEntities?: Model[],
+    updatedEntities?: Model[],
+    cookies?: Partial<Record<
+      ApiCookieName,
+      { val: string, opts: CookieOptions } | null
+    >>
   };
 
   type ApiConfig<Name extends ApiName> = {
@@ -28,6 +34,7 @@ declare global {
     },
     fileFields?: {
       name: (keyof ApiNameToParams[Name]) & string,
+      type: 'image' | 'video' | 'imageVideo',
       maxCount: number,
     }[],
   };
@@ -39,13 +46,10 @@ declare global {
 
   type ApiHandler<Name extends ApiName> = (
     params: ApiHandlerParams<Name>,
-    res: ExpressResponse,
   ) => ApiRouteRet<Name> | Promise<ApiRouteRet<Name>>;
 
   type ApiDefinition<Name extends ApiName> = {
     config: ApiConfig<Name>,
-    validateParams: ValidateFunction,
-    validateData?: ValidateFunction,
     handler: ApiHandler<Name>,
   };
 }

@@ -15,20 +15,29 @@ export default function GeolocateButton({
   color,
 }: Props) {
   const showAlert = useShowAlert();
+  const [fetching, setFetching] = useState(false);
 
   return (
     <LocationSvg
       onClick={async () => {
+        if (fetching) {
+          return;
+        }
+        setFetching(true);
+
         try {
           const {
             coords: { latitude, longitude },
           } = await promiseTimeout(
             Geolocation.getCurrentPosition({
               // Doesn't seem to work
-              timeout: 5000,
+              timeout: 20 * 1000,
             }),
-            5000,
-            new Error('Timed out'),
+            // Includes time to approve permissions
+            {
+              timeout: 20 * 1000,
+              getErr: () => new Error('Timed out'),
+            },
           );
           onGeolocate(latitude, longitude);
         } catch (err) {
@@ -52,9 +61,12 @@ export default function GeolocateButton({
             msg,
           });
         }
+        setFetching(false);
       }}
-      className={styles.svg}
-      style={{ color }}
+      className={cx(styles.svg, {
+        [styles.fetching]: fetching,
+      })}
+      style={{ fill: color }}
       role="button"
       tabIndex={0}
     />

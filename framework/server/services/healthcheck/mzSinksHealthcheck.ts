@@ -1,4 +1,4 @@
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import knexMZ from 'services/knex/knexMZ';
 import { MZ_SINK_PREFIX } from 'consts/mz';
 import { redisMaster } from 'services/redis';
@@ -10,7 +10,7 @@ import { addHealthcheck } from './HealthcheckManager';
 // E.g. ERROR mz_dataflow::compute::render::reduce: [customer-data] Non-positive accumulation in MinsMaxesHierarchical: key: (Row{[String("u183")]}, 26896)        value: [Row{[Int64(1673675639999)]}]
 // ERROR mz_dataflow::compute::render::reduce: [customer-data] Negative accumulation in ReduceMinsMaxes: [Row{[Int64(1674116761699)]}] with count -1
 addHealthcheck('mzSinks', {
-  cb: async function mzSinksHealthcheck() {
+  run: async function mzSinksHealthcheck() {
     if (await redisMaster.exists(RECREATE_MZ_SINKS_REDIS_KEY)) {
       return;
     }

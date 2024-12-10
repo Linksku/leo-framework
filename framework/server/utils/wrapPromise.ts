@@ -4,7 +4,12 @@ export default function wrapPromise<T extends Promise<any>>(
   ctx?: string,
 ): void {
   promise
-    .catch(err => ErrorLogger[severity](err, { ctx }))
+    .catch(err => {
+      if (ctx) {
+        return ErrorLogger[severity](err, { ctx });
+      }
+      return ErrorLogger[severity](err);
+    })
     .catch(err => {
       // eslint-disable-next-line no-console
       console.log(err);

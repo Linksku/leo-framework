@@ -1,4 +1,4 @@
-import useRegisterPushNotifs from 'hooks/useRegisterPushNotifs';
+import useRegisterPushNotifs from 'features/notifs/useRegisterPushNotifs';
 
 export default function RegisterPushNotifsHandler() {
   useRegisterPushNotifs();

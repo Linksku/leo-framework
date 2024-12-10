@@ -1,6 +1,6 @@
-import useLongPress from 'hooks/useLongPress';
+import useLongPress from 'utils/useLongPress';
 import mergeRefs from 'utils/mergeRefs';
-import useCopyText from 'hooks/useCopyText';
+import useCopyText from 'utils/useCopyText';
 
 import styles from './TruncatedText.scss';
 
@@ -12,7 +12,7 @@ export default function TruncatedText({
   className,
   children,
 }: React.PropsWithChildren<{
-  text: string,
+  text?: string,
   lines?: number,
   Element?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5',
   copyText?: boolean,
@@ -22,6 +22,10 @@ export default function TruncatedText({
   const showToast = useShowToast();
   const copy = useCopyText();
   const longPressRef = useLongPress(() => {
+    if (!text) {
+      return;
+    }
+
     const hasOverflowed = !!elemRef.current && (
       elemRef.current.scrollWidth > elemRef.current.clientWidth
       || (lines > 1 && elemRef.current.scrollHeight > elemRef.current.clientHeight)

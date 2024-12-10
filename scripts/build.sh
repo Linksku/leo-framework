@@ -8,6 +8,8 @@ export SERVER=$BUILD_SERVER
 mkdir -p build
 rm -rf build/production
 
+# todo: low/easy update caniuse-lite automatically
+
 yarn build:types
 npx concurrently \
   "node --experimental-specifier-resolution=node \

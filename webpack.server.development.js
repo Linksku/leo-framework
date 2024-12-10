@@ -1,5 +1,5 @@
-import CopyPlugin from 'copy-webpack-plugin';
 import path from 'path';
+import CopyPlugin from 'copy-webpack-plugin';
 import nodeExternals from 'webpack-node-externals';
 
 import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
@@ -53,5 +53,5 @@ export default mergeReplaceArrays(baseConfig, {
       importType: 'module',
     }),
   ],
-  devtool: 'cheap-module-source-map',
+  // devtool: 'cheap-module-source-map',
 });

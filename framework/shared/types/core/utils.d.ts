@@ -14,17 +14,6 @@ type DeepReadonly<T> = T extends Primitive ? T
     [K in keyof T]: DeepReadonly<T[K]>;
   }>;
 
-type Mutable<T> = T extends Primitive ? T
-  : T extends Set<infer U> ? Set<Mutable<U>>
-  : T extends ReadonlySet<infer U> ? Set<Mutable<U>>
-  : T extends Map<infer K, infer V> ? Map<K, Mutable<V>>
-  : T extends ReadonlyMap<infer K, infer V> ? Map<K, Mutable<V>>
-  : T extends BuiltInObjects ? T
-  : (keyof T) extends never ? T
-  : {
-    -readonly [K in keyof T]: Mutable<T[K]>;
-  };
-
 type StrictlyEmptyObj = Record<string, never>;
 
 type Primitive =
@@ -66,6 +55,15 @@ interface Constructor<T> extends Function { new (...args: any[]): T; }
 type RequiredKeys<T> = {
   // eslint-disable-next-line @typescript-eslint/ban-types
   [K in keyof T]-?: {} extends Pick<T, K> ? never : K;
+}[keyof T];
+
+type RequiredDefinedKeys<T> = {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  [K in keyof T]-?: {} extends Pick<T, K>
+    ? never
+    : undefined extends T[K]
+      ? never
+      : K;
 }[keyof T];
 
 type OptionalKeys<T> = Exclude<{

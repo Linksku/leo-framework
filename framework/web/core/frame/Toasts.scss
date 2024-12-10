@@ -1,0 +1,30 @@
+.toastWrap {
+  position: fixed;
+  bottom: 7rem;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: $zIndexToast;
+}
+
+.toast {
+  position: absolute;
+  bottom: 0;
+  max-width: 80%;
+  background-color: rgb(64 64 64 / 95%);
+  border-radius: 10px;
+  box-shadow: 0 0 4px rgb(0 0 0 / 40%);
+  color: #fff;
+  padding: 1.2rem 1.4rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+  overflow-wrap: break-word;
+  white-space: pre-line;
+
+  &.visible {
+    @include fadeIn(0.2s);
+
+    opacity: 1;
+  }
+}

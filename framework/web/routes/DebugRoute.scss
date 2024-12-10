@@ -1,0 +1,31 @@
+.topWrap {
+  @extend %scrollableY;
+
+  padding: 1rem $containerPadding;
+}
+
+.withDebugLog {
+  height: calc(var(--vh100, 100vh) / 2);
+  flex-shrink: 0;
+}
+
+.envBtns {
+  display: flex;
+  gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+.sectionTitle {
+  margin-top: 2rem;
+}
+
+.debugLog {
+  @extend %scrollableY;
+
+  padding: 1rem $containerPadding;
+  flex-grow: 1;
+
+  p {
+    margin-bottom: 3px;
+  }
+}

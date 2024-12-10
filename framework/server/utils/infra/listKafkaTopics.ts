@@ -1,15 +1,15 @@
-import kafkaAdmin from 'services/kafkaAdmin';
+import getKafkaAdmin from 'services/getKafkaAdmin';
 import randInt from 'utils/randInt';
 
 export default async function listKafkaTopics(prefixOrRegex: string | RegExp) {
   try {
     // Force refetch topics
-    await kafkaAdmin.fetchTopicMetadata({
+    await getKafkaAdmin().fetchTopicMetadata({
       topics: [`${randInt(0, Number.MAX_SAFE_INTEGER)}`],
     });
   } catch {}
 
-  const topics = await kafkaAdmin.listTopics();
+  const topics = await getKafkaAdmin().listTopics();
   return topics
     .filter(topic => (
       typeof prefixOrRegex === 'string'

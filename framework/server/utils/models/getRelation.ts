@@ -1,4 +1,4 @@
-import type { ModelRelation } from 'services/model/helpers/modelRelations';
+import type { ModelRelation } from 'core/models/modelRelations';
 
 export default function getRelation(
   modelType: ModelType,

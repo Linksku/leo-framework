@@ -1,4 +1,4 @@
-import { useAddPopHandler } from './HistoryStore';
+import { addPopHandler, removePopHandler } from 'stores/history/HistoryStore';
 
 export type Alert = {
   id: number,
@@ -27,9 +27,16 @@ export const [
   useShowConfirm,
 ] = constate(
   function AlertsStore() {
-    const [alerts, setAlerts] = useState([] as Alert[]);
-    const shownRef = useRef(!!alerts.length);
-    const addPopHandler = useAddPopHandler();
+    const [alerts, setAlerts] = useState<Alert[]>(EMPTY_ARR);
+    const shownRef = useRef(false);
+
+    const handlePopHistory = useCallback(() => {
+      if (shownRef.current) {
+        setAlerts(EMPTY_ARR);
+        return true;
+      }
+      return false;
+    }, []);
 
     const showAlert = useCallback(({
       title = '',
@@ -50,33 +57,40 @@ export const [
       const alertId = _nextAlertId;
       _nextAlertId++;
 
-      setAlerts(arr => [...arr, {
-        id: alertId,
-        title,
-        msg: typeof msg === 'string'
-          ? msg
-          : React.cloneElement(msg, { key: alertId }),
-        textAlign,
-        closeable,
-        closeAfter,
-        showOk,
-        okText,
-        okBtnProps,
-        onOk,
-        showCancel,
-        cancelText,
-        cancelBtnProps,
-        onClose,
-        onCancel,
-      }]);
-
-      addPopHandler(() => {
-        if (shownRef.current) {
-          setAlerts([]);
-          return true;
+      setAlerts(arr => {
+        const lastAlert = arr.at(-1);
+        if (lastAlert && lastAlert.title === title && lastAlert.msg === msg) {
+          if (!process.env.PRODUCTION) {
+            ErrorLogger.warn(new Error('AlertsStore: ignored duplicate alert'));
+          }
+          return arr;
         }
-        return false;
+
+        return [
+          ...arr,
+          {
+            id: alertId,
+            title,
+            msg: typeof msg === 'string'
+              ? msg
+              : React.cloneElement(msg, { key: alertId }),
+            textAlign,
+            closeable,
+            closeAfter,
+            showOk,
+            okText,
+            okBtnProps,
+            onOk,
+            showCancel,
+            cancelText,
+            cancelBtnProps,
+            onClose,
+            onCancel,
+          },
+        ];
       });
+
+      addPopHandler(handlePopHistory);
 
       if (closeAfter !== null) {
         setTimeout(() => {
@@ -85,7 +99,10 @@ export const [
           });
         }, closeAfter);
       }
-    }, [setAlerts, addPopHandler]);
+
+      const titleOrMsg = title || (typeof msg === 'string' ? msg : null);
+      EventLogger.track('Alert', { titleOrMsg });
+    }, [handlePopHistory]);
 
     const showConfirm = useCallback((
       props: Partial<Omit<Alert, 'id'>>,
@@ -102,8 +119,10 @@ export const [
     }), [showAlert]);
 
     const hideLastAlert = useCallback(() => {
-      setAlerts(arr => arr.slice(0, -1));
-    }, [setAlerts]);
+      setAlerts(arr => (arr.length <= 1 ? EMPTY_ARR : arr.slice(0, -1)));
+
+      removePopHandler(handlePopHistory);
+    }, [handlePopHistory]);
 
     const hasAlerts = alerts.length > 0;
     useEffect(() => {

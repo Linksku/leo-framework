@@ -1,0 +1,42 @@
+.container {
+  display: block;
+}
+
+.withLabel {
+  padding-top: 2.5rem;
+  position: relative;
+}
+
+.label {
+  @extend %label;
+
+  display: inline-block;
+  position: absolute;
+  top: 0;
+}
+
+.mediaWrap {
+  position: relative;
+}
+
+.input {
+  display: none;
+}
+
+.delete {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.5rem;
+
+  svg {
+    display: block;
+    height: 2rem;
+    width: 2rem;
+    fill: #fff;
+    background: radial-gradient(circle, rgb(0 0 0 / 70%) 0%, rgb(0 0 0 / 70%) 60%, rgb(0 0 0 / 0%) 75%);
+    box-shadow: 0 0 2px rgb(0 0 0 / 5%), 0 0 1px rgb(0 0 0 / 20%);
+    opacity: 0.9;
+    border-radius: 50%;
+  }
+}

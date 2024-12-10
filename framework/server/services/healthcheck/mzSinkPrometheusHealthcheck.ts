@@ -2,7 +2,7 @@ import fetchMZPrometheusFailingSinkIds from 'scripts/monitorInfra/helpers/fetchM
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('mzSinkPrometheus', {
-  cb: async function mzSinkPrometheusHealthcheck() {
+  run: async function mzSinkPrometheusHealthcheck() {
     const failing = await fetchMZPrometheusFailingSinkIds();
     if (failing.length) {
       throw getErr(

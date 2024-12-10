@@ -1,13 +1,25 @@
-import StackWrapInner from 'components/frame/stack/StackWrapInner';
+import StackWrapInnerTopBar from 'core/frame/stack/StackWrapInnerTopBar';
 
-export default React.memo(function LoadingStackInnerRoute() {
+// eslint-disable-next-line css-modules/no-unused-class
+import styles from '../core/frame/stack/StackWrapInner.scss';
+
+export default React.memo(function LoadingStackInnerRoute({ title, placeholder }: {
+  title?: string,
+  placeholder?: ReactNode,
+}) {
   return (
-    <StackWrapInner
-      title=""
-    >
-      <Spinner
-        verticalMargin={30}
-      />
-    </StackWrapInner>
+    <div className={styles.container}>
+      <div className={styles.topBarWrap}>
+        <StackWrapInnerTopBar
+          title={title}
+          disableReload
+        />
+      </div>
+      {placeholder ?? (
+        <Spinner
+          verticalMargin={30}
+        />
+      )}
+    </div>
   );
 });

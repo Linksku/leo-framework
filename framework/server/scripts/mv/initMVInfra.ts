@@ -4,7 +4,7 @@ import createDBZReplicationSlots from './steps/createDBZReplicationSlots';
 import createRRSubscription from './steps/createRRSubscription';
 import initMZ from './initMZ';
 
-export default function initMVInfra() {
+export default function initMVInfra(args?: Parameters<typeof initMZ>[0]) {
   return initInfraWrap(async () => {
     await Promise.all([
       withErrCtx(createBTPublications(), 'initMVInfra: createBTPublications'),
@@ -12,6 +12,6 @@ export default function initMVInfra() {
     ]);
     await withErrCtx(createRRSubscription(), 'initMVInfra: createRRSubscription');
 
-    await initMZ();
+    await initMZ(args);
   });
 }

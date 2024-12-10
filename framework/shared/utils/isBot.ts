@@ -2,7 +2,7 @@ let memo: boolean | null = null;
 
 const BOTS_REGEX = /bot|crawler|crawling|spider|facebookexternalhit|slurp/i;
 
-export default function isBot(ua?: Nullish<string>) {
+export default function isBot(ua?: Nullish<string>): boolean {
   if (typeof window !== 'undefined' && memo !== null) {
     return memo;
   }

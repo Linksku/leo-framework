@@ -1,5 +1,5 @@
 import type { Router } from 'express';
 
-export default (_router: Router) => {
+export default function addApiRoutes(_router: Router) {
   // pass
-};
+}

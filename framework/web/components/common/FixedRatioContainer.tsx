@@ -6,10 +6,15 @@ export type Props = {
   heightPercent?: number,
   widthPercent?: number,
   ratio?: number,
-  padding?: number | string,
-  borderRadius?: number | string,
-  overflow?: 'hidden' | 'visible',
   className?: string,
+  overrides?: Pick<
+    React.CSSProperties,
+    | 'backgroundColor'
+    | 'borderRadius'
+    | 'padding'
+    | 'position'
+    | 'overflow'
+  >,
 };
 
 export default function FixedRatioContainer({
@@ -19,21 +24,20 @@ export default function FixedRatioContainer({
   heightPercent,
   widthPercent,
   ratio,
-  padding = 0,
-  borderRadius,
-  overflow,
   className,
+  overrides: {
+    padding = 0,
+    ...overrides
+  } = {},
 }: React.PropsWithChildren<Props>) {
-  const containerStyles: {
-    height: string | undefined,
-    width: string | undefined,
-    paddingBottom: string | undefined,
-    borderRadius: number | string | undefined,
-  } = {
+  const containerStyles: Pick<
+    React.CSSProperties,
+    'height' | 'width' | 'paddingBottom' | 'borderRadius'
+  > = {
     height: undefined,
     width: '100%',
     paddingBottom: '100%',
-    borderRadius,
+    borderRadius: overrides?.borderRadius,
   };
   if (height && width) {
     containerStyles.height = typeof height === 'number' ? `${height}px` : height;
@@ -48,11 +52,13 @@ export default function FixedRatioContainer({
     throw new Error('FixedRatioContainer: missing dimensions');
   }
 
-  padding = padding && typeof padding === 'number' ? `${padding}px` : padding;
   return (
     <div
       className={cx(styles.container, className)}
-      style={containerStyles}
+      style={{
+        ...overrides,
+        ...containerStyles,
+      }}
     >
       <div
         className={styles.inner}
@@ -61,8 +67,8 @@ export default function FixedRatioContainer({
           left: padding,
           right: padding,
           bottom: padding,
-          borderRadius: padding ? undefined : borderRadius,
-          overflow,
+          borderRadius: padding ? undefined : overrides?.borderRadius,
+          overflow: overrides?.overflow,
         }}
       >
         {children}

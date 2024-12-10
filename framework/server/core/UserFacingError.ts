@@ -1,9 +1,3 @@
-export default class UserFacingError extends Error {
-  status: number;
+import ApiError from 'core/ApiError';
 
-  constructor(msg: string, status: number, debugCtx?: ObjectOf<any>) {
-    super(msg);
-    this.status = status;
-    this.debugCtx = debugCtx;
-  }
-}
+export default class UserFacingError extends ApiError {}

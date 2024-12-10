@@ -1,5 +1,5 @@
 import throttledPromiseAll from 'utils/throttledPromiseAll';
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import { MZ_SINK_PREFIX } from 'consts/mz';
 import { RECREATE_MZ_SINKS_LOCK_NAME, RECREATE_MZ_SINKS_REDIS_KEY } from 'consts/infra';
 import knexMZ from 'services/knex/knexMZ';

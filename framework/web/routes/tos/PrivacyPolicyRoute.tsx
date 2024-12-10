@@ -1,6 +1,5 @@
-/* eslint-disable max-len */
 /* eslint-disable react/jsx-one-expression-per-line */
-import StackWrapInner from 'components/frame/stack/StackWrapInner';
+import StackWrapInner from 'core/frame/stack/StackWrapInner';
 import SupportEmail from 'components/SupportEmail';
 import { APP_NAME } from 'config';
 import { HOME_URL, DOMAIN_NAME } from 'consts/server';

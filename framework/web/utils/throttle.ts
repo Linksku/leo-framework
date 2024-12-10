@@ -1,7 +1,5 @@
 type Opts = {
   timeout: number,
-  restartTimerAfterFinished?: boolean,
-  allowSchedulingDuringDelay?: boolean,
   debounce?: boolean,
   disabled?: boolean,
 };
@@ -21,8 +19,6 @@ function createThrottle(
     fn: (...args: Args) => void | Promise<void>,
     {
       timeout,
-      restartTimerAfterFinished = true,
-      allowSchedulingDuringDelay = true,
       debounce = false,
       disabled = false,
     }: Opts,
@@ -39,30 +35,19 @@ function createThrottle(
         return;
       }
 
-      if (!restartTimerAfterFinished) {
-        current.lastRunTime = performance.now();
-        const res = fn.apply(current.lastCtx, current.lastArgs as Args);
-        if (res instanceof Promise) {
-          res.catch(err => ErrorLogger.warn(err, {
+      const res = fn.apply(current.lastCtx, current.lastArgs as Args);
+      if (res instanceof Promise) {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        res
+          .catch(err => ErrorLogger.warn(err, {
             ctx: 'throttle',
             fnName: fn.name,
-          }));
-        }
+          }))
+          .then(() => {
+            current.lastRunTime = performance.now();
+          });
       } else {
-        const res = fn.apply(current.lastCtx, current.lastArgs as Args);
-        if (res instanceof Promise) {
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          res
-            .catch(err => ErrorLogger.warn(err, {
-              ctx: 'throttle',
-              fnName: fn.name,
-            }))
-            .then(() => {
-              current.lastRunTime = performance.now();
-            });
-        } else {
-          current.lastRunTime = performance.now();
-        }
+        current.lastRunTime = performance.now();
       }
     }
 
@@ -85,19 +70,11 @@ function createThrottle(
           current.timer = window.setTimeout(run, timeout);
         }
       } else if (!current.timer) {
-        if (allowSchedulingDuringDelay) {
-          const delay = Math.max(0, timeout - (performance.now() - current.lastRunTime));
-          if (delay === 0) {
-            run();
-          } else {
-            current.timer = window.setTimeout(run, delay);
-          }
-        } else if (performance.now() - current.lastRunTime >= timeout) {
-          if (timeout === 0) {
-            run();
-          } else {
-            current.timer = window.setTimeout(run, timeout);
-          }
+        const delay = Math.max(0, timeout - (performance.now() - current.lastRunTime));
+        if (delay === 0) {
+          run();
+        } else {
+          current.timer = window.setTimeout(run, delay);
         }
       }
     };

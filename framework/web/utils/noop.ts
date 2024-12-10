@@ -1,2 +1,2 @@
 // eslint-disable-next-line @typescript-eslint/no-empty-function
-export default markStable(() => {});
+export default (() => {}) as Stable<() => void>;

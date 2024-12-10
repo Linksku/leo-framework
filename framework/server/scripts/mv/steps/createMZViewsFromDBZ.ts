@@ -1,4 +1,4 @@
-import EntityModels from 'services/model/allEntityModels';
+import EntityModels from 'core/models/allEntityModels';
 import {
   DBZ_FOR_UPDATEABLE,
   DBZ_FOR_INSERT_ONLY,
@@ -25,6 +25,7 @@ export default async function createMZViewsFromDBZ() {
     updateableModels.length
       ? withErrCtx(
         createMZSourcesFromKafka(updateableModels, {
+          service: 'dbz',
           topicPrefix: DBZ_TOPIC_UPDATEABLE_PREFIX,
           insertOnly: false,
         }),
@@ -34,6 +35,7 @@ export default async function createMZViewsFromDBZ() {
     insertOnlyModels.length
       ? withErrCtx(
         createMZSourcesFromKafka(insertOnlyModels, {
+          service: 'dbz',
           topicPrefix: DBZ_TOPIC_INSERT_ONLY_PREFIX,
           insertOnly: true,
         }),

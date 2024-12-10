@@ -1,7 +1,8 @@
-import useLatest from 'hooks/useLatest';
+import useLatest from 'utils/useLatest';
 import { useHadRouteBeenActive } from 'stores/RouteStore';
-import useRefInitialState from 'hooks/useRefInitialState';
+import useRefInitialState from 'utils/useRefInitialState';
 import isBot from 'utils/isBot';
+import ErrorBoundary from 'core/frame/ErrorBoundary';
 
 import styles from './WindowedInfiniteScrollerColumn.scss';
 
@@ -15,7 +16,7 @@ export type Row<ItemType extends string | number> = {
   height?: number | null,
 };
 
-export type ItemProps<ItemType extends string | number> = {
+export type ItemRendererProps<ItemType extends string | number> = {
   item: ItemType,
   aboveItem: ItemType | undefined,
   belowItem: ItemType | undefined,
@@ -24,18 +25,10 @@ export type ItemProps<ItemType extends string | number> = {
   hasRightColumn: boolean,
 };
 
-export type ListItemRendererProps<
+type ItemProps<
   ItemType extends string | number,
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  OtherProps extends ObjectOf<any> = {},
+  OtherItemProps extends ObjectOf<any>,
 > = {
-  otherItemProps?: Stable<OtherProps>,
-  ItemRenderer:
-    React.MemoExoticComponent<React.ComponentType<ItemProps<ItemType> & OtherProps>>
-    | React.NamedExoticComponent<ItemProps<ItemType> & OtherProps>,
-};
-
-type ListItemProps<ItemType extends string | number> = {
   item: ItemType,
   aboveItem: ItemType | undefined,
   belowItem: ItemType | undefined,
@@ -49,11 +42,15 @@ type ListItemProps<ItemType extends string | number> = {
   onInnerLoad: Stable<(item: ItemType, height: number | null) => void>,
   onUnmount: Stable<(item: ItemType) => void>,
   scrollParentRelative: Stable<(px: number) => void>,
-} & ListItemRendererProps<ItemType>;
+  otherItemProps?: Stable<OtherItemProps>,
+  ItemRenderer:
+    React.MemoExoticComponent<React.ComponentType<
+      ItemRendererProps<ItemType> & OtherItemProps
+    >>
+    | React.NamedExoticComponent<ItemRendererProps<ItemType> & OtherItemProps>,
+};
 
-function _WindowedInfiniteScrollerListItem<
-  ItemType extends string | number,
->({
+function WindowedInfiniteScrollerListItem<ItemType extends string | number>({
   item,
   aboveItem,
   belowItem,
@@ -69,7 +66,7 @@ function _WindowedInfiniteScrollerListItem<
   onInnerLoad,
   onUnmount,
   scrollParentRelative,
-}: ListItemProps<ItemType>) {
+}: ItemProps<ItemType, any>) {
   const [visible, setVisible] = useState(defaultVisible);
   const [block, setBlock] = useState(defaultBlock);
 
@@ -78,15 +75,19 @@ function _WindowedInfiniteScrollerListItem<
     innerRef: null as HTMLDivElement | null,
     outerRef: null as HTMLDivElement | null,
     resizeObserver: new ResizeObserver(entries => {
+      const { innerRef, outerRef } = ref.current;
+      if (!innerRef || !outerRef) {
+        return;
+      }
+
       for (const entry of entries) {
-        if (entry.borderBoxSize) {
+        const { height: prevHeight } = ref.current;
+        if (entry.borderBoxSize && prevHeight != null) {
           const contentBoxSize = (Array.isArray(entry.contentBoxSize)
             ? entry.contentBoxSize[0]
             : entry.contentBoxSize) as ResizeObserverSize;
-          const { innerRef, outerRef, height: prevHeight } = ref.current;
           const newHeight = Math.ceil(contentBoxSize.blockSize);
-          if (innerRef && outerRef && prevHeight != null
-            && prevHeight !== newHeight) {
+          if (prevHeight !== newHeight) {
             ref.current.height = newHeight;
             scrollParentRelative(newHeight - prevHeight);
             outerRef.style.height = `${newHeight}px`;
@@ -94,6 +95,7 @@ function _WindowedInfiniteScrollerListItem<
         }
       }
     }),
+    rafTimer: null as number | null,
   }));
 
   const handleOuterLoad = useCallback((outerRef: HTMLDivElement | null) => {
@@ -104,35 +106,47 @@ function _WindowedInfiniteScrollerListItem<
   }, [ref]);
 
   const handleInnerLoad = useCallback((newInnerRef: HTMLDivElement | null) => {
-    const {
-      height: prevHeight,
-      outerRef,
-      resizeObserver,
-      innerRef: prevInnerRef,
-    } = ref.current;
+    ref.current.innerRef = newInnerRef;
 
-    if (newInnerRef) {
-      const newHeight = Math.ceil(newInnerRef.getBoundingClientRect().height);
-      ref.current.height = newHeight;
-
-      if (outerRef) {
-        // Somehow this fixes a scroll anchoring issue.
-        outerRef.style.height = `${newHeight}px`;
-
-        if (prevHeight && newHeight && prevHeight !== newHeight) {
-          scrollParentRelative(newHeight - prevHeight);
-          outerRef.style.height = `${newHeight}px`;
-        }
-      }
-
-      onInnerLoad(item, newHeight);
-
-      resizeObserver.observe(newInnerRef);
-    } else if (prevInnerRef) {
-      resizeObserver.unobserve(prevInnerRef);
+    if (ref.current.rafTimer) {
+      cancelAnimationFrame(ref.current.rafTimer);
     }
 
-    ref.current.innerRef = newInnerRef;
+    // getBoundingClientRect causes re-layout
+    ref.current.rafTimer = requestAnimationFrame(() => {
+      const {
+        height: prevHeight,
+        outerRef,
+        resizeObserver,
+        innerRef: prevInnerRef,
+      } = ref.current;
+
+      if (newInnerRef) {
+        const newHeight = Math.ceil(newInnerRef.getBoundingClientRect().height);
+        ref.current.height = newHeight;
+
+        if (outerRef) {
+          // Somehow this fixes a scroll anchoring issue.
+          outerRef.style.height = `${newHeight}px`;
+
+          if (prevHeight && newHeight && prevHeight !== newHeight) {
+            scrollParentRelative(newHeight - prevHeight);
+            outerRef.style.height = `${newHeight}px`;
+          }
+
+          // Can't set using CSS because initial height is needed
+          outerRef.style.contentVisibility = 'auto';
+        }
+
+        onInnerLoad(item, newHeight);
+
+        resizeObserver.observe(newInnerRef);
+      } else if (prevInnerRef) {
+        resizeObserver.unobserve(prevInnerRef);
+      }
+
+      ref.current.rafTimer = null;
+    });
   }, [ref, item, scrollParentRelative, onInnerLoad]);
 
   useEffect(() => {
@@ -156,6 +170,7 @@ function _WindowedInfiniteScrollerListItem<
   return (
     <div
       ref={handleOuterLoad}
+      data-item={item}
       className={styles.listItem}
       style={{
         display: visible || block || isBot() ? 'block' : 'none',
@@ -168,55 +183,60 @@ function _WindowedInfiniteScrollerListItem<
           ref={handleInnerLoad}
           className={styles.listItemInner}
         >
-          <ItemRenderer
-            item={item}
-            aboveItem={aboveItem}
-            belowItem={belowItem}
-            itemIdx={itemIdx}
-            columnIdx={columnIdx}
-            hasRightColumn={hasRightColumn}
-            {...otherItemProps}
-          />
+          <ErrorBoundary
+            Loading={<Spinner dimRem={3} />}
+          >
+            <ItemRenderer
+              item={item}
+              aboveItem={aboveItem}
+              belowItem={belowItem}
+              itemIdx={itemIdx}
+              columnIdx={columnIdx}
+              hasRightColumn={hasRightColumn}
+              {...otherItemProps}
+            />
+          </ErrorBoundary>
         </div>
       )}
     </div>
   );
 }
 
-const WindowedInfiniteScrollerListItem = React.memo(
-  _WindowedInfiniteScrollerListItem,
-) as typeof _WindowedInfiniteScrollerListItem;
+const WindowedInfiniteScrollerListItemMemo = React.memo(
+  WindowedInfiniteScrollerListItem,
+) as typeof WindowedInfiniteScrollerListItem;
 
-type Props<ItemType extends string | number> = {
+export type ColumnProps<
+  ItemType extends string | number,
+  OtherItemProps extends ObjectOf<any>,
+> = {
+  reverse?: boolean,
+  anchor?: 'first' | 'last' | 'middle',
   columnIdx: number,
   hasRightColumn: boolean,
-  reverse?: boolean,
   items: ItemType[],
   initialVisibleItems: Set<ItemType>,
   itemToRow: Map<ItemType, Row<ItemType>>,
   onReachEnd: Stable<(colIdx: number) => void>,
-  scrollableRef: React.RefObject<HTMLDivElement> | null,
+  scrollableElemRef: React.RefObject<HTMLDivElement> | null,
   scrollParentRelative: Stable<(px: number) => void>,
-} & ListItemRendererProps<ItemType>;
+} & Pick<ItemProps<ItemType, OtherItemProps>, 'ItemRenderer' | 'otherItemProps'>;
 
 export default function WindowedInfiniteScrollerColumn<ItemType extends string | number>({
+  reverse,
+  anchor = 'middle',
+  ItemRenderer,
+  otherItemProps,
   columnIdx,
   hasRightColumn,
   items,
   initialVisibleItems,
-  reverse,
   itemToRow,
-  ItemRenderer,
-  otherItemProps,
   onReachEnd,
-  scrollableRef,
+  scrollableElemRef,
   scrollParentRelative,
-}: Props<ItemType>) {
-  let hadBeenActive = true;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    hadBeenActive = useHadRouteBeenActive();
-  } catch {}
+}: ColumnProps<ItemType, any>) {
+  const hadBeenActive = useHadRouteBeenActive(true) ?? true;
 
   const ref = useRef(useConst(() => ({
     elemToItem: new Map<HTMLDivElement, ItemType>(),
@@ -226,14 +246,12 @@ export default function WindowedInfiniteScrollerColumn<ItemType extends string |
     overflowAnchorItem: null as ItemType | null,
   })));
   const latestRef = useLatest({
-    items,
     itemToRow,
-    onReachEnd,
     handleIntersection: (entries: IntersectionObserverEntry[]) => {
       const {
         elemToItem,
         curVisibleItems,
-        overflowAnchorItem,
+        overflowAnchorItem: curAnchorItem,
       } = ref.current;
       const changed = new Set<ItemType>();
       for (const entry of entries) {
@@ -259,6 +277,7 @@ export default function WindowedInfiniteScrollerColumn<ItemType extends string |
       }
 
       if (changed.size) {
+        // React.startTransition(() => {
         for (const item of changed) {
           const row = itemToRow.get(item);
           if (row && curVisibleItems.has(item)) {
@@ -275,39 +294,42 @@ export default function WindowedInfiniteScrollerColumn<ItemType extends string |
             throw new Error('Expected item to exist.');
           }
         }
+        // });
       }
 
-      const centerItem: ItemType | undefined = items
-        .filter(item => curVisibleItems.has(item))[
-          Math.ceil(curVisibleItems.size / 2) - 1
-        ];
-      if (centerItem !== overflowAnchorItem) {
-        if (overflowAnchorItem) {
+      const orderedVisibleItems = items
+        .filter(item => curVisibleItems.has(item));
+      let anchorIdx: number;
+      if (anchor === 'first') {
+        anchorIdx = 0;
+      } else if (anchor === 'last') {
+        anchorIdx = orderedVisibleItems.length - 1;
+      } else {
+        anchorIdx = Math.ceil(orderedVisibleItems.length / 2) - 1;
+      }
+      const expectedAnchorItem: ItemType | undefined = orderedVisibleItems[anchorIdx];
+      if (expectedAnchorItem !== curAnchorItem) {
+        if (curAnchorItem) {
           const overflowAnchorElem = itemToRow
-            .get(overflowAnchorItem)?.elem;
+            .get(curAnchorItem)?.elem;
           TS.defined(overflowAnchorElem).style.overflowAnchor = '';
         }
-        if (centerItem) {
-          const centerElem = itemToRow.get(centerItem)?.elem;
+        if (expectedAnchorItem) {
+          const centerElem = itemToRow.get(expectedAnchorItem)?.elem;
           TS.defined(centerElem).style.overflowAnchor = 'auto';
         }
-        ref.current.overflowAnchorItem = centerItem;
+        ref.current.overflowAnchorItem = expectedAnchorItem;
       }
     },
   });
 
   useEffect(() => {
-    // todo: mid/hard when going back 2 pages to stack, show prev list
     if (hadBeenActive && !ref.current.observer) {
-      if (!process.env.PRODUCTION && scrollableRef && !scrollableRef.current) {
-        throw new Error('WindowedInfiniteScrollerColumn: missing containerRef.current');
-      }
-
       ref.current.observer = new IntersectionObserver(entries => {
         latestRef.current.handleIntersection(entries);
       }, {
-        root: scrollableRef?.current,
-        rootMargin: '500px 0px',
+        root: scrollableElemRef?.current,
+        rootMargin: '100% 0px',
       });
 
       for (const elem of ref.current.elemToItem.keys()) {
@@ -320,7 +342,7 @@ export default function WindowedInfiniteScrollerColumn<ItemType extends string |
       // eslint-disable-next-line react-hooks/exhaustive-deps
       ref.current.observer = null;
     };
-  }, [hadBeenActive, scrollableRef, latestRef]);
+  }, [hadBeenActive, scrollableElemRef, latestRef]);
 
   const handleItemMount = useCallback((row: Row<ItemType>) => {
     latestRef.current.itemToRow.set(row.item, row);
@@ -351,7 +373,7 @@ export default function WindowedInfiniteScrollerColumn<ItemType extends string |
   }, [latestRef]);
 
   return items.map((item, idx) => (
-    <WindowedInfiniteScrollerListItem
+    <WindowedInfiniteScrollerListItemMemo
       key={item}
       item={item}
       aboveItem={items[reverse ? idx + 1 : idx - 1]}

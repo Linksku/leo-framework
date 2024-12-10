@@ -30,7 +30,7 @@ export default async function showSystemRows(
     },
     {
       timeout,
-      interval: 10 * 1000,
+      interval: 1000,
       printInterval: timeout,
       ctx: `showMzSystemRows(${sql})`,
     },

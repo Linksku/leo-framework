@@ -1,5 +1,6 @@
 import knexBT from 'services/knex/knexBT';
 import knexRR from 'services/knex/knexRR';
+import validateTableCols from './validateTableCols';
 
 export default async function alterColumnType({
   isMV,
@@ -17,6 +18,7 @@ export default async function alterColumnType({
   if (!/^[\w\s()]+$/i.test(type)) {
     throw new Error(`alterColumnType: invalid type: ${type}`);
   }
+  validateTableCols({ table, col });
 
   try {
     if (!isMV) {

@@ -6,6 +6,7 @@ export default async function renameTable({ isMV, oldName, newName }: {
   oldName: string,
   newName: string,
 }) {
+  // todo: low/mid automatically rename indexes
   try {
     if (!isMV) {
       await knexBT.raw('ALTER TABLE IF EXISTS ?? RENAME TO ??', [oldName, newName]);

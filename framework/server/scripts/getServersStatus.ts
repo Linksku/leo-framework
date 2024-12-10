@@ -84,7 +84,7 @@ export default async function getServersStatus(args?: Arguments<Props> | Props) 
     && !!process.env.SERVER_SCRIPT_PATH?.includes('monitorInfra')) {
     const numInactive = NUM_CLUSTER_SERVERS - numActiveServers;
     printDebug(
-      `${numInactive} ${pluralize('server', numInactive)} not reporting status`,
+      `${numInactive} ${plural('server', numInactive)} not reporting status`,
       'warn',
     );
   }

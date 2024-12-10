@@ -12,7 +12,7 @@ const unsafeWords = new Set(
 
 // Names that may be allowed for adult content.
 export default function isNameUnsafe(name: string) {
-  let filteredName = name;
+  let filteredName = name.toLowerCase();
   for (const subStr of allowedUnsafeSubStrs) {
     filteredName = filteredName.replaceAll(subStr, '');
   }

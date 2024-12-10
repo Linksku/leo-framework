@@ -5,12 +5,12 @@ import {
   DBZ_CONNECTOR_INSERT_ONLY,
 } from 'consts/mz';
 import fetchKafkaConnectors from 'utils/infra/fetchKafkaConnectors';
-import EntityModels from 'services/model/allEntityModels';
+import EntityModels from 'core/models/allEntityModels';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('dbzConnectors', {
   disabled: !DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY,
-  cb: async function dbzConnectorsHealthcheck() {
+  run: async function dbzConnectorsHealthcheck() {
     const {
       updateableConnectors,
       insertOnlyConnectors,

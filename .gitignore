@@ -28,8 +28,8 @@ package-lock.json
 /isolate-*.log
 *.tsbuildinfo
 /capacitor/android/app/src/main/assets/
-/cypress/screenshots/
-/cypress/videos/
+/app/tests/screenshots/
+/app/tests/videos/
 /framework/tests/fixtures/auth.json
 
 # OS

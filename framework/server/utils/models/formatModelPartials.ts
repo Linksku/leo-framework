@@ -14,11 +14,14 @@ export function formatModelPojo<T extends ModelClass>(
   const newObj: ModelPartial<T> = opts?.inPlace ? obj : {};
   for (const k of TS.objKeys(fullSchema)) {
     if (TS.hasProp(obj, k)) {
-      // @ts-ignore model key
+      // @ts-expect-error model key
       newObj[k] = obj[k];
     }
   }
-  serializeDateProps(fullSchema, newObj, opts?.forDb ?? false);
+
+  if (opts?.forDb) {
+    serializeDateProps(fullSchema, newObj, true);
+  }
 
   return newObj;
 }

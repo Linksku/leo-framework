@@ -1,7 +1,7 @@
 import pgdump from 'scripts/db/pgdump';
+import syncMVsAfterMigration from 'scripts/syncMVsAfterMigration';
 import { getMigrationState, updateMigrationState } from './helpers/migrationState';
 import { getMigration, getPrevMigration } from './helpers/migrationFiles';
-import syncMVsAfterMigration from './helpers/syncMVsAfterMigration';
 
 export default async function migrationRollback() {
   const { rollback } = await getMigrationState();
@@ -13,7 +13,7 @@ export default async function migrationRollback() {
   const filesRan: string[] = [];
   let hadError = false;
   for (const file of rollback.files) {
-    const migration = getMigration(file);
+    const migration = await getMigration(file);
     printDebug(`Running ${file}.${rollback.type}`, 'info');
     try {
       await migration[rollback.type]?.();
@@ -32,7 +32,7 @@ export default async function migrationRollback() {
         : getPrevMigration(filesRan.at(-1)),
       {
         type: rollback.type === 'up' ? 'down' : 'up',
-        files: filesRan.reverse(),
+        files: filesRan.slice().reverse(),
       },
     );
 

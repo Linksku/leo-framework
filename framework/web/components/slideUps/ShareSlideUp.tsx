@@ -11,10 +11,11 @@ import { Share } from '@capacitor/share';
 import QRCode from 'qrcode';
 
 import { FB_APP_ID } from 'config';
-import { HOME_URL } from 'consts/server';
+import { SHORT_HOME_URL } from 'consts/server';
 import detectPlatform from 'utils/detectPlatform';
-import useCopyText from 'hooks/useCopyText';
-import useEffectOncePerDeps from 'hooks/useEffectOncePerDeps';
+import useCopyText from 'utils/useCopyText';
+import useEffectOncePerDeps from 'utils/useEffectOncePerDeps';
+import useWindowSize from 'core/globalState/useWindowSize';
 
 import styles from './ShareSlideUp.scss';
 
@@ -89,9 +90,10 @@ export default function ShareSlideUp({
   const inputRef = useRef<HTMLInputElement>(null);
   const hideSlideUp = useHideSlideUp();
   const copyText = useCopyText();
+  const showToast = useShowToast();
   const url = useMemo(
     () => (path.startsWith('/')
-      ? HOME_URL + path
+      ? SHORT_HOME_URL + path
       : new URL(path, window.location.href).href),
     [path],
   );
@@ -118,7 +120,13 @@ export default function ShareSlideUp({
             url,
           });
           hideSlideUp();
-        } catch {}
+        } catch (err) {
+          if (!(err instanceof Error) || !err.message.includes('cancellation of share')) {
+            showToast({
+              msg: 'Failed to open share dialog',
+            });
+          }
+        }
       }}
       className={styles.listItem}
       role="button"
@@ -133,14 +141,16 @@ export default function ShareSlideUp({
       <Input
         ref={inputRef}
         value={url}
-        readOnly
+        disabled
         onClick={() => {
           if (inputRef.current) {
             inputRef.current.select();
             copyText(url);
           }
         }}
-        marginBottom="0.5rem"
+        overrides={{
+          marginBottom: '0.5rem',
+        }}
       />
       <Link
         onClick={() => {

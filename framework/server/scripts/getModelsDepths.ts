@@ -1,5 +1,5 @@
-import EntityModels from 'services/model/allEntityModels';
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import EntityModels from 'core/models/allEntityModels';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 
 export default function getModelsDepths() {
   const dag: ObjectOf<{

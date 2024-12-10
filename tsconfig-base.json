@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "es2022",
     "module": "es2022",
+    // Maybe change to "bundler", but Eslint gets slower
     "moduleResolution": "node",
     "allowJs": true,
     "noEmit": true,

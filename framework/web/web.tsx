@@ -1,60 +1,66 @@
-import importStartTime from 'utils/hacks/importStartTime';
-import 'core/polyfills';
+import importStartTime from 'core/importStartTime';
+import 'core/browserHacks/polyfills';
 
 import 'styles/styles.scss';
 // Import global UI components first so their styles can be overridden
-import 'components/base/Button';
-import 'components/base/Img';
-import 'components/base/Input';
-import 'components/base/Link';
-import 'components/base/Spinner';
+import 'components/common/Button';
+import 'components/common/Img';
+import 'components/common/Input';
+import 'components/common/Link';
+import 'components/common/Spinner';
+import 'components/common/Textarea';
 import 'components/common/TruncatedText';
 
 // Must come after styles to avoid being overridden
-import 'core/prefetchInitialRoute';
+import 'core/router/prefetchInitialRoute';
 
 import { createRoot } from 'react-dom/client';
 
 import 'services/wdyr';
-import App from 'App';
+import { HOME_URL } from 'consts/server';
 import fetcher from 'core/fetcher';
-import disableGestures from 'core/disableGestures';
-import disableOverscrollNav from 'core/disableOverscrollNav';
-import chromeMomentumScrollHack from 'core/chromeMomentumScrollHack';
-import handleBrowserSize from 'core/handleBrowserSize';
 import getUrlParams from 'utils/getUrlParams';
 import isDebug from 'utils/isDebug';
-import { DISABLE_BROWSER_HACKS } from 'consts/ui';
+import App from 'App';
+import retryImport from 'utils/retryImport';
 
-import(
+retryImport(() => import(
   /* webpackChunkName: 'deferred' */ './deferred'
-);
+))
+  .catch(e => {
+    ErrorLogger.warn(e, { ctx: 'import(deferred)' });
+  });
 
 if (!process.env.PRODUCTION) {
+  if (HOME_URL.startsWith('https')
+    && new URL(HOME_URL).origin !== window.location.origin) {
+    // For ngrok
+    window.location.href = HOME_URL;
+    throw new Error('Redirecting');
+  }
+
   // eslint-disable-next-line no-console
   console.log(`DEBUG: ${isDebug ? 'on' : 'off'}`);
 
-  // eslint-disable-next-line no-console
-  console.log(`Imports: ${Math.round((performance.now() - importStartTime) * 10) / 10}ms`);
+  if (isDebug) {
+    // eslint-disable-next-line no-console
+    console.log(`Imports: ${Math.round((performance.now() - importStartTime) * 10) / 10}ms`);
 
-  // @ts-ignore for debugging
-  window.fetcher = fetcher;
+    // @ts-expect-error for debugging
+    window.fetcher = fetcher;
+  }
 }
 
 window.addEventListener('unhandledrejection', e => {
   ErrorLogger.error(new Error(`unhandled rejection: ${e.reason}`));
 });
 
-if (!DISABLE_BROWSER_HACKS) {
-  disableGestures();
-  disableOverscrollNav();
-  chromeMomentumScrollHack();
-}
-handleBrowserSize();
-
 // todo: high/hard log actions
+// todo: low/mid enable deeplinks
 const tz = (new Date()).getTimezoneOffset() / 60;
-if (tz >= -3 && tz <= 0 && getUrlParams().get('debug') === undefined) {
+if (tz >= -3 && tz <= 0
+  // 'debug' param allowed in prod, unlike isDebug
+  && getUrlParams().get('debug') === undefined) {
   // todo: high/veryhard gdpr
   // eslint-disable-next-line no-alert
   alert('Not available in Europe.');

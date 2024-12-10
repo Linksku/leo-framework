@@ -10,11 +10,12 @@ import waitForKafkaConnectReady from 'utils/infra/waitForKafkaConnectReady';
 import initInfraWrap from 'utils/infra/initInfraWrap';
 import isMzRunning from 'utils/infra/isMzRunning';
 import deleteTopicsAndSchema from 'utils/infra/deleteTopicsAndSchema';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import deleteMZSinkConnectors from './steps/deleteMZSinkConnectors';
 import deleteMZSinks from './steps/deleteMZSinks';
 import deleteMZViews from './steps/deleteMZViews';
 import deleteMZSources from './steps/deleteMZSources';
-import deleteRRMVData from './steps/deleteRRMVData';
+import deleteRRData from './steps/deleteRRData';
 import deleteDBZConnectors from './steps/deleteDBZConnectors';
 import deleteMZDocker from './steps/deleteMZDocker';
 import deleteMZReplicationSlots from './steps/deleteMZReplicationSlots';
@@ -27,28 +28,24 @@ type Props = {
   deleteMZReplicationSlots?: boolean,
 };
 
-// todo: low/mid fix yargs Arguments type
+// todo: low/mid put a wrapper around server scripts for types
 export default async function destroyMZ(args?: Arguments<Props> | Props) {
   const shouldDeleteSinkConnectors = !MZ_ENABLE_CONSISTENCY_TOPIC
     || args?.deleteMZSinkConnectors
     || args?.deleteRRMVData;
   const shouldDeleteMZSources = args?.deleteMZReplicationSlots
-    ?? args?.forceDeleteDBZConnectors
-    ?? args?.deleteMZSources;
-  const shouldDeleteRRMVData = shouldDeleteSinkConnectors;
+    || args?.forceDeleteDBZConnectors
+    || args?.deleteMZSources;
+  const shouldDeleteRRMVData = args?.deleteRRMVData;
 
   await initInfraWrap(async () => {
-    printDebug('Waiting for Kafka Connect to be ready', 'highlight');
-    await waitForKafkaConnectReady();
-
-    const mzRunning = await isMzRunning();
-    if (mzRunning) {
-      try {
-        await withErrCtx(deleteMZSinks(), 'destroyMZ: deleteMZSinks');
-      } catch (err) {
-        printDebug(err, 'error');
-      }
-    }
+    const { mzRunning } = await promiseObj({
+      _: waitForKafkaConnectReady(),
+      mzRunning: isMzRunning(),
+    });
+    const shouldDeleteMZDocker = shouldDeleteMZSources
+      || args?.deleteMZReplicationSlots
+      || !mzRunning;
 
     await Promise.all([
       shouldDeleteSinkConnectors
@@ -70,8 +67,14 @@ export default async function destroyMZ(args?: Arguments<Props> | Props) {
         })()
         : null,
 
-      (async () => {
-        if (mzRunning) {
+      !shouldDeleteMZDocker
+        ? (async () => {
+          try {
+            await withErrCtx(deleteMZSinks(), 'destroyMZ: deleteMZSinks');
+          } catch (err) {
+            printDebug(err, 'error');
+          }
+
           try {
             await withErrCtx(deleteMZViews(), 'destroyMZ: deleteMZViews');
             if (shouldDeleteMZSources) {
@@ -80,12 +83,12 @@ export default async function destroyMZ(args?: Arguments<Props> | Props) {
           } catch (err) {
             printDebug(err, 'error');
           }
-        }
-      })(),
+        })()
+        : null,
     ]);
 
     await Promise.all([
-      shouldDeleteMZSources || args?.deleteMZReplicationSlots || !mzRunning
+      shouldDeleteMZDocker
         ? withErrCtx(deleteMZDocker(), 'destroyMZ: deleteMZDocker')
           .catch(err => printDebug(err, 'error'))
         : null,
@@ -117,7 +120,10 @@ export default async function destroyMZ(args?: Arguments<Props> | Props) {
 
       // Only delete RR after Docker volume is deleted
       shouldDeleteRRMVData
-        ? withErrCtx(deleteRRMVData(), 'destroyMZ: deleteRRMVData')
+        ? withErrCtx(
+          deleteRRData(MaterializedViewModels.map(r => r.tableName)),
+          'destroyMZ: deleteRRData',
+        )
         : null,
     ]);
   });

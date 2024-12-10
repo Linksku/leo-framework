@@ -1,4 +1,7 @@
+import mapValues from 'lodash/mapValues.js';
+
 import isSchemaNullable from 'utils/models/isSchemaNullable';
+import { resolveRelationConst } from 'config/functions';
 import isUniqueModelCols from './isUniqueModelCols';
 
 export type RelatedResults = Promise<{
@@ -11,54 +14,69 @@ async function getRelatedRows(
   col: string,
   colVal: string | number | string[] | number[] | null,
   consts: Nullish<ObjectOf<string | number | null>>,
+  seen: Map<string, Model[] | Promise<Model[]>>,
 ): Promise<Model[]> {
-  if (Array.isArray(colVal)) {
-    if (consts) {
-      return Model.selectBulk(
-        [col, ...TS.objKeys(consts)] as ModelKey<ModelClass>[],
-        colVal.map(val => [val, ...TS.objValues(consts)]),
+  const serializedConsts = consts ? Model.stringify(consts) : '';
+  const key = `${Model.type},${col}=${Array.isArray(colVal) ? colVal.join(',') : colVal},${serializedConsts}`;
+  if (!seen.has(key)) {
+    seen.set(key, (async () => {
+      if (Array.isArray(colVal)) {
+        if (consts) {
+          return Model.selectBulk(
+            // @ts-expect-error wontfix entity keys
+            colVal
+              .map(val => ({
+                ...consts,
+                [col]: val,
+              })),
+          );
+        }
+
+        return Model.selectBulk(
+          // @ts-expect-error wontfix entity keys
+          colVal
+            .map(val => ({ [col]: val })),
+        );
+      }
+
+      if (!consts && Model.getUniqueSingleColumnsSet().has(col as ModelKey<ModelClass>)) {
+        const ent = await Model.selectOne(
+          // @ts-expect-error wontfix relation
+          {
+            [col]: colVal,
+          },
+        );
+        return ent ? [ent] : [];
+      }
+      if (consts && isUniqueModelCols(Model, [col, ...TS.objKeys(consts)])) {
+        const ent = await Model.selectOne(
+          // @ts-expect-error wontfix relation
+          {
+            [col]: colVal,
+            ...consts,
+          },
+        );
+        return ent ? [ent] : [];
+      }
+
+      return Model.selectAll(
+        // @ts-expect-error wontfix relation
+        {
+          [col]: colVal,
+          ...consts,
+        },
       );
-    }
-
-    return Model.selectBulk(
-      col as ModelKey<ModelClass>,
-      colVal,
-    );
+    })());
   }
 
-  if (!consts && Model.getUniqueSingleColumnsSet().has(col as ModelKey<ModelClass>)) {
-    const ent = await Model.selectOne(
-      // @ts-ignore wontfix relation
-      {
-        [col]: colVal,
-      },
-    );
-    return ent ? [ent] : [];
-  }
-  if (consts && isUniqueModelCols(Model, [col, ...TS.objKeys(consts)])) {
-    const ent = await Model.selectOne(
-      // @ts-ignore wontfix relation
-      {
-        [col]: colVal,
-        ...consts,
-      },
-    );
-    return ent ? [ent] : [];
-  }
-
-  return Model.selectAll(
-    // @ts-ignore wontfix relation
-    {
-      [col]: colVal,
-      ...consts,
-    },
-  );
+  return TS.defined(seen.get(key));
 }
 
 async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
   Model: T,
   entity: ModelInstance<T>,
   name: string,
+  seen: Map<string, Model[] | Promise<Model[]>>,
 ): RelatedResults {
   const relation = Model.relationsMap[name];
   if (!relation) {
@@ -92,7 +110,7 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
 
   if (colVal === null) {
     if ((relationType === 'hasOne' || relationType === 'belongsToOne')
-      && isSchemaNullable(TS.getProp(Model.schema, fromCol))) {
+      && isSchemaNullable(TS.defined(TS.getProp(Model.schema, fromCol)))) {
       return {
         related: null,
         assocs: [],
@@ -105,22 +123,25 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
 
   let consts = relation.consts as Nullish<ObjectOf<string | number | null>>;
   if (consts) {
-    for (const [k, v] of TS.objEntries(consts)) {
+    const resolvedConsts = await promiseObj(
+      mapValues<any, Promise<string | number | null | undefined>>(consts, resolveRelationConst),
+    );
+    for (const k of TS.objKeys(consts)) {
       // Temp hack, maybe add more validation
-      if (v === 'currentUserId') {
-        const rc = getRC();
-        if (!rc?.currentUserId) {
-          return {
-            related: null,
-            assocs: [],
-          };
-        }
-
+      const resolved = resolvedConsts[k];
+      if (resolved === null) {
+        // Null's probably not expected
+        return {
+          related: null,
+          assocs: [],
+        };
+      }
+      if (resolved !== undefined) {
         consts = {
           ...consts,
-          [k]: rc?.currentUserId ?? null,
+          [k]: resolved,
         };
-        break;
+        continue;
       }
     }
   }
@@ -128,7 +149,7 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
   let assocs: Model[] = [];
   let results: Model[];
   if (through) {
-    assocs = await getRelatedRows(through.model, through.from, colVal, null);
+    assocs = await getRelatedRows(through.model, through.from, colVal, null, seen);
 
     const resultsTemp = await Promise.all(assocs.map(async assoc => {
       const toVal = TS.getProp(
@@ -148,12 +169,12 @@ async function selectNonNestedRelatedWithAssocs<T extends ModelClass>(
         );
       }
 
-      return getRelatedRows(toModel, toCol, toVal, consts);
+      return getRelatedRows(toModel, toCol, toVal, consts, seen);
     }));
 
     results = resultsTemp.flat();
   } else {
-    results = await getRelatedRows(toModel, toCol, colVal, consts);
+    results = await getRelatedRows(toModel, toCol, colVal, consts, seen);
   }
 
   if (relationType === 'hasOne' || relationType === 'belongsToOne') {
@@ -189,10 +210,32 @@ export default async function selectRelatedWithAssocs<T extends ModelClass>(
   }
   const [name, nestedName] = parts;
 
-  const { related, assocs } = await selectNonNestedRelatedWithAssocs(Model, entity, name);
+  const seen = new Map<string, Model[] | Promise<Model[]>>();
+  const { related, assocs } = await selectNonNestedRelatedWithAssocs(
+    Model,
+    entity,
+    name,
+    seen,
+  );
   if (!nestedName || !related
     || (Array.isArray(related) && !related.length)) {
     return { related, assocs };
+  }
+
+  if (!process.env.PRODUCTION) {
+    const relatedArr = Array.isArray(related) ? related : [related];
+    for (const ent of relatedArr) {
+      Object.defineProperty(
+        ent,
+        'includedRelations',
+        {
+          value: [nestedName],
+          enumerable: false,
+          writable: true,
+          configurable: true,
+        },
+      );
+    }
   }
 
   if (Array.isArray(related)) {
@@ -203,6 +246,7 @@ export default async function selectRelatedWithAssocs<T extends ModelClass>(
         ent.constructor as ModelClass,
         ent,
         nestedName,
+        seen,
       ),
     ));
     assocs.push(...nested.flatMap(n => n.assocs));
@@ -218,6 +262,7 @@ export default async function selectRelatedWithAssocs<T extends ModelClass>(
     related.constructor as ModelClass,
     related,
     nestedName,
+    seen,
   );
   assocs.push(...nested.assocs);
   return {

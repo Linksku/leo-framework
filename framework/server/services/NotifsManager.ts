@@ -1,25 +1,29 @@
-import type {
-  Message,
-  AndroidConfig,
-  ApnsConfig,
-  WebpushConfig,
-} from 'firebase-admin/lib/messaging/messaging-api';
 import cluster from 'cluster';
+import {
+  type Message,
+  type AndroidConfig,
+  type ApnsConfig,
+  type WebpushConfig,
+} from 'firebase-admin/messaging';
 import uniq from 'lodash/uniq.js';
 import uniqBy from 'lodash/uniqBy.js';
 
 import type { SseData } from 'services/sse/SseBroadcastManager';
 import { FcmNotifData, NOTIF_APPROX_MAX_LENGTH } from 'consts/notifs';
-import { NOTIF_SCOPES, NOTIF_CHANNELS, NotifChannel } from 'config/notifs';
+import {
+  NOTIF_SCOPES,
+  NOTIF_CHANNELS,
+  NOTIF_CHANNEL_CONFIGS,
+} from 'config/notifs';
 import generateRandUnsignedInt from 'utils/generateRandUnsignedInt';
-import createBullQueue, { wrapProcessJob } from 'core/createBullQueue';
+import createBullQueue, { createBullWorker } from 'services/bull/createBullQueue';
 import SseBroadcastManager from 'services/sse/SseBroadcastManager';
-import formatApiSuccessResponse from 'api/helpers/formatApiSuccessResponse';
+import formatApiSuccessResponse from 'routes/apis/formatApiSuccessResponse';
 import { NUM_CLUSTER_SERVERS } from 'consts/infra';
-import firebaseAdmin from 'services/firebaseAdmin';
+import getFirebaseAdmin from 'services/getFirebaseAdmin';
 import { HOME_URL } from 'consts/server';
 import truncateStr from 'utils/truncateStr';
-import sendEmail from 'services/sendEmail';
+import sendSimpleEmail from 'services/email/sendSimpleEmail';
 
 /*
 todo: high/hard make notifs scaleable
@@ -44,7 +48,7 @@ Intent:
 Delivery:
 - in-app
   - notifications tab
-  - chats tab
+  - private msgs tab
 - mobile
 - email
 - sms
@@ -67,7 +71,7 @@ type NotifObj<Params> = {
   params: Params,
 };
 
-type GenNotifs<Input, Params> = (input: Input) =>
+type GenNotifs<Input extends JsonObj, Params> = (input: Input) =>
   | NotifObj<Params>[]
   | Promise<NotifObj<Params>[] | null>
   | null;
@@ -77,8 +81,13 @@ type RenderedNotif = {
   contentBoldRanges?: [number, number][],
   path: string,
   emailSubject?: string,
-  emailText?: string,
-  emailHtml?: string,
+  emailBody?: (
+    | string
+    | { url: string, text?: string }
+    | (string | { url: string, text?: string })[]
+  )[],
+  emailUnsubUrl?: string,
+  emailUnsubText?: string,
 };
 
 type RenderNotif<Params> = (
@@ -115,11 +124,12 @@ const notifConfigs = new Map<string, NotifConfig & {
   renderNotif: RenderNotif<any>,
 }>();
 
-export function registerNotifType<T extends NotifConfig, Input, Params>(
+export function registerNotifType<T extends NotifConfig, Input extends JsonObj, Params>(
   config: SetOptional<T, 'scope' | 'channel'>,
   genNotifs: GenNotifs<Input, Params>,
   renderNotif: RenderNotif<Params>,
 ): {
+  config: NotifConfig,
   queue: (params: Input) => void,
 } {
   if (notifConfigs.has(config.type)) {
@@ -131,23 +141,30 @@ export function registerNotifType<T extends NotifConfig, Input, Params>(
     channel: NOTIF_CHANNELS.GENERAL,
     dedupeInterval: 24 * 60 * 60 * 1000,
     ...config,
+  };
+  notifConfigs.set(config.type, {
+    ...fullConfig,
     genNotifs,
     renderNotif,
-  };
-  notifConfigs.set(config.type, fullConfig);
+  });
   return {
+    config: fullConfig,
     queue(input: Input) {
       wrapPromise(
-        queue.add({
-          type: config.type,
-          input,
-          time: Date.now(),
-        }, {
-          removeOnComplete: true,
-          removeOnFail: true,
-          attempts: 2,
-          backoff: 1000,
-        }),
+        queue.add(
+          'NotifsManager',
+          {
+            type: config.type,
+            input,
+            time: Date.now(),
+          },
+          {
+            removeOnComplete: true,
+            removeOnFail: true,
+            attempts: 2,
+            backoff: 1000,
+          },
+        ),
         'fatal',
         `Register notif type ${config.type}`,
       );
@@ -191,7 +208,7 @@ export function getRenderedNotifs(
   }));
 }
 
-async function getDuplicateNotifUsers<T>(
+async function getThrottledUsers<T>(
   notifType: string,
   dedupeInterval: number | 'always',
   notifs: NotifObj<T>[],
@@ -200,28 +217,25 @@ async function getDuplicateNotifUsers<T>(
     return [];
   }
 
-  const possiblyDuplicateNotifs = notifs
+  const possiblyThrottledNotifs = notifs
     .filter(notif => notif.groupingId != null);
-  const existingNotifs = await NotifModel.selectBulk(
-    ['notifType', 'userId', 'groupingId'],
-    possiblyDuplicateNotifs.map(n => [
-      notifType,
-      n.userId,
-      TS.notNull(n.groupingId),
-    ]),
-  );
+  const existingNotifs = await NotifModel.selectBulk(possiblyThrottledNotifs.map(n => ({
+    notifType,
+    userId: n.userId,
+    groupingId: TS.notNull(n.groupingId),
+  })));
   return notifs
     .filter(notif => {
-      const duplicateNotif = existingNotifs
+      const throttledNotif = existingNotifs
         .find(d => d.userId === notif.userId && d.groupingId === notif.groupingId);
-      if (!duplicateNotif) {
+      if (!throttledNotif) {
         return false;
       }
       if (dedupeInterval === 'always') {
         return true;
       }
 
-      const timeDiff = Date.now() - duplicateNotif.time.getTime();
+      const timeDiff = Date.now() - throttledNotif.time.getTime();
       return timeDiff < dedupeInterval;
     })
     .map(notif => notif.userId);
@@ -300,9 +314,16 @@ async function sendPushNotifs(
     }
 
     try {
-      await firebaseAdmin.messaging().send(msg);
+      const admin = await getFirebaseAdmin();
+      await admin.messaging().send(msg);
     } catch (err) {
-      ErrorLogger.warn(err, { ctx: 'NotifsManager.firebaseAdmin.messaging()' });
+      if (TS.isObj(err)
+        && TS.hasProp(err, 'code')
+        && err.code === 'messaging/registration-token-not-registered') {
+        await UserDeviceModel.deleteOne({ id: device.id });
+      } else {
+        ErrorLogger.warn(err, { ctx: 'NotifsManager.firebaseAdmin.messaging()' });
+      }
     }
   }));
 }
@@ -312,23 +333,27 @@ async function sendEmails(
   rendered: RenderedNotif,
   user: UserModel,
 ) {
-  if (!rendered.emailSubject || !rendered.emailText || !rendered.emailHtml) {
+  if (!rendered.emailSubject || !rendered.emailBody?.length) {
     throw new Error(`NotifsManager.sendEmails(${notif.notifType}): email not rendered`);
   }
-  await sendEmail(
-    user.email,
-    rendered.emailSubject,
-    rendered.emailText,
-    rendered.emailHtml,
-  );
+
+  await sendSimpleEmail({
+    to: user.email,
+    subject: rendered.emailSubject,
+    body: rendered.emailBody,
+    unsubUrl: rendered.emailUnsubUrl ?? `${HOME_URL}/notifsettings`,
+    unsubText: rendered.emailUnsubText ?? 'Unsubscribe',
+  });
 }
 
 if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
-  wrapPromise(
-    queue.process(wrapProcessJob(async job => {
+  createBullWorker(
+    'NotifsManager',
+    async job => {
       const { type, input } = job.data;
 
       const config = TS.defined(notifConfigs.get(type));
+      const channelConfig = NOTIF_CHANNEL_CONFIGS[config.channel];
       const ret = config.genNotifs(input);
       let notifs = ret instanceof Promise
         ? await withErrCtx(
@@ -337,6 +362,12 @@ if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
         )
         : ret;
       if (!notifs) {
+        if (!process.env.PRODUCTION) {
+          printDebug(
+            `NotifsManager.process(${type}): no notifs`,
+            'info',
+          );
+        }
         return;
       }
 
@@ -348,6 +379,16 @@ if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
             { notif: invalidNotif },
           );
         }
+
+        const dupNotif = notifs.find(n => notifs?.some(
+          n2 => n2 !== n && n2.userId === n.userId && n2.groupingId === n.groupingId,
+        ));
+        if (dupNotif) {
+          ErrorLogger.warn(
+            new Error(`NotifsManager.queue.process(${type}): genNotifs returned duplicate notifs`),
+            { notif: dupNotif },
+          );
+        }
       }
 
       const { currentUserId } = input;
@@ -357,20 +398,21 @@ if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
             `NotifsManager.queue.process(${type}): genNotifs returned currentUserId`,
           ));
         }
+
         notifs = notifs.filter(n => n.userId !== currentUserId);
+        if (!notifs.length) {
+          return;
+        }
       }
 
-      if (!notifs.length) {
-        return;
-      }
       if (!process.env.PRODUCTION && notifs.length > 1000) {
         ErrorLogger.warn(new Error(
           `NotifsManager.queue.process(${type}): genNotifs returned >1000 notifs`,
         ));
       }
 
-      const duplicateNotifUsers = config.dedupeInterval
-        ? await getDuplicateNotifUsers(type, config.dedupeInterval, notifs)
+      const throttledUsers = config.dedupeInterval
+        ? await getThrottledUsers(type, config.dedupeInterval, notifs)
         : [];
 
       const notifObjs = notifs.map(n => ({
@@ -382,10 +424,13 @@ if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
         params: n.params,
         hasRead: false,
       }));
+      const uniqUserIds = uniq(notifs.map(n => n.userId));
       const {
         insertedNotifs,
         userIdToDevices,
         users,
+        userVerified,
+        notifSettings,
       } = await promiseObj({
         insertedNotifs: NotifModel.insertBulk(
           notifObjs,
@@ -393,13 +438,36 @@ if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
         ),
         userIdToDevices: config.sendPush
           ? promiseObj(Object.fromEntries(
-            uniq(notifs.map(n => n.userId))
-              .map(userId => [userId, UserDeviceModel.selectAll({ userId })]),
+            uniqUserIds.map(userId => [userId, UserDeviceModel.selectAll({ userId })]),
           ))
           : null,
-        users: UserModel.selectBulk('id', uniq(notifs.map(n => n.userId))),
+        users: UserModel.selectBulk(
+          uniqUserIds.map(id => ({ id })),
+        ),
+        userVerified: config.sendEmail
+          ? UserAuthModel.selectBulkCol(
+            uniqUserIds.map(userId => ({ userId })),
+            'isEmailVerified',
+            { keepUndefined: true },
+          )
+          : null,
+        notifSettings: config.sendPush || config.sendEmail
+          ? NotifSettingModel.selectBulk(
+            uniqUserIds.map(userId => ({
+              userId,
+              channel: config.channel,
+            })),
+          )
+          : null,
       });
       const renderedNotifs = await getRenderedNotifs(insertedNotifs);
+
+      if (!process.env.PRODUCTION) {
+        printDebug(
+          `NotifsManager.process(${type}): ${insertedNotifs.length} notifs`,
+          'info',
+        );
+      }
 
       await Promise.all(insertedNotifs.map(async (notif, idx) => {
         const rendered = renderedNotifs[idx];
@@ -412,38 +480,53 @@ if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
           { userId: notif.userId },
           {
             data: null,
-            createdEntities: [
+            createdEntities: TS.filterNulls([
               notif,
-              VirtualRenderedNotif.create({
-                notifId: notif.id,
-                content: rendered.content,
-                contentBoldRanges: rendered.contentBoldRanges,
-                path: rendered.path,
-              }),
-            ],
+              notif.scope === NOTIF_SCOPES.GENERAL
+                ? VirtualRenderedNotif.create({
+                  notifId: notif.id,
+                  content: rendered.content,
+                  contentBoldRanges: rendered.contentBoldRanges,
+                  path: rendered.path,
+                })
+                : null,
+            ]),
           },
         );
 
-        if (duplicateNotifUsers.includes(notif.userId)) {
+        if (!config.sendPush && !config.sendEmail) {
           return;
         }
-
-        const notifDevices = userIdToDevices?.[notif.userId];
-        const user = users?.find(u => u.id === notif.userId);
+        if (throttledUsers.includes(notif.userId)) {
+          return;
+        }
+        const user = users.find(u => u.id === notif.userId);
         if (!user || user.isDeleted) {
           return;
         }
+
+        const notifSetting = notifSettings?.find(s => s.userId === notif.userId);
+        const canPush = notifSetting?.push ?? channelConfig.defaultSettings.push;
+        const canEmail = channelConfig.canEmail
+          ? (notifSetting?.email ?? channelConfig.defaultSettings.email)
+          : false;
+        const notifDevices = userIdToDevices?.[notif.userId];
         await Promise.all([
-          config.sendPush && notifDevices
+          config.sendPush
+            && canPush
+            && notifDevices
             && sendPushNotifs(config, notif, rendered, notifDevices)
-              // Need to catch to prevent Bull retrying
+              // Need catch to prevent Bull from retrying
               .catch(err => {
                 ErrorLogger.warn(
                   err,
                   { ctx: 'NotifsManager.sendPushNotifs', notifId: notif.id },
                 );
               }),
-          config.sendEmail && user
+          config.sendEmail
+            && canEmail
+            && user
+            && userVerified?.[uniqUserIds.indexOf(notif.userId)]
             && sendEmails(notif, rendered, user)
               .catch(err => {
                 ErrorLogger.warn(
@@ -453,8 +536,9 @@ if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
               }),
         ]);
       }));
-    })),
-    'fatal',
-    'Process notifs queue',
+    },
+    {
+      concurrency: 10,
+    },
   );
 }

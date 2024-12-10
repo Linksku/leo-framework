@@ -1,13 +1,8 @@
-import useAuthTokenStorage from 'hooks/storage/useAuthTokenStorage';
-import useCurrentUserIdStorage from 'hooks/storage/useCurrentUserIdStorage';
+import useAuthTokenStorage from 'core/storage/useAuthTokenStorage';
+import useCurrentUserIdStorage from 'core/storage/useCurrentUserIdStorage';
+import useLoggedInAsStorage from 'core/storage/useLoggedInAsStorage';
 import { setErrorLoggerUserId } from 'services/ErrorLogger';
-
-/*
-in: fetched currentUser
-out: null authToken, null currentUser
-fetching: has authToken and maybe currentUserId, fetching currentUser
-*/
-type AuthStateType = 'in' | 'out' | 'fetching';
+import { clearEventLoggerUser, setEventLoggerUser } from 'services/EventLogger';
 
 const [
   AuthProvider,
@@ -18,24 +13,33 @@ const [
   function AuthStore() {
     const [authToken, setAuthToken, removeAuthToken] = useAuthTokenStorage();
     const [currentUserIdLS, setCurrentUserIdLS, removeCurrentUserIdLS] = useCurrentUserIdStorage();
+    const [_, _2, removeLoggedInAs] = useLoggedInAsStorage();
     const [{ currentUserId, authState }, setState] = useStateStable<{
       currentUserId: IUser['id'] | null,
-      authState: AuthStateType,
+      /*
+      in: fetched currentUser
+      out: null authToken, null currentUser
+      fetching: has authToken and maybe currentUserId, fetching currentUser
+      */
+      authState: 'in' | 'out' | 'fetching',
     }>({
       currentUserId: authToken ? currentUserIdLS : null,
       authState: authToken ? 'fetching' : 'out',
     });
     const [isReloadingAfterAuth, setIsReloadingAfterAuth] = useState(false);
-    const catchAsync = useCatchAsync();
 
+    const pushPath = usePushPath();
+    const replacePath = useReplacePath();
     const setAuth = useCallback(({
       authToken: newAuthToken,
       userId,
       redirectPath,
+      replace,
     }: {
       authToken: string | null,
       userId: IUser['id'] | null,
-      redirectPath?: string,
+      redirectPath: string,
+      replace?: boolean,
     }) => {
       if (newAuthToken && userId) {
         setAuthToken(newAuthToken);
@@ -44,32 +48,43 @@ const [
       } else {
         removeAuthToken();
         removeCurrentUserIdLS();
+        removeLoggedInAs();
         setState({ currentUserId: null, authState: 'out' });
+        clearEventLoggerUser();
+      }
+
+      if (replace) {
+        replacePath(redirectPath, null, null, true);
+      } else {
+        pushPath(redirectPath, null, null, true);
       }
 
       setIsReloadingAfterAuth(true);
-      if (redirectPath) {
-        // Note: Chrome can freeze after redirecting with devtools open, probably browser bug
-        window.location.href = redirectPath;
-      }
-      catchAsync(Promise.reject(new Promise(NOOP)));
+      setTimeout(() => {
+        // @ts-expect-error reload(true) is still supported
+        window.location.reload(true);
+      }, 100);
     }, [
       setAuthToken,
       removeAuthToken,
       setState,
-      catchAsync,
       setCurrentUserIdLS,
       removeCurrentUserIdLS,
+      removeLoggedInAs,
+      pushPath,
+      replacePath,
     ]);
 
-    const fetchedCurrentUser = useCallback((newCurrentUserId: IUser['id'] | null) => {
-      setErrorLoggerUserId(newCurrentUserId);
+    const fetchedCurrentUser = useCallback((currentUser: Entity<'user'> | null) => {
+      setErrorLoggerUserId(currentUser?.id);
+      setEventLoggerUser(currentUser);
+
       setState({
-        currentUserId: newCurrentUserId,
-        authState: newCurrentUserId ? 'in' : 'out',
+        currentUserId: currentUser?.id ?? null,
+        authState: currentUser ? 'in' : 'out',
       });
-      if (newCurrentUserId) {
-        setCurrentUserIdLS(newCurrentUserId);
+      if (currentUser) {
+        setCurrentUserIdLS(currentUser?.id ?? null);
       } else {
         removeCurrentUserIdLS();
       }

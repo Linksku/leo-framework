@@ -1,5 +1,5 @@
-const regex = /-?\d+(\.\d+)?/;
+const regex = /^-?\d+(\.\d+)?$/;
 
-export default function isNumericString(val: any) {
+export default function isNumericString(val: unknown): boolean {
   return typeof val === 'string' && regex.test(val);
 }

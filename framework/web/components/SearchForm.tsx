@@ -1,12 +1,15 @@
 import SearchSvg from 'svgs/fa5/search-regular.svg';
+import TimesSvg from 'svgs/fa5/times-regular.svg';
 
 import { useThrottle } from 'utils/throttle';
-import Form from 'components/common/Form';
-import { useAddPopHandler } from 'stores/HistoryStore';
+import Form from 'components/form/Form';
+import { addPopHandler } from 'stores/history/HistoryStore';
+import useEffectInitialMount from 'utils/useEffectInitialMount';
 
 import styles from './SearchForm.scss';
 
 type Props = {
+  submitOnInput?: boolean,
   onInput?: Stable<React.FormEventHandler<HTMLInputElement>>,
   onSubmit: Stable<(query: string) => void>,
   throttleTimeout?: number,
@@ -16,61 +19,104 @@ type Props = {
 };
 
 export default React.memo(function SearchForm({
+  submitOnInput = true,
   onInput,
   onSubmit,
-  throttleTimeout = 1000,
-  defaultValue,
+  throttleTimeout = 200,
+  defaultValue = '',
   placeholder,
   inputProps,
 }: Props) {
-  const { register, handleSubmit } = useForm({
-    reValidateMode: 'onBlur',
-    defaultValues: {
-      query: defaultValue ?? '',
-    },
-  });
-  const addPopHandler = useAddPopHandler();
-  const lastSubmitted = useRef(defaultValue);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [lastSubmitted, setLastSubmitted] = useState(defaultValue);
+  const [showClear, setShowClear] = useState(!!defaultValue);
 
-  const _handleSubmit = handleSubmit(useThrottle(
-    ({ query }) => {
-      if (!lastSubmitted.current && query) {
-        addPopHandler(() => {
-          lastSubmitted.current = '';
-          onSubmit('');
-          return true;
-        });
-      }
-
-      lastSubmitted.current = query;
-      onSubmit(query);
+  const handleSubmit = useCallback(
+    () => {
+      const val = inputRef.current?.value ?? '';
+      setLastSubmitted(val);
+      setShowClear(!!val);
+      onSubmit(val);
     },
+    [onSubmit],
+  );
+
+  const throttledHandleSubmit = useThrottle(
+    handleSubmit,
     useMemo(() => ({
       timeout: throttleTimeout,
+      debounce: true,
     }), [throttleTimeout]),
-    [onSubmit],
-  ));
+    [handleSubmit],
+  );
+
+  const clearForm = useCallback(() => {
+    if (inputRef.current) {
+      inputRef.current.value = defaultValue;
+    }
+    setLastSubmitted(defaultValue);
+    setShowClear(false);
+    onSubmit(defaultValue);
+  }, [defaultValue, onSubmit]);
+
+  useEffect(() => {
+    const removePopHandler = lastSubmitted && lastSubmitted !== defaultValue
+      ? addPopHandler(() => {
+        clearForm();
+        return true;
+      })
+      : null;
+
+    return () => {
+      removePopHandler?.();
+    };
+  }, [lastSubmitted, defaultValue, clearForm]);
+
+  useEffectInitialMount(() => {
+    if (defaultValue && inputRef.current) {
+      inputRef.current.value = defaultValue;
+    }
+  });
 
   return (
     <Form
-      onSubmit={_handleSubmit}
+      onSubmit={() => handleSubmit()}
+      submitOnEnter
     >
       <Input
+        ref={inputRef}
         name="query"
         placeholder={placeholder ?? 'Search...'}
-        suffix={(
-          <SearchSvg
-            className={styles.icon}
-          />
-        )}
+        SuffixSvg={showClear ? TimesSvg : SearchSvg}
+        suffixClassName={styles.suffix}
         suffixProps={{
-          onClick: _handleSubmit,
+          onClick: showClear
+            ? () => {
+              if (inputRef.current) {
+                inputRef.current.value = '';
+              }
+              setLastSubmitted('');
+              setShowClear(false);
+              onSubmit('');
+            }
+            : () => handleSubmit(),
         }}
-        register={register}
         autoCapitalize="none"
         autoCorrect="off"
-        onInput={onInput}
-        marginBottom="0.5rem"
+        onInput={e => {
+          if (submitOnInput) {
+            throttledHandleSubmit();
+            setShowClear(inputRef.current?.value !== defaultValue);
+          } else if (showClear
+            && (inputRef.current?.value !== lastSubmitted
+              || lastSubmitted === defaultValue)) {
+            setShowClear(false);
+          }
+          onInput?.(e);
+        }}
+        overrides={{
+          marginBottom: '0.5rem',
+        }}
         {...inputProps}
       />
     </Form>

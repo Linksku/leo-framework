@@ -1,49 +1,55 @@
-import usePrevious from 'hooks/usePrevious';
-import useUpdatedState from 'hooks/useUpdatedState';
+import type { NavState } from 'stores/history/HistoryStore';
+import type RouteParams from 'config/routeQueryParams';
+import usePrevious from 'utils/usePrevious';
+import useAccumulatedVal from 'utils/useAccumulatedVal';
+import isDebug from 'utils/isDebug';
 
 export const [
   RouteProvider,
   useRouteStore,
   useRouteMatches,
-  useRouteQuery,
+  useRouteQueryRaw,
   useGetRouteState,
   useIsRouteActive,
   useHadRouteBeenActive,
+  useGetIsRouteActive,
   useIsRouteVisible,
-  useInnerContainerRef,
+  useRouteContainerRef,
 ] = constate(
   function RouteStore({
     routeConfig,
     matches,
     initialHistoryState,
     isFrozen,
+    navState,
   }: {
     routeConfig: RouteConfig,
     matches: Stable<string[]>,
     initialHistoryState: HistoryState,
     isFrozen: boolean,
+    navState: NavState,
   }) {
     const {
       curState,
-      backState,
-      forwardState,
-    } = useDeferredValue(useHistoryStore());
-    const {
-      curStack,
-      backStack,
-      forwardStack,
-    } = useDeferredValue(useStacksNavStore());
-    const {
+      backStates,
+      forwardStates,
+      direction,
+      replacedNavCount,
       isHome,
       isBackHome,
       isForwardHome,
       homeTab,
       homeParts,
-    } = useDeferredValue(useHomeNavStore());
+      curStack,
+      leftStack,
+      rightStack,
+    } = navState;
+    const backState = backStates.at(0) ?? null;
+    const forwardState = forwardStates.at(0) ?? null;
 
     const isCurStack = initialHistoryState.key === curStack?.key;
-    const isBackStack = initialHistoryState.key === backStack?.key;
-    const isForwardStack = initialHistoryState.key === forwardStack?.key;
+    const isLeftStack = initialHistoryState.key === leftStack?.key;
+    const isRightStack = initialHistoryState.key === rightStack?.key;
     const [routeState, setRouteState] = useState(() => ({
       historyState: initialHistoryState,
       key: initialHistoryState.key,
@@ -54,17 +60,21 @@ export const [
       id: initialHistoryState.id,
       backState: isCurStack
         ? backState
-        : (isForwardStack ? curState : null),
+        : (isRightStack ? curState : null),
       forwardState: isCurStack
         ? forwardState
-        : (isBackStack ? curState : null),
+        : (isLeftStack ? curState : null),
+      replacedNavCount,
       isHome: isCurStack
         ? isHome
-        : (isBackStack ? isBackHome : isForwardHome),
+        : (direction === 'forward'
+          ? isLeftStack && isBackHome
+          : isLeftStack && isForwardHome),
       homeTab,
       homeParts,
       // Note: don't include "direction"/"prevState" here, they change based on navigation
     }));
+
     useEffect(() => {
       // If this route wasn't curStack on first render, then some state might be wrong
       if (isCurStack
@@ -83,42 +93,34 @@ export const [
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isCurStack]);
 
-    const [routeOpts, setRouteOpts] = useStateStable({
-      disableBackSwipe: false,
-      ...routeConfig.opts,
-    });
     // HomeWrapInner or StackWrapInner
-    const innerContainerRef = useRef<Stable<HTMLDivElement>>(null);
+    const routeContainerRef = markStable(useRef<Stable<HTMLDivElement> | null>(null));
 
     const isRouteActive = routeState.key === curState.key;
     const wasRouteActive = usePrevious(isRouteActive);
-    const hadRouteBeenActive = useUpdatedState(
+    const hadRouteBeenActive = useAccumulatedVal(
       isRouteActive,
       s => s || isRouteActive,
     );
     const isRouteVisible = true; // Temp
 
     const wasFrozen = usePrevious(isFrozen);
-    const frozenCount = useUpdatedState(
+    const frozenCount = useAccumulatedVal(
       0,
       s => s + (isFrozen === wasFrozen ? 0 : 1),
     );
 
     const latestRouteState = useLatest(routeState);
     const getRouteState = useCallback(() => latestRouteState.current, [latestRouteState]);
+    const getIsRouteActive = useLatestCallback(() => isRouteActive);
 
-    const deferredIsRouteActive = useDeferredValue(isRouteActive);
-    const deferredHadRouteBeenActive = useDeferredValue(hadRouteBeenActive);
-    const deferredIsRouteVisible = useDeferredValue(isRouteVisible);
     const obj = useMemo(() => ({
       routeConfig,
       matches,
-      routeOpts,
-      setRouteOpts,
-      innerContainerRef,
+      routeContainerRef,
       isCurStack,
-      isBackStack,
-      isForwardStack,
+      isLeftStack,
+      isRightStack,
       isRouteActive,
       wasRouteActive,
       hadRouteBeenActive,
@@ -126,18 +128,14 @@ export const [
       frozenCount,
       ...routeState,
       getRouteState,
-      _deferredIsRouteActive: deferredIsRouteActive,
-      _deferredHadRouteBeenActive: deferredHadRouteBeenActive,
-      _deferredIsRouteVisible: deferredIsRouteVisible,
+      getIsRouteActive,
     }), [
       routeConfig,
       matches,
-      routeOpts,
-      setRouteOpts,
-      innerContainerRef,
+      routeContainerRef,
       isCurStack,
-      isBackStack,
-      isForwardStack,
+      isLeftStack,
+      isRightStack,
       isRouteActive,
       wasRouteActive,
       hadRouteBeenActive,
@@ -145,13 +143,14 @@ export const [
       isRouteVisible,
       routeState,
       getRouteState,
-      deferredIsRouteActive,
-      deferredHadRouteBeenActive,
-      deferredIsRouteVisible,
+      getIsRouteActive,
     ]);
 
-    if (!process.env.PRODUCTION && typeof window !== 'undefined' && isRouteActive) {
-      // @ts-ignore for debugging
+    if (!process.env.PRODUCTION
+      && isDebug
+      && isRouteActive
+      && typeof window !== 'undefined') {
+      // @ts-expect-error for debugging
       window.route = obj;
     }
 
@@ -170,15 +169,24 @@ export const [
     return val.getRouteState;
   },
   function IsRouteActive(val) {
-    return val._deferredIsRouteActive;
+    return val.isRouteActive;
   },
   function HadRouteBeenActive(val) {
-    return val._deferredHadRouteBeenActive;
+    return val.hadRouteBeenActive;
+  },
+  function GetIsRouteActive(val) {
+    return val.getIsRouteActive;
   },
   function IsRouteVisible(val) {
-    return val._deferredIsRouteVisible;
+    return val.isRouteVisible;
   },
-  function InnerContainerRef(val) {
-    return val.innerContainerRef;
+  function routeContainerRef(val) {
+    return val.routeContainerRef;
   },
 );
+
+export function useRouteQuery<
+  RouteName extends keyof RouteParams = never,
+>(): Partial<Record<RouteParams[RouteName], string | number>> {
+  return useRouteQueryRaw();
+}

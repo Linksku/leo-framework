@@ -1,15 +1,20 @@
+import { promises as fs, ReadStream } from 'fs';
+import https from 'https';
+import http from 'http';
 import type {
   Sharp,
   SharpOptions,
   Metadata,
   FitEnum,
 } from 'sharp';
-import { promises as fs, ReadStream } from 'fs';
 import sharp from 'sharp';
-import https from 'https';
-import http from 'http';
 
 import getCroppedMediaDim from 'utils/media/getCroppedMediaDim';
+
+export const FORMAT_TO_EXTENSION = {
+  webp: 'webp',
+  jpeg: 'jpg',
+};
 
 export default class UploadedImage {
   filePath: string;
@@ -25,7 +30,7 @@ export default class UploadedImage {
     this.sharpOptions = sharpOptions;
   }
 
-  clone(newOptions?: SharpOptions) {
+  clone(newOptions?: SharpOptions): UploadedImage {
     if (!process.env.PRODUCTION && !this.stream) {
       ErrorLogger.warn(new Error('UploadedImage.clone: haven\'t read file yet, pointless clone()'));
     }
@@ -43,14 +48,18 @@ export default class UploadedImage {
     return img;
   }
 
-  async getImgStream() {
+  async getImgStream(): Promise<ReadStream | http.IncomingMessage> {
     if (!this.stream) {
       if (this.filePath.startsWith('http:') || this.filePath.startsWith('https:')) {
-        this.stream = await new Promise<http.IncomingMessage>(succ => {
+        this.stream = await new Promise<http.IncomingMessage>((succ, fail) => {
           (this.filePath.startsWith('http:') ? http.get : https.get)(
             this.filePath,
             stream2 => {
-              succ(stream2);
+              if (stream2.statusCode && stream2.statusCode < 400) {
+                succ(stream2);
+              } else {
+                fail(new Error(`UploadedImage.getImgStream: status ${stream2.statusCode}`));
+              }
             },
           );
         });
@@ -62,14 +71,16 @@ export default class UploadedImage {
     return this.stream;
   }
 
-  async getSharpImg() {
+  async getSharpImg(): Promise<Sharp> {
     if (!this.sharp) {
       try {
         const stream = await this.getImgStream();
-        this.sharp = stream.pipe(sharp({
-          animated: true,
-          ...this.sharpOptions,
-        }));
+        this.sharp = stream.pipe(
+          sharp({
+            animated: true,
+            ...this.sharpOptions,
+          }),
+        );
       } catch (err) {
         throw getErr(err, { ctx: 'UploadedImage.getSharpImg' });
       }
@@ -77,7 +88,7 @@ export default class UploadedImage {
     return TS.defined(this.sharp);
   }
 
-  async getMetadata() {
+  async getMetadata(): Promise<Metadata> {
     if (!this.metadata) {
       const img = await this.getSharpImg();
       try {
@@ -98,13 +109,13 @@ export default class UploadedImage {
       };
   }
 
-  async isAnimated() {
+  async isAnimated(): Promise<boolean> {
     if (this.sharpOptions?.animated === false || this.sharpOptions?.pages === 1) {
       return false;
     }
 
     const metadata = await this.getMetadata();
-    return metadata.pages && metadata.pages > 1;
+    return !!metadata.pages && metadata.pages > 1;
   }
 
   async crop({
@@ -117,7 +128,7 @@ export default class UploadedImage {
     left: number,
     right: number,
     bot: number,
-  }) {
+  }): Promise<void> {
     const img = await this.getSharpImg();
     const { height, width, orientation } = await this.getMetadata();
 
@@ -191,54 +202,64 @@ export default class UploadedImage {
   }
 
   async fit({
-    maxDim,
+    minHeight,
+    minWidth,
+    maxHeight,
+    maxWidth,
     minRatio = 1,
     maxRatio = 1,
     fit = 'cover',
   }: {
-    maxDim: number,
+    minHeight: number,
+    minWidth: number,
+    maxHeight: number,
+    maxWidth: number,
     minRatio?: number,
     maxRatio?: number,
     fit?: keyof FitEnum,
-  }) {
-    const img = await this.getSharpImg();
+  }): Promise<void> {
+    let img = await this.getSharpImg();
     const { height, width, orientation } = await this.getMetadata();
+    // Sharp doesn't use EXIF orientation https://sharp.pixelplumbing.com/api-input#metadata
+    const isRotated90Deg = orientation && orientation >= 5;
 
     if (!height || !width) {
       throw new Error('UploadedImage.fit: invalid image');
     }
     const { newHeight, newWidth } = getCroppedMediaDim({
-      height,
-      width,
-      maxDim,
+      height: isRotated90Deg ? width : height,
+      width: isRotated90Deg ? height : width,
+      minHeight,
+      minWidth,
+      maxHeight,
+      maxWidth,
       minRatio,
       maxRatio,
     });
-
-    // Sharp doesn't use EXIF orientation https://sharp.pixelplumbing.com/api-input#metadata
-    const isRotated90Deg = orientation && orientation >= 5;
-    this.newHeight = isRotated90Deg ? newWidth : newHeight;
-    this.newWidth = isRotated90Deg ? newHeight : newWidth;
+    this.newHeight = newHeight;
+    this.newWidth = newWidth;
 
     if (height !== newHeight || width !== newWidth) {
-      this.sharp = img
+      img = img
         .resize({
           height: newHeight,
           width: newWidth,
           fit,
-        })
-        .withMetadata();
+        });
     }
+
+    this.sharp = img;
   }
 
   async getOutput({
-    quality = 90,
+    quality = 80,
   } = {}): Promise<{
     buffer: Buffer,
     format: 'webp' | 'jpeg',
-    extension: 'webp' | 'jpg',
   }> {
     let img = await this.getSharpImg();
+    // Auto-fixes exif rotation
+    img = img.rotate();
     const isAnimated = await this.isAnimated();
 
     img = img
@@ -246,15 +267,13 @@ export default class UploadedImage {
       .flatten({
         background: { r: 255, g: 255, b: 255 },
       })
-      .toFormat('webp')
-      .webp({
+      .toFormat('webp', {
         quality,
         effort: isAnimated ? 0 : 4,
       });
     return {
       buffer: await img.toBuffer(),
       format: 'webp',
-      extension: 'webp',
     };
   }
 }

@@ -1,6 +1,6 @@
-import usePrevious from 'hooks/usePrevious';
+import usePrevious from 'utils/usePrevious';
 
-import useUpdatedState from 'hooks/useUpdatedState';
+import useAccumulatedVal from 'utils/useAccumulatedVal';
 
 import type { Row } from './WindowedInfiniteScrollerColumn';
 
@@ -27,11 +27,12 @@ export default function useItemsToColumns<ItemType extends string | number>({
   const prevOrigItems = usePrevious(origItems) ?? [];
   const prevDeletedItems = usePrevious(deletedItems) ?? new Set();
 
-  return useUpdatedState(() => ({
+  const initialColumns = useMemo(() => ({
     columnItems: markStable(Array.from({ length: columns }, _ => new Set<ItemType>())),
     itemToRow: new Map<ItemType, Row<ItemType>>(),
     initialVisibleItems: markStable(new Set<ItemType>()),
-  }), s => {
+  }), [columns]);
+  return useAccumulatedVal(initialColumns, s => {
     if (prevAddedItems.length === (addedItems?.length ?? 0)
       && prevOrigItems.length === origItems.length) {
       return s;
@@ -41,10 +42,7 @@ export default function useItemsToColumns<ItemType extends string | number>({
     const initialVisibleItems = markStable(new Set(s.initialVisibleItems));
 
     if (!prevOrigItems.length && (origItems.length || addedItems?.length)) {
-      const initialItems = [
-        ...origItems,
-        ...(addedItems ?? []),
-      ];
+      const initialItems = origItems.concat(addedItems ?? []);
       for (let i = 0; i < columns && i < initialItems.length; i++) {
         initialVisibleItems.add(initialItems[i]);
       }
@@ -64,7 +62,7 @@ export default function useItemsToColumns<ItemType extends string | number>({
 
     const deletedOrigItems = prevOrigItems.filter(item => !origItemsSet.has(item));
     const newDeletedItems = [...deletedItems ?? []].filter(item => !prevDeletedItems.has(item));
-    for (const item of [...deletedOrigItems, ...newDeletedItems]) {
+    for (const item of deletedOrigItems.concat(newDeletedItems)) {
       for (const colItems of columnItems) {
         colItems.delete(item);
       }
@@ -74,10 +72,7 @@ export default function useItemsToColumns<ItemType extends string | number>({
     for (const item of prevOrigItems) {
       initialVisibleItems.add(item);
     }
-    const newItems = [
-      ...newOrigItems,
-      ...newAddedItems,
-    ];
+    const newItems = newOrigItems.concat(newAddedItems);
     if (newItems.length) {
       if (columns === 1) {
         initialVisibleItems.add(newItems[0]);
@@ -120,10 +115,10 @@ export default function useItemsToColumns<ItemType extends string | number>({
       }
     }
 
-    return {
+    return markStable({
       columnItems,
       itemToRow: s.itemToRow,
       initialVisibleItems,
-    };
+    });
   });
 }

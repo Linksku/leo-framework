@@ -1,5 +1,5 @@
 import type { Knex } from 'knex';
-import { IS_PROFILING_API } from 'consts/infra';
+import { IS_PROFILING_APIS } from 'config';
 
 export default function beforeQuery({
   db,
@@ -23,7 +23,7 @@ export default function beforeQuery({
 
   if (process.env.PRODUCTION
     || process.env.IS_SERVER_SCRIPT
-    || IS_PROFILING_API
+    || IS_PROFILING_APIS
     || !sql
     || sql.startsWith('explain ')) {
     return;
@@ -42,7 +42,7 @@ export default function beforeQuery({
   if (rc?.debug) {
     printDebug(
       // todo: low/mid add async context for apis
-      rc ? `${db.toUpperCase()} Query ${rc.path}` : `${db.toUpperCase()} Query`,
+      rc ? `${db.toUpperCase()} Query ${rc.apiPath}` : `${db.toUpperCase()} Query`,
       'success',
       {
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
@@ -63,9 +63,12 @@ export default function beforeQuery({
             const execTime = matches ? Number.parseFloat(matches[1]) : 0;
             if (execTime > 10) {
               printDebug(
-                rc ? `Slow RR Query ${rc.path}` : 'Slow RR Query',
+                rc ? `Slow RR Query ${rc.apiPath}` : 'Slow RR Query',
                 'error',
-                { details: `${sql}\n${plan}` },
+                {
+                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                  details: `${knex.raw(sql, bindings).toString()}\n${plan}`,
+                },
               );
             }
           },

@@ -1,5 +1,7 @@
 import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
 import stringify from 'utils/stringify';
+import getNonNullSchema from './getNonNullSchema';
+import isSchemaNullable from './isSchemaNullable';
 
 export default function validateUniquePartial<T extends ModelClass>(
   Model: T,
@@ -19,13 +21,20 @@ export default function validateUniquePartial<T extends ModelClass>(
 
   const schema = Model.getSchema();
   for (const [key, val] of entries) {
-    const type = schema[key]?.type;
-    // todo: low/easy allow nullable unique partial values
-    if ((type === 'string' && typeof val !== 'string')
-      || ((type === 'number' || type === 'integer') && typeof val !== 'number')) {
-      throw new Error(
-        `validateUniquePartial: ${Model.type} ${key}=${stringify(val)} (${typeof val}) doesn't match schema (${type}).`,
-      );
+    if (val === null) {
+      if (!isSchemaNullable(schema[key])) {
+        throw new Error(
+          `validateUniquePartial: ${Model.type} ${key}=${stringify(val)} is not nullable.`,
+        );
+      }
+    } else {
+      const { nonNullType } = getNonNullSchema(schema[key]);
+      if ((nonNullType === 'string' && typeof val !== 'string')
+        || ((nonNullType === 'number' || nonNullType === 'integer') && typeof val !== 'number')) {
+        throw new Error(
+          `validateUniquePartial: ${Model.type} ${key}=${stringify(val)} (${typeof val}) doesn't match schema (${nonNullType}).`,
+        );
+      }
     }
   }
 }

@@ -7,17 +7,12 @@ const JSON_SCHEMA_TO_POSTGRES_TYPES = {
   boolean: 'boolean',
 };
 
-// This is far from perfect, just a quick hack.
-export default function getValDbType<T extends ModelClass>(
+function colToDbType<T extends ModelClass>(
   Model: T,
   col: ModelKey<T>,
+  colSchema: JsonSchema,
   val: any,
 ): string {
-  const colSchema = Model.getSchema()[col];
-  if (!colSchema) {
-    throw new Error(`getValDbType(${Model.name}, ${col}): schema not found`);
-  }
-
   if (colSchema.type === 'string' && colSchema.format === 'date') {
     return 'date';
   }
@@ -28,7 +23,8 @@ export default function getValDbType<T extends ModelClass>(
 
   const colSchemaType = getNonNullSchema(colSchema).nonNullType;
   if (typeof colSchemaType === 'string') {
-    if (colSchemaType === 'integer' && (col === 'id' || col.endsWith('Id'))) {
+    if (colSchemaType === 'integer'
+      && (col === 'id' || col.endsWith('Id') || col.endsWith('Ids'))) {
       return 'bigint';
     }
 
@@ -45,4 +41,22 @@ export default function getValDbType<T extends ModelClass>(
   }
 
   throw getErr(`getValDbType(${Model.name}, ${col}): unknown type`, { val });
+}
+
+// This is far from perfect, just a quick hack.
+export default function getValDbType<T extends ModelClass>(
+  Model: T,
+  col: ModelKey<T>,
+  val: any,
+): string {
+  const colSchema = Model.getSchema()[col];
+  if (!colSchema) {
+    throw new Error(`getValDbType(${Model.name}, ${col}): schema not found`);
+  }
+
+  if (colSchema.type === 'array' && colSchema.items) {
+    return `${colToDbType(Model, col, colSchema.items, val)}[]`;
+  }
+
+  return colToDbType(Model, col, colSchema, val);
 }

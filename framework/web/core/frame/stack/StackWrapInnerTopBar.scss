@@ -1,0 +1,49 @@
+.container {
+  overflow: hidden;
+  box-sizing: content-box;
+  background-color: #fff;
+  position: relative;
+  touch-action: none;
+}
+
+.inner {
+  @extend %maxWidthContainer;
+
+  height: calc($headerHeight - $insetTop - 0.5px);
+  border-bottom: 0.5px solid #f8f8f8;
+  display: flex;
+}
+
+.noBorder {
+  border-bottom: none;
+}
+
+.btnWrap {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 $containerPadding 0 math.div($containerPadding, 2);
+
+  @include gtXs {
+    padding-left: $containerPadding;
+  }
+}
+
+.rightBtnWrap {
+  padding-left: $containerPadding;
+  padding-right: math.div($containerPadding, 2);
+
+  @include gtXs {
+    padding-right: $containerPadding;
+  }
+}
+
+.title {
+  @extend %oneLine;
+
+  align-self: center;
+  flex-grow: 1;
+  font-size: 1.8rem;
+  font-weight: 400;
+  padding: 0 $containerPadding;
+}

@@ -1,10 +1,10 @@
 import shuffle from 'lodash/shuffle.js';
 
 import throttledPromiseAll from 'utils/throttledPromiseAll';
-import type { MaterializedViewClass } from 'services/model/MaterializedView';
+import type { MaterializedViewClass } from 'core/models/MaterializedView';
 import knexMZ from 'services/knex/knexMZ';
-import EntityModels from 'services/model/allEntityModels';
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import EntityModels from 'core/models/allEntityModels';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import showMzSystemRows from 'utils/db/showMzSystemRows';
 import getIndexName from 'utils/db/getIndexName';
 import shallowEqual from 'utils/shallowEqual';
@@ -16,11 +16,12 @@ function validateQuery(query: QueryBuilder<Model>, model: ModelClass) {
     grouping: string,
     value: string | any[] | ObjectOf<any>,
     type?: string,
+    distinct?: boolean,
   }[] = (query.toKnexQuery() as any)._statements;
   const allSelects = statements
     // Only normal selects and aggregate selects
     .filter(s => s.grouping === 'columns'
-      && (Object.keys(s).length === 2 || s.type === 'aggregate'))
+      && (Object.keys(s).length === 2 || s.type === 'aggregate' || s.distinct))
     .flatMap(s => {
       if (typeof s.value === 'string') {
         return [s.value];
@@ -133,14 +134,20 @@ export default async function createMZMaterializedViews() {
       if (!model.getReplicaTable()) {
         if (!numDependents) {
           printDebug(`createMZMaterializedView: ${model.type} has no replica table and no dependents`);
-        } else if (numDependents === 1 && model.mzIndexes?.length) {
-          printDebug(`createMZMaterializedView: ${model.type} has unnecessary index`);
-        } else if (numDependents >= 3 && !model.mzIndexes?.length) {
+        }
+        if (numDependents >= 2 && !model.mzIndexes?.length) {
           printDebug(
             `createMZMaterializedView: ${model.type} has ${numDependents} dependents and no index`,
           );
-        } else if (model.mzIndexes && model.mzIndexes.length > numDependents) {
+        }
+        if (numDependents && model.mzIndexes && model.mzIndexes.length > numDependents) {
           printDebug(`createMZMaterializedView: ${model.type} has too many indexes`);
+        }
+        if (model.uniqueIndexes.length > 1) {
+          printDebug(`createMZMaterializedView: ${model.type} has unnecessary unique indexes`);
+        }
+        if (model.normalIndexes.length) {
+          printDebug(`createMZMaterializedView: ${model.type} has unnecessary normal indexes`);
         }
       }
 
@@ -254,7 +261,7 @@ export default async function createMZMaterializedViews() {
   }
 
   printDebug(
-    `Created MZ materialized views after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    `Created MZ MVs after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
     'success',
   );
 
@@ -267,10 +274,9 @@ export default async function createMZMaterializedViews() {
       createdModelWithSinks,
     );
 
-    try {
-      await verifyUniquePrimaryIndex(createdModelWithSinks);
-    } catch (err) {
-      printDebug(err, 'error');
-    }
+    verifyUniquePrimaryIndex(createdModelWithSinks)
+      .catch(err => {
+        printDebug(err, 'error');
+      });
   }
 }

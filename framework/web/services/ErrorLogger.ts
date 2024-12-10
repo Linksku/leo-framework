@@ -1,21 +1,19 @@
 import type SentryType from '@sentry/browser';
 import type { SeverityLevel } from '@sentry/types';
+import { App } from '@capacitor/app';
 
+import { SENTRY_DSN_WEB } from 'config/config';
 import detectPlatform from 'utils/detectPlatform';
 import formatErr from 'utils/formatErr';
 import getUrlParams from 'utils/getUrlParams';
+import retryImport from 'utils/retryImport';
 
 const WARN_THROTTLE_DURATION = 10 * 60 * 1000;
 const ERROR_THROTTLE_DURATION = 60 * 1000;
 const lastLoggedTimes = new Map<string, number>();
 
-let Sentry: {
-  configureScope: typeof SentryType.configureScope,
-  withScope: typeof SentryType.withScope,
-  captureException: typeof SentryType.captureException,
-} | null = null;
+let Sentry: typeof SentryType | null = null;
 let queuedErrors: { level: SeverityLevel, err: Error }[] = [];
-let latestUserId : EntityId | null = null;
 
 const _queueError = (level: SeverityLevel, err: Error) => {
   if (!process.env.PRODUCTION || process.env.SERVER !== 'production') {
@@ -63,16 +61,6 @@ function _isErrorDoubleInvoked(err: unknown) {
   return err.stack?.includes('DoubleInvokeEffects');
 }
 
-export const setErrorLoggerUserId = (userId: Nullish<IUser['id']>) => {
-  latestUserId = userId ?? null;
-
-  if (Sentry) {
-    Sentry.configureScope(scope => {
-      scope.setUser({ id: userId?.toString() });
-    });
-  }
-};
-
 const ErrorLogger = {
   warn<T>(
     _err: T & (
@@ -82,6 +70,7 @@ const ErrorLogger = {
     ),
     debugCtx?: ObjectOf<any>,
     consoleLog = true,
+    sendToSentry = true,
   ) {
     let err: Error;
     if (_err instanceof Error) {
@@ -97,7 +86,9 @@ const ErrorLogger = {
       // eslint-disable-next-line no-console
       console.warn(formatErr(err));
     }
-    _queueError('warning', err);
+    if (sendToSentry) {
+      _queueError('warning', err);
+    }
   },
 
   error<T>(
@@ -108,6 +99,7 @@ const ErrorLogger = {
     ),
     debugCtx?: ObjectOf<any>,
     consoleLog = true,
+    sendToSentry = true,
   ) {
     let err: Error;
     if (_err instanceof Error) {
@@ -123,7 +115,9 @@ const ErrorLogger = {
       // eslint-disable-next-line no-console
       console.error(formatErr(err));
     }
-    _queueError('error', err);
+    if (sendToSentry) {
+      _queueError('error', err);
+    }
   },
 
   fatal<T>(
@@ -134,6 +128,7 @@ const ErrorLogger = {
     ),
     debugCtx?: ObjectOf<any>,
     consoleLog = true,
+    sendToSentry = true,
   ) {
     let err: Error;
     if (_err instanceof Error) {
@@ -149,46 +144,72 @@ const ErrorLogger = {
       // eslint-disable-next-line no-console
       console.error(formatErr(err));
     }
-    _queueError('fatal', err);
+    if (sendToSentry) {
+      _queueError('fatal', err);
+    }
   },
 } as const;
 
-export const loadErrorLogger = (userId : EntityId | null) => {
+let latestUserId : IUser['id'] | null = null;
+
+export function setErrorLoggerUserId(userId: Nullish<IUser['id']>): void {
+  latestUserId = userId ?? null;
+
+  if (Sentry) {
+    Sentry.getCurrentScope().setUser({ id: userId?.toString() });
+  }
+}
+
+export function loadErrorLogger(userId : IUser['id'] | null): void {
   if (!process.env.PRODUCTION || process.env.SERVER !== 'production') {
     return;
   }
   latestUserId = userId;
 
-  import(
-    /* webpackChunkName: 'initSentry' */ 'services/initSentry'
-  )
-    .then(module => {
-      Sentry = module.default;
-      Sentry.configureScope(scope => {
-        const platform = detectPlatform();
-        const params = getUrlParams();
+  Promise.all([
+    retryImport(() => import(/* webpackChunkName: 'Sentry' */ '@sentry/browser')),
+    detectPlatform().isNative ? App.getInfo() : null,
+  ])
+    .then(([module, appInfo]) => {
+      Sentry = module;
 
-        scope.setUser({ id: latestUserId?.toString() });
-        scope.setTag('userId', latestUserId);
-        scope.setTag('jsVersion', process.env.JS_VERSION);
-        scope.setTag('callsite', 'web');
-
-        scope.setTag('userAgent', window.navigator.userAgent);
-        scope.setTag('os', platform.os);
-        scope.setTag('platform', platform.type);
-        scope.setTag('language', window.navigator.language);
-        scope.setTag('path', window.location.pathname);
-        scope.setTag('hash', window.location.hash.slice(1));
-
-        if (params) {
-          for (const [k, v] of params.entries()) {
-            scope.setTag(
-              `param:${k}`,
-              typeof v === 'string' ? v : JSON.stringify(v),
-            );
-          }
-        }
+      Sentry.init({
+        dsn: SENTRY_DSN_WEB,
+        release: process.env.JS_VERSION,
       });
+
+      const scope = Sentry.getCurrentScope();
+      const platform = detectPlatform();
+      const params = getUrlParams();
+
+      scope.setUser({ id: latestUserId?.toString() });
+      scope.setTag('userId', latestUserId);
+      if (appInfo) {
+        scope.setTag('appVersion', appInfo.version);
+      }
+      scope.setTag('jsVersion', process.env.JS_VERSION);
+      scope.setTag('callsite', 'client');
+
+      scope.setTag('userAgent', window.navigator.userAgent);
+      scope.setTag('os', platform.os);
+      scope.setTag('platform', platform.type);
+      if (platform.webviewApp) {
+        scope.setTag('3rdPartyWebview', platform.webviewApp);
+      }
+      scope.setTag('language', window.navigator.language);
+      scope.setTag('path', window.location.pathname);
+      if (window.location.hash) {
+        scope.setTag('hash', window.location.hash.slice(1));
+      }
+
+      if (params) {
+        for (const [k, v] of params.entries()) {
+          scope.setTag(
+            `param:${k}`,
+            typeof v === 'string' ? v : JSON.stringify(v),
+          );
+        }
+      }
 
       if (queuedErrors.length) {
         for (const { level, err } of queuedErrors) {
@@ -201,6 +222,6 @@ export const loadErrorLogger = (userId : EntityId | null) => {
       // eslint-disable-next-line no-console
       console.error(err);
     });
-};
+}
 
 export default ErrorLogger;

@@ -3,7 +3,7 @@ import { forbiddenSubStrs, allowedForbiddenSubStrs, forbiddenWords } from 'const
 
 // Names that should never be allowed.
 export default function isNameForbidden(name: string) {
-  let filteredName = name;
+  let filteredName = name.toLowerCase();
   for (const subStr of allowedForbiddenSubStrs) {
     filteredName = filteredName.replaceAll(subStr, '');
   }

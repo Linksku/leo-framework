@@ -1,4 +1,3 @@
-import Chance from 'chance';
 import round from 'lodash/round.js';
 
 import knexBT from 'services/knex/knexBT';
@@ -29,6 +28,7 @@ import {
   INTERNAL_DOCKER_HOST,
 } from 'consts/infra';
 import randInt from 'utils/randInt';
+import getChance from 'services/getChance';
 import createMZSink from './mv/helpers/createMZSink';
 import createMZSinkConnector from './mv/helpers/createMZSinkConnector';
 
@@ -37,8 +37,6 @@ type TestRow = {
   unindexed: number,
   name: string,
 };
-
-const chance = new Chance();
 
 const MIN_ROWS = 100_000;
 
@@ -72,7 +70,8 @@ async function destroyTestInfra() {
   await knexBT.raw(`DROP PUBLICATION IF EXISTS ${BT_PUB_MODEL_PREFIX}test`);
 }
 
-function getRandomRow() {
+async function getRandomRow() {
+  const chance = await getChance();
   return {
     unindexed: Math.round(Math.random() * 1_000_000),
     name: chance.first(),
@@ -89,8 +88,9 @@ type QueryTimes = {
 async function insert1RowTimes() {
   const startTime = performance.now();
   const times: Partial<QueryTimes> = {};
+  const rowData = await getRandomRow();
   const [insertedRow2] = await knexBT<TestRow>('__test__')
-    .insert(getRandomRow())
+    .insert(rowData)
     .returning('id');
   times.bt = performance.now() - startTime;
   await Promise.all([
@@ -120,7 +120,7 @@ async function insert1RowTimes() {
 }
 
 async function update1RowTimes(id: number) {
-  const update = getRandomRow();
+  const update = await getRandomRow();
   const startTime = performance.now();
   const times: Partial<QueryTimes> = {};
   await knexBT<TestRow>('__test__')
@@ -172,7 +172,7 @@ async function insert1000RowsTimes() {
       rows,
     )
     .returning(
-      // @ts-ignore Knex has wrong type
+      // @ts-expect-error Knex has wrong type
       'id',
     );
   const lastRow = TS.defined(insertedRows.at(-1));
@@ -181,7 +181,7 @@ async function insert1000RowsTimes() {
     (async () => {
       await waitForQueryReady(
         knexRR<TestRow>('__test__').where({
-          // @ts-ignore Knex has wrong type
+          // @ts-expect-error Knex has wrong type
           id: lastRow.id,
         }),
         { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
@@ -191,7 +191,7 @@ async function insert1000RowsTimes() {
     (async () => {
       await waitForQueryReady(
         knexMZ<TestRow>('__testMV__').where({
-          // @ts-ignore Knex has wrong type
+          // @ts-expect-error Knex has wrong type
           id: lastRow.id,
         }),
         { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
@@ -201,7 +201,7 @@ async function insert1000RowsTimes() {
     (async () => {
       await waitForQueryReady(
         knexRR<TestRow>('__testMV__').where({
-          // @ts-ignore Knex has wrong type
+          // @ts-expect-error Knex has wrong type
           id: lastRow.id,
         }),
         { minWaitTime: 10, maxWaitTime: 20 * 1000, exponentialBackoff: false },
@@ -213,10 +213,13 @@ async function insert1000RowsTimes() {
 }
 
 async function update1000RowsTimes(lastId: number) {
-  const updates = Array.from({ length: 1000 }, _ => ({
-    id: randInt(1, lastId),
-    ...getRandomRow(),
-  }));
+  const updates = await Promise.all(Array.from(
+    { length: 1000 },
+    () => getRandomRow().then(rowData => ({
+      id: randInt(1, lastId),
+      ...rowData,
+    })),
+  ));
   const startTime = performance.now();
   const times: Partial<QueryTimes> = {};
 

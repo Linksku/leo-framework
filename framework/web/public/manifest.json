@@ -1,7 +1,7 @@
 {
   "name": "%APP_NAME%",
   "short_name": "%APP_NAME%",
-  "start_url": "/%BASE_PATH%",
+  "start_url": "/",
   "icons": [
     {
       "src": "%ASSETS_URL%/icon-android192.png",

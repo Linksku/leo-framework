@@ -1,15 +1,16 @@
-import StackWrapInner from 'components/frame/stack/StackWrapInner';
-import Form from 'components/common/Form';
-import HookFormErrors from 'components/HookFormErrors';
+import StackWrapInner from 'core/frame/stack/StackWrapInner';
+import Form from 'components/form/Form';
+import HookFormErrors from 'components/form/HookFormErrors';
+import PasswordInput from 'components/form/PasswordInput';
 
 import styles from './ResetPasswordVerifyRoute.scss';
 
 export default React.memo(function ResetPasswordVerifyRoute() {
-  const { token: _token } = useRouteQuery();
+  const { token: _token } = useRouteQuery<'ResetPasswordVerify'>();
   const token = typeof _token === 'string' ? _token : undefined;
 
   const { register, handleSubmit, control } = useForm({
-    reValidateMode: 'onBlur',
+    mode: 'onBlur',
     defaultValues: {
       password: '',
     },
@@ -19,9 +20,7 @@ export default React.memo(function ResetPasswordVerifyRoute() {
 
   const { fetching, fetchApi: verifyResetPassword, error: apiError } = useDeferredApi(
     'verifyResetPassword',
-    useMemo(() => ({
-      token,
-    }), [token]),
+    EMPTY_OBJ,
     {
       type: 'load',
       method: 'post',
@@ -37,17 +36,21 @@ export default React.memo(function ResetPasswordVerifyRoute() {
     },
   );
 
+  const {
+    password: passwordError,
+    ...otherErrors
+  } = errors;
   return (
     <StackWrapInner title="Reset Password">
       <div className={styles.container}>
-        <HookFormErrors errors={errors} additionalError={apiError} />
-
         <Form
-          onSubmit={handleSubmit(data => verifyResetPassword(data))}
+          onSubmit={token
+            ? handleSubmit(data => verifyResetPassword({ ...data, token }))
+            : NOOP}
+          submitOnEnter
           className={styles.form}
         >
-          <Input
-            type="password"
+          <PasswordInput
             name="password"
             label="Password"
             register={register}
@@ -56,8 +59,15 @@ export default React.memo(function ResetPasswordVerifyRoute() {
               minLength: { value: 8, message: 'Password needs to be at least 8 characters.' },
               maxLength: { value: 64, message: 'Password too long.' },
             }}
+            error={passwordError?.message}
             disabled={fetching}
-            placeholder="••••••••"
+          />
+
+          <HookFormErrors
+            control={control}
+            errors={otherErrors}
+            additionalError={apiError}
+            marginBottom="2.5rem"
           />
 
           <Button

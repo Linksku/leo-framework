@@ -1,5 +1,5 @@
-import CopyPlugin from 'copy-webpack-plugin';
 import path from 'path';
+import CopyPlugin from 'copy-webpack-plugin';
 
 import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
 import baseConfig from './webpack.server.js';
@@ -37,4 +37,5 @@ export default mergeReplaceArrays(baseConfig, {
       getTerserPlugin(),
     ],
   },
+  devtool: 'source-map',
 });

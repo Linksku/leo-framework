@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import type pg from 'pg';
 
 import knexBT from 'services/knex/knexBT';
 import knexMZ from 'services/knex/knexMZ';
@@ -14,12 +15,12 @@ type Opts = {
   timeout?: number,
 };
 
-export default function rawSelect(
+export default function rawSelect<Row extends pg.QueryResultRow = ObjectOf<unknown>>(
   db: 'bt' | 'mz' | 'rr',
   sql: string,
   _bindings?: Knex.RawBinding[] | Opts,
   _opts?: Opts,
-): Promise<{ rows: ObjectOf<unknown>[] }> {
+): Promise<pg.QueryResult<Row>> {
   if (!/\s*(select|show)\b/i.test(sql)) {
     throw new Error('rawSelect: query doesn\'t start with "select" or "show"');
   }
@@ -36,7 +37,7 @@ export default function rawSelect(
       .timeout(
         opts?.timeout
           ?? (db === 'mz' ? 60 * 1000 : 10 * 1000),
-      ) as Promise<{ rows: ObjectOf<unknown>[] }>;
+      ) as Promise<pg.QueryResult<Row>>;
   } catch (err) {
     throw getErr(err, { db, sql: sql.slice(0, 100) });
   }

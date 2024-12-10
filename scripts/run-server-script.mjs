@@ -9,10 +9,11 @@ import {
 import '../framework/server/core/initEnv.cjs';
 
 if (!process.env.SERVER || !process.env.NODE_ENV) {
-  throw new Error('Env vars not set.');
+  throw new Error('run-server-script: env vars not set.');
 }
 
 process.env.FORCE_COLOR = '3';
+$.verbose = true;
 
 const scriptName = argv._[0];
 if (!scriptName) {
@@ -31,7 +32,8 @@ if (runInDocker) {
   await $`yarn dc cp ${buildPath} server-script:/usr/src/${buildPath}`.quiet();
   await $`
     yarn dc exec -it -u 0 server-script \\
-    node --experimental-specifier-resolution=node --no-warnings /usr/src/${buildPath} ${process.argv.slice(4)}
+    node --experimental-specifier-resolution=node --no-warnings \\
+    /usr/src/${buildPath} ${process.argv.slice(4)}
   `;
 } else {
   await $`

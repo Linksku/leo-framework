@@ -9,6 +9,11 @@ export default async function createTable({ isMV, table, cb }: {
   table: string,
   cb: (builder: Knex.CreateTableBuilder) => void,
 }) {
+  const Model = getModelClass<EntityType>(table as EntityType);
+  if (!Model) {
+    throw new Error(`Model not found: ${table}`);
+  }
+
   try {
     if (!isMV && !(await knexBT.schema.hasTable(table))) {
       await knexBT.schema.createTable(table, cb);
@@ -18,7 +23,6 @@ export default async function createTable({ isMV, table, cb }: {
     }
 
     if (!isMV) {
-      const Model = getModelClass<EntityType>(table as EntityType);
       const usesDbz = Model.useInsertOnlyPublication
         ? DBZ_FOR_INSERT_ONLY
         : DBZ_FOR_UPDATEABLE;

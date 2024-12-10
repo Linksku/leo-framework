@@ -1,14 +1,17 @@
 import throttledPromiseAll from 'utils/throttledPromiseAll';
-import EntityModels from 'services/model/allEntityModels';
+import EntityModels from 'core/models/allEntityModels';
 import retry, { forceStopRetry } from 'utils/retry';
 import knexBT from 'services/knex/knexBT';
 import { MZ_TIMESTAMP_FREQUENCY } from 'consts/mz';
+import redis from 'services/redis';
+import { START_DEPLOY_REDIS_KEY } from 'consts/infra';
 import getEntitiesForMZSources from '../helpers/getEntitiesForMZSources';
 
 // Note: if MVs aren't created right after sources are created, overrall time is slower
 export default async function waitForMZSourcesCatchUp(
   insertOnly: boolean,
-  timeout = 10 * 60 * 1000,
+  // todo: high/mid speed up waitForMZSourcesCatchUp
+  timeout = 20 * 60 * 1000,
 ) {
   printDebug(
     `Waiting for MZ ${insertOnly ? 'insert-only' : 'updateable'} sources to catch up`,
@@ -35,6 +38,10 @@ export default async function waitForMZSourcesCatchUp(
   const remainingModels = new Set(models.filter(m => TS.defined(numBTRows[m.type]) > 0));
   await retry(
     async () => {
+      if (await redis.get(START_DEPLOY_REDIS_KEY)) {
+        throw forceStopRetry(new Error('Deploying'));
+      }
+
       await throttledPromiseAll(3, remainingModels, async m => {
         let mzRows: number;
         try {

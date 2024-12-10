@@ -1,8 +1,9 @@
 import getDockerComposeStatus from 'utils/infra/getDockerComposeStatus';
+import startDockerCompose from 'scripts/startDockerCompose';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('dockerCompose', {
-  cb: async function dockerComposeHealthcheck() {
+  run: async function dockerComposeHealthcheck() {
     const { missingServices, unhealthyServices } = await getDockerComposeStatus();
     if (missingServices.length) {
       throw getErr('Missing services', { missingServices });
@@ -17,4 +18,7 @@ addHealthcheck('dockerCompose', {
   usesResource: 'docker',
   stability: 'high',
   timeout: 10 * 1000,
+  async fix() {
+    await startDockerCompose({ allowRecreate: false });
+  },
 });

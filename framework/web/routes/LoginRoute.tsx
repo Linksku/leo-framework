@@ -1,40 +1,49 @@
 import InfoSvg from 'svgs/fa5/info-circle-solid.svg';
+import { useWatch } from 'react-hook-form';
 
 import type ApiError from 'core/ApiError';
-import StackWrapInner from 'components/frame/stack/StackWrapInner';
-import Form from 'components/common/Form';
-import HookFormErrors from 'components/HookFormErrors';
-import useLoginRedirectPathStorage from 'hooks/storage/useLoginRedirectPathStorage';
-import { getPathFromState } from 'stores/HistoryStore';
-import InfoBanner from 'components/common/InfoBanner';
+import StackWrapInner from 'core/frame/stack/StackWrapInner';
+import Form from 'components/form/Form';
+import HookFormErrors from 'components/form/HookFormErrors';
+import useLoginRedirectPathStorage from 'core/storage/useLoginRedirectPathStorage';
+import { getPathFromState } from 'stores/history/historyStoreHelpers';
+import InfoBanner from 'components/InfoBanner';
 import GoogleLoginButton from 'components/buttons/GoogleLoginButton';
 import detectPlatform from 'utils/detectPlatform';
+import AppWebviewBanner from 'components/AppWebviewBanner';
+import ServerStatusBanner from 'components/ServerStatusBanner';
+import PasswordInput from 'components/form/PasswordInput';
+import GooglePlayStoreButton from 'components/buttons/GooglePlayStoreButton';
+import AppleAppStoreButton from 'components/buttons/AppleAppStoreButton';
 
 import styles from './LoginRoute.scss';
 
-const AppleLoginButton = React.lazy(async () => import(
+const AppleLoginButton = reactLazy(() => import(
   /* webpackChunkName: 'AppleLoginButton' */ 'components/buttons/AppleLoginButton'
-));
+), null);
 
-// todo: high/easy show 503 on forms
 export default React.memo(function LoginRoute() {
+  const query = useRouteQuery<'Login'>();
+  const defaultEmail = query?.email;
+
   const {
     register,
     handleSubmit,
-    watch,
     setValue,
     control,
   } = useForm({
-    reValidateMode: 'onBlur',
+    mode: 'onBlur',
     defaultValues: {
-      email: '',
+      email: typeof defaultEmail === 'string' ? defaultEmail : '',
       password: '',
     },
   });
   const { errors } = useFormState({ control });
-  const selectedEmail = watch('email');
+  // No idea why this might be undefined, from Sentry errors. Maybe Suspense
+  const selectedEmail = useWatch({ name: 'email', control }) ?? '';
 
   const pushPath = usePushPath();
+  const showToast = useShowToast();
   const { authState, setAuth, isReloadingAfterAuth } = useAuthStore();
   const { backState } = useRouteStore();
   const [redirectPath, _, resetRedirectPath] = useLoginRedirectPathStorage(
@@ -42,12 +51,16 @@ export default React.memo(function LoginRoute() {
       ? getPathFromState(backState)
       : undefined,
   );
+  const { type: platform, os, webviewApp } = detectPlatform();
+
   const onSubmitEmail = useCallback((email: string) => {
     if (!selectedEmail.includes('@')) {
       setValue('email', email);
     }
   }, [selectedEmail, setValue]);
   const onFetch = useCallback((data: ApiData<'loginUser'>) => {
+    EventLogger.track('Log In');
+
     resetRedirectPath();
     setAuth({
       authToken: data.authToken,
@@ -55,14 +68,15 @@ export default React.memo(function LoginRoute() {
       redirectPath: redirectPath ?? '/',
     });
   }, [resetRedirectPath, setAuth, redirectPath]);
-  const registerUrl = selectedEmail.includes('@')
-    ? `/register?email=${encodeURIComponent(selectedEmail)}`
-    : '/register';
-  const onError = useCallback((err: ApiError) => {
-    if (err.status === 401 && selectedEmail.includes('@')) {
-      pushPath(registerUrl);
+  const on3PError = useCallback((err: ApiError) => {
+    const email = (typeof err.data?.email === 'string' ? err.data?.email : null)
+      ?? selectedEmail;
+    if (err.status === 401 && email.includes('@')) {
+      pushPath(buildPath<'Register'>('/register', { email: selectedEmail, did3pLogin: 1 }));
+    } else {
+      showToast({ msg: 'Failed to log in' });
     }
-  }, [pushPath, selectedEmail, registerUrl]);
+  }, [pushPath, selectedEmail, showToast]);
 
   const { fetching, fetchApi: loginUser, error: apiError } = useDeferredApi(
     'loginUser',
@@ -76,8 +90,12 @@ export default React.memo(function LoginRoute() {
     },
   );
 
+  const {
+    email: emailError,
+    password: passwordError,
+    ...otherErrors
+  } = errors;
   const disabled = fetching || isReloadingAfterAuth || authState === 'in';
-  // todo: high/hard google/fb login
   return (
     <StackWrapInner title="Log In">
       <div className={styles.container}>
@@ -100,8 +118,13 @@ export default React.memo(function LoginRoute() {
           />
         )}
 
+        <AppWebviewBanner />
+
+        <ServerStatusBanner />
+
         <Form
           onSubmit={handleSubmit(data => loginUser(data))}
+          submitOnEnter
           className={styles.form}
           data-testid={TestIds.loginForm}
         >
@@ -111,27 +134,33 @@ export default React.memo(function LoginRoute() {
             label="Email"
             register={register}
             registerOpts={{
-              required: 'Email is required',
+              required: 'Email is required.',
             }}
+            error={emailError?.message}
             disabled={disabled}
             autoFocus
           />
 
-          <Input
-            type="password"
+          <PasswordInput
             name="password"
             label="Password"
             register={register}
             registerOpts={{
               required: 'Password is required.',
-              minLength: { value: 8, message: 'Password is incorrect.' },
-              maxLength: { value: 64, message: 'Password is incorrect.' },
+              minLength: { value: 8, message: 'Password is too short.' },
+              maxLength: { value: 64, message: 'Password is too long.' },
             }}
+            error={passwordError?.message}
             disabled={disabled}
-            placeholder="••••••••"
+            autoComplete="current-password"
           />
 
-          <HookFormErrors errors={errors} additionalError={apiError} />
+          <HookFormErrors
+            control={control}
+            errors={otherErrors}
+            additionalError={apiError}
+            marginBottom="2.5rem"
+          />
 
           <Button
             Element="input"
@@ -144,39 +173,59 @@ export default React.memo(function LoginRoute() {
 
         <div className={styles.socialWrap}>
           <div className={styles.or}>or</div>
-          <GoogleLoginButton
-            type="login"
-            onSubmitEmail={onSubmitEmail}
-            onLogin={onFetch}
-            onError={onError}
-          />
           {detectPlatform().os === 'ios' && (
             <AppleLoginButton
               type="login"
               onSubmitEmail={onSubmitEmail}
               onLogin={onFetch}
-              onError={onError}
+              onError={on3PError}
             />
           )}
+          <GoogleLoginButton
+            type="login"
+            onSubmitEmail={onSubmitEmail}
+            onLogin={onFetch}
+            onError={on3PError}
+          />
         </div>
 
-        <p>
+        <div className={styles.linksWrap}>
           <Link
-            href={registerUrl}
+            href={selectedEmail.includes('@')
+              ? buildPath<'Register'>('/register', { email: selectedEmail })
+              : '/register'}
             replace
+            blue
           >
             Sign Up
           </Link>
-        </p>
-        <p>
           <Link
             href={selectedEmail.includes('@')
-              ? `/resetpassword?email=${encodeURIComponent(selectedEmail)}`
+              ? buildPath<'ResetPassword'>('/resetpassword', { email: selectedEmail })
               : '/resetpassword'}
+            blue
           >
-            Forgot Password?
+            Reset Password
           </Link>
-        </p>
+        </div>
+
+        {!TS.includes([
+          'android-native',
+          'ios-native',
+          'android-standalone',
+          'ios-standalone',
+        ] satisfies PlatformType[], platform)
+          && !webviewApp
+          && (
+            <>
+              {os === 'ios' || os === 'osx'
+                ? <AppleAppStoreButton className={styles.appBtn} />
+                : <GooglePlayStoreButton className={styles.appBtn} />}
+              {os === 'ios' || os === 'osx'
+                ? <GooglePlayStoreButton className={styles.appBtn} />
+                : <AppleAppStoreButton className={styles.appBtn} />}
+            </>
+          )}
       </div>
     </StackWrapInner>
   );

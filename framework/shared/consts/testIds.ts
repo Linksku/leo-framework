@@ -1,5 +1,11 @@
 export default {
+  // Frame
   homeWrapInner: 'home-wrap-inner',
-  registerForm: 'register-form',
+
+  // Common
+  alertOkBtn: 'alert-ok-btn',
+
+  // Specific routes
   loginForm: 'login-form',
+  registerForm: 'register-form',
 };

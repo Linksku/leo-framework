@@ -32,3 +32,34 @@
     display: none;
   }
 }
+
+%scrollableY {
+  overflow-y: auto;
+  touch-action: pan-y;
+
+  // From https://css-tricks.com/books/greatest-css-tricks/scroll-shadows/
+  background:
+    linear-gradient(
+      #fff 30%,
+      rgb(255 255 255 / 0%)
+    ) center top,
+    linear-gradient(
+      rgb(255 255 255 / 0%),
+      #fff 70%
+    ) center bottom,
+    radial-gradient(
+      farthest-side at 50% 0,
+      rgb(0 0 0 / 5%),
+      rgb(0 0 0 / 0%)
+    ) center top,
+    radial-gradient(
+      farthest-side at 50% 100%,
+      rgb(0 0 0 / 5%),
+      rgb(0 0 0 / 0%)
+    ) center bottom;
+  background-repeat: no-repeat;
+  background-size: 100% 2rem, 100% 2rem, 110% 0.6rem, 110% 0.6rem;
+  // Supported in Safari 15.4 (Mar 2022), doesn't do anything in old Safari
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  background-attachment: local, local, scroll, scroll;
+}

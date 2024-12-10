@@ -1,0 +1,56 @@
+.inputWrap {
+  display: block;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.labelWrap {
+  padding-top: 2.5rem;
+  position: relative;
+}
+
+.label {
+  @extend %label;
+
+  display: inline-block;
+  position: absolute;
+  top: 0;
+}
+
+.textarea {
+  min-height: ($inputHeight * 2) - ($inputPadding * 2);
+  vertical-align: middle;
+  display: inline-block;
+  max-width: 100%;
+  width: 100%;
+  padding: $inputPadding;
+  background: #fff;
+  color: $inputColor;
+  border: $inputBorder;
+  border-radius: $inputBorderRadius;
+  outline: none;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  resize: vertical;
+
+  &:focus {
+    border-color: color.mix($primaryColor, $inputBorderColor, $weight: 33%);
+  }
+
+  &[disabled] {
+    color: $fadedTextColor;
+  }
+
+  @include placeholder {
+    font-weight: 300;
+    color: $inputPlaceholderColor;
+  }
+}
+
+.hasError .textarea {
+  border-color: color.mix(#f00, $inputBorderColor, $weight: 40%) !important;
+}
+
+.error {
+  margin-top: 1.5rem;
+  text-align: left;
+}

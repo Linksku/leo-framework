@@ -1,4 +1,4 @@
-import EntityModels from 'services/model/allEntityModels';
+import EntityModels from 'core/models/allEntityModels';
 import waitForKafkaConnectReady from 'utils/infra/waitForKafkaConnectReady';
 import {
   DBZ_CONNECTOR_UPDATEABLE,

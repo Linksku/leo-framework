@@ -1,12 +1,31 @@
 import BaseRedisCache from 'services/cache/BaseRedisCache';
-import getModelIdsDataLoader from 'services/dataLoader/getModelIdsDataLoader';
 import getNonNullSchema from 'utils/models/getNonNullSchema';
 import { MODEL_IDS } from 'consts/coreRedisNamespaces';
+import fastJson from 'services/fastJson';
 import { getModelIdsCacheKey } from './utils/getModelCacheKey';
+
+const stringifyIds = fastJson({
+  type: 'array',
+  items: {
+    anyOf: [
+      { type: 'number' },
+      { type: 'string' },
+      {
+        type: 'array',
+        items: {
+          anyOf: [
+            { type: 'number' },
+            { type: 'string' },
+          ],
+        },
+      },
+    ],
+  },
+});
 
 const redisCache = new BaseRedisCache<(number | string | (number | string)[])[]>({
   redisNamespace: MODEL_IDS,
-  serialize: ids => JSON.stringify(ids),
+  serialize: ids => stringifyIds(ids),
   unserialize: json => {
     if (!json) {
       return undefined;
@@ -20,6 +39,7 @@ const redisCache = new BaseRedisCache<(number | string | (number | string)[])[]>
     return undefined;
   },
   lruMaxSize: 10_000,
+  disableDataLoader: true,
 });
 
 const allColSets = new Map<ModelType, ModelKey<any>[][]>();
@@ -30,23 +50,30 @@ function getCacheableColSets<T extends ModelClass>(Model: T): ModelKey<T>[][] {
   }
 
   const allSchema = Model.getSchema();
+  const uniqueIndexes = Model.getUniqueIndexes();
   const allIndexes = [
     ...Model.getNormalIndexes(),
-    ...Model.getUniqueIndexes(),
+    ...uniqueIndexes,
     ...Model.expressionIndexes.map(idx => (idx.cols ?? [idx.col]) as ModelIndex<typeof Model>),
   ];
 
   const colSets: ModelKey<T>[][] = [];
   const seen = new Set<string>();
   for (const index of allIndexes) {
+    // Fetching by unique index would return only 1 row
+    if ((typeof index === 'string' || index.length === 1)
+      && uniqueIndexes.includes(index)) {
+      continue;
+    }
+
     const arr = Array.isArray(index) ? index : [index];
     for (let i = 0; i < arr.length; i++) {
       const { nonNullType } = getNonNullSchema(allSchema[arr[i]]);
       if (nonNullType !== 'integer' && nonNullType !== 'number' && nonNullType !== 'string') {
         break;
       }
-      // Fetching by unique index would return only 1 row
-      if (i === arr.length - 1 && Model.getUniqueIndexes().includes(arr)) {
+      // Index must be multi-column, don't add full index to colSets
+      if (i === arr.length - 1 && uniqueIndexes.includes(arr)) {
         break;
       }
 
@@ -63,15 +90,43 @@ function getCacheableColSets<T extends ModelClass>(Model: T): ModelKey<T>[][] {
   return colSets;
 }
 
+async function getIdsFromDb<T extends ModelClass>(
+  Model: T,
+  partial: ModelPartial<T>,
+): Promise<(number | string | (number | string)[])[]> {
+  const primaryIndex = Model.getPrimaryIndex();
+
+  const rows = await modelQuery(Model).select(primaryIndex).where(partial);
+
+  if (Array.isArray(primaryIndex)) {
+    return rows.map(row => primaryIndex.map(col => {
+      if (!process.env.PRODUCTION
+        && typeof row[col] !== 'number'
+        && typeof row[col] !== 'string') {
+        throw new Error(
+          `getIdsFromDb(${Model.type}): ${col} isn't a number or string`,
+        );
+      }
+      return row[col] as unknown as number | string;
+    }));
+  }
+  return rows.map(row => {
+    if (!process.env.PRODUCTION
+      && typeof row[primaryIndex] !== 'number'
+      && typeof row[primaryIndex] !== 'string') {
+      throw new Error(
+        `getIdsFromDb(${Model.type}): ${primaryIndex} isn't a number or string`,
+      );
+    }
+    return row[primaryIndex] as unknown as number | string;
+  });
+}
+
 async function invalidateCache<T extends ModelClass>(
   rc: Nullish<RequestContext>,
   Model: T,
   partial: ModelPartial<T>,
 ): Promise<void> {
-  if (!Model.cacheable) {
-    return;
-  }
-
   const colSets = getCacheableColSets(Model);
   await Promise.all(
     TS.filterNulls(
@@ -120,19 +175,23 @@ export default {
     }
 
     const cacheKey = getModelIdsCacheKey(Model, partial);
-    const fromRedis = await redisCache.getWithRc(rc, cacheKey, !Model.cacheable);
+    // Ids are always cacheable
+    const fromRedis = await redisCache.getWithRc(rc, cacheKey);
     if (fromRedis !== undefined) {
       return fromRedis.slice();
     }
 
-    const ids = await getModelIdsDataLoader(Model).load(partial);
+    // Disable dataloader because odds of simultaneous requests is low
+    // getModelIdsDataLoader(Model).load(partial)
+    const ids = await getIdsFromDb(Model, partial);
+
     // Arbitrary number.
-    if (!process.env.PRODUCTION && ids.length > 10_000) {
+    if (!process.env.PRODUCTION && ids.length > 1000) {
       throw new Error(`modelIdsCache.get(${Model.type}): too many rows.`);
     }
 
     wrapPromise(
-      redisCache.setWithRc(rc, cacheKey, ids, !Model.cacheable),
+      redisCache.setWithRc(rc, cacheKey, ids),
       'warn',
       `Set ${Model.type} ids after getting`,
     );

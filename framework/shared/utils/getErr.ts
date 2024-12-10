@@ -28,13 +28,19 @@ export default function getErr<T>(
     if (!debugDetails.ctx) {
       delete debugDetails.ctx;
     } else if (err.debugCtx?.ctx) {
-      for (let i = 2; ; i++) {
+      for (let i = 2; i < 20; i++) {
+        if (!process.env.PRODUCTION && debugDetails.ctx === err.debugCtx[`ctx${i}`]) {
+          // eslint-disable-next-line no-console
+          console.warn('getErr: duplicate ctx', debugDetails, err.debugCtx);
+          break;
+        }
+
         if (!err.debugCtx[`ctx${i}`]) {
           debugDetails[`ctx${i}`] = debugDetails.ctx;
           break;
         }
       }
-      delete debugDetails.ctx;
+      debugDetails.ctx = err.debugCtx.ctx;
     }
   }
   const newDebugCtx: ObjectOf<any> = {

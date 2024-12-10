@@ -3,14 +3,18 @@ import groupBy from 'lodash/groupBy.js';
 
 import throttledPromiseAll from 'utils/throttledPromiseAll';
 import 'services/healthcheck/importHealthchecks';
-import { getHealthcheckConfigs, HealthcheckName } from 'services/healthcheck/HealthcheckManager';
-import promiseTimeout from 'utils/promiseTimeout';
+import {
+  HealthcheckName,
+  getHealthcheckConfigs,
+  runOneHealthcheck,
+} from 'services/healthcheck/HealthcheckManager';
 import formatErr from 'utils/formatErr';
 
 type Props = {
   silent?: boolean,
   silentSuccess?: boolean,
   timeout?: number,
+  fix?: boolean,
 };
 
 export default async function runHealthchecksOnce(args?: Arguments<Props> | Props) {
@@ -37,12 +41,9 @@ export default async function runHealthchecksOnce(args?: Arguments<Props> | Prop
         return;
       }
 
+      let autoFixed = false;
       try {
-        await promiseTimeout(
-          config.cb(),
-          timeout ? Math.min(timeout, config.timeout) : config.timeout,
-          new Error(`Healthcheck: ${name} timed out`),
-        );
+        await runOneHealthcheck(name, timeout);
 
         const failingDeps = config.deps && config.deps.filter(dep => results[dep] === false);
         if (failingDeps?.length) {
@@ -54,11 +55,33 @@ export default async function runHealthchecksOnce(args?: Arguments<Props> | Prop
           ? NOOP
           : () => printDebug(`${name} succeeded`, 'success');
       } catch (err) {
-        results[name] = false;
-        printResults[idx] = () => {
-          printDebug(`${name} failed`, 'fail');
-          console.log(formatErr(err, { maxStackLines: 1 }));
-        };
+        if (args?.fix && config.fix) {
+          if (!args?.silent) {
+            printDebug(`Auto-fixing ${name}`, 'info');
+          }
+
+          try {
+            await config.fix();
+
+            await runOneHealthcheck(name, timeout);
+            autoFixed = true;
+            if (!args?.silent) {
+              printDebug(`Fixed ${name}`, 'success');
+            }
+            results[name] = true;
+            printResults[idx] = args?.silentSuccess
+              ? NOOP
+              : () => printDebug(`${name} succeeded`, 'success');
+          } catch {}
+        }
+
+        if (!autoFixed) {
+          results[name] = false;
+          printResults[idx] = () => {
+            printDebug(`${name} failed`, 'fail');
+            console.log(formatErr(err, { maxStackLines: 1 }));
+          };
+        }
       }
 
       if (!args?.silent) {

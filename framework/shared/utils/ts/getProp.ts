@@ -11,20 +11,23 @@ function getProp<
 >(
   obj: Obj,
   prop: PropertyKey,
-): ValueOf<Obj>;
+): ValueOf<Obj> | undefined;
 
-function getProp(
+function getProp<
+  Obj extends Partial<Record<PropertyKey, any>>,
+>(
   obj: Partial<Record<PropertyKey, any>>,
   prop: PropertyKey,
-) {
-  if (obj === null || typeof obj !== 'object') {
-    if (!process.env.PRODUCTION) {
-      throw new Error('getProp: obj isn\'t an object.');
-    }
-
-    return undefined;
+): ValueOf<Obj> | undefined {
+  if (obj instanceof Object
+    || (typeof obj === 'object' && Object.getPrototypeOf(obj) === null)) {
+    return obj[prop];
   }
-  return obj[prop];
+
+  if (!process.env.PRODUCTION) {
+    throw new Error('getProp: obj isn\'t an object.');
+  }
+  return undefined;
 }
 
 export default getProp;

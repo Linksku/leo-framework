@@ -1,4 +1,4 @@
-export default function ucFirst(str: string) {
+export default function ucFirst(str: string): string {
   if (!str) {
     return str;
   }

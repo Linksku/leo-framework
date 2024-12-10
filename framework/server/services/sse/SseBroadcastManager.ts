@@ -3,26 +3,39 @@ import cluster from 'cluster';
 import SseConnectionsManager from 'services/sse/SseConnectionsManager';
 import PubSubManager from 'services/PubSubManager';
 import serializeSseEvent from 'utils/serializeSseEvent';
-import formatApiSuccessResponse from 'api/helpers/formatApiSuccessResponse';
+import formatApiSuccessResponse from 'routes/apis/formatApiSuccessResponse';
 import { canSubscribeToSse } from 'config/functions';
 import { NUM_CLUSTER_SERVERS } from 'consts/infra';
-
-export type SseData = {
-  // temp
-  data: any,
-  entities?: Model[];
-  createdEntities?: Model[];
-  updatedEntities?: Model[];
-  deletedIds?: Partial<Record<ModelType, EntityId[]>>,
-};
+import fastJson from 'services/fastJson';
 
 type SubUnsubMessage = {
   sessionId: string,
-  eventType: string,
+  eventTypes: string[],
+};
+
+const stringifyMsg = fastJson({
+  type: 'object',
+  properties: {
+    sessionId: { type: 'string' },
+    eventTypes: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+  },
+  additionalProperties: false,
+});
+
+export type SseData = Pick<
+  ApiRouteRet<any>,
+  'entities' | 'createdEntities' | 'updatedEntities' | 'deletedIds'
+> & {
+  // temp
+  data: any,
 };
 
 const SUBSCRIBE_EVENT_NAME = 'SseBroadcastManager.subscribe';
 const UNSUBSCRIBE_EVENT_NAME = 'SseBroadcastManager.unsubscribe';
+const MAX_EVENTS_PER_CONNECTION = 50;
 
 const sessionIdToEventTypes = new Map<string, Set<string>>();
 const eventTypesToSessionIds = new Map<string, Set<string>>();
@@ -30,76 +43,97 @@ const eventTypesToSessionIds = new Map<string, Set<string>>();
 const SseBroadcastManager = {
   async subscribe(
     sessionId: string,
-    eventName: string,
-    eventParams: JsonObj,
+    events: { name: string, params: JsonObj }[],
     currentUserId: Nullish<EntityId>,
   ) {
-    if ((!eventName || !eventParams) && !process.env.PRODUCTION) {
+    if (!process.env.PRODUCTION && events.some(e => !e.name || !e.params)) {
       throw new Error('SseBroadcastManager.subscribe: invalid params.');
     }
 
-    if (!await canSubscribeToSse(eventName, eventParams, currentUserId)) {
+    const canSub = await Promise.all(events.map(
+      e => canSubscribeToSse(e.name, e.params, currentUserId),
+    ));
+    const cantSubIdx = canSub.findIndex(c => !c);
+    if (cantSubIdx >= 0) {
       ErrorLogger.warn(
-        new Error(`SseBroadcastManager.subscribe: couldn't subscribe to ${eventName}`),
+        new Error(`SseBroadcastManager.subscribe: couldn't subscribe to ${events[cantSubIdx].name}`),
       );
-      return;
+      events = events.filter((_, i) => canSub[i]);
+      if (!events.length) {
+        return;
+      }
     }
 
-    const eventType = serializeSseEvent(eventName, eventParams);
-    SseBroadcastManager.subscribeRaw(sessionId, eventType);
-  },
-
-  subscribeRaw(sessionId: string, eventType: string) {
+    const eventTypes = events.map(e => serializeSseEvent(e.name, e.params));
     const conn = SseConnectionsManager.getConn(sessionId);
     if (!conn) {
-      PubSubManager.publish(SUBSCRIBE_EVENT_NAME, JSON.stringify({
+      PubSubManager.publish(SUBSCRIBE_EVENT_NAME, stringifyMsg({
         sessionId,
-        eventType,
+        eventTypes,
       }));
       return;
     }
 
-    const eventTypes = TS.mapValOrSetDefault(sessionIdToEventTypes, sessionId, new Set());
-    const sessionIds = TS.mapValOrSetDefault(eventTypesToSessionIds, eventType, new Set());
-    if (!sessionIds.size) {
-      PubSubManager.subscribe(
-        `sse:${eventType}`,
-        (data: string) => SseBroadcastManager.sendToConnections(eventType, data),
-      );
+    SseBroadcastManager.subscribeSameServer(sessionId, eventTypes);
+  },
+
+  subscribeSameServer(sessionId: string, eventTypes: string[]) {
+    const sessionEventTypes = TS.mapValOrSetDefault(sessionIdToEventTypes, sessionId, new Set());
+
+    for (const eventType of eventTypes) {
+      const eventSessionIds = TS.mapValOrSetDefault(eventTypesToSessionIds, eventType, new Set());
+      if (!eventSessionIds.size) {
+        PubSubManager.subscribe(
+          `sse:${eventType}`,
+          (data: string) => SseBroadcastManager.sendToConnections(eventType, data),
+        );
+      }
+      if (sessionEventTypes.size >= MAX_EVENTS_PER_CONNECTION) {
+        ErrorLogger.warn(getErr(
+          'SseBroadcastManager.subscribeSameServer: session reached max events',
+          { eventTypes: [...sessionEventTypes] },
+        ));
+        break;
+      }
+
+      sessionEventTypes.add(eventType);
+      eventSessionIds.add(sessionId);
     }
-    eventTypes.add(eventType);
-    sessionIds.add(sessionId);
   },
 
-  unsubscribe(sessionId: string, eventName: string, eventParams: JsonObj) {
-    const eventType = serializeSseEvent(eventName, eventParams);
-    SseBroadcastManager.unsubscribeRaw(sessionId, eventType);
-  },
-
-  unsubscribeRaw(sessionId: string, eventType: string) {
+  unsubscribe(sessionId: string, events: { name: string, params: JsonObj }[]) {
+    const eventTypes = events.map(e => serializeSseEvent(e.name, e.params));
     const conn = SseConnectionsManager.getConn(sessionId);
     if (!conn) {
-      PubSubManager.publish(UNSUBSCRIBE_EVENT_NAME, JSON.stringify({
+      PubSubManager.publish(UNSUBSCRIBE_EVENT_NAME, stringifyMsg({
         sessionId,
-        eventType,
+        eventTypes,
       }));
       return;
     }
 
-    const eventTypes = sessionIdToEventTypes.get(sessionId);
-    if (eventTypes) {
-      eventTypes.delete(eventType);
-      if (!eventTypes.size) {
+    SseBroadcastManager.unsubscribeSameServer(sessionId, eventTypes);
+  },
+
+  unsubscribeSameServer(sessionId: string, eventTypes: string[]) {
+    const subbedEventTypes = sessionIdToEventTypes.get(sessionId);
+    if (subbedEventTypes) {
+      for (const eventType of eventTypes) {
+        subbedEventTypes.delete(eventType);
+      }
+      if (!subbedEventTypes.size) {
         sessionIdToEventTypes.delete(sessionId);
       }
     }
 
-    const sessionIds = eventTypesToSessionIds.get(eventType);
-    if (sessionIds) {
-      sessionIds.delete(sessionId);
-      if (!sessionIds.size) {
-        eventTypesToSessionIds.delete(eventType);
-        PubSubManager.unsubscribeAll(eventType);
+    for (const eventType of eventTypes) {
+      const sessionIds = eventTypesToSessionIds.get(eventType);
+      if (sessionIds) {
+        sessionIds.delete(sessionId);
+        if (!sessionIds.size) {
+          eventTypesToSessionIds.delete(eventType);
+          PubSubManager.unsubscribeAll(eventType);
+        }
       }
     }
   },
@@ -126,34 +160,38 @@ const SseBroadcastManager = {
 
   async broadcastDataImpl(
     eventName: string,
-    eventParams: JsonObj,
+    eventParams: JsonObj | JsonObj[],
     data: SseData,
   ) {
-    const eventType = serializeSseEvent(eventName, eventParams);
     const successResponse = await formatApiSuccessResponse('sse' as any, data);
-    // todo: mid/mid validate SSE data
-    const processedData: SseResponse = {
-      eventType,
-      ...successResponse,
-    };
-    const dataStr = JSON.stringify(processedData);
+    const eventTypes = Array.isArray(eventParams)
+      ? eventParams.map(params => serializeSseEvent(eventName, params))
+      : [serializeSseEvent(eventName, eventParams)];
+    for (const eventType of eventTypes) {
+      // todo: mid/mid validate SSE data
+      const processedData: SseResponse = {
+        eventType,
+        ...successResponse,
+      };
+      const dataStr = JSON.stringify(processedData);
 
-    SseBroadcastManager.sendToConnections(eventType, dataStr);
-    PubSubManager.publish(
-      `sse:${eventType}`,
-      dataStr,
-    );
+      SseBroadcastManager.sendToConnections(eventType, dataStr);
+      PubSubManager.publish(
+        `sse:${eventType}`,
+        dataStr,
+      );
+    }
   },
 
   broadcastData(
     eventName: string,
-    eventParams: JsonObj,
+    eventParams: JsonObj | JsonObj[],
     data: SseData,
   ) {
     wrapPromise(
       this.broadcastDataImpl(eventName, eventParams, data),
       'error',
-      eventName,
+      `Sse.broadcastData: ${eventName}`,
     );
   },
 
@@ -169,17 +207,17 @@ const SseBroadcastManager = {
   },
 
   sendHeartbeats() {
-    for (const [sessionId, eventTypes] of sessionIdToEventTypes) {
+    for (const pair of sessionIdToEventTypes.entries()) {
       const data: SseResponse = {
         eventType: serializeSseEvent('sseHeartbeat', {}),
         status: 200,
         data: {
-          subbedEventTypes: [...eventTypes],
+          subbedEventTypes: [...pair[1]],
         },
         entities: [],
       };
       SseConnectionsManager.sendMessage(
-        sessionId,
+        pair[0],
         JSON.stringify(data),
       );
     }
@@ -192,34 +230,36 @@ const SseBroadcastManager = {
 };
 
 if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
-  // User called `subscribe` API and connected to different server.
-  PubSubManager.subscribe(SUBSCRIBE_EVENT_NAME, (msg: string) => {
-    let data: SubUnsubMessage;
-    try {
-      data = JSON.parse(msg);
-    } catch {
-      ErrorLogger.error(new Error(`${SUBSCRIBE_EVENT_NAME}: msg isn't JSON`), { msg });
-      return;
-    }
+  setTimeout(() => {
+    // User called `subscribe` API and connected to different server.
+    PubSubManager.subscribe(SUBSCRIBE_EVENT_NAME, (msg: string) => {
+      let data: SubUnsubMessage;
+      try {
+        data = JSON.parse(msg);
+      } catch {
+        ErrorLogger.error(new Error(`${SUBSCRIBE_EVENT_NAME}: msg isn't JSON`), { msg });
+        return;
+      }
 
-    if (data?.sessionId && SseConnectionsManager.getConn(data.sessionId)) {
-      SseBroadcastManager.subscribeRaw(data.sessionId, data.eventType);
-    }
-  });
+      if (data?.sessionId && SseConnectionsManager.getConn(data.sessionId)) {
+        SseBroadcastManager.subscribeSameServer(data.sessionId, data.eventTypes);
+      }
+    });
 
-  PubSubManager.subscribe(UNSUBSCRIBE_EVENT_NAME, (msg: string) => {
-    let data: SubUnsubMessage;
-    try {
-      data = JSON.parse(msg);
-    } catch {
-      ErrorLogger.error(new Error(`${UNSUBSCRIBE_EVENT_NAME}: msg isn't JSON`), { msg });
-      return;
-    }
+    PubSubManager.subscribe(UNSUBSCRIBE_EVENT_NAME, (msg: string) => {
+      let data: SubUnsubMessage;
+      try {
+        data = JSON.parse(msg);
+      } catch {
+        ErrorLogger.error(new Error(`${UNSUBSCRIBE_EVENT_NAME}: msg isn't JSON`), { msg });
+        return;
+      }
 
-    if (data?.sessionId && SseConnectionsManager.getConn(data.sessionId)) {
-      SseBroadcastManager.unsubscribeRaw(data.sessionId, data.eventType);
-    }
-  });
+      if (data?.sessionId && SseConnectionsManager.getConn(data.sessionId)) {
+        SseBroadcastManager.unsubscribeSameServer(data.sessionId, data.eventTypes);
+      }
+    });
+  }, 0);
 
   setTimeout(
     () => SseBroadcastManager.sendHeartbeats(),

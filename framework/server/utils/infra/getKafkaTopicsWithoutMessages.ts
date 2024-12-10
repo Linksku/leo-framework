@@ -70,8 +70,10 @@ export default async function getKafkaTopicsWithoutMessages(
         })
           .catch(err => fail(err));
       }),
-      timeout,
-      new Error('getLatestKafkaMessage: timed out'),
+      {
+        timeout,
+        getErr: () => new Error('getLatestKafkaMessage: timed out'),
+      },
     );
   } catch {
     wrapPromise(

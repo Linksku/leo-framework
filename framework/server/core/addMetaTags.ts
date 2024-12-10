@@ -3,6 +3,7 @@ import { encode } from 'html-entities';
 import { routeToMetaTags } from 'config/functions';
 import isBot from 'utils/isBot';
 import { APP_NAME, DESCRIPTION } from 'config';
+import { HOME_URL } from 'consts/server';
 
 export default async function addMetaTags(req: ExpressRequest, html: string) {
   // Add meta tags for index because CF caches it
@@ -39,7 +40,7 @@ export default async function addMetaTags(req: ExpressRequest, html: string) {
     .filter(pair => pair[1] != null)
     .map(pair => {
       if (pair[0] === 'canonical') {
-        return `<link rel="canonical" href="${encode(pair[1])}" />`;
+        return `<link rel="canonical" href="${HOME_URL}${encode(pair[1])}" />`;
       }
       return `<meta property="${encode(pair[0])}" content="${encode(pair[1])}"/>`;
     })

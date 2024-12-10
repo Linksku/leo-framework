@@ -49,7 +49,7 @@ export default async function restorePgdump() {
   }
 
   const allMigrations = getAllMigrations();
-  const lastMigration = TS.last(allMigrations);
+  const lastMigration = allMigrations.at(-1);
   if (lastMigration) {
     await updateMigrationState(lastMigration);
   }

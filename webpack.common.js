@@ -9,15 +9,7 @@ const SERVER_ROOT = path.resolve('./framework/server');
 const SERVER_SRC_ROOT = path.resolve('./app/server');
 
 if (!process.env.SERVER || !process.env.NODE_ENV) {
-  throw new Error('Env vars not set.');
-}
-
-const ENV_KEYS = [
-  'SERVER',
-];
-const ENV_OBJ = Object.create(null);
-for (const k of ENV_KEYS) {
-  ENV_OBJ[k] = process.env[k] || '';
+  throw new Error('Webpack: env vars not set.');
 }
 
 const shouldMinimize = process.env.MINIMIZE != null
@@ -58,10 +50,6 @@ export default {
           },
         ],
       },
-      {
-        test: /\.txt$/i,
-        type: 'asset/source',
-      },
     ],
   },
   resolve: {
@@ -73,7 +61,7 @@ export default {
   },
   optimization: {
     minimize: shouldMinimize,
-    concatenateModules: !shouldMinimize,
+    concatenateModules: shouldMinimize,
   },
   context: ROOT,
   plugins: [
@@ -83,22 +71,33 @@ export default {
         10,
       ),
       PRODUCTION: process.env.NODE_ENV === 'production',
-      ...ENV_OBJ,
+      SERVER: process.env.SERVER,
     }),
   ],
-  stats: shouldMinimize
-    ? true
-    : {
-      optimizationBailout: true,
+  stats: process.env.ANALYZE_STATS
+    // https://github.com/statoscope/statoscope/tree/master/packages/webpack-plugin#which-stats-flags-statoscope-use
+    ? {
+      all: false, // disable all the stats
       logging: /** @type {const} */ ('warn'),
-      assets: false,
-      version: false,
-      hash: false,
-      chunks: false,
-      chunkModules: false,
-      modules: false,
-      // all: false,
-    },
+      optimizationBailout: true,
+      modules: true,
+      hash: true, // compilation hash
+      entrypoints: true, // entrypoints
+      chunks: true, // chunks
+      chunkModules: true, // modules
+      reasons: true, // modules reasons
+      ids: true, // IDs of modules and chunks (webpack 5)
+      dependentModules: true, // dependent modules of chunks (webpack 5)
+      chunkRelations: true, // chunk parents, children and siblings (webpack 5)
+      cachedAssets: true, // information about the cached assets (webpack 5)
+      nestedModules: true, // concatenated modules
+      usedExports: true, // used exports
+      providedExports: true, // provided imports
+      assets: true, // assets
+      timings: true, // modules timing information
+      performance: true, // info about oversized assets
+    }
+    : /** @type {const} */ ('normal'),
   devtool: /** @type {const} */ (false),
   watchOptions: {
     aggregateTimeout: 50,

@@ -1,18 +1,25 @@
-import allModels from 'services/model/allModels';
+import allModels from 'core/models/allModels';
 
 // Warm PG and AJV caches
 export default async function fetchEachModelOnce() {
-  const results = await Promise.all(
+  await Promise.all(
     allModels
       .filter(m => m.Model.getReplicaTable())
-      .map(async m => {
+      .map(async ({ Model }) => {
+        let instance: Model | undefined;
         try {
-          return await modelQuery(m.Model).limit(1);
-        } catch {
-          return null;
+          const results = await modelQuery(Model).limit(1);
+          instance = results[0];
+        } catch {}
+
+        if (!instance) {
+          return;
         }
+
+        // If this fails, it's likely an incomplete migration
+        instance.$validate();
+
+        Model.stringify(instance.$toCachePojo());
       }),
   );
-  TS.filterNulls(results.flat())
-    .map(ent => ent.$validate());
 }

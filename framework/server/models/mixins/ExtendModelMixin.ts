@@ -1,4 +1,4 @@
-import BaseModel from 'services/model/Model';
+import BaseModel from 'core/models/Model';
 
 export default function ExtendModelMixin<T extends ModelClass>(Model: T) {
   return {
@@ -6,8 +6,8 @@ export default function ExtendModelMixin<T extends ModelClass>(Model: T) {
     jsonAttributes: Model.jsonAttributes,
     uniqueIndexes: Model.uniqueIndexes,
     normalIndexes: Model.normalIndexes,
-    relations: Model.prototype instanceof BaseModel
-      ? (Model as unknown as ModelClass).relations
+    relations: TS.extends(Model, BaseModel)
+      ? Model.relations
       : {},
     MVQueryDeps: [Model],
     getMVQuery: () => modelQuery(Model)

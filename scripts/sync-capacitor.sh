@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# Note: Android Studio can't build in WSL.
-#   Need to copy capacitor/android, node_modules/@capacitor/android/capacitor, and build/production to Windows
+# Android Studio can't build in WSL.
+# 1. copy capacitor/android, node_modules/@capacitor/android/capacitor,
+#   and build/production/web/capacitor to Windows
+# 2. run `yarn`
+# todo: low/mid zx sync-capacitor for cross-plat
 
 yarn
 

@@ -8,7 +8,7 @@ addHealthcheck('mzUpdating', {
     'replicationSlots',
     'dbzConnectors',
   ],
-  cb: async function mzUpdatingHealthcheck() {
+  run: async function mzUpdatingHealthcheck() {
     await checkMZUpdating(2 * 60 * 1000);
   },
   resourceUsage: 'high',

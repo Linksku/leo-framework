@@ -52,8 +52,10 @@ export default async function redisFlushAll(prefix?: string | string[]) {
   try {
     await promiseTimeout(
       promise,
-      5000,
-      new Error('redisFlushAll: timed out'),
+      {
+        timeout: 5000,
+        getErr: () => new Error('redisFlushAll: timed out'),
+      },
     );
     return;
   } catch (err) {

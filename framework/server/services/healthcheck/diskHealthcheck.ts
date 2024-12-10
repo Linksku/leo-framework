@@ -2,7 +2,7 @@ import exec from 'utils/exec';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('disk', {
-  cb: async function diskHealthcheck() {
+  run: async function diskHealthcheck() {
     const { stdout: dfOut } = await exec('df');
     const df = dfOut.split('\n').find(line => line.endsWith(' /'));
     const dfSplit = df?.split(/\s+/);

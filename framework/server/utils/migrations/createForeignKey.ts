@@ -1,5 +1,6 @@
 import knexBT from 'services/knex/knexBT';
 import getIndexName from 'utils/db/getIndexName';
+import validateTableCols from './validateTableCols';
 
 export default async function createForeignKey({
   name,
@@ -14,6 +15,8 @@ export default async function createForeignKey({
   toTable: string,
   toCol?: string,
 }) {
+  validateTableCols({ table, col });
+
   name = name ?? getIndexName(table, col, true);
   const Model = getModelClass(table as ModelType);
   const ToModel = getModelClass(toTable as ModelType);
@@ -32,6 +35,8 @@ export default async function createForeignKey({
         .onDelete('restrict');
     });
   } catch (err) {
-    throw getErr(err, { ctx: 'createForeignKey', table, col });
+    if (!(err instanceof Error) || !err.message.includes('already exists')) {
+      throw getErr(err, { ctx: 'createForeignKey', table, col });
+    }
   }
 }

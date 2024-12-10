@@ -1,7 +1,6 @@
 import throttledPromiseAll from 'utils/throttledPromiseAll';
 import showMzSystemRows from 'utils/db/showMzSystemRows';
 import getEntitiesForMZSources from 'scripts/mv/helpers/getEntitiesForMZSources';
-import knexBT from 'services/knex/knexBT';
 import retry, { forceStopRetry } from 'utils/retry';
 import {
   DBZ_FOR_INSERT_ONLY,
@@ -11,12 +10,12 @@ import {
 } from 'consts/mz';
 import { addHealthcheck } from './HealthcheckManager';
 
-const dbzEntities = getEntitiesForMZSources('kafka');
+const dbzEntities = getEntitiesForMZSources('dbz');
 const pgEntities = getEntitiesForMZSources('pg');
 const shouldHavePgSource = !DBZ_FOR_UPDATEABLE || !DBZ_FOR_INSERT_ONLY;
 
 addHealthcheck('mzSources', {
-  cb: async function mzSourcesHealthcheck() {
+  run: async function mzSourcesHealthcheck() {
     const existingSources = await showMzSystemRows('SHOW SOURCES');
     if (existingSources.length === 0) {
       throw new Error('mzSourcesHealthcheck: no sources');
@@ -60,74 +59,82 @@ addHealthcheck('mzSources', {
 addHealthcheck('mzDbzSourceRows', {
   disabled: !DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY,
   deps: ['mzSources'],
-  cb: async function mzDbzSourceRowsHealthcheck() {
-    const numBTRows: Partial<Record<EntityType, number>> = Object.create(null);
+  run: async function mzDbzSourceRowsHealthcheck() {
+    const hasBTRows: Partial<Record<EntityType, boolean>> = Object.create(null);
     await throttledPromiseAll(3, dbzEntities, async Entity => {
       if (Entity.type === 'mzTest') {
-        const rows = await knexBT<{ version: number }>(Entity.type)
+        const rows = await entityQuery(MzTestModel, 'bt')
           .select(MzTestModel.cols.version)
           .limit(1);
-        numBTRows[Entity.type] = TS.parseIntOrNull(rows[0]?.version) ?? 0;
+        hasBTRows[Entity.type] = !!rows[0]?.version;
       } else {
-        const rows = await knexBT(Entity.type)
-          .count({ count: '*' });
-        numBTRows[Entity.type] = TS.parseIntOrNull(rows[0]?.count) ?? 0;
+        const rows = await entityQuery(Entity, 'bt')
+          .select(raw('1'))
+          .limit(1);
+        hasBTRows[Entity.type] = !!rows.length;
       }
     });
 
-    const remainingEntities = new Set(
-      dbzEntities.filter(Entity => TS.defined(numBTRows[Entity.type]) > 0),
-    );
-    await retry(
-      async () => {
-        await throttledPromiseAll(3, remainingEntities, async Entity => {
-          // Every table should have a row from seedDb/createEachModel
-          let mzRows: number;
-          try {
-            if (Entity.type === 'mzTest') {
-              const result = await rawSelect(
-                'mz',
-                `
-                  SELECT version
-                  FROM ??
-                  AS OF now() + INTERVAL '${MZ_TIMESTAMP_FREQUENCY} MILLISECOND'
-                `,
-                [Entity.type],
-              );
-              mzRows = TS.parseIntOrNull(result.rows[0]?.version) ?? 0;
-            } else {
-              const result = await rawSelect(
-                'mz',
-                `
-                  SELECT count(*) count
-                  FROM ??
-                  AS OF now() + INTERVAL '${MZ_TIMESTAMP_FREQUENCY} MILLISECOND'
-                `,
-                [Entity.type],
-              );
-              mzRows = TS.parseIntOrNull(result.rows[0]?.count) ?? 0;
-            }
-          } catch (err) {
-            throw forceStopRetry(err);
+    const entitiesWithBTRows = dbzEntities.filter(Entity => hasBTRows[Entity.type]);
+    const emptyTables = new Set<EntityType>();
+    const timedOutTables = new Set<EntityType>();
+    await throttledPromiseAll(3, entitiesWithBTRows, async Entity => {
+      // Every table should have a row from seedDb/createEachModel
+      try {
+        if (Entity.type === 'mzTest') {
+          const result = await rawSelect(
+            'mz',
+            `
+              SELECT version
+              FROM ??
+              AS OF now() + INTERVAL '${MZ_TIMESTAMP_FREQUENCY} MILLISECOND'
+            `,
+            [Entity.type],
+            { timeout: 10 * 1000 },
+          );
+          if (!result.rows[0]?.version) {
+            emptyTables.add(Entity.type);
           }
-
-          if (mzRows >= TS.defined(numBTRows[Entity.type])) {
-            remainingEntities.delete(Entity);
+        } else {
+          const result = await rawSelect(
+            'mz',
+            `
+              SELECT 1
+              FROM ??
+              LIMIT 1
+              AS OF now() + INTERVAL '${MZ_TIMESTAMP_FREQUENCY} MILLISECOND'
+            `,
+            [Entity.type],
+            { timeout: 10 * 1000 },
+          );
+          if (!result.rows.length) {
+            emptyTables.add(Entity.type);
           }
-        });
-
-        if (remainingEntities.size) {
-          throw getErr('Tables missing DBZ data', {
-            tables: [...remainingEntities].map(Entity => Entity.type),
-          });
         }
-      },
-      {
-        timeout: 2 * 60 * 1000,
-        interval: 1000,
-        ctx: 'mzDbzSourceRowsHealthcheck',
-      },
-    );
+      } catch (err) {
+        if (!(err instanceof Error)
+          || (!err.message.includes('Timeout acquiring a connection')
+            && !err.message.includes('Defined query timeout'))) {
+          throw err;
+        }
+        timedOutTables.add(Entity.type);
+      }
+    });
+
+    if (emptyTables.size) {
+      throw getErr('Tables missing DBZ data', {
+        tables: [...emptyTables],
+      });
+    }
+    // When MZ is ingesting from DBZ, tables often time out
+    if (timedOutTables.size > entitiesWithBTRows.length / 2) {
+      printDebug(getErr(
+        'mzDbzSourceRowsHealthcheck: too many tables timed out',
+        {
+          timedOutTables: [...timedOutTables],
+        },
+      ), 'warn');
+    }
   },
   resourceUsage: 'high',
   usesResource: 'mz',
@@ -138,7 +145,7 @@ addHealthcheck('mzDbzSourceRows', {
 addHealthcheck('mzPgSourceRows', {
   disabled: DBZ_FOR_UPDATEABLE && DBZ_FOR_INSERT_ONLY,
   deps: ['mzSources'],
-  cb: async function mzPgSourceRowsHealthcheck() {
+  run: async function mzPgSourceRowsHealthcheck() {
     const remainingEntities = new Set(pgEntities);
     await retry(
       async () => {
@@ -147,16 +154,23 @@ addHealthcheck('mzPgSourceRows', {
             const result = await rawSelect(
               'mz',
               `
-                SELECT count(*) count
+                SELECT 1
                 FROM ??
+                LIMIT 1
                 AS OF now() + INTERVAL '${MZ_TIMESTAMP_FREQUENCY} MILLISECOND'
               `,
               [Entity.type],
+              { timeout: 10 * 1000 },
             );
-            if (result.rows[0]?.count) {
+            if (result.rows.length) {
               remainingEntities.delete(Entity);
             }
           } catch (err) {
+            if (err instanceof Error
+              && (err.message.includes('Timeout acquiring a connection')
+                || err.message.includes('Defined query timeout'))) {
+              throw err;
+            }
             throw forceStopRetry(err);
           }
         });

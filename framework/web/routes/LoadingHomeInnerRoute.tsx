@@ -1,4 +1,4 @@
-import HomeWrapInner from 'components/frame/home/HomeWrapInner';
+import HomeWrapInner from 'core/frame/home/HomeWrapInner';
 
 export default React.memo(function LoadingHomeInnerRoute() {
   return (

@@ -1,18 +1,19 @@
-import type { Scope } from '@sentry/types';
 import { inspect } from 'util';
+import type { Scope } from '@sentry/types';
 
-import getOsFromUa from 'utils/getOsFromUa';
-import getServerId from 'core/getServerId';
-import BullQueueContextLocalStorage, { BullQueueContext } from 'services/BullQueueContextLocalStorage';
+import getOSFromUA from 'utils/getOSFromUA';
+import getServerId from 'utils/getServerId';
+import BullQueueContextLocalStorage, { BullQueueContext } from 'services/bull/BullQueueContextLocalStorage';
 import ServiceContextLocalStorage, { ServiceContext } from 'services/ServiceContextLocalStorage';
 
 function setRequestContextScope(scope: Scope, rc: RequestContext) {
   const currentUserId = rc?.currentUserId;
   const userAgent = rc?.userAgent;
-  const os = rc?.os ?? getOsFromUa(userAgent);
+  const os = rc?.os ?? getOSFromUA(userAgent);
   const platform = rc?.platform;
+  const appVersion = rc?.appVersion;
   const language = rc?.language;
-  const path = rc?.path;
+  const apiPath = rc?.apiPath;
   const params = rc?.apiParams;
 
   if (currentUserId) {
@@ -28,8 +29,9 @@ function setRequestContextScope(scope: Scope, rc: RequestContext) {
   scope.setTag('userAgent', userAgent);
   scope.setTag('os', os);
   scope.setTag('platform', platform);
+  scope.setTag('appVersion', appVersion);
   scope.setTag('language', language);
-  scope.setTag('path', path);
+  scope.setTag('apiPath', apiPath);
 
   if (params) {
     for (const [k, v] of TS.objEntries(params)) {

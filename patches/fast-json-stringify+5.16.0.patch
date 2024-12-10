@@ -1,0 +1,22 @@
+diff --git a/node_modules/fast-json-stringify/index.js b/node_modules/fast-json-stringify/index.js
+index 862c7c8..1b826b1 100644
+--- a/node_modules/fast-json-stringify/index.js
++++ b/node_modules/fast-json-stringify/index.js
+@@ -647,6 +647,8 @@ function buildArrayTypeCondition (type, accessor) {
+           return buildArrayTypeCondition(subType, accessor)
+         })
+         condition = `(${conditions.join(' || ')})`
++      } else {
++        throw new Error(`fast-json-stringify.buildArrayTypeCondition: unknown type ${type}`);
+       }
+   }
+   return condition
+@@ -773,7 +775,7 @@ function buildSingleTypeSerializer (context, location, input) {
+       return `json += ${funcName}(${input})`
+     }
+     case undefined:
+-      return `json += JSON.stringify(${input})`
++      throw new Error(`fast-json-stringify.buildArrayTypeCondition: unhandled schema ${schema}`);
+     default:
+       throw new Error(`${schema.type} unsupported`)
+   }

@@ -1,12 +1,13 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import type { Arguments } from 'yargs';
 import trimEnd from 'lodash/trimEnd.js';
 import isEqual from 'lodash/isEqual.js';
 
-import EntityModels from 'services/model/allEntityModels';
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import EntityModels from 'core/models/allEntityModels';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import doesPgTypeMatchSchema from 'utils/db/doesPgTypeMatchSchema';
-import Entity from 'services/model/Entity';
+import Entity from 'core/models/Entity';
 import knexBT from 'services/knex/knexBT';
 import knexRR from 'services/knex/knexRR';
 import exec from 'utils/exec';
@@ -223,7 +224,7 @@ function parseTables(lines: string[]) {
   return tables;
 }
 
-function verifyModels(
+function printTableWarnings(
   tables: Tables,
   models: ModelClass[],
   isBT: boolean,
@@ -259,8 +260,8 @@ function verifyModels(
     }
 
     for (const [col, schema] of Object.entries(Model.getSchema())) {
-      const colType = table.cols[col];
-      if (!colType) {
+      const colStr = table.cols[col];
+      if (!colStr) {
         printError(`Table "${tableName}" is missing "${col}"`);
         continue;
       }
@@ -269,7 +270,7 @@ function verifyModels(
         Model,
         colName: col,
         schema,
-        colType,
+        colStr,
       });
       if (error) {
         printError(`Column "${tableName}.${col}" ${error}.`);
@@ -301,14 +302,14 @@ function verifyModels(
     // Verify normal indexes
     if (isBT) {
       for (const index of table.normalIndexes) {
-        let found = false;
+        let foundFk = false;
         for (const fk of table.foreignKeys) {
-          if (index.cols.some(col => col.name === fk.col)) {
-            found = true;
+          if (index.cols[0].name === fk.col) {
+            foundFk = true;
             break;
           }
         }
-        if (!found) {
+        if (!foundFk) {
           printError(`Table "${tableName}" has extra normal index "${index.name}.`);
         }
 
@@ -379,12 +380,12 @@ function verifyModels(
             ? 'DESC NULLS LAST'
             : 'ASC NULLS FIRST',
         }))
-        : {
+        : [{
           name: index,
           nulls: idx !== 0 && isColDescNullsLast(Model, index)
             ? 'DESC NULLS LAST'
             : 'ASC NULLS FIRST',
-        },
+        }],
     }));
 
     for (const [i, index] of uniqueIndexes.entries()) {
@@ -445,7 +446,10 @@ function reorderColumns(tables: Tables, models: ModelClass[], lines: string[]) {
       continue;
     }
 
-    const Model = TS.defined(tableNameToModel[tableName]);
+    const Model = tableNameToModel[tableName];
+    if (!Model) {
+      throw new Error(`Model not found for table "${tableName}"`);
+    }
     const colToIdx = Object.fromEntries(
       Object.keys(Model.getSchema()).map((col, idx) => [col, idx]),
     );
@@ -473,6 +477,7 @@ async function dumpDb({
   schema,
   isBT,
   outFile,
+  showWarnings,
 }: {
   models: ModelClass[],
   host: string,
@@ -483,6 +488,7 @@ async function dumpDb({
   schema: string,
   isBT: boolean,
   outFile: string,
+  showWarnings: boolean,
 }) {
   const rows = await (isBT ? knexBT : knexRR).raw('SHOW TIMEZONE');
   if (rows?.rows?.[0]?.TimeZone !== 'UTC') {
@@ -521,7 +527,9 @@ CREATE EXTENSION IF NOT EXISTS tsm_system_rows SCHEMA "${PG_RR_SCHEMA}";`);
   }
 
   const tables = parseTables(lines);
-  verifyModels(tables, models, isBT);
+  if (showWarnings) {
+    printTableWarnings(tables, models, isBT);
+  }
   reorderColumns(tables, models, lines);
 
   await fs.writeFile(
@@ -530,35 +538,47 @@ CREATE EXTENSION IF NOT EXISTS tsm_system_rows SCHEMA "${PG_RR_SCHEMA}";`);
   );
 }
 
-export default async function pgdump() {
-  printDebug('pgdump BT', 'info');
-  await dumpDb({
-    models: EntityModels,
-    host: PG_BT_HOST,
-    port: PG_BT_PORT,
-    user: process.env.PG_BT_USER,
-    pass: process.env.PG_BT_PASS,
-    db: PG_BT_DB,
-    schema: PG_BT_SCHEMA,
-    isBT: true,
-    outFile: 'pgdumpBT',
-  });
+type Props = {
+  dumpBT?: boolean,
+  dumpRR?: boolean,
+  showWarnings?: boolean,
+};
 
-  printDebug('pgdump RR', 'info');
-  await dumpDb({
-    models: [
-      ...EntityModels,
-      ...MaterializedViewModels.filter(model => model.getReplicaTable()),
-    ],
-    host: PG_RR_HOST,
-    port: PG_RR_PORT,
-    user: process.env.PG_RR_USER,
-    pass: process.env.PG_RR_PASS,
-    db: PG_RR_DB,
-    schema: PG_RR_SCHEMA,
-    isBT: false,
-    outFile: 'pgdumpRR',
-  });
+export default async function pgdump(args?: Arguments<Props> | Props) {
+  if (args?.dumpBT !== false) {
+    printDebug('pgdump BT', 'info');
+    await dumpDb({
+      models: EntityModels,
+      host: PG_BT_HOST,
+      port: PG_BT_PORT,
+      user: process.env.PG_BT_USER,
+      pass: process.env.PG_BT_PASS,
+      db: PG_BT_DB,
+      schema: PG_BT_SCHEMA,
+      isBT: true,
+      outFile: 'pgdumpBT',
+      showWarnings: args?.showWarnings ?? true,
+    });
+  }
+
+  if (args?.dumpRR !== false) {
+    printDebug('pgdump RR', 'info');
+    await dumpDb({
+      models: [
+        ...EntityModels,
+        ...MaterializedViewModels.filter(model => model.getReplicaTable()),
+      ],
+      host: PG_RR_HOST,
+      port: PG_RR_PORT,
+      user: process.env.PG_RR_USER,
+      pass: process.env.PG_RR_PASS,
+      db: PG_RR_DB,
+      schema: PG_RR_SCHEMA,
+      isBT: false,
+      outFile: 'pgdumpRR',
+      showWarnings: args?.showWarnings ?? true,
+    });
+  }
 
   printDebug(
     'Restore BT',

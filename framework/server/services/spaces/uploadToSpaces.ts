@@ -1,5 +1,5 @@
-import type { Readable } from 'stream';
 import path from 'path';
+import type { Readable } from 'stream';
 
 import promiseTimeout from 'utils/promiseTimeout';
 import { API_POST_TIMEOUT, DEFAULT_ASSETS_CACHE_TTL } from 'consts/server';
@@ -8,14 +8,16 @@ import {
   DO_SPACES_BUCKET,
   DO_SPACES_PREFIX,
 } from 'config/serverConfig';
-import Spaces from './Spaces';
+import getSpaces from './getSpaces';
 
 type Props = {
   file: Buffer | Uint8Array | Readable,
   prefix?: string,
   path: string,
   contentType: string,
+  isPrivate?: boolean,
   maxAge?: number,
+  timeout?: number,
 };
 
 // todo: mid/mid verify paths are unique
@@ -25,27 +27,36 @@ export default async function uploadToSpaces({
   prefix = DO_SPACES_PREFIX,
   path: outPath,
   contentType,
+  isPrivate,
   maxAge = DEFAULT_ASSETS_CACHE_TTL,
+  timeout = API_POST_TIMEOUT / 2,
 }: Props): Promise<string> {
   if (process.env.SERVER !== 'production' && prefix.startsWith('p/')) {
     throw new Error('uploadToSpaces: can\'t upload to prod in dev');
   }
 
   try {
+    const Spaces = await getSpaces();
     const uploaded = await promiseTimeout(
       Spaces
         .upload({
           Bucket: DO_SPACES_BUCKET,
           Key: prefix + outPath,
           Body: file,
-          ACL: 'public-read',
-          CacheControl: `public,max-age=${maxAge}`,
+          ACL: isPrivate
+            ? 'private'
+            : 'public-read',
+          CacheControl: isPrivate
+            ? undefined
+            : `public,max-age=${maxAge}`,
           ContentType: contentType,
           ContentDisposition: `inline; filename=${path.basename(outPath)}`,
         })
         .promise(),
-      API_POST_TIMEOUT / 2,
-      new Error('uploadToSpaces: uploading file timed out.'),
+      {
+        timeout,
+        getErr: () => new Error('uploadToSpaces: uploading file timed out.'),
+      },
     );
 
     return `${DO_SPACES_HOST}/${uploaded.Key}`;

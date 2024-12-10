@@ -3,7 +3,7 @@ import { APP_NAME_LOWER } from 'config';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('kafkaConnect', {
-  cb: async function kafkaConnectHealthcheck() {
+  run: async function kafkaConnectHealthcheck() {
     let errors: string[];
     try {
       const out = await exec(`docker logs $(yarn dc -p ${APP_NAME_LOWER} ps -q connect) --since 1m -n 100 | grep ERROR`);
@@ -21,6 +21,8 @@ addHealthcheck('kafkaConnect', {
     lastErr = lastErr.replace(/^[\s:]+/, '');
     throw new Error(`kafkaConnectHealthcheck: ${lastErr}`);
   },
+  // Fails even if a single MV has an error
+  onlyForDebug: true,
   resourceUsage: 'mid',
   usesResource: 'docker',
   stability: 'mid',

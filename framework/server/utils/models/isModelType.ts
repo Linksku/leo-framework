@@ -1,4 +1,4 @@
-import allModels from 'services/model/allModels';
+import allModels from 'core/models/allModels';
 
 const modelTypesSet = new Set<string>(allModels.map(m => m.type));
 

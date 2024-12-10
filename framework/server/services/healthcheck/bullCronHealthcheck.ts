@@ -1,14 +1,18 @@
-import { getExistingJobs, getCronConfigs } from 'services/cron/CronManager';
+import {
+  getExistingJobs,
+  getCronJobNames,
+  restartMissingCronJobs,
+} from 'services/cron/CronManager';
 import { addHealthcheck } from './HealthcheckManager';
 
 // Note: sometimes bullCronHealthcheck fails on each machine,
 //   but runHealthchecksOnce succeeds. Maybe Redis connection issue.
 addHealthcheck('bullCron', {
-  cb: async function bullCronHealthcheck() {
+  run: async function bullCronHealthcheck() {
     const jobs = await getExistingJobs();
-    const jobsSet = new Set(jobs);
-    const configs = getCronConfigs();
-    const missingJobs = [...configs.keys()].filter(name => !jobsSet.has(name));
+    const jobNames = new Set(jobs.map(job => job.name));
+
+    const missingJobs = getCronJobNames().filter(name => !jobNames.has(name));
     if (missingJobs.length) {
       throw getErr('bullCronHealthcheck: missing jobs', { jobs: missingJobs });
     }
@@ -18,4 +22,7 @@ addHealthcheck('bullCron', {
   resourceUsage: 'mid',
   stability: 'mid',
   timeout: 30 * 1000,
+  async fix() {
+    await restartMissingCronJobs();
+  },
 });

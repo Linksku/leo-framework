@@ -1,16 +1,17 @@
 import type { BackButtonListenerEvent } from '@capacitor/app';
-import { App as Capacitor } from '@capacitor/app';
+import { App } from '@capacitor/app';
 
-import useEffectOncePerDeps from 'hooks/useEffectOncePerDeps';
+import historyStateQueue from 'core/globalState/historyStateQueue';
+import useEffectOncePerDeps from 'utils/useEffectOncePerDeps';
 
 export default function BackButtonHandler() {
   const catchAsync = useCatchAsync();
-  const { popHandlers } = useHistoryStore();
+  const { popHandlers } = useNavState();
 
   const latestPopHandlers = useLatest(popHandlers);
   useEffectOncePerDeps(() => {
     // Capacitor Android.
-    Capacitor.addListener(
+    App.addListener(
       'backButton',
       (event: BackButtonListenerEvent) => {
         while (latestPopHandlers.current.length) {
@@ -21,9 +22,9 @@ export default function BackButtonHandler() {
         }
 
         if (event.canGoBack) {
-          window.history.back();
+          historyStateQueue.back();
         } else {
-          catchAsync(Capacitor.exitApp(), 'Capacitor.exitApp');
+          catchAsync(App.exitApp(), 'Capacitor.exitApp');
         }
       },
     )

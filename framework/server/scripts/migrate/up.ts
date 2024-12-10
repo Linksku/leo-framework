@@ -1,10 +1,11 @@
-import type { Arguments } from 'yargs';
-import { promises as fs } from 'fs';
+import { promises as fs, createReadStream } from 'fs';
 import path from 'path';
+import type { Arguments } from 'yargs';
 import dayjs from 'dayjs';
 import { mkdirp } from 'mkdirp';
 
 import exec from 'utils/exec';
+import spawn from 'utils/spawn';
 import {
   PG_BT_HOST,
   PG_BT_PORT,
@@ -12,21 +13,25 @@ import {
   PG_BT_SCHEMA,
 } from 'consts/infra';
 import pgdump from 'scripts/db/pgdump';
+import uploadToSpaces from 'services/spaces/uploadToSpaces';
+import syncMVsAfterMigration from 'scripts/syncMVsAfterMigration';
 import { getMigrationState, updateMigrationState } from './helpers/migrationState';
 import { getMigration, getAllMigrations } from './helpers/migrationFiles';
-import syncMVsAfterMigration from './helpers/syncMVsAfterMigration';
 
 export const DUMP_NAME_REGEX = new RegExp(`^${PG_BT_DB}_\\d{4}-\\d{2}-\\d{2}_\\d{6}_.*\\.dump$`);
 
 async function deleteOldDbBackups() {
   printDebug('Deleting old db backups', 'info');
   let files = await fs.readdir('./backups');
-  files = files.filter(f => DUMP_NAME_REGEX.test(f));
+  files = files
+    .filter(f => DUMP_NAME_REGEX.test(f))
+    .sort();
 
-  for (const file of files.slice(-10)) {
+  const filesToDelete = files.slice(0, -10);
+  for (const file of filesToDelete) {
     await fs.unlink(path.resolve(`./backups/${file}`));
   }
-  printDebug(`Deleted ${files.length} ${pluralize('dump', files.length)}`, 'success');
+  printDebug(`Deleted ${filesToDelete.length} ${plural('dump', filesToDelete.length)}`, 'success');
 }
 
 async function createDbBackup(suffix: string) {
@@ -48,8 +53,18 @@ async function createDbBackup(suffix: string) {
       } as unknown as NodeJS.ProcessEnv,
     },
   );
+
+  const input = createReadStream(path.resolve(`./backups/${filename}`));
+  await uploadToSpaces({
+    file: input,
+    path: `backups/${filename}`,
+    contentType: 'application/sql',
+    isPrivate: true,
+    timeout: 60_000,
+  });
 }
 
+// todo: low/easy run migrations starting from a specific migration
 export default async function migrateUp(params: Arguments) {
   let paramsFilename = params._[2];
   if (paramsFilename) {
@@ -61,7 +76,7 @@ export default async function migrateUp(params: Arguments) {
     if (!paramsFilename.endsWith('.ts')) {
       paramsFilename = `${paramsFilename}.ts`;
     }
-    const migration = getMigration(paramsFilename);
+    const migration = await getMigration(paramsFilename);
 
     if (process.env.SERVER === 'production') {
       await deleteOldDbBackups();
@@ -70,7 +85,7 @@ export default async function migrateUp(params: Arguments) {
 
     try {
       printDebug('Running pgdump before migration', 'info');
-      await pgdump();
+      await pgdump({ showWarnings: false });
     } catch (err) {
       printDebug(err, 'error', { ctx: 'pgdump' });
     }
@@ -114,15 +129,15 @@ export default async function migrateUp(params: Arguments) {
 
   try {
     printDebug('Running pgdump before migrations', 'info');
-    await pgdump();
+    await pgdump({ showWarnings: false });
   } catch (err) {
     printDebug(err, 'error', { ctx: 'pgdump' });
   }
 
-  printDebug(`Running ${migrationsToRun.length} ${pluralize('migration', migrationsToRun.length)}`, 'info');
+  printDebug(`Running ${migrationsToRun.length} ${plural('migration', migrationsToRun.length)}`, 'info');
   const filesRan: string[] = [];
   for (const filename of migrationsToRun) {
-    const migration = getMigration(filename);
+    const migration = await getMigration(filename);
 
     printDebug(`Running ${filename}`, 'info');
     const ret = migration.up();
@@ -141,14 +156,26 @@ export default async function migrateUp(params: Arguments) {
   if (TS.notEmpty(filesRan)) {
     await updateMigrationState(filesRan.at(-1), {
       type: 'down',
-      files: filesRan.reverse(),
+      files: filesRan.slice().reverse(),
     });
   }
 
   if (filesRan.length === migrationsToRun.length) {
-    printDebug('Sync MVs after migration', 'info');
-    await syncMVsAfterMigration();
+    if (filesRan.length) {
+      printDebug('Sync MVs after migration', 'info');
+      await syncMVsAfterMigration();
 
-    printDebug(`Ran ${filesRan.length} migrations`, 'success');
+      printDebug(`Ran ${filesRan.length} migrations`, 'success');
+    } else {
+      printDebug('Init MZ', 'info');
+      await spawn(
+        'yarn ss mv/initMZ --no-waitForComplete',
+        [],
+        {
+          stdio: 'inherit',
+          shell: true,
+        },
+      );
+    }
   }
 }

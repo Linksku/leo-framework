@@ -1,0 +1,19 @@
+.disabled {
+  cursor: default;
+}
+
+.blue {
+  color: $primaryColor;
+
+  &.disabled {
+    color: $fadedPrimaryColorText;
+  }
+}
+
+.activeBg:not(.disabled) {
+  transition: background-color 0.1s;
+
+  &:active {
+    background-color: $activeBackgroundColor;
+  }
+}

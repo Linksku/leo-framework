@@ -1,10 +1,35 @@
-import Entity from 'services/model/Entity';
-import MaterializedView from 'services/model/MaterializedView';
-import VirtualModel from 'services/model/VirtualModel';
+import Entity from 'core/models/Entity';
+import MaterializedView from 'core/models/MaterializedView';
+import VirtualModel from 'core/models/VirtualModel';
 
 
 
 declare global {
+class FtueSeenTimeModel extends Entity implements IFtueSeenTime {
+  declare static type: 'ftueSeenTime';
+  declare static Interface: IFtueSeenTime;
+  declare static instanceType: FtueSeenTimeModel;
+  declare static schema: ModelSchema<IFtueSeenTime>;
+  declare static cols: ModelColsMap<'ftueSeenTime'>;
+  declare static colsQuoted: ModelColsMap<'ftueSeenTime'>;
+  declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+    ['userId', 'ftueType'],
+  ];
+  declare static requiredCols: ['id', 'userId', 'ftueType'];
+
+  declare cls: FtueSeenTimeClass;
+  declare relations?: ModelRelationTypes['ftueSeenTime'];
+
+  declare id: number;
+  declare userId: number;
+  declare ftueType: string;
+  declare time: Date;
+}
+
+type FtueSeenTimeClass = typeof FtueSeenTimeModel;
+
 class MzTestModel extends Entity implements IMzTest {
   declare static type: 'mzTest';
   declare static Interface: IMzTest;
@@ -13,6 +38,10 @@ class MzTestModel extends Entity implements IMzTest {
   declare static cols: ModelColsMap<'mzTest'>;
   declare static colsQuoted: ModelColsMap<'mzTest'>;
   declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+  ];
+  declare static requiredCols: ['id'];
 
   declare cls: MzTestClass;
   declare relations?: ModelRelationTypes['mzTest'];
@@ -31,6 +60,10 @@ class MzTestMV extends MaterializedView implements IMzTestMV {
   declare static cols: ModelColsMap<'mzTestMV'>;
   declare static colsQuoted: ModelColsMap<'mzTestMV'>;
   declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+  ];
+  declare static requiredCols: ['id', 'version'];
 
   declare cls: MzTestMVClass;
   declare relations?: ModelRelationTypes['mzTestMV'];
@@ -49,6 +82,11 @@ class NotifModel extends Entity implements INotif {
   declare static cols: ModelColsMap<'notif'>;
   declare static colsQuoted: ModelColsMap<'notif'>;
   declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+    ['notifType', 'userId', 'groupingId'],
+  ];
+  declare static requiredCols: ['id', 'scope', 'notifType', 'userId', 'groupingId'];
 
   declare cls: NotifClass;
   declare relations?: ModelRelationTypes['notif'];
@@ -65,6 +103,56 @@ class NotifModel extends Entity implements INotif {
 
 type NotifClass = typeof NotifModel;
 
+class NotifSettingModel extends Entity implements INotifSetting {
+  declare static type: 'notifSetting';
+  declare static Interface: INotifSetting;
+  declare static instanceType: NotifSettingModel;
+  declare static schema: ModelSchema<INotifSetting>;
+  declare static cols: ModelColsMap<'notifSetting'>;
+  declare static colsQuoted: ModelColsMap<'notifSetting'>;
+  declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+    ['userId', 'channel'],
+  ];
+  declare static requiredCols: ['id', 'userId', 'channel', 'push', 'email'];
+
+  declare cls: NotifSettingClass;
+  declare relations?: ModelRelationTypes['notifSetting'];
+
+  declare id: number;
+  declare userId: number;
+  declare channel: NotifChannel;
+  declare push: boolean;
+  declare email: boolean;
+}
+
+type NotifSettingClass = typeof NotifSettingModel;
+
+class UnsubEmailModel extends Entity implements IUnsubEmail {
+  declare static type: 'unsubEmail';
+  declare static Interface: IUnsubEmail;
+  declare static instanceType: UnsubEmailModel;
+  declare static schema: ModelSchema<IUnsubEmail>;
+  declare static cols: ModelColsMap<'unsubEmail'>;
+  declare static colsQuoted: ModelColsMap<'unsubEmail'>;
+  declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+    'email',
+  ];
+  declare static requiredCols: ['id', 'email'];
+
+  declare cls: UnsubEmailClass;
+  declare relations?: ModelRelationTypes['unsubEmail'];
+
+  declare id: number;
+  declare email: string;
+  declare time: Date;
+}
+
+type UnsubEmailClass = typeof UnsubEmailModel;
+
 class UnsubNotifModel extends Entity implements IUnsubNotif {
   declare static type: 'unsubNotif';
   declare static Interface: IUnsubNotif;
@@ -73,6 +161,11 @@ class UnsubNotifModel extends Entity implements IUnsubNotif {
   declare static cols: ModelColsMap<'unsubNotif'>;
   declare static colsQuoted: ModelColsMap<'unsubNotif'>;
   declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+    ['entityType', 'entityId', 'userId'],
+  ];
+  declare static requiredCols: ['id', 'userId', 'entityType', 'entityId'];
 
   declare cls: UnsubNotifClass;
   declare relations?: ModelRelationTypes['unsubNotif'];
@@ -94,12 +187,18 @@ class UserModel extends Entity implements IUser {
   declare static cols: ModelColsMap<'user'>;
   declare static colsQuoted: ModelColsMap<'user'>;
   declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+    'email',
+  ];
+  declare static requiredCols: ['id', 'email', 'name'];
 
   declare cls: UserClass;
   declare relations?: ModelRelationTypes['user'];
 
   declare id: number;
   declare isDeleted: boolean;
+  declare role: number;
   declare email: string;
   declare name: string;
   declare birthday: string | null;
@@ -115,6 +214,11 @@ class UserAuthModel extends Entity implements IUserAuth {
   declare static cols: ModelColsMap<'userAuth'>;
   declare static colsQuoted: ModelColsMap<'userAuth'>;
   declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+    'userId',
+  ];
+  declare static requiredCols: ['id', 'userId'];
 
   declare cls: UserAuthClass;
   declare relations?: ModelRelationTypes['userAuth'];
@@ -137,6 +241,11 @@ class UserDeviceModel extends Entity implements IUserDevice {
   declare static cols: ModelColsMap<'userDevice'>;
   declare static colsQuoted: ModelColsMap<'userDevice'>;
   declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+    ['userId', 'deviceId'],
+  ];
+  declare static requiredCols: ['id', 'userId', 'platform', 'deviceId'];
 
   declare cls: UserDeviceClass;
   declare relations?: ModelRelationTypes['userDevice'];
@@ -160,6 +269,11 @@ class UserMetaModel extends Entity implements IUserMeta {
   declare static cols: ModelColsMap<'userMeta'>;
   declare static colsQuoted: ModelColsMap<'userMeta'>;
   declare static primaryIndex: 'id';
+  declare static uniqueIndexes: [
+    'id',
+    ['userId', 'metaKey'],
+  ];
+  declare static requiredCols: ['id', 'userId', 'metaKey', 'metaValue'];
 
   declare cls: UserMetaClass;
   declare relations?: ModelRelationTypes['userMeta'];
@@ -180,6 +294,10 @@ class VirtualRenderedNotif extends VirtualModel implements IVirtualRenderedNotif
   declare static cols: ModelColsMap<'virtualRenderedNotif'>;
   declare static colsQuoted: ModelColsMap<'virtualRenderedNotif'>;
   declare static primaryIndex: 'notifId';
+  declare static uniqueIndexes: [
+    'notifId',
+  ];
+  declare static requiredCols: ['notifId', 'content', 'contentBoldRanges', 'path'];
 
   declare cls: VirtualRenderedNotifClass;
   declare relations?: ModelRelationTypes['virtualRenderedNotif'];
@@ -193,8 +311,11 @@ class VirtualRenderedNotif extends VirtualModel implements IVirtualRenderedNotif
 type VirtualRenderedNotifClass = typeof VirtualRenderedNotif;
 
 type EntityType =
+  | 'ftueSeenTime'
   | 'mzTest'
   | 'notif'
+  | 'notifSetting'
+  | 'unsubEmail'
   | 'unsubNotif'
   | 'user'
   | 'userAuth'
@@ -203,9 +324,12 @@ type EntityType =
 
 // Use ModelTypeToInstance, ModelInstancesMap[ModelType] creates a union of all models
 type ModelInstancesMap = {
+  ftueSeenTime: FtueSeenTimeModel;
   mzTest: MzTestModel;
   mzTestMV: MzTestMV;
   notif: NotifModel;
+  notifSetting: NotifSettingModel;
+  unsubEmail: UnsubEmailModel;
   unsubNotif: UnsubNotifModel;
   user: UserModel;
   userAuth: UserAuthModel;
@@ -216,9 +340,12 @@ type ModelInstancesMap = {
 
 // Use ModelTypeToClass, ModelClassesMap[ModelType] creates a union of all models
 type ModelClassesMap = {
+  ftueSeenTime: FtueSeenTimeClass;
   mzTest: MzTestClass;
   mzTestMV: MzTestMVClass;
   notif: NotifClass;
+  notifSetting: NotifSettingClass;
+  unsubEmail: UnsubEmailClass;
   unsubNotif: UnsubNotifClass;
   user: UserClass;
   userAuth: UserAuthClass;

@@ -1,5 +1,6 @@
 import type {
   NotifScope as _NotifScope,
+  NotifChannel as _NotifChannel,
   UnsubNotifEntity as _UnsubNotifEntity,
 } from 'config/notifs';
 
@@ -27,6 +28,8 @@ declare global {
     | 'other-native';
 
   declare type NotifScope = _NotifScope;
+
+  declare type NotifChannel = _NotifChannel;
 
   declare type UnsubNotifEntity = _UnsubNotifEntity;
 }

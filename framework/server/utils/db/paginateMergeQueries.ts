@@ -31,9 +31,9 @@ export default async function paginateMergeQueries<T extends QueryBuilder<Model>
     for (let i = 0; i < orderByColumns.length; i++) {
       let { order, nulls } = orderByColumns[i];
 
-      // @ts-ignore wontfix key hack
+      // @ts-expect-error wontfix key hack
       const aVal = a[`__cursorVal${i}`];
-      // @ts-ignore wontfix key hack
+      // @ts-expect-error wontfix key hack
       const bVal = b[`__cursorVal${i}`];
       if (!nulls) {
         nulls = order === 'desc' ? 'last' : 'first';
@@ -57,7 +57,7 @@ export default async function paginateMergeQueries<T extends QueryBuilder<Model>
   // Remove duplicates.
   outer: for (let i = 0; i < mergedEntities.length - 1; i++) {
     for (let j = 0; j < orderByColumns.length; j++) {
-      // @ts-ignore wontfix key hack
+      // @ts-expect-error wontfix key hack
       if (mergedEntities[i][`__cursorVal${j}`] !== mergedEntities[i + 1][`__cursorVal${j}`]) {
         continue outer;
       }
@@ -70,14 +70,14 @@ export default async function paginateMergeQueries<T extends QueryBuilder<Model>
   const lastRowCursorVals = mergedEntities.length
     ? orderByColumns.map((_, idx) => {
       const lastRow = mergedEntities.at(-1);
-      // @ts-ignore wontfix key hack
+      // @ts-expect-error wontfix key hack
       return lastRow[`__cursorVal${idx}`] ?? null;
     })
     : null;
 
   for (const e of mergedEntities) {
     for (let i = 0; i < orderByColumns.length; i++) {
-      // @ts-ignore wontfix key hack
+      // @ts-expect-error wontfix key hack
       delete e[`__cursorVal${i}`];
     }
   }

@@ -4,7 +4,12 @@ declare module '*.txt' {
 }
 
 declare module '*.json' {
-  const content: unknown;
+  const content: string;
+  export default content;
+}
+
+declare module '*.ejs' {
+  const content: string;
   export default content;
 }
 
@@ -50,50 +55,15 @@ interface JSON {
     : undefined);
 }
 
-declare type FrameworkEnv = {
+interface FrameworkEnv {
   [key: string]: unknown;
 
   NODE_ENV: 'production' | 'development';
   PRODUCTION: boolean;
-
   // todo: mid/hard add staging server
   SERVER: 'production' | 'development';
   JS_VERSION: string;
-  IS_SERVER_SCRIPT?: string;
-  SERVER_SCRIPT_PATH?: string;
-  IS_DOCKER?: boolean;
-
-  // todo: low/easy validate all vars are in env/env
-  // From /env/env and /env/secrets
-  PG_BT_USER: string;
-  PG_BT_PASS: string;
-  PG_BT_SUPERUSER: string;
-  MZ_USER: string;
-  MZ_PASS: string;
-  PG_RR_USER: string;
-  PG_RR_PASS: string;
-  PG_RR_SUPERUSER: string;
-  REDIS_PASS: string;
-  MAX_CPU_PERCENT: string;
-  DEV_PASSWORD_PEPPER: string;
-  DEV_JWT_KEY: string;
-  PROD_PASSWORD_PEPPER: string;
-  PROD_JWT_KEY: string;
-  DEPLOY_IP: string;
-  DEPLOY_ROOT_DIR: string;
-  SSL_KEY: string;
-  SSL_CERT: string;
-  AWS_REGION: string;
-  AWS_ACCESS_ID: string;
-  AWS_SECRET_KEY: string;
-  MAPBOX_TOKEN: string;
-  DO_SPACES_SECRET: string;
-  CF_ZONE_ID: string;
-  CF_USERNAME: string;
-  CF_API_KEY: string;
-  FIREBASE_CLIENT_EMAIL: string;
-  FIREBASE_PRIVATE_KEY: string;
-};
+}
 
 declare namespace NodeJS {
   interface Process {

@@ -3,6 +3,7 @@ export default function BaseUserMixin() {
     schema: {
       id: SchemaConstants.id,
       isDeleted: { type: 'boolean', default: false },
+      role: { type: 'integer', default: 0 },
       email: SchemaConstants.email,
       name: SchemaConstants.name,
       birthday: SchemaConstants.dateStr.orNull(),

@@ -5,7 +5,7 @@ import {
   DBZ_CONNECTOR_INSERT_ONLY,
 } from 'consts/mz';
 import { PG_BT_SCHEMA } from 'consts/infra';
-import EntityModels from 'services/model/allEntityModels';
+import EntityModels from 'core/models/allEntityModels';
 
 async function _verifyConnector(
   connectorName: string,

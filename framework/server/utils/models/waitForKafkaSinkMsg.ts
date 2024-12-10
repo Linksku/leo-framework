@@ -1,7 +1,7 @@
 import { MZ_ENABLE_CONSISTENCY_TOPIC, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
 import type { Consumer } from 'kafkajs';
 
-import schemaRegistry from 'services/schemaRegistry';
+import getSchemaRegistry from 'services/getSchemaRegistry';
 import { API_POST_TIMEOUT } from 'consts/server';
 import createKafkaConsumer from 'utils/infra/createKafkaConsumer';
 import listKafkaTopics from 'utils/infra/listKafkaTopics';
@@ -36,21 +36,25 @@ export default async function waitForKafkaSinkMsg<
     timeout?: number,
   } = {},
 ): Promise<void> {
+  const startTime = performance.now();
   const createTimeoutTimer = (
     consumerConfig: ConsumerConfig,
     sub: ConsumerSub,
-  ) => setTimeout(() => {
-    const idx = consumerConfig.subscriptions.indexOf(sub);
-    if (idx >= 0) {
-      consumerConfig.subscriptions.splice(idx, 1);
-    }
+  ) => setTimeout(
+    () => {
+      const idx = consumerConfig.subscriptions.indexOf(sub);
+      if (idx >= 0) {
+        consumerConfig.subscriptions.splice(idx, 1);
+      }
 
-    sub.rejectPromise(new Error(
-      consumerConfig.gotFirstMsg
-        ? 'waitForKafkaSinkMsg: timed out'
-        : 'waitForKafkaSinkMsg: didn\'t receive first message',
-    ));
-  }, timeout);
+      sub.rejectPromise(new Error(
+        consumerConfig.gotFirstMsg
+          ? 'waitForKafkaSinkMsg: timed out'
+          : 'waitForKafkaSinkMsg: timed out before first message',
+      ));
+    },
+    timeout - (performance.now() - startTime),
+  );
 
   const oldConsumerConfig = consumerConfigs[modelType];
   if (oldConsumerConfig) {
@@ -124,6 +128,7 @@ export default async function waitForKafkaSinkMsg<
           return;
         }
 
+        const schemaRegistry = await getSchemaRegistry();
         const decoded = await schemaRegistry.decode(message.value);
         outer: for (let i = 0; i < consumerConfig.subscriptions.length; i++) {
           const sub = consumerConfig.subscriptions[i];
@@ -159,6 +164,9 @@ export default async function waitForKafkaSinkMsg<
   }
 
   if (newConsumerConfig) {
+    if (performance.now() - startTime > timeout) {
+      throw new Error('waitForKafkaSinkMsg: timed out before first message');
+    }
     return new Promise((succ, fail) => {
       const sub: ConsumerSub = {
         match: Object.entries(partial),

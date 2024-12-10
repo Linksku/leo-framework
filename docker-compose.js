@@ -1,11 +1,11 @@
-import yaml from 'js-yaml';
 import os from 'os';
+import yaml from 'js-yaml';
 import omit from 'lodash/omit.js';
 
 import './framework/server/core/initEnv.cjs';
 
 if (!process.env.SERVER || !process.env.NODE_ENV || !process.env.REDIS_PASS) {
-  throw new Error('Env vars not set.');
+  throw new Error('Docker: env vars not set.');
 }
 
 const OMIT_SERVICES = process.env.SERVER === 'production'
@@ -46,17 +46,9 @@ export const RESOURCE_LIMITS = {
     cpus: 2,
     memory: 4,
   },
-  'control-center': {
-    cpus: 2,
-    memory: 2,
-  },
   materialize: {
     cpus: 16,
     memory: 16,
-  },
-  'materialize-dashboard': {
-    cpus: 2,
-    memory: 2,
   },
   redis: {
     cpus: 2,
@@ -77,6 +69,14 @@ export const RESOURCE_LIMITS = {
   autoheal: {
     cpus: 0.25,
     memory: 0.25,
+  },
+  'control-center': {
+    cpus: 2,
+    memory: 2,
+  },
+  'materialize-dashboard': {
+    cpus: 2,
+    memory: 2,
   },
 };
 
@@ -106,59 +106,95 @@ export function getResourceLimits(service) {
   };
 }
 
-const SERVICES = {
-  broker: {
-    image: 'bitnami/kafka:3.5.1',
-    ...expose(9092),
+// Sync with KAFKA_NUM_BROKERS in infra.ts
+const NUM_BROKERS = 1;
+function getBrokerConfig(n) {
+  const hostName = `broker${n === 1 ? '' : n}`;
+  const externalPort = 9092 + ((n - 1) * 2);
+  const internalPort = 20_000 + externalPort;
+  const controllerPort = externalPort + 1;
+  return {
+    image: 'confluentinc/cp-server:7.6.1',
+    ...expose(externalPort),
     restart: 'always',
     environment: {
-      KAFKA_KRAFT_CLUSTER_ID: 'ZmNiZmU5YzA3OTVkNGQ2Yj', // random
-      KAFKA_CFG_NODE_ID: 1,
-      KAFKA_CFG_PROCESS_ROLES: 'broker,controller',
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: 'PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT',
-      KAFKA_CFG_LISTENERS: 'PLAINTEXT://:29092,EXTERNAL://:9092,CONTROLLER://:9093',
-      KAFKA_CFG_ADVERTISED_LISTENERS: 'PLAINTEXT://broker:29092,EXTERNAL://localhost:9092',
-      ALLOW_PLAINTEXT_LISTENER: true,
+      CLUSTER_ID: 'ZmNiZmU5YzA3OTVkNGQ2Yj', // random
+      KAFKA_NODE_ID: n,
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT',
+      KAFKA_ADVERTISED_LISTENERS: `INTERNAL://${hostName}:${internalPort},EXTERNAL://localhost:${externalPort}`,
+      KAFKA_DEFAULT_REPLICATION_FACTOR: Math.min(3, NUM_BROKERS),
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: Math.min(3, NUM_BROKERS),
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0,
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: Math.min(3, NUM_BROKERS),
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: Math.min(3, NUM_BROKERS),
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: Math.min(3, NUM_BROKERS),
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: Math.min(3, NUM_BROKERS),
+      KAFKA_PROCESS_ROLES: 'broker,controller',
+      KAFKA_CONTROLLER_QUORUM_VOTERS: Array.from({ length: NUM_BROKERS })
+        .map((_, i) => `${i + 1}@broker${i === 0 ? '' : i + 1}:${9093 + (i * 2)}`)
+        .join(','),
+      KAFKA_LISTENERS: `INTERNAL://:${internalPort},EXTERNAL://:${externalPort},CONTROLLER://:${controllerPort}`,
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL',
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER',
       KAFKA_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081',
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: '1@broker:9093',
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: 'CONTROLLER',
+      KAFKA_NUM_PARTITIONS: 6,
       // loglevel probably doesn't do anything
+      KAFKA_LOG4J_LOGGERS: 'org.apache.kafka=WARN, kafka=WARN, kafka.cluster=WARN, kafka.controller=WARN, kafka.log=WARN, kafka.server=WARN',
       KAFKA_LOG4J_ROOT_LOGLEVEL: 'WARN',
       KAFKA_TOOLS_LOG4J_LOGLEVEL: 'WARN',
+      CONFLUENT_REPORTERS_TELEMETRY_AUTO_ENABLE: false,
     },
     healthcheck: {
       test: [
         'CMD',
-        '/opt/bitnami/kafka/bin/kafka-topics.sh',
+        'kafka-topics',
         '--bootstrap-server',
-        'broker:29092',
+        `${hostName}:${internalPort}`,
         '--list',
       ],
-      interval: '10s',
-      timeout: '30s',
-      retries: 20,
+      interval: '5s',
+      timeout: '5s',
+      retries: 12,
     },
     deploy: {
       resources: {
         limits: getResourceLimits('broker'),
       },
     },
-  },
+  };
+}
+
+const BROKERS = Object.fromEntries(Array.from(
+  { length: NUM_BROKERS },
+  (_, i) => [
+    `broker${i === 0 ? '' : i + 1}`,
+    getBrokerConfig(i + 1),
+  ],
+));
+const BROKER_BOOTSTRAP_SERVERS = Array.from(
+  { length: NUM_BROKERS },
+  (_, i) => `broker${i === 0 ? '' : i + 1}:${29_092 + (i * 2)}`,
+).join(',');
+
+const SERVICES = {
+  ...BROKERS,
   'schema-registry': {
-    image: 'confluentinc/cp-schema-registry:7.4.2',
+    image: 'confluentinc/cp-schema-registry:7.6.1',
+    depends_on: Object.keys(BROKERS),
     ...expose(8081),
     restart: 'always',
     environment: {
       SCHEMA_REGISTRY_HOST_NAME: 'schema-registry',
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092',
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: BROKER_BOOTSTRAP_SERVERS,
       SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081',
       SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: 'WARN',
       SCHEMA_REGISTRY_TOOLS_LOG4J_LOGLEVEL: 'WARN',
     },
     healthcheck: {
       test: ['CMD-SHELL', 'curl -f http://localhost:8081 || exit 1'],
-      interval: '10s',
-      timeout: '10s',
+      interval: '5s',
+      timeout: '5s',
+      // schema-registry seems to have the longest startup time
       retries: 30,
     },
     deploy: {
@@ -174,13 +210,13 @@ const SERVICES = {
       dockerfile: './kafka-connect-dockerfile',
     },
     depends_on: [
-      'broker',
+      ...Object.keys(BROKERS),
       'schema-registry',
     ],
     ...expose(8083),
     restart: 'always',
     environment: {
-      CONNECT_BOOTSTRAP_SERVERS: 'broker:29092',
+      CONNECT_BOOTSTRAP_SERVERS: BROKER_BOOTSTRAP_SERVERS,
       CONNECT_REST_ADVERTISED_HOST_NAME: 'connect',
       CONNECT_GROUP_ID: 'compose-connect-group',
       CONNECT_CONFIG_STORAGE_TOPIC: 'docker-connect-configs',
@@ -196,17 +232,15 @@ const SERVICES = {
       CONNECT_KEY_CONVERTER: 'org.apache.kafka.connect.storage.StringConverter',
       CONNECT_VALUE_CONVERTER: 'io.confluent.connect.avro.AvroConverter',
       CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081',
-      CONNECT_PRODUCER_INTERCEPTOR_CLASSES: 'io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor',
-      CONNECT_CONSUMER_INTERCEPTOR_CLASSES: 'io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor',
       CONNECT_PLUGIN_PATH: '/usr/share/java,/usr/share/confluent-hub-components,/opt/kafka-connectors',
       CONNECT_LOG4J_ROOT_LOGLEVEL: 'WARN',
       CONNECT_TOOLS_LOG4J_LOGLEVEL: 'WARN',
     },
     healthcheck: {
       test: ['CMD-SHELL', 'curl -f http://localhost:8083 || exit 1'],
-      interval: '10s',
-      timeout: '10s',
-      retries: 30,
+      interval: '5s',
+      timeout: '5s',
+      retries: 12,
     },
     deploy: {
       resources: {
@@ -214,41 +248,11 @@ const SERVICES = {
       },
     },
   },
-  'control-center': {
-    image: 'confluentinc/cp-enterprise-control-center:7.4.2',
-    depends_on: [
-      'broker',
-      'schema-registry',
-      'connect',
-    ],
-    ports: [
-      '127.0.0.1:9021:9021',
-    ],
-    environment: {
-      CONTROL_CENTER_BOOTSTRAP_SERVERS: 'broker:29092',
-      'CONTROL_CENTER_CONNECT_CONNECT-DEFAULT_CLUSTER': 'connect:8083',
-      CONTROL_CENTER_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081',
-      CONTROL_CENTER_REPLICATION_FACTOR: 1,
-      CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1,
-      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1,
-      CONTROL_CENTER_CONNECT_HEALTHCHECK_ENDPOINT: '/connectors',
-      CONFLUENT_METRICS_TOPIC_REPLICATION: 1,
-      PORT: 9021,
-    },
-    profiles: [
-      'control-center',
-    ],
-    deploy: {
-      resources: {
-        limits: getResourceLimits('control-center'),
-      },
-    },
-  },
   // todo: high/hard materialized 0.27 clusters
   materialize: {
     image: 'materialize/materialized:v0.26.6',
     depends_on: [
-      'broker',
+      ...Object.keys(BROKERS),
       'schema-registry',
       'connect',
     ],
@@ -264,9 +268,9 @@ const SERVICES = {
     `,
     healthcheck: {
       test: ['CMD', 'curl', 'http://localhost:6875/status'],
-      interval: '10s',
-      timeout: '10s',
-      retries: 30,
+      interval: '5s',
+      timeout: '5s',
+      retries: 12,
     },
     deploy: {
       resources: {
@@ -274,29 +278,12 @@ const SERVICES = {
       },
     },
   },
-  'materialize-dashboard': {
-    image: 'materialize/dashboard:v0.26.6',
-    depends_on: [
-      'materialize',
-    ],
-    ports: [
-      '127.0.0.1:3000:3000',
-    ],
-    environment: {
-      MATERIALIZED_URL: 'materialize:6875',
-    },
-    profiles: [
-      'materialize-dashboard',
-    ],
-    deploy: {
-      resources: {
-        limits: getResourceLimits('materialize-dashboard'),
-      },
-    },
-  },
   redis: {
-    image: 'redis:7.2.1',
+    image: 'redis:7.2.4',
     ...expose(6379),
+    ports: [
+      '0.0.0.0:6379:6379',
+    ],
     restart: 'always',
     command: [
       '--requirepass',
@@ -311,9 +298,9 @@ const SERVICES = {
         'CMD-SHELL',
         `redis-cli -a '${process.env.REDIS_PASS}' ping | grep PONG`,
       ],
-      interval: '10s',
-      timeout: '10s',
-      retries: 30,
+      interval: '5s',
+      timeout: '5s',
+      retries: 12,
     },
     deploy: {
       resources: {
@@ -324,7 +311,7 @@ const SERVICES = {
   'monitor-infra': {
     image: 'server',
     depends_on: [
-      'broker',
+      ...Object.keys(BROKERS),
       'schema-registry',
       'connect',
       'materialize',
@@ -373,6 +360,7 @@ const SERVICES = {
     volumes: [
       './env:/usr/src/env',
       '/etc/letsencrypt:/etc/letsencrypt',
+      './build/production/web/.well-known/acme-challenge:/usr/src/build/production/web/.well-known/acme-challenge',
     ],
     deploy: {
       resources: {
@@ -383,7 +371,7 @@ const SERVICES = {
   'server-script': {
     image: 'server',
     depends_on: [
-      'broker',
+      ...Object.keys(BROKERS),
       'schema-registry',
       'connect',
       'materialize',
@@ -423,20 +411,77 @@ const SERVICES = {
       },
     },
   },
+  // yarn dc --profile control-center up -d
+  'control-center': {
+    image: 'confluentinc/cp-enterprise-control-center:7.6.1',
+    depends_on: [
+      ...Object.keys(BROKERS),
+      'schema-registry',
+      'connect',
+    ],
+    ports: [
+      '127.0.0.1:9021:9021',
+    ],
+    environment: {
+      CONTROL_CENTER_BOOTSTRAP_SERVERS: BROKER_BOOTSTRAP_SERVERS,
+      'CONTROL_CENTER_CONNECT_CONNECT-DEFAULT_CLUSTER': 'connect:8083',
+      CONTROL_CENTER_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081',
+      CONTROL_CENTER_REPLICATION_FACTOR: 1,
+      CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1,
+      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1,
+      CONTROL_CENTER_CONNECT_HEALTHCHECK_ENDPOINT: '/connectors',
+      CONFLUENT_METRICS_TOPIC_REPLICATION: 1,
+      PORT: 9021,
+    },
+    profiles: [
+      'control-center',
+    ],
+    deploy: {
+      resources: {
+        limits: getResourceLimits('control-center'),
+      },
+    },
+  },
+  // yarn dc --profile materialize-dashboard up -d
+  'materialize-dashboard': {
+    image: 'materialize/dashboard:v0.26.6',
+    depends_on: [
+      'materialize',
+    ],
+    ports: [
+      '127.0.0.1:3000:3000',
+    ],
+    environment: {
+      MATERIALIZED_URL: 'materialize:6875',
+    },
+    profiles: [
+      'materialize-dashboard',
+    ],
+    deploy: {
+      resources: {
+        limits: getResourceLimits('materialize-dashboard'),
+      },
+    },
+  },
 };
 
 if (process.env.PRODUCTION
   && !SERVICES.materialize.command.includes('--introspection-frequency off')) {
-  throw new Error('MZ introspection-frequency should be off');
+  throw new Error('MZ introspection-frequency should be off in prod');
 }
 
 const filteredServices = omit(SERVICES, OMIT_SERVICES);
 if (!process.env.JS_VERSION) {
   // eslint-disable-next-line no-console
-  console.log(yaml.dump({
-    version: '3.8',
-    services: filteredServices,
-  }));
+  console.log(yaml.dump(
+    {
+      services: filteredServices,
+    },
+    {
+      quotingType: '"',
+      sortKeys: true,
+    },
+  ));
 }
 
 export default filteredServices;

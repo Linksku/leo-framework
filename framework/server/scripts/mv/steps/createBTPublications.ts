@@ -1,5 +1,5 @@
 import throttledPromiseAll from 'utils/throttledPromiseAll';
-import EntityModels from 'services/model/allEntityModels';
+import EntityModels from 'core/models/allEntityModels';
 import knexBT from 'services/knex/knexBT';
 import {
   BT_PUB_UPDATEABLE,

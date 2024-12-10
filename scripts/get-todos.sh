@@ -1,13 +1,15 @@
 #!/bin/bash
 
 if [ "$1" = "high" ]; then
-  search='todo: ((veryhigh/veryhard)|(veryhigh|high)/(easy|mid|hard)) '
+  search='todo: ((veryhigh|veryhard)|(veryhigh|high)/(easy|mid|hard)) '
 elif [ "$1" = "mid" ]; then
   search='todo: mid/(easy|mid) '
 elif [ "$1" = "easy" ]; then
   search='todo: \w+/easy '
 elif [ "$1" = "all" ] || [ "$1" = "misc" ]; then
   search='todo: \w+/\w+ '
+elif [ "$1" = "hard" ]; then
+  search='todo: (mid|high|veryhigh)/(hard|veryhard) '
 elif [ "$1" = "low" ]; then
   search='todo: (low/(mid|hard|veryhard)|mid/(hard|veryhard)) '
 else

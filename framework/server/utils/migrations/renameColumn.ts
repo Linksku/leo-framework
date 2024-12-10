@@ -1,5 +1,6 @@
 import knexBT from 'services/knex/knexBT';
 import knexRR from 'services/knex/knexRR';
+import validateTableCols from './validateTableCols';
 
 export default async function renameColumn({
   isMV,
@@ -12,6 +13,8 @@ export default async function renameColumn({
   oldCol: string,
   newCol: string,
 }) {
+  validateTableCols({ table, col: newCol });
+
   try {
     if (!isMV) {
       if (await knexBT.schema.hasColumn(table, newCol)) {

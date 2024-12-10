@@ -1,16 +1,21 @@
-import FcmBroadcastChannel from 'services/FcmBroadcastChannel';
+import getFcmBroadcastChannel from 'services/getFcmBroadcastChannel';
 import safeParseJson from 'utils/safeParseJson';
 import stringify from 'utils/stringify';
-import useHandleApiEntities from 'hooks/api/useHandleApiEntities';
+import useHandleApiEntities from 'stores/api/useHandleApiEntities';
 import { FcmNotifData } from 'consts/notifs';
 
 export default function FcmBroadcastHandler() {
   const handleApiEntities = useHandleApiEntities(true);
   const pushPath = usePushPath();
+  const authState = useAuthState();
 
   useEffect(() => {
+    if (authState === 'out') {
+      return NOOP;
+    }
+
     const cb = (event: MessageEvent) => {
-      if (!event.data || !event.data.apiData || !event.data.path) {
+      if (!TS.isObj(event.data) || !event.data.apiData || !event.data.path) {
         return;
       }
 
@@ -28,12 +33,12 @@ export default function FcmBroadcastHandler() {
       pushPath(data.path);
     };
 
-    FcmBroadcastChannel.addEventListener('message', cb);
+    getFcmBroadcastChannel().addEventListener('message', cb);
 
     return () => {
-      FcmBroadcastChannel.removeEventListener('message', cb);
+      getFcmBroadcastChannel().removeEventListener('message', cb);
     };
-  }, [handleApiEntities, pushPath]);
+  }, [authState, handleApiEntities, pushPath]);
 
   return null;
 }

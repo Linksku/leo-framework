@@ -1,5 +1,6 @@
-const yargs = require('yargs');
+const yargs = require('yargs').default;
 const mapValues = require('lodash/mapValues');
+const confusingBrowserGlobals = require('confusing-browser-globals');
 
 const webGlobals = require('./framework/web/config/globals.cjs');
 const webAppGlobals = require('./app/web/config/globals.cjs');
@@ -18,7 +19,8 @@ const extensions = [
   '.json',
 ];
 
-const restrictedImports = [
+const restrictedWebImports = [
+  'moment',
   'lodash',
   'lodash/*',
   'react-use', // Inefficient library.
@@ -33,17 +35,15 @@ const config = {
     ecmaVersion: 2020,
     sourceType: 'module',
     ecmaFeatures: {
-      jsx: true,
       impliedStrict: true,
     },
   },
+  plugins: [
+    'eslint-plugin-local-rules',
+  ],
   extends: [
     'airbnb',
     'plugin:unicorn/recommended',
-  ],
-  plugins: [
-    'css-modules',
-    'eslint-plugin-local-rules',
   ],
   env: {
     node: true,
@@ -77,7 +77,6 @@ const config = {
     process: false,
   },
   rules: {
-    'local-rules/no-nullish-coalescing-assignment': 2,
     'no-underscore-dangle': 0,
     'no-multi-assign': 0,
     'no-plusplus': 0,
@@ -86,6 +85,21 @@ const config = {
     'no-unused-expressions': 1, /* Temporarily disable until do expressions are supported. */
     'lines-between-class-members': 0,
     'no-restricted-syntax': [2, 'ForInStatement', 'WithStatement'],
+    'no-restricted-globals': [
+      2,
+      'error',
+      'isFinite',
+      'isNaN',
+      {
+        name: 'requestIdleCallback',
+        message: 'Use utils/requestIdleCallback',
+      },
+      {
+        name: 'cancelIdleCallback',
+        message: 'Use utils/requestIdleCallback',
+      },
+      ...confusingBrowserGlobals,
+    ],
     eqeqeq: [2, 'always', {
       null: 'ignore',
     }],
@@ -101,7 +115,7 @@ const config = {
       ignoreTemplateLiterals: true,
       // Note: this allows any lines with short strings
       ignoreStrings: false,
-      ignorePattern: '^import |\'[^\']{50,}|"[^"]{50,}|`[^`]{50,}',
+      ignorePattern: '^import |\'(?:\\\\\'|[^\']){50,}|"(?:\\\\"|[^"]){50,}|`(?:\\\\`|[^`]){50,}|>[^<]{50,}</\\w',
       ignoreRegExpLiterals: true,
       ignoreUrls: true,
     }],
@@ -190,6 +204,7 @@ const config = {
     // Same as unicorn/prefer-module
     'global-require': 0,
     'no-constant-condition': 0,
+    'prefer-template': 0,
     'import/prefer-default-export': 0,
     'import/no-relative-packages': 0,
     'import/extensions': 0,
@@ -200,16 +215,16 @@ const config = {
     }],
     'import/no-self-import': 0,
     'import/no-unresolved': 0,
+    'import/no-named-as-default': 0,
     'import/no-named-as-default-member': 0,
     'import/no-duplicates': 0,
     // Too slow.
     'import/no-cycle': 0,
     'import/order': [2, {
       groups: [
+        'builtin',
         [
-          'builtin',
           'external',
-          'type',
           'internal',
           'unknown',
         ],
@@ -224,91 +239,19 @@ const config = {
           pattern: '**',
           group: 'internal',
         },
+        {
+          pattern: '*.scss',
+          patternOptions: {
+            dot: true,
+            nocomment: true,
+            matchBase: true,
+          },
+          group: 'sibling',
+          position: 'after',
+        },
       ],
       pathGroupsExcludedImportTypes: ['builtin', 'object'],
     }],
-    'react/jsx-filename-extension': [2, { extensions: ['.tsx'] }],
-    'react/no-unknown-property': [2, { ignore: ['class', 'for'] }],
-    'react/prop-types': 0,
-    'react/no-unused-state': 0,
-    'react/destructuring-assignment': 0,
-    'react/react-in-jsx-scope': 0,
-    'react/no-unused-prop-types': 0,
-    'react/jsx-one-expression-per-line': [2, { allow: 'single-child' }],
-    'react/jsx-child-element-spacing': 1,
-    'react/jsx-no-bind': 0,
-    'react/jsx-equals-spacing': 2,
-    'react/jsx-no-duplicate-props': 2,
-    'react/jsx-no-undef': [2, { allowGlobals: true }],
-    'react/no-is-mounted': 0,
-    'react/sort-comp': 0,
-    'react/static-property-placement': 0,
-    'react/jsx-props-no-spreading': 0,
-    'react/state-in-constructor': 0,
-    'react/require-default-props': 0,
-    'react/jsx-no-useless-fragment': [2, { allowExpressions: true }],
-    'react/no-unstable-nested-components': 0,
-    'react/function-component-definition': 0,
-    'react/prefer-exact-props': 0,
-    'react/jsx-uses-react': 0,
-    'react/no-deprecated': 0,
-    'react/no-did-update-set-state': 0,
-    'react/no-will-update-set-state': 0,
-    'react/prefer-es6-class': 0,
-    'react/require-render-return': 0,
-    'react/no-find-dom-node': 2,
-    'react/no-danger-with-children': 0,
-    'react/no-redundant-should-component-update': 0,
-    'react/no-access-state-in-setstate': 0,
-    'react/no-arrow-function-lifecycle': 0,
-    'react/no-unused-class-component-methods': 0,
-    'react/forbid-component-props': 0,
-    'react/no-multi-comp': 0,
-    'react/no-string-refs': 0,
-    'react/no-typos': 0,
-    'react/prefer-stateless-function': 0,
-    'react/default-props-match-prop-types': 0,
-    'react/no-this-in-sfc': 0,
-    'react/void-dom-elements-no-children': 0,
-    'jsx-a11y/label-has-associated-control': [1, { assert: 'either' }],
-    'jsx-a11y/no-noninteractive-element-interactions': 0,
-    'jsx-a11y/accessible-emoji': 0,
-    'jsx-a11y/aria-role': 2,
-    'jsx-a11y/interactive-supports-focus': [
-      2,
-      {
-        tabbable: [
-          'button',
-          'checkbox',
-          'link',
-          'searchbox',
-          'spinbutton',
-          'switch',
-          'textbox',
-        ],
-      },
-    ],
-    'jsx-a11y/no-interactive-element-to-noninteractive-role': [
-      2,
-      {
-        tr: ['none', 'presentation'],
-      },
-    ],
-    'jsx-a11y/no-noninteractive-element-to-interactive-role': 0,
-    'jsx-a11y/no-noninteractive-tabindex': 2,
-    'jsx-a11y/no-static-element-interactions': [
-      2,
-      {
-        handlers: ['onClick'],
-      },
-    ],
-    'jsx-a11y/anchor-is-valid': [2, { components: [] }],
-    // Temp
-    'jsx-a11y/media-has-caption': 0,
-    // Temp
-    'jsx-a11y/click-events-have-key-events': 0,
-    'css-modules/no-unused-class': 2,
-    'css-modules/no-undef-class': 2,
     'unicorn/prevent-abbreviations': 0,
     'unicorn/catch-error-name': 0,
     'unicorn/filename-case': 0,
@@ -347,16 +290,21 @@ const config = {
     // Low browser support
     'unicorn/prefer-modern-math-apis': 0,
     'unicorn/no-thenable': 0,
+    'unicorn/prefer-top-level-await': 0,
+    'unicorn/no-await-expression-member': 0,
+    // Low browser support
+    'unicorn/prefer-string-replace-all': 0,
+    'unicorn/no-unnecessary-polyfills': 0,
   },
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
+      plugins: [
+        '@typescript-eslint',
+      ],
       extends: [
         // 'plugin:@typescript-eslint/recommended',
         'plugin:@typescript-eslint/recommended-type-checked',
-      ],
-      plugins: [
-        '@typescript-eslint',
       ],
       rules: {
         'no-unused-vars': 0,
@@ -371,7 +319,7 @@ const config = {
         '@typescript-eslint/comma-dangle': [2, 'always-multiline'],
         camelcase: 0,
         '@typescript-eslint/naming-convention': [
-          2,
+          1,
           {
             selector: 'variable',
             format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
@@ -406,8 +354,8 @@ const config = {
         ],
         '@typescript-eslint/no-var-requires': 0,
         '@typescript-eslint/ban-ts-comment': [2, {
-          'ts-expect-error': true,
-          'ts-ignore': 'allow-with-description',
+          'ts-expect-error': 'allow-with-description',
+          'ts-ignore': true,
           'ts-nocheck': true,
           'ts-check': false,
           minimumDescriptionLength: 3,
@@ -422,7 +370,7 @@ const config = {
         // Too slow.
         '@typescript-eslint/await-thenable': 1,
         // Too slow.
-        '@typescript-eslint/unbound-method': 1,
+        '@typescript-eslint/unbound-method': 0,
         '@typescript-eslint/promise-function-async': 0,
         // Too slow.
         '@typescript-eslint/no-misused-promises': [2, {
@@ -432,7 +380,6 @@ const config = {
         '@typescript-eslint/return-await': 1,
         // Too slow.
         '@typescript-eslint/require-await': 1,
-        // todo: low/mid enable no-explicit-any
         '@typescript-eslint/no-explicit-any': 0,
         // Use TS.defined
         '@typescript-eslint/no-non-null-assertion': 2,
@@ -447,6 +394,115 @@ const config = {
         '@typescript-eslint/no-unsafe-assignment': 0,
         '@typescript-eslint/no-unsafe-return': 0,
         '@typescript-eslint/no-unsafe-argument': 0,
+        '@typescript-eslint/no-unsafe-call': 1,
+        '@typescript-eslint/no-unsafe-enum-comparison': 0,
+        '@typescript-eslint/no-unnecessary-type-assertion': 1,
+        '@typescript-eslint/no-base-to-string': 1,
+        '@typescript-eslint/restrict-template-expressions': 0,
+        '@typescript-eslint/restrict-plus-operands': 1,
+      },
+    },
+    // Web
+    {
+      files: [
+        'app/web/**/*.ts',
+        'app/web/**/*.tsx',
+        'framework/web/**/*.ts',
+        'framework/web/**/*.tsx',
+      ],
+      plugins: [
+        'css-modules',
+      ],
+      extends: [
+        'airbnb/hooks',
+        'plugin:css-modules/recommended',
+      ],
+      rules: {
+        'local-rules/no-nullish-coalescing-assignment': 2,
+        'local-rules/react-max-hooks-per-component': 2,
+        'no-restricted-imports': [2, { patterns: restrictedWebImports }],
+        'react/jsx-filename-extension': [2, { extensions: ['.tsx'] }],
+        'react/no-unknown-property': [2, { ignore: ['class', 'for'] }],
+        'react/prop-types': 0,
+        'react/no-unused-state': 0,
+        'react/destructuring-assignment': 0,
+        'react/react-in-jsx-scope': 0,
+        'react/no-unused-prop-types': 0,
+        'react/jsx-one-expression-per-line': [2, { allow: 'single-child' }],
+        'react/jsx-child-element-spacing': 1,
+        'react/jsx-no-bind': 0,
+        'react/jsx-equals-spacing': 2,
+        'react/jsx-no-duplicate-props': 2,
+        'react/jsx-no-undef': [2, { allowGlobals: true }],
+        'react/no-is-mounted': 0,
+        'react/sort-comp': 0,
+        'react/static-property-placement': 0,
+        'react/jsx-props-no-spreading': 0,
+        'react/state-in-constructor': 0,
+        'react/require-default-props': 0,
+        'react/jsx-no-useless-fragment': [2, { allowExpressions: true }],
+        'react/no-unstable-nested-components': 0,
+        'react/function-component-definition': 0,
+        'react/prefer-exact-props': 0,
+        'react/jsx-uses-react': 0,
+        'react/no-deprecated': 0,
+        'react/no-did-update-set-state': 0,
+        'react/no-will-update-set-state': 0,
+        'react/prefer-es6-class': 0,
+        'react/require-render-return': 0,
+        'react/no-find-dom-node': 2,
+        'react/no-danger-with-children': 0,
+        'react/no-redundant-should-component-update': 0,
+        'react/no-access-state-in-setstate': 0,
+        'react/no-arrow-function-lifecycle': 0,
+        'react/no-unused-class-component-methods': 0,
+        'react/forbid-component-props': 0,
+        'react/no-multi-comp': 0,
+        'react/no-string-refs': 0,
+        'react/no-typos': 0,
+        'react/prefer-stateless-function': 0,
+        'react/default-props-match-prop-types': 0,
+        'react/no-this-in-sfc': 0,
+        'react/void-dom-elements-no-children': 0,
+        'react/jsx-no-target-blank': 0,
+        'react/jsx-no-constructed-context-values': 0,
+        'jsx-a11y/label-has-associated-control': [1, { assert: 'either' }],
+        'jsx-a11y/no-noninteractive-element-interactions': 0,
+        'jsx-a11y/accessible-emoji': 0,
+        'jsx-a11y/aria-role': 2,
+        'jsx-a11y/interactive-supports-focus': [
+          2,
+          {
+            tabbable: [
+              'button',
+              'checkbox',
+              'link',
+              'searchbox',
+              'spinbutton',
+              'switch',
+              'textbox',
+            ],
+          },
+        ],
+        'jsx-a11y/no-interactive-element-to-noninteractive-role': [
+          2,
+          {
+            tr: ['none', 'presentation'],
+          },
+        ],
+        'jsx-a11y/no-noninteractive-element-to-interactive-role': 0,
+        'jsx-a11y/no-noninteractive-tabindex': 2,
+        'jsx-a11y/no-static-element-interactions': [
+          2,
+          {
+            handlers: ['onClick'],
+          },
+        ],
+        'jsx-a11y/anchor-is-valid': [2, { components: [] }],
+        // Temp
+        'jsx-a11y/media-has-caption': 0,
+        // Temp
+        'jsx-a11y/click-events-have-key-events': 0,
       },
     },
     // App web
@@ -457,10 +513,10 @@ const config = {
       ],
       parserOptions: {
         project: 'app/web/tsconfig.json',
+        ecmaFeatures: {
+          jsx: true,
+        },
       },
-      extends: [
-        'airbnb/hooks',
-      ],
       settings: {
         'import/resolver': {
           node: {
@@ -479,9 +535,6 @@ const config = {
           },
         },
       },
-      rules: {
-        'no-restricted-imports': [2, { patterns: restrictedImports }],
-      },
       globals: {
         ...mapValues(sharedAppGlobals, () => false),
         ...mapValues(sharedGlobals, () => false),
@@ -497,10 +550,10 @@ const config = {
       ],
       parserOptions: {
         project: 'framework/web/tsconfig-build.json',
+        ecmaFeatures: {
+          jsx: true,
+        },
       },
-      extends: [
-        'airbnb/hooks',
-      ],
       settings: {
         'import/resolver': {
           node: {
@@ -510,9 +563,6 @@ const config = {
             ],
           },
         },
-      },
-      rules: {
-        'no-restricted-imports': [2, { patterns: restrictedImports }],
       },
       globals: {
         ...mapValues(sharedGlobals, () => false),
@@ -696,8 +746,8 @@ const config = {
   ],
 };
 
-const { argv } = yargs(process.argv);
-if ('quiet' in argv && argv.quiet) {
+const argv = yargs(process.argv).parse();
+if ('quiet' in argv) {
   for (const [k, v] of Object.entries(config.rules)) {
     if (v === 1) {
       config.rules[k] = 0;

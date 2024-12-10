@@ -33,7 +33,7 @@ export type PaginatedResponse<
   },
 };
 
-export const MAX_PER_PAGE = 30;
+export const MAX_PER_PAGE = 20;
 
 export const EMPTY_PAGINATION = {
   entities: [],
@@ -143,7 +143,7 @@ export default async function paginateQuery<
   const lastRowCursorVals = entities.length
     ? orderByColumns.map((_, idx) => {
       const lastRow = entities.at(-1);
-      // @ts-ignore wontfix key hack
+      // @ts-expect-error wontfix key hack
       return lastRow[`__cursorVal${idx}`] ?? null;
     })
     : null;
@@ -163,7 +163,7 @@ export default async function paginateQuery<
     const cursorCols = entities.map(
       e => Array.from(
         { length: orderByColumns.length },
-        // @ts-ignore wontfix key hack
+        // @ts-expect-error wontfix key hack
         (_, idx) => e[`__cursorVal${idx}`],
       ).join(','),
     );
@@ -176,7 +176,7 @@ export default async function paginateQuery<
   if (!keepCursorVals) {
     for (const e of entities) {
       for (let i = 0; i < orderByColumns.length; i++) {
-        // @ts-ignore wontfix key hack
+        // @ts-expect-error wontfix key hack
         delete e[`__cursorVal${i}`];
       }
     }

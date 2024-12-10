@@ -4,12 +4,14 @@ set -e
 source <(grep -v '^#' env/env)
 source <(grep -v '^#' env/secrets)
 
+version=$(git rev-list --count master)
+
 utcHour=`date +"%-H" --utc`
-if [[ "$utcHour" -lt 5 || "$utcHour" -ge 11 ]]; then
-  read -n 1 -p "Deploy during peak hours (prefer 9pm-3am PT, 12am-6am ET) (y/n)? " -r
+# 5 UTC = 9 PST, 10 UTC = 6 EDT
+if [[ "$utcHour" -lt 5 || "$utcHour" -ge 10 ]]; then
+  read -n 1 -p "Deploy during active hours? (prefer 9pm-3am PT, 12am-6am ET) (y/n) " -r
   echo ""
-  if [[ ! $REPLY =~ ^[Yy]$ ]]
-  then
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
   fi
 fi
@@ -27,7 +29,7 @@ fi
 eval `ssh-agent -t 600`
 ssh-add
 
-./scripts/pre-deploy.mjs "$@"
+npx zx ./scripts/pre-deploy.mjs "$@"
 
 # Keep older files in case clients are open during deploy
 mkdir -p build/production/web/js
@@ -52,7 +54,16 @@ if [[ -n $(git status --porcelain) ]]; then
 fi
 NODE_ENV=production SERVER=production scripts/build-server-script.sh monitorInfra
 
+echo "Upload source maps"
+sentry-cli sourcemaps inject build/production/server --silent
+sentry-cli sourcemaps inject build/production/web/js --silent
+sentry-cli sourcemaps upload build/production/server --project server --release $version --silent
+sentry-cli sourcemaps upload build/production/web/js --project web --release $version --silent
+find build/production -name "*.js.map" -type f -delete
+
+# todo: low/mid option to deploy only client code
 echo "Build Docker"
+scripts/build-docker-package-json.mjs
 docker build -t server -f framework/infra/server-dockerfile .
 docker save server | gzip > server.tar.gz
 

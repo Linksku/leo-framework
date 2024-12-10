@@ -1,6 +1,8 @@
 #!/bin/bash
 
+ARG_NODE_ENV=$NODE_ENV
 export $(grep -v '^#' env/env | xargs)
+NODE_ENV=$ARG_NODE_ENV
 
 if [ "$SERVER" == "production" ]; then
   echo "Shouldn't run in prod"
@@ -14,6 +16,7 @@ fi
 rm -rf build/$NODE_ENV
 
 MINIMIZE=0 yarn ss buildTemplates
-npx concurrently --names ",WEB" --prefix "{name}" --prefix-colors "blue" --kill-others \
-  "scripts/watch-server.sh" \
-  "scripts/watch-web.sh"
+npx concurrently \
+  --names ",WEB" --prefix "{name}" --prefix-colors "blue" --kill-others \
+  "NODE_ENV=$NODE_ENV scripts/watch-server.sh" \
+  "NODE_ENV=$NODE_ENV scripts/watch-web.sh"

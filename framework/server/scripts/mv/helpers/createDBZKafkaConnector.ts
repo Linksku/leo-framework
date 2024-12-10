@@ -7,10 +7,13 @@ import {
   PG_BT_PORT,
   PG_BT_DB,
   PG_BT_SCHEMA,
+  KAFKA_NUM_BROKERS,
+} from 'consts/infra';
+import {
   KAFKA_CONNECT_HOST,
   KAFKA_CONNECT_PORT,
   SCHEMA_REGISTRY_PORT,
-} from 'consts/infra';
+} from 'consts/mz';
 import listKafkaTopics from 'utils/infra/listKafkaTopics';
 import { DBZ_ENABLE_SKIP_COLUMNS } from 'consts/mz';
 
@@ -62,9 +65,9 @@ export default async function createDBZKafkaConnector({
           'max.queue.size': 81_290,
           'topic.prefix': PG_BT_DB,
           'topic.creation.enable': true,
-          'topic.creation.default.replication.factor': -1,
-          // Higher might be needed
-          'topic.creation.default.partitions': 1,
+          'topic.creation.default.replication.factor': Math.min(3, KAFKA_NUM_BROKERS),
+          // Multiple of number of brokers
+          'topic.creation.default.partitions': 2 * Math.min(3, KAFKA_NUM_BROKERS),
           'topic.creation.default.cleanup.policy': 'compact',
           // With cleanup, if MZ restarts, sources will be missing rows
           'topic.creation.default.retention.ms': -1,

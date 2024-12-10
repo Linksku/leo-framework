@@ -3,29 +3,29 @@
 import { $, chalk } from 'zx';
 
 import '../framework/server/core/initEnv.cjs';
-import throttledPromiseAll from '../framework/shared/utils/throttledPromiseAll';
-import { APP_NAME_LOWER } from '../framework/shared/config/config.js';
-
-$.verbose = false;
+import throttledPromiseAll from '../framework/shared/utils/throttledPromiseAll.cjs';
+import { APP_NAME_LOWER } from '../app/shared/config/config.js';
 
 const _topics = await $`
   docker exec -it $(yarn dc ps -q broker) \
-    /opt/bitnami/kafka/bin/kafka-topics.sh \
+    kafka-topics \
     --bootstrap-server broker:29092 \
     --list
 `;
 const topics = _topics.stdout.trim().split('\n').sort();
+const filteredTopics = topics
+  .map(topic => topic.trim())
+  .filter(topic => topic.startsWith(`${APP_NAME_LOWER}_`)
+    && !topic.endsWith('-consistency'));
+if (!filteredTopics.length) {
+  console.log('No topics found');
+  process.exit(0);
+}
 
-await throttledPromiseAll(2, topics, async topic => {
-  topic = topic.trim();
-  if (!topic.startsWith(`${APP_NAME_LOWER}_`)
-    || topic.endsWith('-consistency')) {
-    return;
-  }
-
+await throttledPromiseAll(2, filteredTopics, async topic => {
   const _numMsgs = await $`
     docker exec -it $(yarn dc ps -q broker) \
-      /opt/bitnami/kafka/bin/kafka-run-class.sh kafka.tools.GetOffsetShell \
+      kafka-run-class kafka.tools.GetOffsetShell \
       --bootstrap-server broker:29092 \
       --topic ${topic} \
       | awk -F  ":" '{sum += $3} END {print sum}'

@@ -1,0 +1,18 @@
+.container {
+  @extend %scrollableY;
+
+  position: fixed;
+  top: $headerHeight;
+  right: 0;
+  background-color: rgb(255 255 255 / 90%);
+  max-width: 35vw;
+  max-height: 50vh;
+  z-index: $zIndexDebug;
+  font-size: 0.8em;
+
+  p {
+    margin-bottom: 3px;
+    line-height: 1.2;
+    word-break: break-all;
+  }
+}

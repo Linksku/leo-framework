@@ -68,7 +68,7 @@ export default async function createMZViewsFromPostgres() {
     return;
   }
 
-  printDebug('Creating views', 'highlight');
+  printDebug('Creating views from Postgres', 'highlight');
   const viewsList = viewsToCreate
     .filter(Model => !existingViews.has(Model.type))
     .map(Model => `"${Model.type}"`)

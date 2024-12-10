@@ -1,18 +1,21 @@
 import throttledPromiseAll from 'utils/throttledPromiseAll';
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import showMzSystemRows from 'utils/db/showMzSystemRows';
 import promiseTimeout from 'utils/promiseTimeout';
 import { MZ_TIMESTAMP_FREQUENCY } from 'consts/mz';
 import { addHealthcheck } from './HealthcheckManager';
 
+// todo: mid/mid in case of incorrect columns, delete specific tables
 addHealthcheck('rrMVs', {
   deps: ['pgRR'],
-  cb: async function rrMVsHealthcheck() {
+  run: async function rrMVsHealthcheck() {
     try {
       await promiseTimeout(
         showMzSystemRows('SHOW SOURCES'),
-        10 * 1000,
-        new Error('rrMVsHealthcheck: MZ not available'),
+        {
+          timeout: 10 * 1000,
+          getErr: () => new Error('rrMVsHealthcheck: MZ not available'),
+        },
       );
     } catch {
       // MZ is down
@@ -25,17 +28,41 @@ addHealthcheck('rrMVs', {
       .filter(model => model.getReplicaTable());
     await throttledPromiseAll(3, modelsWithSinks, async model => {
       try {
-        const hasRRRows = await rawSelect(
-          'rr',
-          'SELECT 1 FROM ?? LIMIT 1',
-          [model.tableName],
-        );
+        const { hasRRRows, colsRow } = await promiseObj({
+          hasRRRows: rawSelect(
+            'rr',
+            'SELECT 1 FROM ?? LIMIT 1',
+            [model.tableName],
+          ),
+          colsRow: rawSelect(
+            'rr',
+            `
+              SELECT *
+              FROM ??
+              WHERE false
+              LIMIT 1
+            `,
+            [model.tableName],
+          ),
+        });
+
+        const fields = colsRow.fields.map(f => f.name);
+        for (const f of fields) {
+          if (!TS.hasProp(model.getSchema(), f)) {
+            throw new Error(`rrMVsHealthcheck: extra column ${model.tableName}.${f}`);
+          }
+        }
+        for (const prop of Object.keys(model.getSchema())) {
+          if (!fields.includes(prop)) {
+            throw new Error(`rrMVsHealthcheck: missing column ${model.tableName}.${prop}`);
+          }
+        }
+
         if (hasRRRows.rows.length) {
           return;
         }
 
         try {
-          // todo: low/easy cache hasMZRows
           const hasMZRows = await rawSelect(
             'mz',
             `
@@ -65,7 +92,7 @@ addHealthcheck('rrMVs', {
     });
 
     if (tablesMissingData.length) {
-      throw getErr(
+      const err = getErr(
         'rrMVsHealthcheck: tables missing data',
         {
           numMissing: tablesMissingData.length,
@@ -73,15 +100,23 @@ addHealthcheck('rrMVs', {
           tablesUnknown,
         },
       );
+      if (tablesMissingData.length > modelsWithSinks.length / 10) {
+        throw err;
+      }
+      printDebug(err, 'warn');
     }
-    if (tablesUnknown.length > modelsWithSinks.length / 2) {
-      throw getErr(
+    if (tablesUnknown.length) {
+      const err = getErr(
         'rrMVsHealthcheck: tables likely missing data',
         {
           numUnknown: tablesUnknown.length,
           tablesUnknown,
         },
       );
+      if (tablesUnknown.length > modelsWithSinks.length / 2) {
+        throw err;
+      }
+      printDebug(err, 'warn');
     }
   },
   resourceUsage: 'high',

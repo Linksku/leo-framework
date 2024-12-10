@@ -18,14 +18,14 @@ const svgrLoader = {
   options: {
     svgoConfig: {
       plugins: [
-        {
-          name: 'preset-default',
-          params: {
-            overrides: {
-              removeViewBox: false,
-            },
-          },
-        },
+        // {
+        //   name: 'preset-default',
+        //   params: {
+        //     overrides: {
+        //       removeViewBox: false,
+        //     },
+        //   },
+        // },
         'removeDimensions',
         {
           name: 'removeAttrs',
@@ -56,6 +56,7 @@ export default mergeReplaceArrays(baseConfig, {
             options: {
               importLoaders: 3,
               modules: {
+                namedExport: false,
                 localIdentName: '[name]__[local]',
               },
             },
@@ -86,18 +87,20 @@ export default mergeReplaceArrays(baseConfig, {
         use: [mergeReplaceArrays(svgrLoader, {
           options: {
             svgoConfig: {
-              plugins: [
-                ...svgrLoader.options.svgoConfig.plugins.slice(0, 2),
-                mergeReplaceArrays(svgrLoader.options.svgoConfig.plugins[2], {
-                  params: {
-                    attrs: [
-                      // @ts-ignore .js
-                      ...svgrLoader.options.svgoConfig.plugins[2].params.attrs,
-                      'path:fill',
-                    ],
-                  },
-                }),
-              ],
+              plugins: svgrLoader.options.svgoConfig.plugins.map(plugin => {
+                if (typeof plugin === 'object' && plugin.name === 'removeAttrs') {
+                  return {
+                    ...plugin,
+                    params: {
+                      attrs: [
+                        ...plugin.params.attrs,
+                        'path:fill',
+                      ],
+                    },
+                  };
+                }
+                return plugin;
+              }),
             },
           },
         })],
@@ -116,8 +119,6 @@ export default mergeReplaceArrays(baseConfig, {
   },
   output: {
     publicPath: `${ASSETS_URL}/`,
-    filename: 'js/[name].js',
-    chunkFilename: 'js/chunks/[name].js',
   },
   plugins: [
     ...baseConfig.plugins,

@@ -1,4 +1,4 @@
-import type { Job } from 'bull';
+import type { Job } from 'bullmq';
 
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
 import promiseTimeout from 'utils/promiseTimeout';
@@ -6,10 +6,11 @@ import rand from 'utils/rand';
 import randInt from 'utils/randInt';
 import { defineCronJob } from 'services/cron/CronManager';
 import PubSubManager from 'services/PubSubManager';
-import { IS_PROFILING_API, NUM_CLUSTER_SERVERS } from 'consts/infra';
+import { IS_PROFILING_APIS } from 'config';
+import { NUM_CLUSTER_SERVERS } from 'consts/infra';
 import { HEALTHCHECK } from 'consts/coreRedisNamespaces';
-import getServerId from 'core/getServerId';
-import { redisMaster, shouldLogRedisError } from 'services/redis';
+import getServerId from 'utils/getServerId';
+import { redisMaster, isRedisUnavailableErr } from 'services/redis';
 import formatError from 'utils/formatErr';
 import { INIT_INFRA_REDIS_KEY } from 'consts/infra';
 import stringify from 'utils/stringify';
@@ -67,12 +68,12 @@ export const MZ_DOWNSTREAM_HEALTHCHECKS: HealthcheckName[] = [
   'mzUpdating',
 ];
 
-// todo: mid/mid monitor error logs
+// todo: mid/hard monitor error logs
 
 type HealthcheckConfig = {
   disabled?: boolean,
   deps?: HealthcheckName[],
-  cb: () => Promise<void>,
+  run: () => Promise<void>,
   onlyForDebug?: boolean,
   onlyForScript?: boolean,
   runOnAllServers?: boolean,
@@ -81,6 +82,7 @@ type HealthcheckConfig = {
   stability: 'high' | 'mid' | 'low',
   minUpdateFreq?: number,
   timeout: number,
+  fix?: () => Promise<void>,
 };
 
 export type RedisServerStatus = {
@@ -94,7 +96,14 @@ export type RedisServerStatus = {
   time: string,
 };
 
-const START_FAILING = process.env.PRODUCTION && process.env.SERVER === 'production';
+// Remove this hack once deploy gets better
+const hour = (new Date()).getUTCHours();
+const START_FAILING = process.env.PRODUCTION
+  && process.env.SERVER === 'production'
+  // 5 UTC = 9 PST, 10 UTC = 6 EDT
+  && hour >= 5
+  && hour < 10;
+
 export const SERVER_STATUS_MAX_STALENESS = 60 * 1000;
 
 const healthchecks = Object.create(null) as Record<HealthcheckName, HealthcheckConfig>;
@@ -142,12 +151,26 @@ function _isStale(name: HealthcheckName) {
     >= Math.max(5 * 60 * 1000, _getDuration(name, true) * 2);
 }
 
-// todo: low/easy maybe change fail count to fail duration
 export function getMinFails(name: HealthcheckName) {
   if (!healthchecks[name]) {
     return Number.POSITIVE_INFINITY;
   }
   return Math.max(2, Math.ceil(2 * 60 * 1000 / _getDuration(name, true)));
+}
+
+export async function runOneHealthcheck(name: HealthcheckName, timeout?: number | null) {
+  const config = healthchecks[name];
+  if (!config) {
+    throw new Error(`HealthcheckManager.runOneHealthcheck(${name}): doesn't exist`);
+  }
+
+  await promiseTimeout(
+    config.run(),
+    {
+      timeout: timeout ? Math.min(timeout, config.timeout) : config.timeout,
+      getErr: () => new Error(`runOneHealthcheck: ${name} timed out`),
+    },
+  );
 }
 
 async function _runHealthcheckAllServers(name: HealthcheckName) {
@@ -165,11 +188,7 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
   } else {
     skipped[name] = false;
     try {
-      await promiseTimeout(
-        config.cb(),
-        config.timeout,
-        new Error(`Healthcheck: ${name} timed out`),
-      );
+      await runOneHealthcheck(name);
 
       const prevNumFails = numFails[name];
       numFails[name] = 0;
@@ -207,6 +226,8 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
               new Error(`Healthcheck ${name}: failed`),
               { ...(err instanceof Error && err.debugCtx), err },
             );
+
+            await config.fix?.();
           }
         }
       }
@@ -225,7 +246,7 @@ async function _runHealthcheckAllServers(name: HealthcheckName) {
   );
 }
 
-async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
+async function _runHealthcheckOneServer(name: HealthcheckName, _job: Job) {
   const config = healthchecks[name];
   const startTime = performance.now();
 
@@ -240,11 +261,7 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
   } else {
     skipped[name] = false;
     try {
-      await promiseTimeout(
-        config.cb(),
-        config.timeout,
-        new Error(`Healthcheck: ${name} timed out`),
-      );
+      await runOneHealthcheck(name);
 
       const prevNumFails = numFails[name];
       numFails[name] = 0;
@@ -264,11 +281,11 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
           hasBeenHealthy = true;
         }
 
-        await job.update({
-          repeat: {
-            every: _getDuration(name, true),
-          },
-        });
+        // await job.update({
+        //   repeat: {
+        //     every: _getDuration(name, true),
+        //   },
+        // });
       }
 
       PubSubManager.publish(
@@ -293,14 +310,16 @@ async function _runHealthcheckOneServer(name: HealthcheckName, job: Job) {
               new Error(`Healthcheck ${name}: failed`),
               { ...(err instanceof Error && err.debugCtx), err },
             );
+
+            await config.fix?.();
           }
 
           if (numFails[name] === getMinFails(name)) {
-            await job.update({
-              repeat: {
-                every: _getDuration(name, false),
-              },
-            });
+            // await job.update({
+            //   repeat: {
+            //     every: _getDuration(name, false),
+            //   },
+            // });
           }
         }
 
@@ -338,7 +357,7 @@ export function addHealthcheck(name: HealthcheckName, config: HealthcheckConfig)
 export function startHealthchecks() {
   hasStarted = true;
 
-  if (IS_PROFILING_API) {
+  if (IS_PROFILING_APIS) {
     return;
   }
 
@@ -370,11 +389,11 @@ export function startHealthchecks() {
       );
 
       defineCronJob(
-        `HealthcheckManager.${name}`,
+        `Healthcheck.${name}`,
         {
           handler: job => {
             ServiceContextLocalStorage.run(
-              createServiceContext(`HealthcheckManager:${name}`),
+              createServiceContext(`Healthcheck:${name}`),
               () => wrapPromise(
                 _runHealthcheckOneServer(name, job),
                 'error',
@@ -383,7 +402,7 @@ export function startHealthchecks() {
             );
           },
           repeat: {
-            every: _getDuration(name, !START_FAILING),
+            every: _getDuration(name, true),
           },
           timeout: config.timeout,
         },
@@ -440,11 +459,13 @@ async function _updateLocked() {
   try {
     isLocked = !!await promiseTimeout(
       redisMaster.exists(INIT_INFRA_REDIS_KEY),
-      10 * 1000,
-      new Error('HealthcheckManager._updateLocked: Redis timed out'),
+      {
+        timeout: 10 * 1000,
+        getErr: () => new Error('HealthcheckManager._updateLocked: Redis timed out'),
+      },
     );
   } catch (err) {
-    if (shouldLogRedisError(err)
+    if (!isRedisUnavailableErr(err)
       && !(err instanceof Error && err.message.includes('Redis timed out'))) {
       ErrorLogger.error(err, { ctx: 'HealthcheckManager._updateLocked' });
     }
@@ -453,7 +474,6 @@ async function _updateLocked() {
 
   setTimeout(_updateLocked, 10 * 1000);
 }
-// eslint-disable-next-line unicorn/prefer-top-level-await
 wrapPromise(_updateLocked(), 'fatal', 'HealthcheckManager._updateLocked');
 
 export function isHealthy({ onlyFatal, ignoreStaleRR }: {
@@ -475,7 +495,7 @@ export function isHealthy({ onlyFatal, ignoreStaleRR }: {
   }
   const failingRRMVs = failingHealthchecks.some(pair => pair[0] === 'rrMVs');
   if (failingRRMVs || onlyFatal) {
-    return failingRRMVs;
+    return !failingRRMVs;
   }
 
   const notSkippedFailing = failingHealthchecks.filter(pair => !skipped[pair[0]]);

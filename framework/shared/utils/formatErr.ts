@@ -27,6 +27,8 @@ function _deepEqualIgnoreUndefined(objA: any, objB: any) {
         return false;
       }
     }
+  } else if (objA instanceof Date && typeof objB === 'string') {
+    return objA.toISOString() === objB;
   } else if (typeof objA === 'object' && typeof objB === 'object') {
     const keysA = Object.entries(objA).filter(pair => pair[1] !== undefined).map(pair => pair[0]);
     const keysB = Object.entries(objB).filter(pair => pair[1] !== undefined).map(pair => pair[0]);

@@ -2,8 +2,8 @@ import verifyMZSinkConnectors from 'scripts/mv/helpers/verifyMZSinkConnectors';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('mzSinkConnectors', {
-  cb: async function mzSinkConnectorsHealthcheck() {
-    await verifyMZSinkConnectors();
+  run: async function mzSinkConnectorsHealthcheck() {
+    await verifyMZSinkConnectors(0.05);
   },
   resourceUsage: 'mid',
   usesResource: 'kafka',

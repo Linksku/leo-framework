@@ -15,8 +15,12 @@ function getOutput({
   forFramework: boolean,
   isCjs: boolean,
 }) {
-  frameworkModels.sort((a, b) => a.Model.name.localeCompare(b.Model.name));
-  appModels.sort((a, b) => a.Model.name.localeCompare(b.Model.name));
+  frameworkModels = frameworkModels
+    .slice()
+    .sort((a, b) => a.Model.name.localeCompare(b.Model.name));
+  appModels = appModels
+    .slice()
+    .sort((a, b) => a.Model.name.localeCompare(b.Model.name));
 
   const out = `const frameworkModels${isCjs ? '' : ': any[]'} = [
 ${frameworkModels.map(model => `  {

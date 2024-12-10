@@ -1,5 +1,5 @@
-import type _Model from 'services/model/Model';
-import type CustomQueryBuilder from 'services/model/Model/CustomQueryBuilder';
+import type _Model from 'core/models/Model';
+import type CustomQueryBuilder from 'core/models/Model/CustomQueryBuilder';
 
 declare global {
   type Model = _Model;
@@ -31,12 +31,18 @@ declare global {
     T extends { Interface: IBaseModel },
     P,
   > = Partial<T['Interface']>
-    & Pick<T['Interface'], (keyof P) & keyof T['Interface']>
+    & Pick<T['Interface'], RequiredKeys<P> & keyof T['Interface']>
     & Record<Exclude<keyof P, keyof T['Interface']>, never>;
 
   type ModelKey<T extends { Interface: IBaseModel }> = (keyof T['Interface']) & string;
 
   type ModelIndex<T extends { Interface: IBaseModel }> = ModelKey<T> | ModelKey<T>[];
+
+  type ModelUniquePartial<T extends ModelClass> = T['uniqueIndexes'][number] extends (infer U)
+    ? (U extends string
+      ? Pick<T['Interface'], T['uniqueIndexes'][number]>
+      : Pick<T['Interface'], T['uniqueIndexes'][number][number]>)
+    : never;
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
   declare class __SCHEMA {

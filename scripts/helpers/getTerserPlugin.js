@@ -7,9 +7,6 @@ export default function getTerserPlugin() {
       module: true,
       compress: {
         passes: 2,
-        // According to Vercel, these can cause bugs.
-        comparisons: false,
-        inline: 2,
       },
       output: {
         comments: false,

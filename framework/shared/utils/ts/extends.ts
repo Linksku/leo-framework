@@ -1,4 +1,4 @@
-export default function isExending<
+export default function isExtending<
   T1 extends Constructor<any>,
   T2 extends Constructor<any>,
 >(

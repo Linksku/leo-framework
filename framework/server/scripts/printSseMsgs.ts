@@ -1,5 +1,5 @@
-import chalk from 'chalk';
 import { inspect } from 'util';
+import chalk from 'chalk';
 
 import type { PubSubMessage } from 'services/PubSubManager';
 import { PUB_SUB } from 'consts/coreRedisNamespaces';

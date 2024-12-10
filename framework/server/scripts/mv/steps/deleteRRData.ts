@@ -1,8 +1,10 @@
 import knexRR from 'services/knex/knexRR';
 import { PG_RR_SCHEMA } from 'consts/infra';
 
-export default async function deleteRRData() {
-  printDebug('Deleting replica data', 'highlight');
+export default async function deleteRRData(tables?: string[]) {
+  const startTime = performance.now();
+  printDebug('Deleting RR data', 'highlight');
+
   const rows = await knexRR<{
     table_name: string,
     table_schema: string,
@@ -14,9 +16,20 @@ export default async function deleteRRData() {
       table_type: 'BASE TABLE',
     })
     .whereNot({ table_name: 'spatial_ref_sys' });
-  if (rows.length) {
+  const existingTables = rows.map(r => r.table_name);
+
+  tables = tables
+    ? tables.filter(t => existingTables.includes(t))
+    : existingTables;
+
+  if (tables.length) {
     await knexRR.raw(
-      `TRUNCATE ${rows.map(r => `"${r.table_name}"`).join(',')}`,
+      `TRUNCATE ${tables.map(t => `"${t}"`).join(',')}`,
     );
   }
+
+  printDebug(
+    `Deleted RR data after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    'success',
+  );
 }

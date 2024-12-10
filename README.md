@@ -16,18 +16,22 @@ cp env/secrets-template env/secrets
 ## Installation ##
 
 1. Install:
-- Node 18+
+- Node 22+
 - Yarn
 - Postgres 16+
 - PostGIS 3+
 - Docker
 - git-crypt
+- redis-cli
+- sentry-cli
+- libvips
 
 2. Run in the project root:
 ```
 corepack enable
 yarn set version stable
 yarn install
+sudo npm i -g zx
 ```
 
 ### Decrypt Secrets ###
@@ -122,6 +126,14 @@ sudo -u postgres psql
 - Run `yarn tsc` to run TypeScript.
 
 - Run `yarn test` to run Cypress.
+
+## Set Up or Change Domain ##
+
+1. Add domain to config.js
+
+2. Rebuild app
+
+3. Add to Google API Credentials, Apple Services ID, Facebook/Instagram app
 
 ## Deploying to Prod ##
 

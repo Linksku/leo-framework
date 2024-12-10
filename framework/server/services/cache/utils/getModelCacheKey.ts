@@ -7,10 +7,10 @@ export function getModelCacheKey<T extends ModelClass>(
 ): string {
   if (!process.env.PRODUCTION) {
     const invalidKey = typeof index === 'string'
-      ? index
+      ? null
       : index.find(k => obj[k] === undefined);
     if (invalidKey) {
-      throw new Error(`getModelCacheKey(${Model.name}.${invalidKey}): prop is undefined`);
+      throw new Error(`getModelCacheKey(${Model.name}.${invalidKey}): invalid key`);
     }
   }
 

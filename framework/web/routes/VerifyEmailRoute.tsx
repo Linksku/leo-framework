@@ -2,25 +2,30 @@ import HomeSvg from 'svgs/fa5/home-regular.svg';
 import UserSvg from 'svgs/fa5/user-regular.svg';
 import LoginSvg from 'svgs/fa5/sign-in-alt-regular.svg';
 
-import StackWrapInner from 'components/frame/stack/StackWrapInner';
+import StackWrapInner from 'core/frame/stack/StackWrapInner';
 
 import styles from './VerifyEmailRoute.scss';
 
 export default React.memo(function VerifyEmailRoute() {
-  const { token: _token } = useRouteQuery();
+  const { token: _token } = useRouteQuery<'VerifyEmail'>();
   const token = typeof _token === 'string' ? _token : undefined;
   const currentUserId = useCurrentUserId();
 
-  const { data, error } = useApi(
+  const { fetchApi, data, error } = useDeferredApi(
     'verifyEmail',
-    useMemo(() => ({
-      token: token as string,
-    }), [token]),
+    EMPTY_OBJ,
     {
+      type: 'update',
       shouldFetch: !!token,
       returnState: true,
     },
   );
+
+  useEffect(() => {
+    if (token) {
+      fetchApi({ token });
+    }
+  }, [fetchApi, token]);
 
   return (
     <StackWrapInner title="Verify Email">

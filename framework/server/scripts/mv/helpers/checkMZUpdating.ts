@@ -1,10 +1,12 @@
+import { START_DEPLOY_REDIS_KEY } from 'consts/infra';
 import knexBT from 'services/knex/knexBT';
-import retry from 'utils/retry';
+import redis from 'services/redis';
+import retry, { forceStopRetry } from 'utils/retry';
 
 export default async function checkMZUpdating(timeout = 60 * 1000) {
   const rows = await entityQuery(MzTestModel, knexBT)
     .patch({
-      // @ts-ignore raw
+      // @ts-expect-error raw
       version: raw(`
         CASE
           WHEN version + 1 >= 2147483647 THEN 1
@@ -21,6 +23,10 @@ export default async function checkMZUpdating(timeout = 60 * 1000) {
 
   await retry(
     async () => {
+      if (await redis.get(START_DEPLOY_REDIS_KEY)) {
+        throw forceStopRetry(new Error('Deploying'));
+      }
+
       const row = await modelQuery(MzTestMV)
         .select(raw('1'))
         .where({ id: 1 })

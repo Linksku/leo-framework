@@ -1,12 +1,12 @@
 import uniq from 'lodash/uniq.js';
 
 import { DBZ_FOR_INSERT_ONLY, DBZ_FOR_UPDATEABLE } from 'consts/mz';
-import MaterializedViewModels from 'services/model/allMaterializedViewModels';
+import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import getModelRecursiveDeps from 'utils/models/getModelRecursiveDeps';
 
 type ReturnType = {
   pg: EntityClass[],
-  kafka: EntityClass[],
+  dbz: EntityClass[],
   all: ModelClass[],
 };
 
@@ -19,8 +19,8 @@ export default function getEntitiesForMZSources<T extends keyof ReturnType>(
     const entitiesWithMZSources = uniq(
       MaterializedViewModels
         .flatMap(Model => getModelRecursiveDeps(Model))
-        .filter(Model => !Model.isMV),
-    ) as EntityClass[];
+        .filter(Model => !Model.isMV) as EntityClass[],
+    );
 
     const pgEntities = entitiesWithMZSources.filter(
       Model => (!DBZ_FOR_UPDATEABLE && !Model.useInsertOnlyPublication)
@@ -32,7 +32,7 @@ export default function getEntitiesForMZSources<T extends keyof ReturnType>(
     );
     cached = {
       pg: pgEntities,
-      kafka: dbzEntities,
+      dbz: dbzEntities,
       all: [...pgEntities, ...dbzEntities],
     };
   }

@@ -1,5 +1,5 @@
 import fetchJson from 'utils/fetchJson';
-import { KAFKA_CONNECT_HOST, KAFKA_CONNECT_PORT } from 'consts/infra';
+import { KAFKA_CONNECT_HOST, KAFKA_CONNECT_PORT } from 'consts/mz';
 import retry from 'utils/retry';
 
 export default async function deleteKafkaConnector(name: string) {

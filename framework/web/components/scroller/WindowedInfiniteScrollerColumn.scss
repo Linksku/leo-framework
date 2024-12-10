@@ -5,5 +5,8 @@
 }
 
 .listItemInner {
-  @include fadeIn(0.1s);
+  @include fadeIn(0.2s);
+
+  // Fixes handleInnerLoad not being called
+  min-height: 1px;
 }

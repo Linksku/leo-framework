@@ -3,7 +3,7 @@ import knexRR from 'services/knex/knexRR';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('pgBT', {
-  cb: async function pgBTHealthcheck() {
+  run: async function pgBTHealthcheck() {
     await knexBT.raw('SELECT 1 FROM pg_tables LIMIT 1');
   },
   runOnAllServers: true,
@@ -13,7 +13,7 @@ addHealthcheck('pgBT', {
 });
 
 addHealthcheck('pgRR', {
-  cb: async function pgRRHealthcheck() {
+  run: async function pgRRHealthcheck() {
     await knexRR.raw('SELECT 1 FROM pg_tables LIMIT 1');
   },
   runOnAllServers: true,

@@ -1,0 +1,25 @@
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--vh100, 100vh);
+  z-index: $zIndexStack;
+  background-color: rgb(0 0 0 / 70%);
+  pointer-events: none;
+}
+
+.container {
+  // "fixed" is needed to prevent .focus() in the stack from scrolling the parent
+  // https://stackoverflow.com/q/75419337
+  position: fixed;
+  top: var(--top-inset-hack, 0px);
+  left: 0;
+  right: 0;
+  height: var(--vh100, 100vh);
+  z-index: $zIndexStack;
+  background: #fff;
+  touch-action: none;
+  // Seems to help with perf slightly on Chrome
+  backface-visibility: hidden;
+}

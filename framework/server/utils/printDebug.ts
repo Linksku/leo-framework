@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import dayjs from 'dayjs';
 
 import formatErr from 'utils/formatErr';
-import getServerId from 'core/getServerId';
+import getServerId from 'utils/getServerId';
 
 const MSG_TYPES = new Set([
   'normal',

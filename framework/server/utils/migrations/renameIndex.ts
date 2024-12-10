@@ -1,6 +1,7 @@
 import knexBT from 'services/knex/knexBT';
 import knexRR from 'services/knex/knexRR';
 import getIndexName from 'utils/db/getIndexName';
+import validateTableCols from './validateTableCols';
 
 export default async function renameIndex(oldName: string, {
   isMV,
@@ -11,10 +12,14 @@ export default async function renameIndex(oldName: string, {
 }: {
   isMV?: boolean,
   name?: string,
-  table?: string,
+  table: string,
   col?: string,
   cols?: string[],
 }) {
+  if (table) {
+    validateTableCols({ table, col, cols });
+  }
+
   if (!name) {
     cols = cols ?? [TS.defined(col)];
     name = getIndexName(TS.defined(table), cols);

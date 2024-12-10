@@ -1,3 +1,7 @@
+export function HomeRoute() {
+  return null;
+}
+
 export function HomeAuthRoute() {
   return null;
 }

@@ -1,4 +1,4 @@
-import createVirtualModelClass from 'services/model/createVirtualModelClass';
+import createVirtualModelClass from 'core/models/createVirtualModelClass';
 
 export default createVirtualModelClass(
   {

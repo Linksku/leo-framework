@@ -1,10 +1,10 @@
 import throttledPromiseAll from 'utils/throttledPromiseAll';
-import EntityModels from 'services/model/allEntityModels';
+import EntityModels from 'core/models/allEntityModels';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('rrEntities', {
   deps: ['pgRR'],
-  cb: async function rrEntitiesHealthcheck() {
+  run: async function rrEntitiesHealthcheck() {
     const tablesMissingData: string[] = [];
     await throttledPromiseAll(3, EntityModels, async model => {
       // Every table should have a row from seedDb/createEachModel

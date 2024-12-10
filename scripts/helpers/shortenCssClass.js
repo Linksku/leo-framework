@@ -30,8 +30,9 @@ export default function shortenCssClass(filePath) {
     }
 
     const baseName = path.parse(loaderContext.resourcePath).name;
-    let className = localIdentName.replaceAll(/\[name]/gi, baseName);
-    className = className.replaceAll(/\[local]/gi, localName);
+    const className = localIdentName
+      .replaceAll(/\[name]/gi, baseName)
+      .replaceAll(/\[local]/gi, localName);
     if (!cssClasses[className]) {
       cssClasses[className] = intToChars(nextInt);
       nextInt++;

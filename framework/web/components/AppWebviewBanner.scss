@@ -1,0 +1,22 @@
+.inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.msg {
+  text-align: center;
+  text-wrap: balance;
+  margin-bottom: 1.5rem;
+}
+
+.appBtns {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.appBtn {
+  flex-grow: 1;
+  max-width: 25rem;
+}

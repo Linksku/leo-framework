@@ -1,6 +1,6 @@
+import path from 'path';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
-import path from 'path';
 
 import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
 import transformWebpackCopied from './scripts/helpers/transformWebpackCopied.js';
@@ -14,6 +14,8 @@ export default mergeReplaceArrays(baseConfig, {
   mode: 'development',
   output: {
     path: path.resolve('./build/development/web'),
+    filename: 'js/[name].js',
+    chunkFilename: 'js/chunks/[name].[chunkhash].js',
   },
   module: {
     rules: baseConfig.module.rules.map(rule => {
@@ -35,6 +37,7 @@ export default mergeReplaceArrays(baseConfig, {
               loader: MiniCssExtractPlugin.loader,
               options: {
                 esModule: true,
+                defaultExport: true,
               },
             },
             'cache-loader',
@@ -49,7 +52,7 @@ export default mergeReplaceArrays(baseConfig, {
     ...baseConfig.plugins,
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
-      chunkFilename: 'css/chunks/[name].css',
+      chunkFilename: 'css/chunks/[name].[chunkhash].css',
     }),
     new CopyPlugin({
       patterns: [

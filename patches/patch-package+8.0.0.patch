@@ -1,0 +1,40 @@
+diff --git a/node_modules/patch-package/dist/getPackageResolution.js b/node_modules/patch-package/dist/getPackageResolution.js
+index 3f56779..75aaa6b 100644
+--- a/node_modules/patch-package/dist/getPackageResolution.js
++++ b/node_modules/patch-package/dist/getPackageResolution.js
+@@ -64,15 +64,18 @@ function getPackageResolution({ packageDetails, packageManager, appPath, }) {
+         if (resolutions[0]) {
+             return resolutions[0];
+         }
+-        const resolution = entries[0][0].slice(packageDetails.name.length + 1);
++
++        const packageName = packageDetails.name
++        const resolutionVersion = entries[0][1].version
++        const resolution = entries[0][0]
++          .replace(new RegExp(packageName + "@", "g"), "")
++          .replace(/npm:/g, "")
++          .replace(/,/g, "")
+         // resolve relative file path
+         if (resolution.startsWith("file:.")) {
+             return `file:${path_1.resolve(appPath, resolution.slice("file:".length))}`;
+         }
+-        if (resolution.startsWith("npm:")) {
+-            return resolution.replace("npm:", "");
+-        }
+-        return resolution;
++        return resolutionVersion ? resolution + " " + resolutionVersion : resolution;
+     }
+     else {
+         const lockfile = require(path_1.join(appPath, packageManager === "npm-shrinkwrap"
+diff --git a/node_modules/patch-package/dist/stateFile.js b/node_modules/patch-package/dist/stateFile.js
+index 638a755..3b3f590 100644
+--- a/node_modules/patch-package/dist/stateFile.js
++++ b/node_modules/patch-package/dist/stateFile.js
+@@ -37,6 +37,7 @@ function savePatchApplicationState({ packageDetails, patches, isRebasing, }) {
+         version,
+         isRebasing,
+     };
++    fs_1.mkdirSync(packageDetails.path, { recursive: true });
+     fs_1.writeFileSync(fileName, json_stable_stringify_1.default(state, { space: 4 }), "utf8");
+ }
+ exports.savePatchApplicationState = savePatchApplicationState;

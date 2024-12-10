@@ -1,6 +1,6 @@
 import chunk from 'lodash/chunk.js';
 
-import kafkaAdmin from 'services/kafkaAdmin';
+import getKafkaAdmin from 'services/getKafkaAdmin';
 import retry from 'utils/retry';
 import listKafkaTopics from './listKafkaTopics';
 
@@ -14,24 +14,24 @@ export default async function deleteKafkaTopics(prefixOrRegex: string | RegExp) 
   // Note: if topic has subscribers, topic may be recreated
   await retry(
     async () => {
-      try {
-        for (const topicChunk of chunk(topics, 10)) {
+      for (const topicChunk of chunk(topics, 10)) {
+        try {
           // eslint-disable-next-line no-await-in-loop
-          await kafkaAdmin.deleteTopics({
+          await getKafkaAdmin().deleteTopics({
             topics: topicChunk,
             timeout: 60 * 1000,
           });
-        }
-      } catch (err) {
-        if (err instanceof Error && (
-          err.message.includes('does not exist')
-            || err.message.includes('does not host this topic-partition')
-        )) {
-          // pass
-        } else if (err instanceof Error) {
-          throw getErr(err, { ctx: `deleteKafkaTopics(${prefixOrRegex})` });
-        } else {
-          throw err;
+        } catch (err) {
+          if (err instanceof Error && (
+            err.message.includes('does not exist')
+              || err.message.includes('does not host this topic-partition')
+          )) {
+            // pass
+          } else if (err instanceof Error) {
+            throw getErr(err, { ctx: `deleteKafkaTopics(${prefixOrRegex})` });
+          } else {
+            throw err;
+          }
         }
       }
       await pause(10 * 1000);

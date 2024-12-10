@@ -1,6 +1,6 @@
 import path from 'path';
-import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import childProcess from 'child_process';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
 
 import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
@@ -45,6 +45,7 @@ export default mergeReplaceArrays(baseConfig, {
               loader: MiniCssExtractPlugin.loader,
               options: {
                 esModule: true,
+                defaultExport: true,
               },
             },
             ...rule.use.map(use => {
@@ -94,7 +95,5 @@ export default mergeReplaceArrays(baseConfig, {
       getTerserPlugin(),
     ],
   },
-  stats: {
-    optimizationBailout: true,
-  },
+  devtool: 'source-map',
 });

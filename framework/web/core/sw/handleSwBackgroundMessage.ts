@@ -4,7 +4,7 @@ import { isSupported, getMessaging, onBackgroundMessage } from 'firebase/messagi
 
 import type { FcmNotifData } from 'consts/notifs';
 import 'services/firebase';
-import FcmBroadcastChannel from 'services/FcmBroadcastChannel';
+import getFcmBroadcastChannel from 'services/getFcmBroadcastChannel';
 import detectPlatform from 'utils/detectPlatform';
 
 declare const self: ServiceWorkerGlobalScope;
@@ -22,11 +22,12 @@ export default async function handleSwBackgroundMessage() {
     });
   }
 
+  // Should run before any await to prevent addEventListener warning
+  const messaging = getMessaging();
   if (!await isSupported()) {
     return;
   }
 
-  const messaging = getMessaging();
   onBackgroundMessage(messaging, payload => {
     // eslint-disable-next-line no-console
     console.log('FCM payload:', payload.data);
@@ -36,7 +37,7 @@ export default async function handleSwBackgroundMessage() {
     }
 
     const data = payload.data as FcmNotifData;
-    FcmBroadcastChannel.postMessage(data.apiData);
+    getFcmBroadcastChannel().postMessage(data.apiData);
 
     if (process.env.SERVER === 'production') {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises

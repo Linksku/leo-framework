@@ -1,7 +1,8 @@
 import path from 'path';
 
 import readdirRecursive from 'utils/readdirRecursive';
-import BaseModel from 'services/model/Model';
+import BaseModel from 'core/models/Model';
+import { MODEL_TYPE_MAX_LENGTH } from 'consts/schema';
 
 export type ModelsArr = {
   path: string;
@@ -24,6 +25,9 @@ function filterModels(models: ModelsArr) {
       : `${Model.name}Model`;
     if (expectedName !== path.basename(filepath).split('.')[0]) {
       throw new Error(`models: ${Model.name} !== ${filepath.slice(0, filepath.lastIndexOf('.'))}`);
+    }
+    if (Model.name.length > MODEL_TYPE_MAX_LENGTH) {
+      throw new Error(`models: ${Model.name} length (${Model.name.length}) > ${MODEL_TYPE_MAX_LENGTH}`);
     }
 
     const prevPath = seen[Model.name];
@@ -60,13 +64,15 @@ export default async function getModelsWithPaths(): Promise<{
         path: p,
         // "server/models" needed for Webpack dynamic import
         // eslint-disable-next-line import/no-dynamic-require, unicorn/prefer-module
-        Model: require(`../../../../app/server/models/${p}`).default,
+        Model: (require(`../../../../app/server/models/${p}`) as { default: ModelClass })
+          .default,
       }))),
     frameworkModels: filterModels(frameworkModelPaths
       .map(p => ({
         path: p,
         // eslint-disable-next-line import/no-dynamic-require, unicorn/prefer-module
-        Model: require(`../../../../framework/server/models/${p}`).default,
+        Model: (require(`../../../../framework/server/models/${p}`) as { default: ModelClass })
+          .default,
       }))),
   };
 }

@@ -1,7 +1,16 @@
 import { redisSub, redisPub } from 'services/redis';
-import getServerId from 'core/getServerId';
+import getServerId from 'utils/getServerId';
 import { PUB_SUB } from 'consts/coreRedisNamespaces';
 import safeParseJson from 'utils/safeParseJson';
+import fastJson from 'services/fastJson';
+
+const stringifyMsg = fastJson({
+  type: 'object',
+  properties: {
+    data: { type: 'string' },
+    serverId: { type: 'number' },
+  },
+});
 
 export type PubSubMessage = {
   data: string,
@@ -24,7 +33,7 @@ function printEventType(ctx: string, eventType: string) {
 }
 
 const PubSubManager = {
-  publish(eventType: string, data: string) {
+  publish(eventType: string, data: string): void {
     printEventType('PubSub.publish', eventType);
 
     const msg: PubSubMessage = {
@@ -34,7 +43,7 @@ const PubSubManager = {
     wrapPromise(
       redisPub.publish(
         `${PUB_SUB}:${eventType}`,
-        JSON.stringify(msg),
+        stringifyMsg(msg),
       ),
       'warn',
       `Publish pubsub event ${eventType}`,
@@ -44,7 +53,7 @@ const PubSubManager = {
   subscribe(
     eventType: string,
     cb: Cb,
-  ) {
+  ): void {
     printEventType('PubSub.subscribe', eventType);
 
     if (!eventTypesToCbs.has(eventType)) {
@@ -62,7 +71,7 @@ const PubSubManager = {
   unsubscribe(
     eventType: string,
     cb: Cb,
-  ) {
+  ): void {
     const cbs = eventTypesToCbs.get(eventType);
     if (!cbs) {
       return;
@@ -79,7 +88,7 @@ const PubSubManager = {
     }
   },
 
-  unsubscribeAll(eventType: string) {
+  unsubscribeAll(eventType: string): void {
     eventTypesToCbs.delete(eventType);
     wrapPromise(
       redisSub.unsubscribe(`${PUB_SUB}:${eventType}`),
@@ -88,7 +97,7 @@ const PubSubManager = {
     );
   },
 
-  handleMessage(this: void, channel: string, msgStr: string) {
+  handleMessage(this: void, channel: string, msgStr: string): void {
     if (!channel.startsWith(`${PUB_SUB}:`)) {
       return;
     }
@@ -117,6 +126,8 @@ const PubSubManager = {
   },
 };
 
-redisSub.on('message', PubSubManager.handleMessage);
+setTimeout(() => {
+  redisSub.on('message', PubSubManager.handleMessage);
+}, 0);
 
 export default PubSubManager;

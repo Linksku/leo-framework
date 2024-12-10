@@ -2,7 +2,7 @@ import exec from 'utils/exec';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('memory', {
-  cb: async function memoryHealthcheck() {
+  run: async function memoryHealthcheck() {
     const { stdout: freeOut } = await exec('free');
     const mem = freeOut.split('\n').find(line => line.startsWith('Mem:'));
     const memSplit = mem?.split(/\s+/);

@@ -17,7 +17,7 @@ function objValues<
 function objValues<Obj extends ObjectOf<any>>(
   obj: Obj,
   keepUndefined?: boolean,
-) {
+): _EntryType<Obj>[] {
   if (keepUndefined) {
     return Object.values(obj);
   }

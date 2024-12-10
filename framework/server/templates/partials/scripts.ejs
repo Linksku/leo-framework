@@ -1,0 +1,17 @@
+<script>
+(() => {
+  let curStateId = history.state
+    && typeof history.state === 'object'
+    && typeof history.state.id === 'number'
+    ? history.state.id
+    : null;
+  window.addEventListener('popstate', event => {
+    window.__LAST_POPPED_STATE_ID__ = curStateId;
+    if (event.state
+      && typeof event.state === 'object'
+      && typeof event.state.id === 'number') {
+      curStateId = event.state.id;
+    }
+  });
+})();
+</script>

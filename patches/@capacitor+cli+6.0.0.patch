@@ -1,0 +1,18 @@
+diff --git a/node_modules/@capacitor/cli/dist/config.js b/node_modules/@capacitor/cli/dist/config.js
+index ce072ec..8c180bc 100644
+--- a/node_modules/@capacitor/cli/dist/config.js
++++ b/node_modules/@capacitor/cli/dist/config.js
+@@ -108,11 +108,12 @@ async function loadExtConfigTS(rootDir, extConfigName, extConfigFilePath) {
+ async function loadExtConfigJS(rootDir, extConfigName, extConfigFilePath) {
+     var _a;
+     try {
++        const module = await import(extConfigFilePath);
+         return {
+             extConfigType: 'js',
+             extConfigName,
+             extConfigFilePath: extConfigFilePath,
+-            extConfig: await require(extConfigFilePath),
++            extConfig: await module.default,
+         };
+     }
+     catch (e) {

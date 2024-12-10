@@ -1,4 +1,4 @@
-export default function getShortTimeAgo(time: number) {
+export default function getShortTimeAgo(time: number): string {
   const minutes = (Date.now() - time) / 1000 / 60;
   if (minutes < 1) {
     return '1m';

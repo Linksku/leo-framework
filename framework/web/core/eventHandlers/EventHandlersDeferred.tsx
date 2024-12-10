@@ -1,13 +1,5 @@
-const EventHandlers = React.lazy(async () => import(
+const EventHandlers = reactLazy(() => import(
   /* webpackChunkName: 'deferred' */ './EventHandlers'
-));
+), null);
 
-export default React.memo(function EventHandlersDeferred() {
-  return (
-    <React.Suspense
-      fallback={null}
-    >
-      <EventHandlers />
-    </React.Suspense>
-  );
-});
+export default EventHandlers;

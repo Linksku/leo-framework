@@ -1,4 +1,4 @@
-import EntityModels from 'services/model/allEntityModels';
+import EntityModels from 'core/models/allEntityModels';
 import {
   BT_CDC_SLOT_PREFIX,
   BT_PUB_ALL_TABLES,

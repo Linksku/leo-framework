@@ -12,7 +12,7 @@ export default async function createRRSubscription() {
     .select(raw('1'))
     .where({ subname: RR_SUB_ALL_TABLES });
   if (!result.length) {
-    printDebug('Creating replica subscriptions', 'highlight');
+    printDebug('Creating RR subscriptions', 'highlight');
     await knexRR.raw(`
       CREATE SUBSCRIPTION "${RR_SUB_ALL_TABLES}"
       CONNECTION 'host=${PG_BT_HOST} port=${PG_BT_PORT} user=${process.env.PG_BT_USER} password=${process.env.PG_BT_PASS} dbname=${PG_BT_DB}'
@@ -24,7 +24,7 @@ export default async function createRRSubscription() {
     `);
   }
   printDebug(
-    `Created replica subscriptions after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
+    `Created RR subscriptions after ${Math.round((performance.now() - startTime) / 100) / 10}s`,
     'success',
   );
 }

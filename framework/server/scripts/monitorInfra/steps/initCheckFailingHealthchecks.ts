@@ -20,11 +20,14 @@ export default async function initCheckFailingHealthchecks() {
   const minFails = hasActiveServer ? 3 : 1;
 
   while (true) {
+    const startTime = performance.now();
     try {
       failing = await promiseTimeout(
         getFailingServices({ forceRerun: true, printFails: true }),
-        5 * 60 * 1000,
-        new Error('initCheckFailingHealthchecks: getFailingServices timed out'),
+        {
+          timeout: 5 * 60 * 1000,
+          getErr: () => new Error('initCheckFailingHealthchecks: getFailingServices timed out'),
+        },
       );
     } catch (err) {
       numFails++;
@@ -46,7 +49,7 @@ export default async function initCheckFailingHealthchecks() {
     numFails++;
     if (numFails < minFails && !STABLE_HEALTHCHECKS.some(name => failing.has(name))) {
       printDebug(
-        `Failed ${numFails} ${pluralize('time', numFails)} during init: ${[...failing].join(', ')}`,
+        `Failed ${numFails} ${plural('time', numFails)} during init: ${[...failing].join(', ')}`,
         'success',
       );
       await pause(30 * 1000);
@@ -75,7 +78,7 @@ export default async function initCheckFailingHealthchecks() {
       await withErrCtx(fixFailingInfra(failing), 'initCheckFailingHealthchecks: fixFailingInfra');
     } catch (err) {
       ErrorLogger.error(err, { ctx: 'initCheckFailingHealthchecks: fixFailingInfra' });
-      printDebug('initCheckFailingHealthchecks: fixFailingInfra error\n', 'error');
+      printDebug(`-- initCheckFailingHealthchecks: fixFailingInfra failed after ${Math.round((performance.now() - startTime) / 100) / 10}s --\n`, 'error');
     }
     await pause(30 * 1000);
   }

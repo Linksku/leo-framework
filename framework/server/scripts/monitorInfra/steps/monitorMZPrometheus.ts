@@ -18,8 +18,10 @@ export default async function monitorMZPrometheus() {
     try {
       failing = await promiseTimeout(
         fetchMZPrometheusFailingSinkIds(),
-        30 * 1000,
-        new Error('monitorMZPrometheus: fetchMZPrometheusFailingSinkIds timed out'),
+        {
+          timeout: 30 * 1000,
+          getErr: () => new Error('monitorMZPrometheus: fetchMZPrometheusFailingSinkIds timed out'),
+        },
       );
     } catch (err) {
       if (!(err instanceof Error) || !err.message.includes('unknown catalog item')) {

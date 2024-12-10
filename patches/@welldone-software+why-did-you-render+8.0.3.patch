@@ -1,0 +1,31 @@
+diff --git a/node_modules/@welldone-software/why-did-you-render/dist/whyDidYouRender.js b/node_modules/@welldone-software/why-did-you-render/dist/whyDidYouRender.js
+index 8b57012..3c09547 100644
+--- a/node_modules/@welldone-software/why-did-you-render/dist/whyDidYouRender.js
++++ b/node_modules/@welldone-software/why-did-you-render/dist/whyDidYouRender.js
+@@ -375,6 +375,26 @@
+       }
+       return trackDiff(new Set(a), new Set(b), diffsAccumulator, pathString, diffTypes.deepEquals);
+     }
++    if (lodash.isMap(a) && lodash.isMap(b)) {
++      if (a.size !== b.size) {
++        return trackDiff(new Map(a), new Map(b), diffsAccumulator, pathString, diffTypes.different);
++      }
++      var _iterator = _createForOfIteratorHelper(a),
++        _step;
++      try {
++        for (_iterator.s(); !(_step = _iterator.n()).done;) {
++          var valA = _step.value;
++          if (!b.has(valA[0]) || b.get(valA[0]) !== valA[1]) {
++            return trackDiff(new Map(a), new Map(b), diffsAccumulator, pathString, diffTypes.different);
++          }
++        }
++      } catch (err) {
++        _iterator.e(err);
++      } finally {
++        _iterator.f();
++      }
++      return trackDiff(new Map(a), new Map(b), diffsAccumulator, pathString, diffTypes.deepEquals);
++    }
+     if (lodash.isDate(a) && lodash.isDate(b)) {
+       return a.getTime() === b.getTime() ? trackDiff(new Date(a), new Date(b), diffsAccumulator, pathString, diffTypes.date) : trackDiff(new Date(a), new Date(b), diffsAccumulator, pathString, diffTypes.different);
+     }

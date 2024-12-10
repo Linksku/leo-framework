@@ -3,7 +3,7 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import type { FcmNotifData } from 'consts/notifs';
 import safeParseJson from 'utils/safeParseJson';
 import stringify from 'utils/stringify';
-import useHandleApiEntities from 'hooks/api/useHandleApiEntities';
+import useHandleApiEntities from 'stores/api/useHandleApiEntities';
 
 export default function NativePushNotifHandler() {
   const handleApiEntities = useHandleApiEntities(true);

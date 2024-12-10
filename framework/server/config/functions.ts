@@ -8,8 +8,17 @@ export function canSubscribeToSse(
   throw new Error('Not implemented');
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
-export async function createEachModel() {
+export function createEachModel(): Promise<void> {
+  throw new Error('Not implemented');
+}
+
+export function afterRegisterUser(_userId: EntityId): Promise<void> {
+  throw new Error('Not implemented');
+}
+
+export function resolveRelationConst(
+  _name: string,
+): Promise<string | number | null | undefined> {
   throw new Error('Not implemented');
 }
 
@@ -19,8 +28,7 @@ export function routeToMetaTags(
   throw new Error('Not implemented');
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
-export function seedDb() {
+export function seedDb(): Promise<void> {
   throw new Error('Not implemented');
 }
 

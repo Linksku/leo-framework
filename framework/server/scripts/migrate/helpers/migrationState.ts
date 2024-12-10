@@ -37,7 +37,7 @@ export async function updateMigrationState(
       type: 'up',
       files: [],
     },
-  };
+  } satisfies MigrationState;
 
   if (await knexBT('__migration__').select('*').first()) {
     await knexBT('__migration__')

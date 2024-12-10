@@ -1,4 +1,4 @@
-import BaseModel from 'services/model/Model/BaseModel';
+import BaseModel from 'core/models/Model/BaseModel';
 import getPartialUniqueIndex from 'utils/models/getPartialUniqueIndex';
 
 export default function validateNonUniquePartial<T extends ModelClass>(

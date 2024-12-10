@@ -1,0 +1,30 @@
+diff --git a/node_modules/@capacitor/assets/dist/platforms/android/index.js b/node_modules/@capacitor/assets/dist/platforms/android/index.js
+index 3248cbb..55dea54 100644
+--- a/node_modules/@capacitor/assets/dist/platforms/android/index.js
++++ b/node_modules/@capacitor/assets/dist/platforms/android/index.js
+@@ -225,10 +225,10 @@ class AndroidAssetGenerator extends asset_generator_1.AssetGenerator {
+ <?xml version="1.0" encoding="utf-8"?>
+ <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+     <background>
+-        <inset android:drawable="@mipmap/ic_launcher_background" android:inset="16.7%" />
++        <inset android:drawable="@mipmap/ic_launcher_background" android:inset="16.6%" />
+     </background>
+     <foreground>
+-        <inset android:drawable="@mipmap/ic_launcher_foreground" android:inset="16.7%" />
++        <inset android:drawable="@mipmap/ic_launcher_foreground" android:inset="16.6%" />
+     </foreground>
+ </adaptive-icon>
+     `.trim();
+@@ -272,10 +272,10 @@ class AndroidAssetGenerator extends asset_generator_1.AssetGenerator {
+ <?xml version="1.0" encoding="utf-8"?>
+ <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+     <background>
+-        <inset android:drawable="@mipmap/ic_launcher_background" android:inset="16.7%" />
++        <inset android:drawable="@mipmap/ic_launcher_background" android:inset="16.6%" />
+     </background>
+     <foreground>
+-        <inset android:drawable="@mipmap/ic_launcher_foreground" android:inset="16.7%" />
++        <inset android:drawable="@mipmap/ic_launcher_foreground" android:inset="16.6%" />
+     </foreground>
+ </adaptive-icon>
+     `.trim();

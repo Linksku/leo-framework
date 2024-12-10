@@ -1,6 +1,5 @@
 import { APP_NAME_LOWER } from 'config';
 
-// todo: low/easy move some mz consts to another file
 // Base table
 export const BT_REPLICA_IDENTITY_FOR_DBZ = 'DEFAULT';
 
@@ -23,6 +22,23 @@ export const BT_SLOT_RR = 'slot_rr';
 export const BT_SLOT_RR_PREFIX = 'slot_rr_';
 
 export const BT_CDC_SLOT_PREFIX = 'materialize_';
+
+// Kafka
+export const KAFKA_BROKER_INTERNAL_HOST = 'broker';
+
+export const KAFKA_BROKER_HOST = process.env.IS_DOCKER ? KAFKA_BROKER_INTERNAL_HOST : 'localhost';
+
+export const KAFKA_BROKER_INTERNAL_PORT = 29_092;
+
+export const KAFKA_BROKER_PORT = process.env.IS_DOCKER ? KAFKA_BROKER_INTERNAL_PORT : 9092;
+
+export const KAFKA_CONNECT_HOST = process.env.IS_DOCKER ? 'connect' : 'localhost';
+
+export const KAFKA_CONNECT_PORT = 8083;
+
+export const SCHEMA_REGISTRY_HOST = process.env.IS_DOCKER ? 'schema-registry' : 'localhost';
+
+export const SCHEMA_REGISTRY_PORT = 8081;
 
 // Debezium
 export const DBZ_FOR_UPDATEABLE = false;
@@ -76,7 +92,7 @@ export type MzSinkKafkaErrorsRow = {
   count: number,
 };
 
-// Replica
+// Read replica
 export const RR_SUB_ALL_TABLES = 'sub_all_tables';
 
 export const RR_SUB_PREFIX = 'sub_';

@@ -1,12 +1,20 @@
-import type { NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
+import type { NextFunction, RequestHandler } from 'express';
 import express from 'express';
 import compression from 'compression';
 
-import apiRoutes from 'core/apiRoutes';
-import sseRoute from 'core/sseRoute';
-import { DEFAULT_ASSETS_CACHE_TTL, DOMAIN_NAME } from 'consts/server';
+import { ALLOWED_DOMAIN_NAMES } from 'config';
+import apisRoute from 'routes/apis/apisRoute';
+import imgProxyRoute from 'routes/imgProxyRoute';
+import sseRoute from 'routes/sseRoute';
+import addRoutes from 'config/addRoutes';
+import {
+  DEFAULT_ASSETS_CACHE_TTL,
+  DOMAIN_NAME,
+  HOME_URL,
+  SHORT_DOMAIN_NAME,
+} from 'consts/server';
 import { isHealthy } from 'services/healthcheck/HealthcheckManager';
 import addMetaTags from 'core/addMetaTags';
 import {
@@ -15,6 +23,37 @@ import {
   JS_CSS_HEADERS,
   STATIC_HEADERS,
 } from 'consts/httpHeaders';
+import getRedirectPath from 'config/getRedirectPath';
+
+const htmlFiles = new Map<string, string>();
+
+function readHtmlFile(fileName: string) {
+  fs.readFile(
+    path.resolve(`./build/${process.env.NODE_ENV}/web/${fileName}.html`),
+    (err, file) => {
+      if (err) {
+        if (fileName === 'main' || fileName === 'home') {
+          ErrorLogger.fatal(err, { ctx: `Read ${fileName}.html` }).catch(() => {
+            // eslint-disable-next-line unicorn/no-process-exit
+            process.exit(1);
+          });
+        } else {
+          ErrorLogger.error(err, { ctx: `Read ${fileName}.html` });
+        }
+      } else {
+        htmlFiles.set(fileName, file.toString());
+      }
+    },
+  );
+}
+
+function getReqFileName(req: ExpressRequest) {
+  if (!req.path || req.path === '/') {
+    // Can't split into auth/unauth files because of CDN
+    return 'home';
+  }
+  return 'main';
+}
 
 // todo: low/hard maybe switch to Fastify
 const app = express();
@@ -40,66 +79,72 @@ app.use(compression());
 app.set('etag', 'weak');
 app.disable('x-powered-by');
 
-app.use('/api', apiRoutes);
-app.use('/sse', sseRoute);
-if (!process.env.PRODUCTION) {
-  const { serverAdapter } = await import('services/BullBoard');
-  app.use('/admin/queues', serverAdapter.getRouter());
-}
+if (process.env.SERVER === 'production') {
+  readHtmlFile('main');
+  readHtmlFile('home');
+  readHtmlFile('503');
 
-function readFile(fileName: string, cb: (file: string) => void) {
-  fs.readFile(
-    path.resolve(`./build/${process.env.NODE_ENV}/web/${fileName}.html`),
-    (err, file) => {
-      if (err) {
-        ErrorLogger.fatal(err, { ctx: `Read ${fileName}.html` }).catch(() => {
-          // eslint-disable-next-line unicorn/no-process-exit
-          process.exit(1);
-        });
-      } else {
-        cb(file.toString());
-      }
-    },
-  );
-}
+  const allowedDomainNamesSet = new Set(ALLOWED_DOMAIN_NAMES);
+  app.all('*', async (req, res, next) => {
+    const redirectPath = await getRedirectPath(req);
+    const redirectUrl = `${HOME_URL}${redirectPath ?? req.path}`;
 
-function getReqFileName(req: ExpressRequest) {
-  if (!req.path || req.path === '/') {
-    // Can't split into auth/unauth files because of CDN
-    return 'home';
-  }
-  return 'main';
-}
-
-let handleWildcardApi: (req: ExpressRequest, res: ExpressResponse) => Promise<void>;
-if (process.env.SERVER !== 'production') {
-  app.use(express.static(
-    path.resolve(`./build/${process.env.NODE_ENV}/web`),
-    { dotfiles: 'allow', redirect: false, index: false },
-  ));
-
-  handleWildcardApi = async (req, res) => {
-    const html = await fs.promises.readFile(path.resolve(
-      `./build/${process.env.NODE_ENV}/web/${getReqFileName(req)}.html`,
-    ));
-    res.send(await addMetaTags(req, html.toString()));
-  };
-} else {
-  app.all('*', (req, res, next) => {
-    if (req.hostname !== DOMAIN_NAME && !req.hostname?.endsWith(`.${DOMAIN_NAME}`)) {
-      res.status(403).end();
-    } else if (!req.secure) {
-      res.redirect(`https://${req.hostname}${req.url}`);
+    if (!allowedDomainNamesSet.has(req.hostname)
+      && !ALLOWED_DOMAIN_NAMES.some(domain => req.hostname?.endsWith(`.${domain}`))) {
+      res
+        .status(403)
+        .set(INDEX_ERROR_HEADERS)
+        .send('<p>Forbidden</p>');
+    } else if (redirectPath
+      || !req.secure
+      || (SHORT_DOMAIN_NAME !== DOMAIN_NAME && req.hostname === SHORT_DOMAIN_NAME)
+      || (req.subdomains.length === 1 && req.subdomains[0] === 'www')) {
+      res.redirect(redirectUrl);
     } else {
       next();
     }
   });
+} else {
+  app.all('*', async (req, res, next) => {
+    const redirectPath = await getRedirectPath(req);
 
+    if (redirectPath) {
+      res.redirect(`${HOME_URL}${redirectPath ?? req.path}`);
+    } else {
+      next();
+    }
+  });
+}
+
+app.use('/api', apisRoute);
+app.use('/img', imgProxyRoute);
+app.use('/sse', sseRoute);
+addRoutes(app);
+
+if (!process.env.PRODUCTION) {
+  let handler: RequestHandler = () => {
+    throw new Error('BullBoard not loaded yet');
+  };
+
+  app.use('/admin/queues', (req, res, next) => {
+    handler(req, res, next);
+  });
+
+  setTimeout(() => {
+    import('services/bull/BullBoard')
+      .then(({ serverAdapter }) => {
+        handler = serverAdapter.getRouter();
+      })
+      .catch(err => ErrorLogger.error(err, { ctx: 'BullBoard' }));
+  }, 0);
+}
+
+let handleWildcardApi: (req: ExpressRequest, res: ExpressResponse) => Promise<void>;
+if (process.env.SERVER === 'production') {
   app.use(express.static(
     path.resolve(`./build/${process.env.NODE_ENV}/web`),
     {
       maxAge: DEFAULT_ASSETS_CACHE_TTL,
-      dotfiles: 'allow',
       redirect: false,
       index: false,
       setHeaders(res, reqPath) {
@@ -112,18 +157,6 @@ if (process.env.SERVER !== 'production') {
     },
   ));
 
-  // todo: mid/hard server routing to add meta tags for shareable links
-  const files = new Map<string, string>();
-  readFile('main', file => {
-    files.set('main', file);
-  });
-  readFile('home', file => {
-    files.set('home', file);
-  });
-  readFile('503', file => {
-    files.set('503', file);
-  });
-
   handleWildcardApi = async (req, res) => {
     if (req.subdomains.length) {
       res
@@ -133,7 +166,7 @@ if (process.env.SERVER !== 'production') {
       return;
     }
 
-    const file = files.get(getReqFileName(req)) ?? files.get('main');
+    const file = htmlFiles.get(getReqFileName(req)) ?? htmlFiles.get('main');
     if (file && isHealthy({ ignoreStaleRR: true })) {
       res
         .set(INDEX_HEADERS)
@@ -144,7 +177,23 @@ if (process.env.SERVER !== 'production') {
     res
       .status(503)
       .set(INDEX_ERROR_HEADERS)
-      .send(files.get('503') ?? '<p>Service temporarily unavailable</p>');
+      .send(htmlFiles.get('503') ?? '<p>Service temporarily unavailable</p>');
+  };
+} else {
+  app.use(express.static(
+    path.resolve(`./build/${process.env.NODE_ENV}/web`),
+    {
+      maxAge: 0,
+      redirect: false,
+      index: false,
+    },
+  ));
+
+  handleWildcardApi = async (req, res) => {
+    const html = await fs.promises.readFile(path.resolve(
+      `./build/${process.env.NODE_ENV}/web/${getReqFileName(req)}.html`,
+    ));
+    res.send(await addMetaTags(req, html.toString()));
   };
 }
 

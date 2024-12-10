@@ -78,9 +78,18 @@
 }
 
 @mixin fadeIn($duration) {
-  :global {
+  & :global {
     animation-name: keyframesFadeIn;
   }
 
   animation-duration: $duration;
+  animation-fill-mode: both;
+}
+
+@mixin activeBg {
+  transition: background-color 0.1s;
+
+  &:active {
+    background-color: $activeBackgroundColor;
+  }
 }

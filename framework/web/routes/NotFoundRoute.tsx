@@ -1,5 +1,5 @@
-import StackWrapInner from 'components/frame/stack/StackWrapInner';
-import ErrorPage from 'components/ErrorPage';
+import StackWrapInner from 'core/frame/stack/StackWrapInner';
+import ErrorPage from 'core/frame/ErrorPage';
 
 export default React.memo(function NotFoundRoute() {
   return (
