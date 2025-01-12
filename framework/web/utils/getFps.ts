@@ -1,4 +1,4 @@
-import clamp from 'utils/clamp';
+import clamp from 'utils/math/clamp';
 
 let fps = 60;
 const samples: number[] = [];

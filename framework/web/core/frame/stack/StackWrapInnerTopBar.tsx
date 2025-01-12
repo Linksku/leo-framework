@@ -80,7 +80,7 @@ export default React.memo(function StackWrapInnerTopBar({
   rightBtnProps,
   RightSvg,
   rightSvgDim = 1.8,
-  noBorder,
+  darkerBorder,
 }: {
   title?: string,
   disableReload?: boolean,
@@ -90,7 +90,7 @@ export default React.memo(function StackWrapInnerTopBar({
   rightBtnProps?: Stable<BtnProps>,
   RightSvg?: React.SVGFactory,
   rightSvgDim?: number,
-  noBorder?: boolean,
+  darkerBorder?: boolean,
 }) {
   const goLeftStack = useGoLeftStack();
 
@@ -101,11 +101,13 @@ export default React.memo(function StackWrapInnerTopBar({
     <Container>
       {title && <DocumentTitle title={title} />}
 
-      <div className={styles.container}>
+      <div
+        className={cx(styles.container, {
+          [styles.darkerBorder]: darkerBorder,
+        })}
+      >
         <div
-          className={cx(styles.inner, {
-            [styles.noBorder]: noBorder,
-          })}
+          className={styles.inner}
         >
           {!hideBackBtn && renderBtn({
             Svg: ChevronLeftSvg,

@@ -50,7 +50,7 @@
 }
 
 .input:checked + .bg {
-  background-color: $fadedPrimaryColorBg;
+  background-color: $lightPrimaryColorBg;
 
   + .circle {
     left: 16px;
@@ -59,7 +59,7 @@
 }
 
 .disabled .input:checked + .bg + .circle {
-  background-color: $fadedPrimaryColorBg;
+  background-color: $lightPrimaryColorBg;
 }
 
 .label {

@@ -63,23 +63,23 @@ function MediaFileInput({
   const registerProps = register && name
     ? register(name, registerOpts)
     : null;
-  const showToast = useShowToast();
   const inputId = useId();
 
   useEffect(() => {
     if (isImg && file && !imgUrl && lastProcessedImgRef.current !== file) {
+      let img: HTMLImageElement | null = null;
       lastProcessedImgRef.current = file;
       fileToDataUrl(file)
         .then(url => {
-          if (!url) {
+          if (!url || lastProcessedImgRef.current !== file) {
             return;
           }
 
-          const img = new Image();
+          img = new Image();
           img.addEventListener('load', () => {
             setState({
               imgUrl: url ?? null,
-              imgAspectRatio: img.width / img.height,
+              imgAspectRatio: TS.notNull(img).width / TS.notNull(img).height,
             });
           });
           img.addEventListener('error', () => {
@@ -96,8 +96,17 @@ function MediaFileInput({
           img.src = url;
         })
         .catch(NOOP);
+
+      return () => {
+        if (img) {
+          img.removeEventListener('load', NOOP);
+          img.removeEventListener('error', NOOP);
+        }
+        lastProcessedImgRef.current = null;
+      };
     }
-  }, [file, imgUrl, setState, isImg, showToast]);
+    return undefined;
+  }, [file, imgUrl, setState, isImg]);
 
   return (
     <label

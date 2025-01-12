@@ -43,7 +43,6 @@ export default React.memo(function LoginRoute() {
   const selectedEmail = useWatch({ name: 'email', control }) ?? '';
 
   const pushPath = usePushPath();
-  const showToast = useShowToast();
   const { authState, setAuth, isReloadingAfterAuth } = useAuthStore();
   const { backState } = useRouteStore();
   const [redirectPath, _, resetRedirectPath] = useLoginRedirectPathStorage(
@@ -76,7 +75,7 @@ export default React.memo(function LoginRoute() {
     } else {
       showToast({ msg: 'Failed to log in' });
     }
-  }, [pushPath, selectedEmail, showToast]);
+  }, [pushPath, selectedEmail]);
 
   const { fetching, fetchApi: loginUser, error: apiError } = useDeferredApi(
     'loginUser',
@@ -219,11 +218,11 @@ export default React.memo(function LoginRoute() {
           && (
             <>
               {os === 'ios' || os === 'osx'
-                ? <AppleAppStoreButton className={styles.appBtn} />
-                : <GooglePlayStoreButton className={styles.appBtn} />}
+                ? <AppleAppStoreButton fullWidth className={styles.appBtn} />
+                : <GooglePlayStoreButton fullWidth className={styles.appBtn} />}
               {os === 'ios' || os === 'osx'
-                ? <GooglePlayStoreButton className={styles.appBtn} />
-                : <AppleAppStoreButton className={styles.appBtn} />}
+                ? <GooglePlayStoreButton fullWidth className={styles.appBtn} />
+                : <AppleAppStoreButton fullWidth className={styles.appBtn} />}
             </>
           )}
       </div>

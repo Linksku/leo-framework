@@ -19,7 +19,6 @@ export default function TruncatedText({
   className?: string,
 } & React.HTMLAttributes<HTMLElement>>) {
   const elemRef = useRef<HTMLElement>(null);
-  const showToast = useShowToast();
   const copy = useCopyText();
   const longPressRef = useLongPress(() => {
     if (!text) {

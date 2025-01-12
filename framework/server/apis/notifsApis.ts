@@ -41,8 +41,8 @@ defineApi(
       query,
       [
         {
-          column: raw(`cast(extract(epoch FROM ${NotifModel.colsQuoted.time}) AS float8)`),
-          columnWithoutTransforms: NotifModel.cols.time,
+          column: NotifModel.cols.time,
+          columnAsNum: raw(`cast(extract(epoch FROM ${NotifModel.colsQuoted.time}) AS float8)`),
           order: 'desc',
         },
         { column: NotifModel.cols.id, order: 'desc' },

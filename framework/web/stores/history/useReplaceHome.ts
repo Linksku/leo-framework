@@ -4,7 +4,7 @@ import { getPartsFromPath } from 'stores/history/historyStoreHelpers';
 import { DEFAULT_PATH_PARTS } from 'config/homeTabs';
 import shallowEqual from 'utils/shallowEqual';
 import { getHomePathParts } from 'stores/history/getComputedNavState';
-import historyStateQueue from 'core/globalState/historyStateQueue';
+import historyQueue from 'core/globalState/historyQueue';
 
 export default function useReplaceHome() {
   const getNavState = useGetNavState();
@@ -56,9 +56,9 @@ export default function useReplaceHome() {
       && queryStr === prevState?.queryStr
       && hash === prevState?.hash) {
       if (direction === 'back') {
-        historyStateQueue.forward();
+        historyQueue.forward();
       } else {
-        historyStateQueue.back();
+        historyQueue.back();
       }
       return;
     }

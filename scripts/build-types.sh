@@ -9,12 +9,20 @@ if [ -e ./framework/server/config/__generated__/allModels.ts ]; then
 export const appModels = [];
 " > ./framework/server/config/__generated__/allModels.ts
 fi
+
 if [ -e ./app/server/config/__generated__/allModels.ts ]; then
   echo "export const frameworkModels = [];
 
 export const appModels = [];
 " > ./app/server/config/__generated__/allModels.ts
 fi
+
+rm -f ./framework/web/types/__generated__/globals.d.ts
+rm -f ./app/web/types/__generated__/globals.d.ts
+rm -f ./framework/server/types/__generated__/globals.d.ts
+rm -f ./app/server/types/__generated__/globals.d.ts
+rm -f ./framework/shared/types/__generated__/globals.d.ts
+rm -f ./app/shared/types/__generated__/globals.d.ts
 
 yarn ss buildModels || { echo 'buildModels failed' ; exit 1; }
 yarn ss buildTypes || { echo 'buildTypes failed' ; exit 1; }

@@ -36,7 +36,7 @@ export type ScrollerProps<
   notFoundClassName?: string,
   spinnerPadding?: string,
   spinnerDimRem?: number,
-  initialSpinnerWrapClassName?: string,
+  spinnerWrapClassName?: string,
   colSpinnerWrapClassName?: string,
 }
   & InnerProps<ItemType>
@@ -72,7 +72,7 @@ export default React.memo(function WindowedInfiniteScroller<
   notFoundClassName,
   spinnerPadding,
   spinnerDimRem,
-  initialSpinnerWrapClassName,
+  spinnerWrapClassName,
   colSpinnerWrapClassName,
   ...props
 }: ScrollerProps<ItemType, any>) {
@@ -225,7 +225,7 @@ export default React.memo(function WindowedInfiniteScroller<
                     numItems={numItems}
                     spinnerPadding={spinnerPadding}
                     spinnerDimRem={spinnerDimRem}
-                    spinnerWrapClassName={initialSpinnerWrapClassName}
+                    spinnerWrapClassName={spinnerWrapClassName}
                     onSpinnerVisible={hadBeenActive ? onSpinnerVisible : undefined}
                     onSpinnerTimeout={hadBeenActive ? onSpinnerTimeout : undefined}
                   />
@@ -282,6 +282,7 @@ export default React.memo(function WindowedInfiniteScroller<
                 </p>
                 <Button
                   label="Retry"
+                  fullWidth
                   onClick={() => {
                     setStuckSpinnerNumItems(-1);
                     fetchNext();
@@ -307,17 +308,22 @@ export default React.memo(function WindowedInfiniteScroller<
       </div>
     );
   }
-  return React.isValidElement(notFoundMsg)
-    ? (
+
+  if (notFoundMsg === null) {
+    return null;
+  }
+  if (React.isValidElement(notFoundMsg)) {
+    return (
       <ErrorBoundary>
         {notFoundMsg}
       </ErrorBoundary>
-    )
-    : (
-      <div
-        className={cx(styles.notFoundMsg, notFoundClassName)}
-      >
-        {notFoundMsg}
-      </div>
     );
+  }
+  return (
+    <div
+      className={cx(styles.notFoundMsg, notFoundClassName)}
+    >
+      {notFoundMsg}
+    </div>
+  );
 });

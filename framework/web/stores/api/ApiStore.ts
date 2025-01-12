@@ -743,6 +743,7 @@ export const [
           fetching: false,
           fetchSuccessTime: Number.MIN_SAFE_INTEGER,
           subs: ApiState.pendingSubs.get(apiId) ?? [],
+          // Used in RefetchApiHandlers
           refetchOnFocus,
           refetchOnConnect,
           refetchIfStale,

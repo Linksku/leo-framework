@@ -1,4 +1,6 @@
 import retryImport from './retryImport';
+import useEffectInitialMount from './useEffectInitialMount';
+import useGetIsMounted from './useGetIsMounted';
 
 export default function reactLazy<T extends React.ComponentType<any>>(
   importComponent: () => Promise<{ default: T }>,
@@ -12,22 +14,18 @@ export default function reactLazy<T extends React.ComponentType<any>>(
     const [Component, setComponent] = React.useState<T | null>(null);
     const catchAsync = useCatchAsync();
 
-    useEffect(() => {
-      let isMounted = true;
+    const getIsMounted = useGetIsMounted();
+    useEffectInitialMount(() => {
       catchAsync(
         retryImport(importComponent)
           .then(module => {
-            if (isMounted) {
+            if (getIsMounted()) {
               setComponent(() => module.default);
             }
           }),
         'reactLazy',
       );
-
-      return () => {
-        isMounted = false;
-      };
-    }, [catchAsync]);
+    });
 
     return Component
       ? <Component {...props} />

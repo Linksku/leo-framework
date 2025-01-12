@@ -1,5 +1,3 @@
-import EMPTY_OBJ from 'utils/emptyObj';
-
 export default function serializeSseEvent(name: string, params?: JsonObj) {
   if (!process.env.PRODUCTION
     && params
@@ -15,5 +13,5 @@ export function unserializeSseEvent(str: string): {
   params: ObjectOf<any>,
 } {
   const { name, params } = JSON.parse(str);
-  return { name, params: params ?? EMPTY_OBJ };
+  return { name, params: params ?? {} };
 }

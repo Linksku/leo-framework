@@ -1,4 +1,4 @@
-import historyStateQueue from 'core/globalState/historyStateQueue';
+import historyQueue from 'core/globalState/historyQueue';
 import type {
   Direction,
   NativeHistoryState,
@@ -178,10 +178,10 @@ export function getInitialHistoryState(): BaseHistoryState {
 
   return {
     curState,
-    backStates: nativeHistoryState?.backId && nativeHistoryState?.backPath
+    backStates: nativeHistoryState?.backId != null && nativeHistoryState?.backPath
       ? markStable([buildHistoryState(getNativeStatePart(nativeHistoryState, 'back'))])
       : EMPTY_ARR,
-    forwardStates: nativeHistoryState?.forwardId && nativeHistoryState?.forwardPath
+    forwardStates: nativeHistoryState?.forwardId != null && nativeHistoryState?.forwardPath
       ? markStable([buildHistoryState(getNativeStatePart(nativeHistoryState, 'forward'))])
       : EMPTY_ARR,
     direction,
@@ -197,7 +197,7 @@ export function getInitialHistoryState(): BaseHistoryState {
 let HistoryStoreState = getInitialHistoryState();
 
 const initialHistoryState = HistoryStoreState;
-historyStateQueue.push(() => {
+historyQueue.push(() => {
   const {
     curState,
     backStates,

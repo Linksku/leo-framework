@@ -88,9 +88,7 @@ export default function ShareSlideUp({
   hideSocialBtns,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const hideSlideUp = useHideSlideUp();
   const copyText = useCopyText();
-  const showToast = useShowToast();
   const url = useMemo(
     () => (path.startsWith('/')
       ? SHORT_HOME_URL + path

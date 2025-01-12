@@ -8,7 +8,6 @@ import { ALLOWED_DOMAIN_NAMES } from 'config';
 import apisRoute from 'routes/apis/apisRoute';
 import imgProxyRoute from 'routes/imgProxyRoute';
 import sseRoute from 'routes/sseRoute';
-import addRoutes from 'config/addRoutes';
 import {
   DEFAULT_ASSETS_CACHE_TTL,
   DOMAIN_NAME,
@@ -119,7 +118,6 @@ if (process.env.SERVER === 'production') {
 app.use('/api', apisRoute);
 app.use('/img', imgProxyRoute);
 app.use('/sse', sseRoute);
-addRoutes(app);
 
 if (!process.env.PRODUCTION) {
   let handler: RequestHandler = () => {

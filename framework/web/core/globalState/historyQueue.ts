@@ -4,7 +4,7 @@ let queue = [] as (() => void)[];
 
 let ric: number | null = null;
 
-const historyStateQueue = {
+const historyQueue = {
   isEmpty() {
     return queue.length === 0;
   },
@@ -38,14 +38,14 @@ const historyStateQueue = {
   back() {
     // Probably can't cancel queued pushStates because if history.forward gets called,
     // history.state will be wrong
-    historyStateQueue.flush();
+    historyQueue.flush();
     window.history.back();
   },
 
   forward() {
-    historyStateQueue.flush();
+    historyQueue.flush();
     window.history.forward();
   },
 };
 
-export default historyStateQueue;
+export default historyQueue;

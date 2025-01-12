@@ -118,6 +118,11 @@ export const [
         }
         let entitiesMap = newEntities.get(entity.type) as EntitiesMap;
 
+        const includedRelations = TS.getProp(entity, 'includedRelations');
+        if (includedRelations) {
+          delete entity.includedRelations;
+        }
+
         const oldEntity = entitiesMap.get(entity.id);
         const isEntityAdded = !oldEntity;
         const isEntityUpdated = !isEntityAdded
@@ -137,25 +142,23 @@ export const [
           });
         }
 
-        const oldIncludedRelations = EntitiesIncludedRelations.get(entity.type)?.get(entity.id);
-        const entityNewIncludedRelations = !process.env.PRODUCTION
-          && hasNewIncludedRelations(oldIncludedRelations, entity.includedRelations);
-        if (isEntityAdded || isEntityUpdated || entityNewIncludedRelations) {
-          const includedRelationsMap = TS.mapValOrSetDefault(
-            EntitiesIncludedRelations,
-            entity.type,
-            new Map(),
-          );
-
-          if (entity.includedRelations) {
+        if (includedRelations) {
+          const oldIncludedRelations = EntitiesIncludedRelations.get(entity.type)?.get(entity.id);
+          const entityNewIncludedRelations = !process.env.PRODUCTION
+            && hasNewIncludedRelations(oldIncludedRelations, includedRelations);
+          if (isEntityAdded || isEntityUpdated || entityNewIncludedRelations) {
+            const includedRelationsMap = TS.mapValOrSetDefault(
+              EntitiesIncludedRelations,
+              entity.type,
+              new Map(),
+            );
             includedRelationsMap.set(
               entity.id,
               TS.defined(mergeEntityIncludedRelations(
                 oldIncludedRelations,
-                entity.includedRelations,
+                includedRelations,
               )),
             );
-            delete entity.includedRelations;
           }
         }
       }

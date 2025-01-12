@@ -59,13 +59,16 @@ export default async function askLlamaJson<
     ({ bedrockClient, Command } = await importPromise);
   }
 
+  const fieldsEntries = TS.objEntries(fields);
   const prompt = [
-    `Respond in valid JSON with the format: {${TS.objEntries(fields).map(([key, val]) => `"${key}":${val.type}`).join(',')}}`,
-    'No text outside the JSON.',
+    `Generate JSON with the format {${fieldsEntries.map(([key, val]) => `"${key}":${val.type}`).join(',')}}`,
+    'JSON fields:',
+    ...fieldsEntries.map(([key, val]) => `${key}: ${val.description}`),
+    '',
     ...(context ? [context] : []),
-    'Fields:',
-    ...TS.objEntries(fields).map(([key, val]) => `${key}: ${val.description}`),
+    'No text outside the JSON.',
   ].join('\n');
+  const jsonPrefix = `{"${fieldsEntries[0][0]}":`;
 
   const command = new Command({
     modelId,
@@ -75,10 +78,11 @@ export default async function askLlamaJson<
       prompt: [
         '<|begin_of_text|>',
         '<|start_header_id|>user<|end_header_id|>',
-        '<|image|>',
+        image ? '<|image|>' : '',
         prompt,
         '<|eot_id|>',
         '<|start_header_id|>assistant<|end_header_id|>',
+        jsonPrefix,
       ].join(''),
       images: imgStr ? [imgStr] : undefined, // doesn't support multiple images
       max_gen_len: maxOutputLength,
@@ -106,7 +110,7 @@ export default async function askLlamaJson<
     );
   }
 
-  const parsed = JSON.parse(cleanJson(output.generation));
+  const parsed = JSON.parse(cleanJson(jsonPrefix + output.generation));
   return TS.assertType<{
     [K in keyof Fields]: unknown;
   }>(

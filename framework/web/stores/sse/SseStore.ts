@@ -44,7 +44,6 @@ export const [
     const { authToken } = useAuthStore();
     const { refetch } = useApiStore();
     const handleApiEntities = useHandleApiEntities(true);
-    const showToast = useShowToast();
 
     const { fetchApi: sseSubscribe } = useDeferredApi(
       'sseSubscribe',
@@ -89,7 +88,7 @@ export const [
           SseState.offlineToastTimer = null;
         }, API_TIMEOUT);
       }
-    }, [showToast]);
+    }, []);
 
     const reconnectAfterDelay = useCallback(() => {
       // This is needed because WS can disconnect right after connecting.
@@ -205,7 +204,7 @@ export const [
 
         reconnectAfterDelay();
       });
-    }, [closeSse, handleApiEntities, showToast, reconnectAfterDelay]);
+    }, [closeSse, handleApiEntities, reconnectAfterDelay]);
 
     const processQueuedSubs = useThrottle(
       () => {

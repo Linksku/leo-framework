@@ -1,7 +1,10 @@
+import { toastAtom, isHidingAtom, hideToast } from 'stores/ToastsStore';
+
 import styles from './Toasts.scss';
 
 export default function Toasts() {
-  const { toast, hideToast, isHidingToast } = useToastsStore();
+  const toast = useAtomValue(toastAtom);
+  const isHidingToast = useAtomValue(isHidingAtom);
 
   if (!toast) {
     return null;

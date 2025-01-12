@@ -33,9 +33,14 @@ import type { default as _EMPTY_OBJ } from '../../utils/emptyObj';
 import type { default as _EMPTY_SET } from '../../utils/emptySet';
 import type { default as _ErrorLogger } from '../../services/ErrorLogger';
 import type { default as _EventLogger } from '../../services/EventLogger';
+import type { hideSlideUp as _hideSlideUp } from '../../stores/SlideUpStore';
 import type { default as _markStable } from '../../utils/markStable';
 import type { default as _NOOP } from '../../utils/noop';
 import type { default as _reactLazy } from '../../utils/reactLazy';
+import type { showAlert as _showAlert } from '../../stores/AlertStore';
+import type { showConfirm as _showConfirm } from '../../stores/AlertStore';
+import type { showSlideUp as _showSlideUp } from '../../stores/SlideUpStore';
+import type { showToast as _showToast } from '../../stores/ToastsStore';
 import type { default as _TestIds } from '../../../shared/consts/testIds';
 import type { default as _useAllEntities } from '../../stores/entities/useAllEntities';
 import type { default as _useApi } from '../../stores/api/useApi';
@@ -62,7 +67,6 @@ import type { default as _useSse } from '../../stores/sse/useSse';
 import type { default as _useSseArr } from '../../stores/sse/useSseArr';
 import type { default as _useStateStable } from '../../utils/useStateStable';
 import type { default as _wrapPromise } from '../../utils/wrapPromise';
-import type { useAlertsStore as _useAlertsStore } from '../../stores/AlertsStore';
 import type { useApiStore as _useApiStore } from '../../stores/api/ApiStore';
 import type { useAuthStore as _useAuthStore } from '../../stores/AuthStore';
 import type { useEntitiesStore as _useEntitiesStore } from '../../stores/entities/EntitiesStore';
@@ -71,13 +75,10 @@ import type { useHistoryStore as _useHistoryStore } from '../../stores/history/H
 import type { useLightboxStore as _useLightboxStore } from '../../stores/LightboxStore';
 import type { useRelationsStore as _useRelationsStore } from '../../stores/RelationsStore';
 import type { useRouteStore as _useRouteStore } from '../../stores/RouteStore';
-import type { useSlideUpStore as _useSlideUpStore } from '../../stores/SlideUpStore';
 import type { useSseStore as _useSseStore } from '../../stores/sse/SseStore';
-import type { useToastsStore as _useToastsStore } from '../../stores/ToastsStore';
 import type { useUIFrameStore as _useUIFrameStore } from '../../stores/UIFrameStore';
 import type { useAuthState as _useAuthState } from '../../stores/AuthStore';
 import type { useCurrentUserId as _useCurrentUserId } from '../../stores/AuthStore';
-import type { useHideSlideUp as _useHideSlideUp } from '../../stores/SlideUpStore';
 import type { useHomeTab as _useHomeTab } from '../../stores/history/HistoryStore';
 import type { useMutateApiCache as _useMutateApiCache } from '../../stores/api/ApiStore';
 import type { useMutateEntity as _useMutateEntity } from '../../stores/entities/EntitiesStore';
@@ -85,10 +86,6 @@ import type { useNavState as _useNavState } from '../../stores/history/HistorySt
 import type { useReloadPage as _useReloadPage } from '../../stores/UIFrameStore';
 import type { useRouteMatches as _useRouteMatches } from '../../stores/RouteStore';
 import type { useRouteQuery as _useRouteQuery } from '../../stores/RouteStore';
-import type { useShowAlert as _useShowAlert } from '../../stores/AlertsStore';
-import type { useShowConfirm as _useShowConfirm } from '../../stores/AlertsStore';
-import type { useShowSlideUp as _useShowSlideUp } from '../../stores/SlideUpStore';
-import type { useShowToast as _useShowToast } from '../../stores/ToastsStore';
 
 declare global {
   const atom: typeof _atom;
@@ -126,9 +123,14 @@ declare global {
   const EMPTY_SET: typeof _EMPTY_SET;
   const ErrorLogger: typeof _ErrorLogger;
   const EventLogger: typeof _EventLogger;
+  const hideSlideUp: typeof _hideSlideUp;
   const markStable: typeof _markStable;
   const NOOP: typeof _NOOP;
   const reactLazy: typeof _reactLazy;
+  const showAlert: typeof _showAlert;
+  const showConfirm: typeof _showConfirm;
+  const showSlideUp: typeof _showSlideUp;
+  const showToast: typeof _showToast;
   const TestIds: typeof _TestIds;
   const useAllEntities: typeof _useAllEntities;
   const useApi: typeof _useApi;
@@ -155,7 +157,6 @@ declare global {
   const useSseArr: typeof _useSseArr;
   const useStateStable: typeof _useStateStable;
   const wrapPromise: typeof _wrapPromise;
-  const useAlertsStore: typeof _useAlertsStore;
   const useApiStore: typeof _useApiStore;
   const useAuthStore: typeof _useAuthStore;
   const useEntitiesStore: typeof _useEntitiesStore;
@@ -164,13 +165,10 @@ declare global {
   const useLightboxStore: typeof _useLightboxStore;
   const useRelationsStore: typeof _useRelationsStore;
   const useRouteStore: typeof _useRouteStore;
-  const useSlideUpStore: typeof _useSlideUpStore;
   const useSseStore: typeof _useSseStore;
-  const useToastsStore: typeof _useToastsStore;
   const useUIFrameStore: typeof _useUIFrameStore;
   const useAuthState: typeof _useAuthState;
   const useCurrentUserId: typeof _useCurrentUserId;
-  const useHideSlideUp: typeof _useHideSlideUp;
   const useHomeTab: typeof _useHomeTab;
   const useMutateApiCache: typeof _useMutateApiCache;
   const useMutateEntity: typeof _useMutateEntity;
@@ -178,8 +176,4 @@ declare global {
   const useReloadPage: typeof _useReloadPage;
   const useRouteMatches: typeof _useRouteMatches;
   const useRouteQuery: typeof _useRouteQuery;
-  const useShowAlert: typeof _useShowAlert;
-  const useShowConfirm: typeof _useShowConfirm;
-  const useShowSlideUp: typeof _useShowSlideUp;
-  const useShowToast: typeof _useShowToast;
 }

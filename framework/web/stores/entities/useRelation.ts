@@ -3,7 +3,7 @@ import useEntitiesMap from 'stores/entities/useEntitiesMap';
 import useEntityByUniqueFields from 'stores/entities/useEntityByUniqueFields';
 import { API_TIMEOUT } from 'consts/server';
 import useShallowMemoArr from 'utils/useShallowMemoArr';
-import useRelationConfig from 'stores/entities/useRelationConfig';
+import { useRelationConfig } from 'stores/RelationsStore';
 import { useHadRouteBeenActive, useIsRouteVisible } from 'stores/RouteStore';
 import isDebug from 'utils/isDebug';
 

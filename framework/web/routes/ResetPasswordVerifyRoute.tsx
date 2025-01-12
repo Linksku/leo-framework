@@ -74,6 +74,7 @@ export default React.memo(function ResetPasswordVerifyRoute() {
             Element="input"
             type="submit"
             value={fetching ? 'Saving' : 'Save'}
+            fullWidth
             disabled={fetching || !token}
           />
         </Form>

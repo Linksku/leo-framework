@@ -41,45 +41,49 @@ export default async function createIndex({
   ).join(', ')})`;
 
   if (primary) {
-    try {
-      await Promise.all([
-        db !== 'rr'
-          ? knexBT.raw(`
-              ALTER TABLE ONLY ??
-              DROP CONSTRAINT IF EXISTS ??
-            `, [table, name])
-          : null,
-        db !== 'bt'
-          ? knexRR.raw(`
-            ALTER TABLE ONLY ??
-            DROP CONSTRAINT IF EXISTS ??
-          `, [table, name])
-          : null,
-      ]);
-      await Promise.all([
-        db !== 'rr'
-          ? knexBT.raw(`
-              ALTER TABLE ONLY ??
-              ADD CONSTRAINT ??
-              PRIMARY KEY (${cols.map(_ => '??').join(', ')})
-            `, [table, name, ...cols])
-          : null,
-        db !== 'bt'
-          ? knexRR.raw(`
-            ALTER TABLE ONLY ??
-            ADD CONSTRAINT ??
-            PRIMARY KEY (${cols.map(_ => '??').join(', ')})
-          `, [table, name, ...cols])
-          : null,
-      ]);
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('other objects depend on it')) {
-        printDebug(err, 'warn', { prod: 'always' });
-      } else if (!(err instanceof Error)
-        || !err.message.includes('multiple primary keys for table')) {
-        throw err;
-      } else {
-        throw getErr(err, { ctx: 'createIndex', table, col });
+    if (db !== 'rr') {
+      try {
+        await knexBT.raw(`
+          ALTER TABLE ONLY ??
+          DROP CONSTRAINT IF EXISTS ??
+        `, [table, name]);
+        await knexBT.raw(`
+          ALTER TABLE ONLY ??
+          ADD CONSTRAINT ??
+          PRIMARY KEY (${cols.map(_ => '??').join(', ')})
+        `, [table, name, ...cols]);
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('other objects depend on it')) {
+          printDebug(err, 'warn', { prod: 'always' });
+        } else if (!(err instanceof Error)
+          || !err.message.includes('multiple primary keys for table')) {
+          throw err;
+        } else {
+          throw getErr(err, { ctx: 'createIndex', table, col });
+        }
+      }
+    }
+
+    if (db !== 'bt') {
+      try {
+        await knexRR.raw(`
+          ALTER TABLE ONLY ??
+          DROP CONSTRAINT IF EXISTS ??
+        `, [table, name]);
+        await knexRR.raw(`
+          ALTER TABLE ONLY ??
+          ADD CONSTRAINT ??
+          PRIMARY KEY (${cols.map(_ => '??').join(', ')})
+        `, [table, name, ...cols]);
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('other objects depend on it')) {
+          printDebug(err, 'warn', { prod: 'always' });
+        } else if (!(err instanceof Error)
+          || !err.message.includes('multiple primary keys for table')) {
+          throw err;
+        } else {
+          throw getErr(err, { ctx: 'createIndex', table, col });
+        }
       }
     }
   } else {

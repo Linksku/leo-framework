@@ -1,42 +1,25 @@
-import { atomFamily, useAtomCallback } from 'jotai/utils';
+import { getDefaultStore } from 'jotai';
+import { atomFamily } from 'jotai/utils';
 
 export const relationConfigsFamily = atomFamily(
   (_: string) => atom<Stable<ApiRelationConfig> | null>(null),
 );
 
-export const [
-  RelationsProvider,
-  useRelationsStore,
-] = constate(
-  function RelationsStore() {
-    const setRelationConfig = markStable(useAtomCallback(useCallback(
-      (
-        get,
-        set,
-        entityType: EntityType,
-        relationName: string,
-        newConfig: ApiRelationConfig,
-      ) => {
-        const relationConfigAtom = relationConfigsFamily(`${entityType},${relationName}`);
-        if (!get(relationConfigAtom)) {
-          set(relationConfigAtom, markStable(newConfig));
-        }
-      },
-      [],
-    )));
+export const addRelationConfigs = markStable(function addRelationConfigs(
+  configs: ApiRelationConfigs,
+) {
+  const store = getDefaultStore();
 
-    const addRelationConfigs = useCallback((configs: ApiRelationConfigs) => {
-      for (const [entityType, relationConfigs] of TS.objEntries(configs)) {
-        for (const [relationName, config] of TS.objEntries(relationConfigs)) {
-          setRelationConfig(entityType, relationName, config);
-        }
+  for (const [entityType, relationConfigs] of TS.objEntries(configs)) {
+    for (const [relationName, config] of TS.objEntries(relationConfigs)) {
+      const relationConfigAtom = relationConfigsFamily(`${entityType},${relationName}`);
+      if (!store.get(relationConfigAtom)) {
+        store.set(relationConfigAtom, markStable(config));
       }
-    }, [setRelationConfig]);
+    }
+  }
+});
 
-    return useMemo(() => ({
-      addRelationConfigs,
-    }), [
-      addRelationConfigs,
-    ]);
-  },
-);
+export function useRelationConfig(entityType: EntityType, relationName: string) {
+  return useAtomValue(relationConfigsFamily(`${entityType},${relationName}`));
+}

@@ -39,6 +39,8 @@ declare global {
     }[],
   };
 
+  type RawApiConfig<Name extends ApiName> = Pick<ApiConfig<Name>, 'method' | 'name' | 'auth'>;
+
   type ApiHandlerParams<Name extends ApiName> = ApiNameToParams[Name] & {
     userAgent?: string,
     currentUserId: EntityId | (Name extends AuthApiName ? never : undefined);
@@ -48,8 +50,20 @@ declare global {
     params: ApiHandlerParams<Name>,
   ) => ApiRouteRet<Name> | Promise<ApiRouteRet<Name>>;
 
+  type RawApiHandler = (
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ) => void | Promise<void>;
+
   type ApiDefinition<Name extends ApiName> = {
+    raw: false,
     config: ApiConfig<Name>,
     handler: ApiHandler<Name>,
+  };
+
+  type RawApiDefinition<Name extends ApiName> = {
+    raw: true,
+    config: RawApiConfig<Name>,
+    handler: RawApiHandler,
   };
 }

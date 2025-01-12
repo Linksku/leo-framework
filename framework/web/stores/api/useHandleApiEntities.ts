@@ -1,3 +1,5 @@
+import { addRelationConfigs } from 'stores/RelationsStore';
+
 function _transformDateProps(
   entities: ModelSerializedForApi[],
   dateProps?: {
@@ -29,7 +31,6 @@ export default function useHandleApiEntities(allowPost = false) {
     updateEntities,
     deleteEntities,
   } = useEntitiesStore();
-  const { addRelationConfigs } = useRelationsStore();
 
   return useCallback(({
     entities,
@@ -93,6 +94,5 @@ export default function useHandleApiEntities(allowPost = false) {
     updateEntities,
     loadEntities,
     deleteEntities,
-    addRelationConfigs,
   ]);
 }

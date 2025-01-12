@@ -31,7 +31,7 @@ rebuild_server="nodemon -e js,cjs,ts \
   --watch app/server/types/__generated__/globals.d.ts \
   --watch app/server/types/__generated__/allModels.cjs \
   --watch framework/shared/settings.js \
-  --watch env/env --watch env/secrets \
+  --watch env/env.dev --watch env/secrets \
   --watch package.json --watch yarn.lock --watch babel.config.cjs \
   -x \"MINIMIZE=0 node --experimental-specifier-resolution=node --no-warnings node_modules/webpack/bin/webpack.js -w \\
     --config webpack.server.$NODE_ENV.js\""
@@ -42,7 +42,7 @@ rebuild_monitor="nodemon -e js,cjs,ts \
   --watch app/server/types/__generated__/globals.d.ts \
   --watch app/server/types/__generated__/allModels.d.ts \
   --watch framework/shared/settings.js \
-  --watch env/env --watch env/secrets \
+  --watch env/env.dev --watch env/secrets \
   --watch package.json --watch yarn.lock --watch babel.config.cjs \
   -x \"MINIMIZE=0 SERVER_SCRIPT_PATH=framework/server/scripts/monitorInfra \\
     node --experimental-specifier-resolution=node --no-warnings node_modules/webpack/bin/webpack.js -w \\

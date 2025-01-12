@@ -3463,6 +3463,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@capacitor/status-bar@npm:^6.0.2":
+  version: 6.0.2
+  resolution: "@capacitor/status-bar@npm:6.0.2"
+  peerDependencies:
+    "@capacitor/core": ^6.0.0
+  checksum: c84d4ba6db1ac9a3e00bdad5a3eaf42f83a5c4bc9e52709c65782b670871cdf8129c3a65d374404dade8f061c784b80f42bc6bbccc82f27a8caeb7415523c720
+  languageName: node
+  linkType: hard
+
 "@codetrix-studio/capacitor-google-auth@npm:^3.4.0-rc.4":
   version: 3.4.0-rc.4
   resolution: "@codetrix-studio/capacitor-google-auth@npm:3.4.0-rc.4"
@@ -15110,6 +15119,7 @@ __metadata:
     "@capacitor/screen-orientation": "npm:^6.0.2"
     "@capacitor/share": "npm:^6.0.2"
     "@capacitor/splash-screen": "npm:^6.0.2"
+    "@capacitor/status-bar": "npm:^6.0.2"
     "@codetrix-studio/capacitor-google-auth": "npm:^3.4.0-rc.4"
     "@cypress/webpack-preprocessor": "npm:^6.0.2"
     "@floating-ui/dom": "npm:^1.6.11"

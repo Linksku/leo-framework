@@ -1,5 +1,6 @@
 import usePrevious from 'utils/usePrevious';
 import useUpdate from 'utils/useUpdate';
+import { hideLightbox, mediaUrlAtom } from 'stores/LightboxStore';
 
 import styles from './Lightbox.scss';
 
@@ -13,7 +14,7 @@ export default function Lightbox() {
     isHiding: false,
     hideTimer: -1,
   });
-  const { mediaUrl, hideLightbox } = useLightboxStore();
+  const mediaUrl = useAtomValue(mediaUrlAtom);
   const prevMediaUrl = usePrevious(mediaUrl);
   const update = useUpdate();
 

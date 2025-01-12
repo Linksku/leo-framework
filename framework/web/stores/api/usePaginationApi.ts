@@ -58,7 +58,7 @@ export default function usePaginationApi<
     initialCursor,
     paginationEntityType,
     ...apiOpts
-  }: PaginationProps<T>,
+  }: PaginationProps<T> = {},
 ): PaginatedApiReturn {
   const { fetchNextPage } = useApiStore();
   const update = useUpdate();

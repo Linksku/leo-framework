@@ -4,8 +4,15 @@ const dotenv = require('dotenv');
 process.env.TZ = 'UTC';
 
 dotenv.config({
-  path: path.resolve('./env/env'),
+  path: path.resolve(
+    // todo: low/easy move NODE_ENV outside of /env, since it needs to be available before initEnv runs
+    // Can't use process.env.PRODUCTION because it might not be set by Webpack
+    process.env.NODE_ENV === 'production'
+      ? './env/env.prod'
+      : './env/env.dev',
+  ),
 });
+
 dotenv.config({
   path: path.resolve('./env/secrets'),
 });
@@ -21,12 +28,8 @@ const EXPECTED_ENV_VARS = [
   'PG_RR_SUPERUSER',
   'REDIS_PASS',
   'MAX_CPU_PERCENT',
-  'DEV_PASSWORD_PEPPER',
-  'DEV_JWT_KEY',
-  'PROD_PASSWORD_PEPPER',
-  'PROD_JWT_KEY',
-  'DEPLOY_IP',
-  'DEPLOY_ROOT_DIR',
+  'PASSWORD_PEPPER',
+  'JWT_KEY',
   'SSL_KEY',
   'SSL_CERT',
   'AWS_REGION',
@@ -41,6 +44,8 @@ const EXPECTED_ENV_VARS = [
   'FIREBASE_CLIENT_EMAIL',
   'FIREBASE_PRIVATE_KEY',
   'INSTAGRAM_APP_SECRET',
+  'PROD_IP',
+  'PROD_ROOT_DIR',
 ];
 for (const name of EXPECTED_ENV_VARS) {
   if (process.env[name] === undefined) {

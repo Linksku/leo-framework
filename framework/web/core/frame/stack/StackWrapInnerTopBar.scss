@@ -4,18 +4,19 @@
   background-color: #fff;
   position: relative;
   touch-action: none;
+  height: calc($headerHeight - $insetTop - 0.5px);
+  border-bottom: 0.5px solid #f8f8f8;
+}
+
+.darkerBorder {
+  border-bottom-color: $separatorColor;
 }
 
 .inner {
   @extend %maxWidthContainer;
 
-  height: calc($headerHeight - $insetTop - 0.5px);
-  border-bottom: 0.5px solid #f8f8f8;
   display: flex;
-}
-
-.noBorder {
-  border-bottom: none;
+  height: 100%;
 }
 
 .btnWrap {

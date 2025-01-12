@@ -39,10 +39,11 @@ export default function RefetchApiHandlers() {
   }, [refetch, clearCache, latestCurState, getActiveApis]);
 
   // todo: high/blocked check refetch api causing unknown error
-  const refetchActiveApis = useCallback((shouldRefetch: 'refetchOnFocus' | 'refetchOnConnect') => {
+  const refetchActiveApis = useCallback((
+    shouldRefetch: 'refetchOnFocus' | 'refetchOnConnect',
+  ) => {
     for (const api of getActiveApis()) {
       if ((api[shouldRefetch] || api.cachedError)
-        && performance.now() - api.fetchSuccessTime > MIN_STALE_DURATION
         && api.subs.some(sub => sub.routeKey === latestCurState.current.key)) {
         refetch(api.name, api.params, api.id);
       }
@@ -54,21 +55,38 @@ export default function RefetchApiHandlers() {
   }, [refetchActiveApis]));
 
   useEffect(() => {
+    let cleanedUp = false;
     let remove: (() => void) | null = null;
+
+    const visibilityChangeCb = () => {
+      if (document.visibilityState !== 'hidden') {
+        refetchActiveApis('refetchOnFocus');
+      }
+    };
 
     // Same as visibilitychange on web
     App.addListener('resume', () => {
       refetchActiveApis('refetchOnFocus');
     })
       .then(r => {
+        if (cleanedUp) {
+          return r.remove();
+        }
         remove = r.remove;
+        return undefined;
       })
       .catch(err => {
         ErrorLogger.warn(err, { ctx: 'App.addListener(resume)' });
+
+        if (!cleanedUp) {
+          document.addEventListener('visibilitychange', visibilityChangeCb);
+        }
       });
 
     return () => {
       remove?.();
+      document.removeEventListener('visibilitychange', visibilityChangeCb);
+      cleanedUp = true;
     };
   }, [refetchActiveApis]);
 

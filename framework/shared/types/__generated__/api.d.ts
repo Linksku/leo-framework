@@ -13,6 +13,16 @@ interface AddToPrivateMessageApiParams {
   userId: number;
 }
 
+interface AddUsersToListApiParams {
+  listId: number;
+  /**
+   * @minItems 1
+   * @maxItems 1000
+   */
+  userIds?: [number, ...number[]];
+  meetupId?: number;
+}
+
 interface AllUserClubsInfoApiParams {
 
 }
@@ -107,6 +117,13 @@ interface ClubsByNameApiParams {
 interface ClubViewApiParams {
   clubId?: number;
   clubName?: string;
+}
+
+interface ConnectedUsersApiParams {
+  name?: string;
+  excludeListId?: number;
+  cursor?: string;
+  limit?: number;
 }
 
 interface CreateClubApiParams {
@@ -229,6 +246,16 @@ interface CreateReportApiParams {
   entityId: number;
 }
 
+interface CreateUsersListApiParams {
+  name: string;
+  /**
+   * @minItems 1
+   * @maxItems 1000
+   */
+  userIds?: [number, ...number[]];
+  meetupId?: number;
+}
+
 interface CurrentUserApiParams {
 
 }
@@ -273,6 +300,10 @@ interface DeleteReplyApiParams {
   replyId: number;
 }
 
+interface DeleteUsersListApiParams {
+  listId: number;
+}
+
 interface EditMeetupPollApiParams {
   pollId: number;
   title: string;
@@ -285,6 +316,9 @@ interface ExchangeInstagramTokenApiParams {
 
 interface ExistingMsgWithUserApiParams {
   userId: number;
+}
+
+interface ExportMeetupApiParams {
 }
 
 interface FavoriteClubsApiParams {
@@ -315,6 +349,9 @@ interface ImagesFromUrlApiParams {
 
 interface ImportFromInstagramApiParams {
 
+}
+
+interface InstagramDeletionApiParams {
 }
 
 interface JoinClubApiParams {
@@ -352,6 +389,7 @@ interface MeetupInvitableUsersApiParams {
 interface MeetupInvitesApiParams {
   meetupId: number;
   inviteToken?: string | null;
+  noPagination?: boolean;
   limit?: number;
   cursor?: string;
 }
@@ -596,6 +634,14 @@ interface RelatedUsersApiParams {
 interface RemoveFromPrivateMessageApiParams {
   msgId: number;
   userId: number;
+}
+
+interface RemoveUsersFromListApiParams {
+  listId: number;
+  /**
+   * @maxItems 1000
+   */
+  userIds: number[];
 }
 
 interface RepliedRoomsApiParams {
@@ -890,6 +936,22 @@ interface UsersApiParams {
   limit?: number;
 }
 
+interface UsersInListApiParams {
+  listId: number;
+  noPagination?: boolean;
+  limit?: number;
+  cursor?: string;
+}
+
+interface UsersListApiParams {
+  listId: number;
+}
+
+interface UsersListsApiParams {
+  limit?: number;
+  cursor?: string;
+}
+
 interface UserViewApiParams {
   userId: number;
 }
@@ -993,6 +1055,15 @@ interface ClubViewApiData {
   clubDepth?: number;
 }
 
+interface ConnectedUsersApiData {
+  /**
+   * @maxItems 1000
+   */
+  items: number[];
+  cursor?: string;
+  hasCompleted: boolean;
+}
+
 interface CreateClubApiData {
   name: string;
 }
@@ -1017,6 +1088,10 @@ interface CreateOrEditPostApiData {
 
 interface CreatePrivateMessageApiData {
   msgId?: number;
+}
+
+interface CreateUsersListApiData {
+  listId?: number;
 }
 
 interface CurrentUserApiData {
@@ -1419,6 +1494,24 @@ interface UsersApiData {
   hasCompleted: boolean;
 }
 
+interface UsersInListApiData {
+  /**
+   * @maxItems 1000
+   */
+  items: number[];
+  cursor?: string;
+  hasCompleted: boolean;
+}
+
+interface UsersListsApiData {
+  /**
+   * @maxItems 1000
+   */
+  items: number[];
+  cursor?: string;
+  hasCompleted: boolean;
+}
+
 interface VerifyEmailApiData {
   hasVerified: boolean;
 }
@@ -1432,6 +1525,7 @@ type ApiNameToParams = {
   'accountStatus': AccountStatusApiParams,
   'addMeetupPollOption': AddMeetupPollOptionApiParams,
   'addToPrivateMessage': AddToPrivateMessageApiParams,
+  'addUsersToList': AddUsersToListApiParams,
   'allUserClubsInfo': AllUserClubsInfoApiParams,
   'appleLoginUser': AppleLoginUserApiParams,
   'approveMeetupResponse': ApproveMeetupResponseApiParams,
@@ -1446,6 +1540,7 @@ type ApiNameToParams = {
   'clubs': ClubsApiParams,
   'clubsByName': ClubsByNameApiParams,
   'clubView': ClubViewApiParams,
+  'connectedUsers': ConnectedUsersApiParams,
   'createClub': CreateClubApiParams,
   'createClubInvite': CreateClubInviteApiParams,
   'createMeetupInvites': CreateMeetupInvitesApiParams,
@@ -1457,6 +1552,7 @@ type ApiNameToParams = {
   'createReaction': CreateReactionApiParams,
   'createReply': CreateReplyApiParams,
   'createReport': CreateReportApiParams,
+  'createUsersList': CreateUsersListApiParams,
   'currentUser': CurrentUserApiParams,
   'currentUserClubMemberships': CurrentUserClubMembershipsApiParams,
   'deleteAccount': DeleteAccountApiParams,
@@ -1466,9 +1562,11 @@ type ApiNameToParams = {
   'deletePost': DeletePostApiParams,
   'deleteReaction': DeleteReactionApiParams,
   'deleteReply': DeleteReplyApiParams,
+  'deleteUsersList': DeleteUsersListApiParams,
   'editMeetupPoll': EditMeetupPollApiParams,
   'exchangeInstagramToken': ExchangeInstagramTokenApiParams,
   'existingMsgWithUser': ExistingMsgWithUserApiParams,
+  'exportMeetup': ExportMeetupApiParams,
   'favoriteClubs': FavoriteClubsApiParams,
   'followUser': FollowUserApiParams,
   'ftueSeenTime': FtueSeenTimeApiParams,
@@ -1476,6 +1574,7 @@ type ApiNameToParams = {
   'healthchecks': HealthchecksApiParams,
   'imagesFromUrl': ImagesFromUrlApiParams,
   'importFromInstagram': ImportFromInstagramApiParams,
+  'instagramDeletion': InstagramDeletionApiParams,
   'joinClub': JoinClubApiParams,
   'joinClubs': JoinClubsApiParams,
   'leaveClub': LeaveClubApiParams,
@@ -1516,6 +1615,7 @@ type ApiNameToParams = {
   'registerUser': RegisterUserApiParams,
   'relatedUsers': RelatedUsersApiParams,
   'removeFromPrivateMessage': RemoveFromPrivateMessageApiParams,
+  'removeUsersFromList': RemoveUsersFromListApiParams,
   'repliedRooms': RepliedRoomsApiParams,
   'replies': RepliesApiParams,
   'reply': ReplyApiParams,
@@ -1559,6 +1659,9 @@ type ApiNameToParams = {
   'userInfo': UserInfoApiParams,
   'userNumMeetups': UserNumMeetupsApiParams,
   'users': UsersApiParams,
+  'usersInList': UsersInListApiParams,
+  'usersList': UsersListApiParams,
+  'usersLists': UsersListsApiParams,
   'userView': UserViewApiParams,
   'verifyEmail': VerifyEmailApiParams,
   'verifyResetPassword': VerifyResetPasswordApiParams,
@@ -1568,6 +1671,7 @@ type ApiNameToData = {
   'accountStatus': AccountStatusApiData,
   'addMeetupPollOption': null,
   'addToPrivateMessage': null,
+  'addUsersToList': null,
   'allUserClubsInfo': null,
   'appleLoginUser': AppleLoginUserApiData,
   'approveMeetupResponse': null,
@@ -1582,6 +1686,7 @@ type ApiNameToData = {
   'clubs': ClubsApiData,
   'clubsByName': ClubsByNameApiData,
   'clubView': ClubViewApiData,
+  'connectedUsers': ConnectedUsersApiData,
   'createClub': CreateClubApiData,
   'createClubInvite': CreateClubInviteApiData,
   'createMeetupInvites': null,
@@ -1593,6 +1698,7 @@ type ApiNameToData = {
   'createReaction': null,
   'createReply': null,
   'createReport': null,
+  'createUsersList': CreateUsersListApiData,
   'currentUser': CurrentUserApiData,
   'currentUserClubMemberships': CurrentUserClubMembershipsApiData,
   'deleteAccount': null,
@@ -1602,9 +1708,11 @@ type ApiNameToData = {
   'deletePost': null,
   'deleteReaction': null,
   'deleteReply': null,
+  'deleteUsersList': null,
   'editMeetupPoll': null,
   'exchangeInstagramToken': ExchangeInstagramTokenApiData,
   'existingMsgWithUser': ExistingMsgWithUserApiData,
+  'exportMeetup': null,
   'favoriteClubs': FavoriteClubsApiData,
   'followUser': null,
   'ftueSeenTime': null,
@@ -1612,6 +1720,7 @@ type ApiNameToData = {
   'healthchecks': HealthchecksApiData,
   'imagesFromUrl': ImagesFromUrlApiData,
   'importFromInstagram': ImportFromInstagramApiData,
+  'instagramDeletion': null,
   'joinClub': null,
   'joinClubs': null,
   'leaveClub': null,
@@ -1652,6 +1761,7 @@ type ApiNameToData = {
   'registerUser': RegisterUserApiData,
   'relatedUsers': RelatedUsersApiData,
   'removeFromPrivateMessage': null,
+  'removeUsersFromList': null,
   'repliedRooms': RepliedRoomsApiData,
   'replies': RepliesApiData,
   'reply': null,
@@ -1695,6 +1805,9 @@ type ApiNameToData = {
   'userInfo': UserInfoApiData,
   'userNumMeetups': UserNumMeetupsApiData,
   'users': UsersApiData,
+  'usersInList': UsersInListApiData,
+  'usersList': null,
+  'usersLists': UsersListsApiData,
   'userView': null,
   'verifyEmail': VerifyEmailApiData,
   'verifyResetPassword': VerifyResetPasswordApiData,
@@ -1703,6 +1816,7 @@ type ApiNameToData = {
 type ApiName = 'accountStatus'
   | 'addMeetupPollOption'
   | 'addToPrivateMessage'
+  | 'addUsersToList'
   | 'allUserClubsInfo'
   | 'appleLoginUser'
   | 'approveMeetupResponse'
@@ -1717,6 +1831,7 @@ type ApiName = 'accountStatus'
   | 'clubs'
   | 'clubsByName'
   | 'clubView'
+  | 'connectedUsers'
   | 'createClub'
   | 'createClubInvite'
   | 'createMeetupInvites'
@@ -1728,6 +1843,7 @@ type ApiName = 'accountStatus'
   | 'createReaction'
   | 'createReply'
   | 'createReport'
+  | 'createUsersList'
   | 'currentUser'
   | 'currentUserClubMemberships'
   | 'deleteAccount'
@@ -1737,9 +1853,11 @@ type ApiName = 'accountStatus'
   | 'deletePost'
   | 'deleteReaction'
   | 'deleteReply'
+  | 'deleteUsersList'
   | 'editMeetupPoll'
   | 'exchangeInstagramToken'
   | 'existingMsgWithUser'
+  | 'exportMeetup'
   | 'favoriteClubs'
   | 'followUser'
   | 'ftueSeenTime'
@@ -1747,6 +1865,7 @@ type ApiName = 'accountStatus'
   | 'healthchecks'
   | 'imagesFromUrl'
   | 'importFromInstagram'
+  | 'instagramDeletion'
   | 'joinClub'
   | 'joinClubs'
   | 'leaveClub'
@@ -1787,6 +1906,7 @@ type ApiName = 'accountStatus'
   | 'registerUser'
   | 'relatedUsers'
   | 'removeFromPrivateMessage'
+  | 'removeUsersFromList'
   | 'repliedRooms'
   | 'replies'
   | 'reply'
@@ -1830,6 +1950,9 @@ type ApiName = 'accountStatus'
   | 'userInfo'
   | 'userNumMeetups'
   | 'users'
+  | 'usersInList'
+  | 'usersList'
+  | 'usersLists'
   | 'userView'
   | 'verifyEmail'
   | 'verifyResetPassword';
@@ -1837,11 +1960,13 @@ type ApiName = 'accountStatus'
 type AuthApiName = 'accountStatus'
 | 'addMeetupPollOption'
 | 'addToPrivateMessage'
+| 'addUsersToList'
 | 'allUserClubsInfo'
 | 'approveMeetupResponse'
 | 'blockClub'
 | 'blockUser'
 | 'bulkUploadImages'
+| 'connectedUsers'
 | 'createClub'
 | 'createClubInvite'
 | 'createMeetupInvites'
@@ -1853,6 +1978,7 @@ type AuthApiName = 'accountStatus'
 | 'createReaction'
 | 'createReply'
 | 'createReport'
+| 'createUsersList'
 | 'currentUser'
 | 'currentUserClubMemberships'
 | 'deleteAccount'
@@ -1862,6 +1988,7 @@ type AuthApiName = 'accountStatus'
 | 'deletePost'
 | 'deleteReaction'
 | 'deleteReply'
+| 'deleteUsersList'
 | 'editMeetupPoll'
 | 'exchangeInstagramToken'
 | 'existingMsgWithUser'
@@ -1894,6 +2021,7 @@ type AuthApiName = 'accountStatus'
 | 'regenerateMeetupInviteToken'
 | 'registerPushNotifToken'
 | 'removeFromPrivateMessage'
+| 'removeUsersFromList'
 | 'repliedRooms'
 | 'roomParticipant'
 | 'seenFtue'
@@ -1912,4 +2040,7 @@ type AuthApiName = 'accountStatus'
 | 'updateClubVisibility'
 | 'updateNotifSettings'
 | 'updateUserCity'
-| 'updateUserProfile';
+| 'updateUserProfile'
+| 'usersInList'
+| 'usersList'
+| 'usersLists';

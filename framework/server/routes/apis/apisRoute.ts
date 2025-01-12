@@ -23,7 +23,8 @@ import 'apis/notifsSeenApis';
 import 'apis/notifSettingsApis';
 import 'apis/sseApis';
 // eslint-disable-next-line import/order
-import addApiRoutes from 'config/addApiRoutes';
+import 'config/importApiRoutes';
+import rawApiWrap from './rawApiWrap';
 
 const apis = getApis();
 const upload = multer({
@@ -122,34 +123,44 @@ router.use(express.urlencoded({ extended: true }));
 router.use(requestContextMiddleware);
 
 router.get('/stream', streamApi);
-addApiRoutes(router);
 
 // Unauth.
 for (const api of apis) {
-  if (!api.config.auth) {
-    router[api.config.method ?? 'get'](
-      `/${api.config.name}`,
-      apiWrap(api),
-    );
+  if (api.config.auth) {
+    continue;
   }
+
+  router[api.config.method ?? 'get'](
+    `/${api.config.name}`,
+    api.raw
+      ? rawApiWrap(api)
+      : apiWrap(api),
+  );
 }
 
 // Auth.
 router.use(requireAuthMiddleware);
 for (const api of apis) {
-  if (api.config.auth) {
-    if (api.config.fileFields) {
-      router[api.config.method ?? 'get'](
-        `/${api.config.name}`,
-        upload.fields(api.config.fileFields),
-        apiWrap(api),
-      );
-    } else {
-      router[api.config.method ?? 'get'](
-        `/${api.config.name}`,
-        apiWrap(api),
-      );
-    }
+  if (!api.config.auth) {
+    continue;
+  }
+
+  if (api.raw) {
+    router[api.config.method ?? 'get'](
+      `/${api.config.name}`,
+      rawApiWrap(api),
+    );
+  } else if (api.config.fileFields) {
+    router[api.config.method ?? 'get'](
+      `/${api.config.name}`,
+      upload.fields(api.config.fileFields),
+      apiWrap(api),
+    );
+  } else {
+    router[api.config.method ?? 'get'](
+      `/${api.config.name}`,
+      apiWrap(api),
+    );
   }
 }
 

@@ -1,138 +1,32 @@
-import type { Alert } from 'stores/AlertsStore';
+import {
+  type Alert,
+  alertsAtom,
+  hideLastAlert,
+  AlertProvider,
+} from 'stores/AlertStore';
 import usePrevious from 'utils/usePrevious';
 import useUpdate from 'utils/useUpdate';
-import ErrorBoundary from 'core/frame/ErrorBoundary';
+import AlertInner from './AlertInner';
 
 import styles from './Alerts.scss';
 
-function SingleAlert({ alert, disabledOkAlert, setDisabledOkAlert }: {
-  alert: Alert,
-  disabledOkAlert: Alert | null,
-  setDisabledOkAlert: SetState<Alert | null>,
-}) {
-  const { alerts, hideLastAlert } = useAlertsStore();
-  const disabled = !alerts.length;
+function AlertWrap({ alert, children }: React.PropsWithChildren<{ alert: Alert }>) {
+  const alerts = useAtomValue(alertsAtom);
 
-  const {
-    title,
-    msg,
-    textAlign,
-    closeable,
-    showOk,
-    okText,
-    okBtnProps,
-    onOk,
-    showCancel,
-    cancelText,
-    cancelBtnProps,
-    onCancel,
-    onClose,
-  } = alert;
-
-  function hideAlert() {
-    onClose?.();
-    hideLastAlert();
-  }
-
-  const handleOk = () => {
-    if (disabled) {
-      return;
-    }
-
-    const ret = onOk?.();
-    if (ret instanceof Promise) {
-      setDisabledOkAlert(alert);
-      ret
-        .then(ret2 => {
-          if (ret2 !== false) {
-            hideAlert();
-          }
-        })
-        .catch(err => {
-          ErrorLogger.warn(err);
-        })
-        .finally(() => {
-          // Intentionally use stale alert
-          setDisabledOkAlert(s => (s === alert ? null : s));
-        });
-    } else if (ret !== false) {
-      hideAlert();
-    }
-  };
-
-  const handleCancel = () => {
-    if (disabled) {
-      return;
-    }
-    onCancel?.();
-    hideAlert();
-  };
-
-  const showBtns = closeable && (showOk || showCancel);
   return (
     <div
-      onClick={closeable ? hideAlert : undefined}
-      className={cx(styles.container, {
+      onClick={alert.closeable !== false
+        ? () => {
+          alert.onClose?.();
+          hideLastAlert();
+        }
+        : undefined}
+      className={cx(styles.overlay, {
         [styles.visible]: alerts.length,
       })}
       role="dialog"
     >
-      <div
-        className={styles.alert}
-        style={{ textAlign }}
-        onClick={event => event.stopPropagation()}
-        role="dialog"
-      >
-        {title && <h2 className={styles.title}>{title}</h2>}
-        {msg && (
-          <ErrorBoundary
-            Loading={(
-              <div className={styles.loading}>
-                <Spinner verticalMargin={50} />
-              </div>
-            )}
-          >
-            <div
-              className={cx(styles.msg, {
-                [styles.simpleMsg]: typeof msg === 'string',
-                [styles.hasBottomBtns]: showBtns,
-              })}
-            >
-              {typeof msg === 'string'
-                ? <p>{msg}</p>
-                : msg}
-            </div>
-          </ErrorBoundary>
-        )}
-
-        {showBtns && (
-          <div className={styles.btns}>
-            {closeable && showOk && (
-              <Button
-                label={okText}
-                onClick={handleOk}
-                disabled={disabled || disabledOkAlert === alert}
-                fullWidth
-                data-testid={TestIds.alertOkBtn}
-                {...okBtnProps}
-              />
-            )}
-            {closeable && showOk && showCancel && (
-              <div className={styles.btnSeparator} />
-            )}
-            {closeable && showCancel && (
-              <Button
-                label={cancelText}
-                onClick={handleCancel}
-                disabled={disabled}
-                fullWidth
-                outline
-                {...cancelBtnProps}
-              />
-            )}
-          </div>
-        )}
-      </div>
+      {children}
     </div>
   );
 }
@@ -143,8 +37,7 @@ export default function Alerts() {
     isHiding: false,
     hideTimer: -1,
   });
-  const [disabledOkAlert, setDisabledOkAlert] = useState<Alert | null>(null);
-  const { alerts } = useAlertsStore();
+  const alerts = useAtomValue(alertsAtom);
   const prevAlerts = usePrevious(alerts);
   const update = useUpdate();
 
@@ -165,24 +58,28 @@ export default function Alerts() {
   }, [closedAllAlerts, alerts, update]);
 
   if (alerts.length) {
-    return alerts.map(alert => (
-      <SingleAlert
-        key={alert.id}
-        alert={alert}
-        disabledOkAlert={disabledOkAlert}
-        setDisabledOkAlert={setDisabledOkAlert}
-      />
-    ));
+    return (
+      <AlertWrap alert={TS.defined(alerts.at(-1))}>
+        {alerts.map(alert => (
+          <AlertProvider
+            key={alert.id}
+            alert={alert}
+          >
+            {alert.elem ?? <AlertInner />}
+          </AlertProvider>
+        ))}
+      </AlertWrap>
+    );
   }
 
-  const lastAlert = prevAlerts?.at(-1);
-  return lastAlert
+  const prevAlert = prevAlerts?.at(-1);
+  return prevAlert
     ? (
-      <SingleAlert
-        alert={lastAlert}
-        disabledOkAlert={disabledOkAlert}
-        setDisabledOkAlert={setDisabledOkAlert}
-      />
+      <AlertWrap alert={prevAlert}>
+        <AlertProvider alert={prevAlert}>
+          {prevAlert.elem ?? <AlertInner />}
+        </AlertProvider>
+      </AlertWrap>
     )
     : null;
 }

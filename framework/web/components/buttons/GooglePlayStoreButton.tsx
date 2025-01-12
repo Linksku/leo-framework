@@ -2,8 +2,8 @@ import { PLAY_STORE_URL } from 'config';
 import GooglePlaySvg from 'svgs/google-play-icon.svg';
 
 export default function GooglePlayStoreButton({
-  className,
   overrides,
+  ...props
 }: Parameters<typeof Button>[0]) {
   return (
     <Button
@@ -25,7 +25,7 @@ export default function GooglePlayStoreButton({
         padding: '0.8rem 1rem',
         ...overrides,
       }}
-      className={className}
+      {...props}
     />
   );
 }

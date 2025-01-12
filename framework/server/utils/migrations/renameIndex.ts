@@ -9,14 +9,16 @@ export default async function renameIndex(oldName: string, {
   table,
   cols,
   col,
+  skipValidation,
 }: {
   isMV?: boolean,
   name?: string,
   table: string,
   col?: string,
   cols?: string[],
+  skipValidation?: boolean,
 }) {
-  if (table) {
+  if (table && !skipValidation) {
     validateTableCols({ table, col, cols });
   }
 

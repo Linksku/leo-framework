@@ -8,6 +8,7 @@
   flex-direction: column;
   // stylelint-disable-next-line plugin/no-unsupported-browser-features
   content-visibility: auto;
+  touch-action: none;
 }
 
 .greyBackground {
@@ -31,13 +32,8 @@
 
   flex-grow: 1;
   overflow: hidden scroll;
-  touch-action: pan-y;
   // stylelint-disable-next-line plugin/no-unsupported-browser-features
   overscroll-behavior-y: contain;
-}
-
-.greyBackground .body {
-  border-top: 0.5px solid $separatorColor;
 }
 
 .flexBody {

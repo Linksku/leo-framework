@@ -10,7 +10,7 @@ declare global {
     SERVER_SCRIPT_PATH?: string;
     IS_DOCKER?: boolean;
 
-    // From /env/env and /env/secrets
+    // From /env/env.* and /env/secrets
     // Loaded in initEnv.cjs
     PG_BT_USER: string;
     PG_BT_PASS: string;
@@ -22,12 +22,8 @@ declare global {
     PG_RR_SUPERUSER: string;
     REDIS_PASS: string;
     MAX_CPU_PERCENT: string;
-    DEV_PASSWORD_PEPPER: string;
-    DEV_JWT_KEY: string;
-    PROD_PASSWORD_PEPPER: string;
-    PROD_JWT_KEY: string;
-    DEPLOY_IP: string;
-    DEPLOY_ROOT_DIR: string;
+    PASSWORD_PEPPER: string;
+    JWT_KEY: string;
     SSL_KEY: string;
     SSL_CERT: string;
     AWS_REGION: string;
@@ -42,6 +38,8 @@ declare global {
     FIREBASE_CLIENT_EMAIL: string;
     FIREBASE_PRIVATE_KEY: string;
     INSTAGRAM_APP_SECRET: string;
+    PROD_IP: string;
+    PROD_ROOT_DIR: string;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-namespace

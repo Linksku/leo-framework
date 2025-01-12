@@ -1,8 +1,6 @@
 import bcrypt from 'bcrypt';
 
-const passwordPepper = process.env.SERVER === 'production'
-  ? process.env.PROD_PASSWORD_PEPPER
-  : process.env.DEV_PASSWORD_PEPPER;
+const passwordPepper = process.env.PASSWORD_PEPPER;
 
 if (!passwordPepper) {
   throw new Error('passwords: PASSWORD_PEPPER env var not set.');

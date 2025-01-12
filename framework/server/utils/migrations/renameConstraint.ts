@@ -9,14 +9,18 @@ export default async function renameConstraint(oldName: string, {
   table,
   cols,
   col,
+  skipValidation,
 }: {
   isMV?: boolean,
   name?: string,
   table: string,
   col?: string,
   cols?: string[],
+  skipValidation?: boolean,
 }) {
-  validateTableCols({ table, col, cols });
+  if (!skipValidation) {
+    validateTableCols({ table, col, cols });
+  }
 
   if (!name) {
     cols = cols ?? [TS.defined(col)];

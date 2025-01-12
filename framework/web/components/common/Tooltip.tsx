@@ -15,7 +15,7 @@ import mergeRefs from 'utils/mergeRefs';
 import usePrevious from 'utils/usePrevious';
 import useUpdate from 'utils/useUpdate';
 import useScreenWidthInChars from 'utils/useScreenWidthInChars';
-import clamp from 'utils/clamp';
+import clamp from 'utils/math/clamp';
 import { useIsRouteActive, useRouteContainerRef } from 'stores/RouteStore';
 import { useThrottle } from 'utils/throttle';
 

@@ -1,7 +1,7 @@
 import StackWrapInner from 'core/frame/stack/StackWrapInner';
 import Form from 'components/form/Form';
 import HookFormErrors from 'components/form/HookFormErrors';
-import historyStateQueue from 'core/globalState/historyStateQueue';
+import historyQueue from 'core/globalState/historyQueue';
 
 import styles from './ResetPasswordRoute.scss';
 
@@ -16,7 +16,6 @@ export default React.memo(function ResetPasswordRoute() {
     },
   });
   const { errors } = useFormState({ control });
-  const showAlert = useShowAlert();
   const { backState, isRouteActive } = useRouteStore();
   const pushPath = usePushPath();
 
@@ -33,7 +32,7 @@ export default React.memo(function ResetPasswordRoute() {
           msg: 'If that email exists in our system, a password reset email was sent',
           onClose() {
             if (isRouteActive && backState) {
-              historyStateQueue.back();
+              historyQueue.back();
             } else {
               pushPath('/login');
             }

@@ -61,6 +61,7 @@ export default React.memo(function UnsubEmailRoute() {
               token: TS.defined(token),
             });
           }}
+          fullWidth
           disabled={!token || fetching}
           overrides={{
             marginTop: '5rem',
@@ -71,6 +72,7 @@ export default React.memo(function UnsubEmailRoute() {
           href="/"
           LeftSvg={HomeSvg}
           label="Home"
+          fullWidth
         />
       </div>
     </StackWrapInner>

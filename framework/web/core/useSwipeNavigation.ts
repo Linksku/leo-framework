@@ -8,7 +8,7 @@ import {
   clientXOffset,
   shouldFilterTaps,
 } from 'core/browserHacks/browserHackGatings';
-import clamp from 'utils/clamp';
+import clamp from 'utils/math/clamp';
 import useWindowSize from 'core/globalState/useWindowSize';
 import getFps from 'utils/getFps';
 import { DEFAULT_DURATION } from './useAnimation';

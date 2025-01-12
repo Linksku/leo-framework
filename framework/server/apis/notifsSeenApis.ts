@@ -2,6 +2,7 @@ import { defineApi } from 'services/ApiManager';
 import { LAST_SEEN_NOTIFS_TIME } from 'consts/coreUserMetaKeys';
 import { toDbDateTime } from 'utils/db/dbDate';
 import { NOTIF_SCOPES_ARR } from 'config/notifs';
+import toDbValues from 'utils/db/toDbValues';
 
 defineApi(
   {
@@ -37,21 +38,19 @@ defineApi(
         NotifModel.cols.id,
         raw('"allScopes".scope AS scope'),
       ])
-      .fromValues(
-        [
-          {
-            col: 'scope',
+      .from(toDbValues(
+        {
+          scope: {
             rows: NOTIF_SCOPES_ARR,
             dataType: 'text',
           },
-          {
-            col: 'lastSeenTime',
+          lastSeenTime: {
             rows: lastSeenTimes.map(row => toDbDateTime(new Date(row?.metaValue ?? 0))),
             dataType: 'timestamp',
           },
-        ],
+        },
         'allScopes',
-      )
+      ))
       .joinLateral(
         entityQuery(NotifModel)
           .select([

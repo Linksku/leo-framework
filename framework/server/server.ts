@@ -30,9 +30,6 @@ process.on('unhandledRejection', reason => {
   ErrorLogger.error(new Error(`unhandled rejection: ${stringify(reason)}`));
 });
 
-// todo: mid/easy fix URIError: Failed to decode param
-// '/cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh'
-// at decodeURIComponent (<anonymous>)
 try {
   if (!process.env.SERVER || !process.env.NODE_ENV) {
     throw new Error('server: env vars not set.');

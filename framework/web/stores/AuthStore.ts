@@ -104,7 +104,14 @@ const [
       isReloadingAfterAuth,
       authToken,
       setAuth,
-    }), [currentUserId, authState, fetchedCurrentUser, isReloadingAfterAuth, authToken, setAuth]);
+    }), [
+      currentUserId,
+      authState,
+      fetchedCurrentUser,
+      isReloadingAfterAuth,
+      authToken,
+      setAuth,
+    ]);
   },
   function AuthStore(val) {
     return val;

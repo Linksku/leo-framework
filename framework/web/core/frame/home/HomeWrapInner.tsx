@@ -9,17 +9,17 @@ import { preventsSwipeDirectionChange } from 'core/browserHacks/browserHackGatin
 import mergeRefs from 'utils/mergeRefs';
 import stackToAnimatedVal from 'core/globalState/stackToAnimatedVal';
 
-import historyStateQueue from 'core/globalState/historyStateQueue';
+import historyQueue from 'core/globalState/historyQueue';
 import styles from './HomeWrapInner.scss';
 
 export default function HomeWrapInner({
   children,
   greyBackground,
-  fixedElements,
+  fixedElement,
 }: React.PropsWithChildren<{
   greyBackground?: boolean,
   // Can't put fixed elements inside .inner because of translateZ(0)
-  fixedElements?: React.ReactNode,
+  fixedElement?: React.ReactNode,
 }>) {
   const {
     direction: lastNavDirection,
@@ -65,9 +65,9 @@ export default function HomeWrapInner({
     onNavigate(direction) {
       if (direction === 'left' && prevState && !isPrevHome && isRouteActive) {
         if (lastNavDirection === 'back') {
-          historyStateQueue.forward();
+          historyQueue.forward();
         } else if (lastNavDirection === 'forward') {
-          historyStateQueue.back();
+          historyQueue.back();
         }
       }
     },
@@ -120,7 +120,7 @@ export default function HomeWrapInner({
           </ErrorBoundary>
         </div>
       </Swipeable>
-      {fixedElements}
+      {fixedElement}
     </div>
   );
 }

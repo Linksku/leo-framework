@@ -50,6 +50,7 @@ export default React.memo(function VerifyEmailRoute() {
           href="/"
           LeftSvg={HomeSvg}
           label="Home"
+          fullWidth
           overrides={{
             marginTop: '5rem',
             marginBottom: '2rem',
@@ -61,6 +62,7 @@ export default React.memo(function VerifyEmailRoute() {
               href={`/user/${currentUserId}`}
               LeftSvg={UserSvg}
               label="Go to profile"
+              fullWidth
               overrides={{
                 marginBottom: '2rem',
               }}
@@ -71,6 +73,7 @@ export default React.memo(function VerifyEmailRoute() {
               href="/login"
               LeftSvg={LoginSvg}
               label="Log in"
+              fullWidth
               overrides={{
                 marginBottom: '2rem',
               }}

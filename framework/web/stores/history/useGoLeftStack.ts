@@ -1,6 +1,6 @@
 import { FIRST_ID, useGetNavState } from 'stores/history/HistoryStore';
 import { requestIdleCallback } from 'utils/requestIdleCallback';
-import historyStateQueue from 'core/globalState/historyStateQueue';
+import historyQueue from 'core/globalState/historyQueue';
 import usePrependPathToHistory from './usePrependPathToHistory';
 
 export default function useGoLeftStack(): Stable<(defaultBackPath?: string | null) => void> {
@@ -30,17 +30,17 @@ export default function useGoLeftStack(): Stable<(defaultBackPath?: string | nul
       prependPathToHistory(defaultBackPath || '/');
 
       if (!isHome) {
-        historyStateQueue.back();
+        historyQueue.back();
       }
     } else if (defaultBackPath
       && backState.path === '/'
       && backState.id < FIRST_ID
       && defaultBackPath !== curState.path
     ) {
-      historyStateQueue.flush();
+      historyQueue.flush();
 
       setTimeout(() => {
-        historyStateQueue.back();
+        historyQueue.back();
         window.addEventListener(
           'popstate',
           () => {
@@ -50,7 +50,7 @@ export default function useGoLeftStack(): Stable<(defaultBackPath?: string | nul
         );
       }, 0);
     } else if (!isHome) {
-      historyStateQueue.back();
+      historyQueue.back();
     }
   }, [getNavState, prependPathToHistory]);
 }

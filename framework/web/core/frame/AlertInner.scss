@@ -1,0 +1,70 @@
+.alert {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  box-shadow: 0 0 20px rgb(0 0 0 / 20%);
+  border-radius: 4px;
+  text-align: center;
+  min-width: $bodyMinWidth * 0.8;
+  width: 90vw;
+  max-width: $screenSm;
+  max-height: calc(var(--vh100, 100vh) * 0.9);
+  overflow: hidden;
+  // stylelint-disable-next-line plugin/no-unsupported-browser-features
+  overscroll-behavior-y: contain;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+
+  @include gtMd {
+    width: $screenSm;
+    padding: 2rem 3rem;
+  }
+}
+
+.title {
+  flex-shrink: 0;
+  margin-bottom: 2rem;
+}
+
+.loading {
+  min-height: calc(var(--vh100, 100vh) * 0.3);
+}
+
+.msg {
+  @extend %scrollableY;
+
+  color: $lightTextColor;
+  overflow-wrap: break-word;
+  margin: -0.5rem -2rem 0 -2rem;
+  padding: 0 2rem;
+
+  & > p:last-child {
+    margin-bottom: 0;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: $textColor;
+  }
+}
+
+.simpleMsg {
+  white-space: pre-line;
+  text-wrap: balance;
+}
+
+.hasBottomBtns {
+  margin-bottom: 2rem;
+}
+
+.btns {
+  flex-shrink: 0;
+}
+
+.btnSeparator {
+  height: 1.5rem;
+}

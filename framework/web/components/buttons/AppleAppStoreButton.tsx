@@ -3,8 +3,8 @@ import AppleSvg from 'svgs/fa5/apple-brands.svg';
 import { APP_STORE_URL } from 'config';
 
 export default function AppleAppStoreButton({
-  className,
   overrides,
+  ...props
 }: Parameters<typeof Button>[0]) {
   return (
     <Button
@@ -28,7 +28,7 @@ export default function AppleAppStoreButton({
         padding: '0.8rem 1rem',
         ...overrides,
       }}
-      className={className}
+      {...props}
     />
   );
 }

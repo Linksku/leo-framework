@@ -13,7 +13,7 @@ import {
 import {
   getFullPathFromState,
 } from 'stores/history/historyStoreHelpers';
-import historyStateQueue from 'core/globalState/historyStateQueue';
+import historyQueue from 'core/globalState/historyQueue';
 import useWindowEvent from 'utils/useWindowEvent';
 import { canCancelBacks } from 'core/browserHacks/browserHackGatings';
 import useEffectInitialMount from 'utils/useEffectInitialMount';
@@ -80,7 +80,7 @@ export default function PopstateEventHandler() {
       updateHistoryState({});
     }
 
-    if (!historyStateQueue.isEmpty()
+    if (!historyQueue.isEmpty()
       // Popped twice too quickly, for fixing swipe back gesture.
       || (newDirection === 'back' && performance.now() - lastPopStateTime < 100)) {
       _pushLastState();
@@ -115,7 +115,7 @@ export default function PopstateEventHandler() {
         ...forwardStates.slice(0, MAX_FORWARD_STATES - 1),
       ]);
       newBackStates = markStable(
-        nativeHistoryState?.backId
+        nativeHistoryState?.backId != null
           && nativeHistoryState.backPath
           && !equalHistoryStates(
             getNativeStatePart(nativeHistoryState, 'back'),
@@ -136,7 +136,7 @@ export default function PopstateEventHandler() {
         ...backStates.slice(0, MAX_BACK_STATES - 1),
       ]);
       newForwardStates = markStable(
-        nativeHistoryState?.forwardId
+        nativeHistoryState?.forwardId != null
           && nativeHistoryState.forwardPath
           && !equalHistoryStates(
             getNativeStatePart(nativeHistoryState, 'forward'),
@@ -162,10 +162,10 @@ export default function PopstateEventHandler() {
       }
 
       newCurState = buildHistoryState(nativeHistoryState);
-      newBackStates = nativeHistoryState.backId && nativeHistoryState.backPath
+      newBackStates = nativeHistoryState.backId != null && nativeHistoryState.backPath
         ? markStable([buildHistoryState(getNativeStatePart(nativeHistoryState, 'back'))])
         : EMPTY_ARR;
-      newForwardStates = nativeHistoryState.forwardId && nativeHistoryState.forwardPath
+      newForwardStates = nativeHistoryState.forwardId != null && nativeHistoryState.forwardPath
         ? markStable([buildHistoryState(getNativeStatePart(nativeHistoryState, 'forward'))])
         : EMPTY_ARR;
     } else {
@@ -192,7 +192,7 @@ export default function PopstateEventHandler() {
       navCount: navCount + 1,
     });
 
-    historyStateQueue.push(() => {
+    historyQueue.push(() => {
       window.history.replaceState(
         getNativeHistoryState({
           curState: newCurState,

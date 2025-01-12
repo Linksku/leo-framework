@@ -2,7 +2,6 @@ import { addPopHandler } from 'stores/history/HistoryStore';
 
 export default function TapToExitHandler() {
   const { curState, prevState } = useNavState();
-  const showToast = useShowToast();
 
   const hasAttemptedExitRef = useRef(false);
   const hasVisitedNonHomeRef = useRef(false);
@@ -32,11 +31,7 @@ export default function TapToExitHandler() {
     }
 
     return undefined;
-  }, [
-    curState,
-    prevState,
-    showToast,
-  ]);
+  }, [curState, prevState]);
 
   return null;
 }

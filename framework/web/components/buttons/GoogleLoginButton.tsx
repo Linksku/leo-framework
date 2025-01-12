@@ -33,8 +33,6 @@ function GoogleLoginButton({
   const forceUpdate = useUpdate();
   const [signingIn, setSigningIn] = useState(false);
   const initErr = useRef<Error | null>(null);
-  const showToast = useShowToast();
-  const showConfirm = useShowConfirm();
 
   const { fetching, fetchApi: loginUser } = useDeferredApi(
     'googleLoginUser',
@@ -150,6 +148,7 @@ function GoogleLoginButton({
         }
         setSigningIn(false);
       }}
+      fullWidth
       overrides={{
         color: disabled ? '#999' : '#666',
         backgroundColor: '#fff',

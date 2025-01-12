@@ -27,8 +27,6 @@ function AppleLoginButton({
   const [initialized, setInitialized] = useState(detectPlatform().isNative);
   const [signingIn, setSigningIn] = useState(false);
   const initErr = useRef<Error | null>(null);
-  const showToast = useShowToast();
-  const showConfirm = useShowConfirm();
   const ref = useRef({ name: '' });
 
   const { fetching, fetchApi: loginUser } = useDeferredApi(
@@ -65,6 +63,7 @@ function AppleLoginButton({
     <Button
       LeftSvg={AppleSvg}
       label={type === 'login' ? 'Sign in with Apple' : 'Sign up with Apple'}
+      fullWidth
       onClick={async () => {
         const platform = detectPlatform();
         if (platform.webviewApp

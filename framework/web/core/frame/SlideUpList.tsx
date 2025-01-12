@@ -24,7 +24,6 @@ export default function SlideUpList({
   items = [],
   context,
 }: Props) {
-  const hideSlideUp = useHideSlideUp();
   const itemsShown = TS.filterNulls(items)
     .filter(item => item && (item === 'separator' || item.content));
 

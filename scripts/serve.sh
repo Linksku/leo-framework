@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ARG_NODE_ENV=$NODE_ENV
-export $(grep -v '^#' env/env | xargs)
+export $(grep -v '^#' env/env.dev | xargs)
 NODE_ENV=$ARG_NODE_ENV
 
 if [ "$SERVER" == "production" ]; then

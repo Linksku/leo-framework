@@ -109,7 +109,6 @@ export default function useDeferredApi<
   const [authToken] = useAuthTokenStorage();
   const handleApiEntities = useHandleApiEntities(type !== 'load');
   const handleErrorResponse = useHandleErrorResponse();
-  const showToast = useShowToast();
   const getIsMounted = useGetIsMounted();
 
   const fetchApi: FetchApiPromise<Name, Params> = useCallback(
@@ -279,7 +278,6 @@ export default function useDeferredApi<
       getIsMounted,
       returnState,
       update,
-      showToast,
       successMsg,
       showToastOnError,
       latestOnFetch,

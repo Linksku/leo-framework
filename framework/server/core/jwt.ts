@@ -4,9 +4,7 @@ import JWT, { SignOptions, TokenExpiredError, VerifyOptions } from 'jsonwebtoken
 import type { JwtPayloads } from 'config/jwtPayloads';
 import { DEFAULT_COOKIES_TTL } from 'consts/server';
 
-const jwtKey = process.env.PRODUCTION
-  ? process.env.PROD_JWT_KEY
-  : process.env.DEV_JWT_KEY;
+const jwtKey = process.env.JWT_KEY;
 export const keyObj = createSecretKey(Buffer.from(jwtKey));
 
 const DEFAULT_HEADER_ENCODED = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.';

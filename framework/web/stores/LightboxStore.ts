@@ -1,48 +1,26 @@
+import { getDefaultStore } from 'jotai';
+
 import { addPopHandler, removePopHandler } from 'stores/history/HistoryStore';
 
-export const [
-  LightboxProvider,
-  useLightboxStore,
-  useShowLightbox,
-] = constate(
-  function LightboxStore() {
-    const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-    const shownRef = useRef(false);
+export const mediaUrlAtom = atom<string | null>(null);
 
-    const handlePopHistory = useCallback(() => {
-      if (shownRef.current) {
-        setMediaUrl(null);
-        return true;
-      }
-      return false;
-    }, []);
+function handlePopHistory() {
+  const store = getDefaultStore();
+  if (store.get(mediaUrlAtom)) {
+    store.set(mediaUrlAtom, null);
+    return true;
+  }
+  return false;
+}
 
-    const showLightbox = useCallback((url: string) => {
-      setMediaUrl(url);
+export const showLightbox = markStable(function showLightbox(url: string) {
+  getDefaultStore().set(mediaUrlAtom, url);
 
-      addPopHandler(handlePopHistory);
-    }, [handlePopHistory]);
+  addPopHandler(handlePopHistory);
+});
 
-    const hideLightbox = useCallback(() => {
-      setMediaUrl(null);
+export const hideLightbox = markStable(function hideLightbox() {
+  getDefaultStore().set(mediaUrlAtom, null);
 
-      removePopHandler(handlePopHistory);
-    }, [handlePopHistory]);
-
-    useEffect(() => {
-      shownRef.current = !!mediaUrl;
-    }, [mediaUrl]);
-
-    return useMemo(() => ({
-      mediaUrl,
-      showLightbox,
-      hideLightbox,
-    }), [mediaUrl, showLightbox, hideLightbox]);
-  },
-  function LightboxStore(val) {
-    return val;
-  },
-  function ShowLightbox(val) {
-    return val.showLightbox;
-  },
-);
+  removePopHandler(handlePopHistory);
+});

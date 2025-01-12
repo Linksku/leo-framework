@@ -1,4 +1,4 @@
-import historyStateQueue from 'core/globalState/historyStateQueue';
+import historyQueue from 'core/globalState/historyQueue';
 import { useGetNavState } from 'stores/history/HistoryStore';
 import { requestIdleCallback } from 'utils/requestIdleCallback';
 
@@ -23,9 +23,9 @@ export default function useGoRightStack(): Stable<() => void> {
 
     if (rightStack) {
       if (!isForwardHome) {
-        historyStateQueue.forward();
+        historyQueue.forward();
       } else {
-        historyStateQueue.back();
+        historyQueue.back();
       }
     }
   }, [getNavState]);

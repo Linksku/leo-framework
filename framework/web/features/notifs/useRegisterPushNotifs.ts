@@ -161,7 +161,5 @@ export default function useRegisterPushNotifs(): Stable<() => Promise<boolean>> 
     || grantedPermissions !== false) {
     return null;
   }
-  return supportsNotifs
-    ? registerPushNotifs
-    : null;
+  return registerPushNotifs;
 }

@@ -14,7 +14,6 @@ export default function GeolocateButton({
   onGeolocate,
   color,
 }: Props) {
-  const showAlert = useShowAlert();
   const [fetching, setFetching] = useState(false);
 
   return (

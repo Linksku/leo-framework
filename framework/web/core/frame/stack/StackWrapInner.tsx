@@ -18,7 +18,7 @@ type Props = {
   confirmOnBack?: boolean,
   greyBackground?: boolean,
   // Can't put fixed elements inside .inner because of translateZ(0)
-  fixedElements?: React.ReactNode,
+  fixedElement?: React.ReactNode,
   bottomColor?: string,
   bottomBar?: ReactElement,
   flexBody?: boolean,
@@ -32,7 +32,7 @@ export default function StackWrapInner({
   disableBackSwipe,
   confirmOnBack,
   greyBackground,
-  fixedElements,
+  fixedElement,
   bottomColor,
   bottomBar,
   flexBody,
@@ -51,7 +51,6 @@ export default function StackWrapInner({
   const goLeftStack = useGoLeftStack();
   const goRightStack = useGoRightStack();
   const windowSize = useWindowSize();
-  const showToast = useShowToast();
 
   const outerScrollTop = useRef(0);
   const innerScroll = useRef({ top: 0, idx: 0 });
@@ -93,7 +92,7 @@ export default function StackWrapInner({
         outerScrollTop.current = routeContainerRef.current?.scrollTop ?? 0;
       }
     };
-  }, [confirmOnBack, showToast, flexBody, routeContainerRef]));
+  }, [confirmOnBack, flexBody, routeContainerRef]));
 
   const enableSwipeFromLeft = isRouteActive && !disableBackSwipe;
   const enableSwipeFromRight = (isRouteActive || isRightStack) && !!forwardState;
@@ -144,7 +143,8 @@ export default function StackWrapInner({
   ]);
   // todo: mid/mid swipeable element should be full width
   return (
-    <div
+    <Swipeable
+      swipeProps={swipeProps}
       className={cx(styles.container, className, {
         [styles.greyBackground]: greyBackground,
       })}
@@ -152,15 +152,14 @@ export default function StackWrapInner({
       <div className={styles.topBarWrap}>
         <StackWrapInnerTopBar
           {...props}
-          noBorder={greyBackground}
+          darkerBorder={greyBackground}
         />
       </div>
 
-      <Swipeable
+      <div
         ref={ref => {
           routeContainerRef.current = markStable(ref);
         }}
-        swipeProps={swipeProps}
         className={cx(styles.body, {
           [styles.flexBody]: flexBody,
           [styles.fullWidth]: fullWidth,
@@ -184,9 +183,9 @@ export default function StackWrapInner({
             }}
           />
         </ErrorBoundary>
-      </Swipeable>
+      </div>
 
-      {fixedElements}
+      {fixedElement}
 
       {bottomBar && (
         <div className={styles.bottomBarWrap}>
@@ -195,6 +194,6 @@ export default function StackWrapInner({
           </div>
         </div>
       )}
-    </div>
+    </Swipeable>
   );
 }

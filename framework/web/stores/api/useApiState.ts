@@ -47,30 +47,26 @@ export default function useApiState<
     return apiState;
   });
 
-  useEffect(() => {
-    if (!shouldFetch) {
-      return undefined;
-    }
-
-    const unsub = subscribeApiState({
+  useEffect(
+    // Even if shouldFetch is false, api state could change, e.g. request is mid-flight
+    () => subscribeApiState({
       name,
       params,
       initialCursor,
       state: stateRef.current,
       update,
       routeKey,
-    });
-    return unsub;
-  }, [
-    shouldFetch,
-    subscribeApiState,
-    name,
-    params,
-    initialCursor,
-    stateRef,
-    update,
-    routeKey,
-  ]);
+    }),
+    [
+      subscribeApiState,
+      name,
+      params,
+      initialCursor,
+      stateRef,
+      update,
+      routeKey,
+    ],
+  );
 
   // Initial fetching state, before useApi is called
   const prevFetching = usePrevious(stateRef.current.fetching);

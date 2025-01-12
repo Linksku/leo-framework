@@ -13,12 +13,14 @@ export default React.memo(function AuthRequiredRoute() {
           key="login"
           href="/login"
           label="Log in"
+          fullWidth
         />,
         <Button
           key="home"
           href="/"
           label="Go to home"
           outline
+          fullWidth
         />,
       ]}
       showReload={false}

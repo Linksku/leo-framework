@@ -26,7 +26,7 @@ export default async function buildApiTypes() {
   const apis = getApis();
 
   for (const api of apis) {
-    if (api.config.paramsSchema) {
+    if (!api.raw && api.config.paramsSchema) {
       validateSchema(api.config.name, api.config.paramsSchema);
 
       // eslint-disable-next-line no-await-in-loop
@@ -43,9 +43,13 @@ export default async function buildApiTypes() {
 ${fields.split('\n').slice(1, -2).join('\n').replaceAll('"', '\'')}
 }
 `);
+    } else {
+      paramsInterfaces.push(`interface ${ucFirst(api.config.name)}ApiParams {
+}
+`);
     }
 
-    if (api.config.dataSchema) {
+    if (!api.raw && api.config.dataSchema) {
       validateSchema(api.config.name, api.config.dataSchema);
 
       // eslint-disable-next-line no-await-in-loop
@@ -69,11 +73,7 @@ ${dataInterfaces.join('\n')}
 type ApiNameToParams = {
 ${
   apis.map(
-    a => `  '${a.config.name}': ${
-      a.config.paramsSchema
-        ? `${ucFirst(a.config.name)}ApiParams`
-        : 'undefined'
-    },`,
+    a => `  '${a.config.name}': ${ucFirst(a.config.name)}ApiParams,`,
   ).join('\n')
 }
 };
@@ -82,7 +82,7 @@ type ApiNameToData = {
 ${
   apis.map(
     a => `  '${a.config.name}': ${
-      a.config.dataSchema
+      !a.raw && a.config.dataSchema
         ? `${ucFirst(a.config.name)}ApiData`
         : 'null'
     },`,

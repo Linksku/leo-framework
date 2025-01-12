@@ -82,6 +82,7 @@
     "@capacitor/screen-orientation": "^6.0.2",
     "@capacitor/share": "^6.0.2",
     "@capacitor/splash-screen": "^6.0.2",
+    "@capacitor/status-bar": "^6.0.2",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@floating-ui/dom": "^1.6.11",
     "@kafkajs/confluent-schema-registry": "^3.3.0",

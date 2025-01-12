@@ -9,7 +9,7 @@ import {
   getFullPathFromState,
   getPartsFromPath,
 } from 'stores/history/historyStoreHelpers';
-import historyStateQueue from 'core/globalState/historyStateQueue';
+import historyQueue from 'core/globalState/historyQueue';
 import prefetchRoute from 'core/router/prefetchRoute';
 
 export default function usePushPath(): Stable<(
@@ -52,7 +52,7 @@ export default function usePushPath(): Stable<(
       && queryStr === backState.queryStr
       && hash === backState.hash) {
       // todo: low/mid disallow back to auto-added home
-      historyStateQueue.back();
+      historyQueue.back();
       return;
     }
 
@@ -109,7 +109,7 @@ export default function usePushPath(): Stable<(
     if (sync) {
       updateNativeHistory();
     } else {
-      historyStateQueue.push(updateNativeHistory);
+      historyQueue.push(updateNativeHistory);
     }
   }, [getNavState, updateHistoryState]);
 }

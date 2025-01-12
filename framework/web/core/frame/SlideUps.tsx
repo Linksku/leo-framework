@@ -1,17 +1,19 @@
 import type { Props as SwipeProps } from 'core/useSwipeNavigation';
 import Swipeable from 'core/frame/Swipeable';
 import ErrorBoundary from 'core/frame/ErrorBoundary';
-import { useAnimation } from 'core/useAnimation';
+import { useAnimatedValue, useAnimation } from 'core/useAnimation';
+import usePrevious from 'utils/usePrevious';
+import { elemAtom, hideSlideUp, shownAtom } from 'stores/SlideUpStore';
 
 import styles from './SlideUps.scss';
 
 export default function SlideUps() {
-  const {
-    hideSlideUp,
-    slideUpShown,
-    slideUpElement,
-    animatedShownPercent,
-  } = useSlideUpStore();
+  const shown = useAtomValue(shownAtom);
+  const element = useAtomValue(elemAtom);
+  const animatedShownPercent = useAnimatedValue(
+    0,
+    { debugName: 'SlideUps' },
+  );
   const [overlayRef, overlayStyle] = useAnimation<HTMLDivElement>(
     animatedShownPercent,
     'SlideUps:overlay',
@@ -20,6 +22,13 @@ export default function SlideUps() {
     animatedShownPercent,
     'SlideUps',
   );
+
+  const prevShown = usePrevious(shown);
+  useEffect(() => {
+    if (prevShown && !shown) {
+      animatedShownPercent.setVal(0, !element ? 0 : undefined);
+    }
+  }, [animatedShownPercent, prevShown, shown, element]);
 
   const overlaySwipeProps = useMemo(() => ({
     elementRef: containerRef,
@@ -32,12 +41,11 @@ export default function SlideUps() {
       );
     },
     direction: 'down',
-    disabled: !slideUpShown,
+    disabled: !shown,
   } satisfies SwipeProps<HTMLDivElement>), [
     animatedShownPercent,
     containerRef,
-    hideSlideUp,
-    slideUpShown,
+    shown,
   ]);
   const containerSwipeProps = useMemo(() => ({
     onNavigate: () => hideSlideUp(),
@@ -49,20 +57,19 @@ export default function SlideUps() {
       );
     },
     direction: 'down',
-    disabled: !slideUpShown,
+    disabled: !shown,
   } satisfies SwipeProps<HTMLDivElement>), [
     animatedShownPercent,
-    hideSlideUp,
-    slideUpShown,
+    shown,
   ]);
 
   useEffect(() => {
-    if (slideUpElement) {
+    if (element) {
       animatedShownPercent.setVal(100);
     }
-  }, [slideUpElement, animatedShownPercent]);
+  }, [element, animatedShownPercent]);
 
-  if (!slideUpElement) {
+  if (!element) {
     return null;
   }
   return (
@@ -109,7 +116,7 @@ export default function SlideUps() {
               />
             )}
           >
-            {slideUpElement}
+            {element}
           </ErrorBoundary>
         </div>
       </Swipeable>

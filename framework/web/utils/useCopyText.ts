@@ -1,7 +1,9 @@
 import retryImport from 'utils/retryImport';
 
-export default function useCopyText(): (str: string, toastMsg?: string | boolean) => void {
-  const showToast = useShowToast();
+export default function useCopyText(): (
+  str: string,
+  toastMsg?: string | boolean,
+) => void {
   return useCallback((
     str: string,
     toastMsg: string | boolean = true,
@@ -28,5 +30,5 @@ export default function useCopyText(): (str: string, toastMsg?: string | boolean
         showToast({ msg: 'Failed to copy' });
       }
     }
-  }, [showToast]);
+  }, []);
 }

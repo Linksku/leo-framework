@@ -3,7 +3,6 @@ import type { Knex } from 'knex';
 import { QueryBuilder as BaseQueryBuilder } from 'objection';
 // @ts-expect-error Objection is missing type
 import { KnexOperation as _KnexOperation } from 'objection/lib/queryBuilder/operations/KnexOperation.js';
-import unzip from 'lodash/unzip.js';
 
 import formatTsquery from 'utils/db/formatTsquery';
 import { AGGREGATE_FUNCTIONS } from 'consts/pg';
@@ -37,14 +36,6 @@ export interface CustomQueryBuilderMethods {
   ): this;
   withinDist(latCol: string, lngCol: string, lat: number, lng: number, dist: number): this;
   orderByDist(latCol: string, lngCol: string, lat: number, lng: number): this;
-  fromValues(
-    data: {
-      col: string,
-      rows: any[],
-      dataType: string,
-    }[],
-    alias: string,
-  ): this;
   joinLateral(table: Knex.Raw | BaseQueryBuilder<any>): this;
   leftJoinLateral(table: Knex.Raw | BaseQueryBuilder<any>): this;
   tableSample(type: 'bernoulli' | 'system' | 'system_rows', arg: number): this;
@@ -214,56 +205,6 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
       'st_distance(st_point(??, ??)::geography, st_point(?, ?))',
       [lngCol, latCol, lng, lat],
     );
-  }
-
-  fromValues(
-    data: {
-      col: string,
-      rows: any[],
-      dataType: string,
-    }[],
-    alias: string,
-  ): this {
-    if (!data.length) {
-      throw new Error('CustomQueryBuilder.fromValues: missing data');
-    }
-    const numRows = data[0].rows.length;
-    if (data.some(d => d.rows.length !== numRows)) {
-      throw new Error('CustomQueryBuilder.fromValues: rows have different lengths');
-    }
-
-    if (!numRows) {
-      return this.from(raw(
-        `
-          (select ${
-            data.map(d => `null ??::${d.dataType}`).join(',')
-          } from generate_series(0, -1)) ??
-        `,
-        [
-          ...data.map(d => d.col),
-          alias,
-        ],
-      ));
-    }
-
-    return this.from(raw(
-      `
-        (values ${
-          Array.from(
-            { length: numRows },
-            (_, idx) => (idx === 0
-              ? `(${data.map(d => `?::${d.dataType}`).join(',')})`
-              : `(${data.map(_ => '?').join(',')})`),
-          ).join(',')
-        })
-        ??(${data.map(_ => '??').join(', ')})
-      `,
-      [
-        ...unzip(data.map(d => d.rows)).flat(),
-        alias,
-        ...data.map(d => d.col),
-      ],
-    ));
   }
 
   // Note: useful in MZ for top per group.

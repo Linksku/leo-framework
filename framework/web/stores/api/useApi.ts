@@ -214,6 +214,7 @@ function useApi<
     name,
     params,
     key,
+    cacheBreaker,
     shouldFetch,
     refetchOnMount,
     clearCache,

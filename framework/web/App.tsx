@@ -1,5 +1,6 @@
 import { SplashScreen } from '@capacitor/splash-screen';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
+import { StatusBar } from '@capacitor/status-bar';
 
 import Router from 'core/router/Router';
 import ErrorBoundary from 'core/frame/ErrorBoundary';
@@ -9,19 +10,14 @@ import LoadingRoute from 'routes/LoadingRoute';
 import useEffectInitialMount from 'utils/useEffectInitialMount';
 import detectPlatform from 'utils/detectPlatform';
 
-import { AlertsProvider } from 'stores/AlertsStore';
 import { ApiProvider } from 'stores/api/ApiStore';
 import { AuthProvider } from 'stores/AuthStore';
 import { BatchImagesLoadProvider } from 'stores/BatchImagesLoadStore';
 import { EntitiesProvider } from 'stores/entities/EntitiesStore';
 import { EntitiesIndexProvider } from 'stores/entities/EntitiesIndexStore';
 import { HistoryProvider } from 'stores/history/HistoryStore';
-import { LightboxProvider } from 'stores/LightboxStore';
-import { RelationsProvider } from 'stores/RelationsStore';
 import { NotifsProvider } from 'stores/NotifsStore';
 import { SseProvider } from 'stores/sse/SseStore';
-import { SlideUpProvider } from 'stores/SlideUpStore';
-import { ToastsProvider } from 'stores/ToastsStore';
 import { UIFrameProvider } from 'stores/UIFrameStore';
 import providers from 'config/storeProviders';
 import 'core/mainBundleImports';
@@ -39,6 +35,11 @@ export default function App() {
       ScreenOrientation.lock({ orientation: 'portrait' })
         .catch(err => {
           ErrorLogger.warn(err, { ctx: 'ScreenOrientation.lock' });
+        });
+
+      StatusBar.setBackgroundColor({ color: '#ffffff' })
+        .catch(err => {
+          ErrorLogger.warn(err, { ctx: 'StatusBar.setBackgroundColor' });
         });
     }
 
@@ -67,16 +68,11 @@ export default function App() {
 
     // UI
     BatchImagesLoadProvider,
-    AlertsProvider,
-    LightboxProvider,
-    SlideUpProvider,
-    ToastsProvider,
     UIFrameProvider,
 
     // Core data
     EntitiesProvider,
     EntitiesIndexProvider,
-    RelationsProvider,
     AuthProvider,
     ApiProvider,
 

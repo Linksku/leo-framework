@@ -9,7 +9,7 @@ This is the public version of my private repo with commits squashed.
 mv .git .git-framework
 git init
 cp app-template app
-cp env/env-template env/env
+cp env/env-template env/env.dev
 cp env/secrets-template env/secrets
 ```
 
@@ -107,7 +107,7 @@ sudo -u postgres psql
 > CREATE EXTENSION postgis;
 ```
 
-6. Edit `env/env`.
+6. Edit `env/env.dev`.
 
 7. Run `yarn ss recreateInfra`
 

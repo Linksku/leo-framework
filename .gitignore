@@ -21,7 +21,7 @@ package-lock.json
 /framework/infra/kafka-connectors/**/target/
 
 # Framework
-/env/env
+/env/env.dev
 
 # Generated
 /stats.json

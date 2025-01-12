@@ -30,7 +30,7 @@
   overflow: visible;
   text-transform: none;
   flex-shrink: 0;
-  display: flex;
+  display: inline-flex;
   flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
@@ -45,6 +45,7 @@
   }
 
   &.fullWidth {
+    display: flex;
     width: 100%;
   }
 
@@ -87,12 +88,12 @@
     &.disabled,
     &.disabled:active {
       background-color: #fff;
-      border-color: $fadedPrimaryColorBg;
-      color: $fadedPrimaryColorBg;
+      border-color: $lightPrimaryColorBg;
+      color: $lightPrimaryColorBg;
 
       .leftSvg,
       .rightSvg {
-        fill: $fadedPrimaryColorBg;
+        fill: $lightPrimaryColorBg;
       }
     }
   }

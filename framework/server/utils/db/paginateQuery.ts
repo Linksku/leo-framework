@@ -4,17 +4,11 @@ import arrFirstDuplicate from 'utils/arrFirstDuplicate';
 
 export type OrderByColumns = (
   {
-    column: Knex.Raw,
-    // If column is something like "coalesce(col, 0)", this is just "col".
-    columnWithoutTransforms: string,
+    column: string,
+    // E.g. "coalesce(col, 0)", for the cursor
+    columnAsNum?: Knex.Raw,
     order: 'asc' | 'desc',
     // If order is desc, nulls is changed to last by default.
-    nulls?: 'first' | 'last',
-  }
-  | {
-    column: string | Knex.Raw,
-    columnWithoutTransforms?: undefined,
-    order: 'asc' | 'desc',
     nulls?: 'first' | 'last',
   }
 )[];
@@ -46,6 +40,7 @@ export const EMPTY_PAGINATION = {
 
 export default async function paginateQuery<
   T extends Model,
+  // todo: low/easy fix type for Item
   Item extends number | string | undefined = undefined,
 >(
   query: QueryBuilder<T>,
@@ -90,18 +85,18 @@ export default async function paginateQuery<
     query = query.where((builder: QueryBuilder<Model, Model[]>) => {
       builder = builder.whereRaw('0=1');
       for (let i = 0; i < orderByColumns.length; i++) {
-        const { column, order } = orderByColumns[i];
+        const { column, columnAsNum, order } = orderByColumns[i];
 
         builder = builder.orWhere((builder2: QueryBuilder<Model, Model[]>) => {
           for (let j = 0; j < i; j++) {
             builder2 = builder2.where(
-              orderByColumns[j].column,
+              orderByColumns[j].columnAsNum ?? orderByColumns[j].column,
               '=',
               cursorCols[j],
             );
           }
           builder2 = builder2.where(
-            column,
+            columnAsNum ?? column,
             order === 'desc' ? '<' : '>',
             cursorCols[i],
           );
@@ -113,23 +108,22 @@ export default async function paginateQuery<
   for (let i = 0; i < orderByColumns.length; i++) {
     let {
       column,
-      columnWithoutTransforms,
+      columnAsNum,
       order,
       nulls,
     } = orderByColumns[i];
 
     query = query
       .select({
-        [`__cursorVal${i}`]: typeof column === 'string' && !column.includes('.')
-          ? `${Model.tableName}.${column}`
-          : column,
+        [`__cursorVal${i}`]: columnAsNum
+          ?? (column.includes('.') ? column : `${Model.tableName}.${column}`),
       });
     if (order === 'desc' && nulls === undefined) {
       nulls = 'last';
     }
     query = nulls
-      ? query.orderByRaw(`?? ${order} nulls ${nulls}`, [columnWithoutTransforms ?? column])
-      : query.orderBy(columnWithoutTransforms ?? column, order);
+      ? query.orderByRaw(`?? ${order} nulls ${nulls}`, [column])
+      : query.orderBy(column, order);
   }
   query = query.limit(limit);
 
@@ -151,7 +145,7 @@ export default async function paginateQuery<
   if (!process.env.PRODUCTION) {
     if (lastRowCursorVals && lastRowCursorVals.some(val => typeof val !== 'number')) {
       throw getErr(
-        `paginateQuery: orderBy columns (${orderByColumns.map(col => col.columnWithoutTransforms ?? col.column).join(',')}) must all be numbers`,
+        `paginateQuery: orderBy columns (${orderByColumns.map(col => col.column).join(',')}) must all be numbers`,
         { lastRowCursorVals },
       );
     }

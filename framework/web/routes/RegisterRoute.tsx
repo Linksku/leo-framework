@@ -289,11 +289,11 @@ export default React.memo(function RegisterRoute() {
           && (
             <>
               {os === 'ios' || os === 'osx'
-                ? <AppleAppStoreButton className={styles.appBtn} />
-                : <GooglePlayStoreButton className={styles.appBtn} />}
+                ? <AppleAppStoreButton fullWidth className={styles.appBtn} />
+                : <GooglePlayStoreButton fullWidth className={styles.appBtn} />}
               {os === 'ios' || os === 'osx'
-                ? <GooglePlayStoreButton className={styles.appBtn} />
-                : <AppleAppStoreButton className={styles.appBtn} />}
+                ? <GooglePlayStoreButton fullWidth className={styles.appBtn} />
+                : <AppleAppStoreButton fullWidth className={styles.appBtn} />}
             </>
           )}
       </div>

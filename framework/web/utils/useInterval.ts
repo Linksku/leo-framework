@@ -1,19 +1,19 @@
-// Note: if cb changes often, need to add option to not reset timer
 export default function useInterval(
-  cb: Stable<() => void>,
+  cb: () => void,
   delay: number,
 ) {
   if (!process.env.PRODUCTION && delay < 10) {
     throw new Error('useInterval: delay must be at least 10ms');
   }
 
+  const latestCb = useLatestCallback(cb);
   useEffect(() => {
     const timer = setInterval(() => {
-      cb();
+      latestCb();
     }, delay);
 
     return () => {
       clearInterval(timer);
     };
-  }, [cb, delay]);
+  }, [latestCb, delay]);
 }

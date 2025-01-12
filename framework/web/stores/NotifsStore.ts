@@ -4,6 +4,7 @@ export const [
   useUnseenNotifIds,
 ] = constate(
   function NotifsStore() {
+    // Notifs are fetched in NotifsHandlers
     const [unseenNotifIds, setUnseenNotifIds] = useState(
       EMPTY_OBJ as Partial<Record<NotifScope, Set<INotif['id']>>>,
     );

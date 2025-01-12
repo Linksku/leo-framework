@@ -1,7 +1,6 @@
 #!/bin/bash
 # Exit if anything fails
 set -e
-source <(grep -v '^#' env/env)
 source <(grep -v '^#' env/secrets)
 
 version=$(git rev-list --count master)
@@ -68,11 +67,11 @@ docker build -t server -f framework/infra/server-dockerfile .
 docker save server | gzip > server.tar.gz
 
 echo "Upload tar"
-scp server.tar.gz "root@$DEPLOY_IP:$DEPLOY_ROOT_DIR"
+scp server.tar.gz "root@$PROD_IP:$PROD_ROOT_DIR"
 
 echo "Run post-deploy"
 GIT_REVS=$(git rev-list --count master)
-ssh -tt "root@$DEPLOY_IP" "source ~/.profile; cd $DEPLOY_ROOT_DIR; git fetch origin; git reset --hard origin/master; scripts/post-deploy.sh $GIT_REVS"
+ssh -tt "root@$PROD_IP" "source ~/.profile; cd $PROD_ROOT_DIR; git fetch origin; git reset --hard origin/master; scripts/post-deploy.sh $GIT_REVS"
 
 curl -s -S --output /dev/null \
   -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \

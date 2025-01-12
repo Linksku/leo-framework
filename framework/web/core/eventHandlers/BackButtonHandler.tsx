@@ -1,7 +1,7 @@
 import type { BackButtonListenerEvent } from '@capacitor/app';
 import { App } from '@capacitor/app';
 
-import historyStateQueue from 'core/globalState/historyStateQueue';
+import historyQueue from 'core/globalState/historyQueue';
 import useEffectOncePerDeps from 'utils/useEffectOncePerDeps';
 
 export default function BackButtonHandler() {
@@ -22,7 +22,7 @@ export default function BackButtonHandler() {
         }
 
         if (event.canGoBack) {
-          historyStateQueue.back();
+          historyQueue.back();
         } else {
           catchAsync(App.exitApp(), 'Capacitor.exitApp');
         }

@@ -1,4 +1,5 @@
 import type { HandleClickLink } from 'components/common/Link';
+
 import styles from './TabsHeader.scss';
 
 export default function TabsHeader<T extends string>({
@@ -8,6 +9,7 @@ export default function TabsHeader<T extends string>({
 }: {
   tabs: Nullish<{
     key: T,
+    Icon?: React.SVGFactory,
     name: string,
     onClick?: HandleClickLink,
   }>[],
@@ -16,19 +18,26 @@ export default function TabsHeader<T extends string>({
 }) {
   return (
     <div className={styles.tabs}>
-      {TS.filterNulls(tabs).map(tab => (
+      {TS.filterNulls(tabs).map(({
+        key,
+        Icon,
+        name,
+        onClick,
+      }) => (
         <Link
-          key={tab.key}
+          key={key}
           className={cx(styles.tab, {
-            [styles.tabActive]: tab.key === activeTab,
+            [styles.withIcon]: !!Icon,
+            [styles.tabActive]: key === activeTab,
           })}
           onClick={e => {
-            setTab(tab.key);
-            tab.onClick?.(e);
+            setTab(key);
+            onClick?.(e);
           }}
           activeBg
         >
-          {tab.name}
+          {Icon && <Icon />}
+          {name}
         </Link>
       ))}
     </div>

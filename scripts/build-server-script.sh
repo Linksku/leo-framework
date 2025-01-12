@@ -6,6 +6,7 @@ if [ -f "build/$NODE_ENV/server/$name.js" ]; then
   rm build/$NODE_ENV/server/$name.js
 fi
 
+# todo: low/easy print webpack errors
 if [ -e "framework/server/scripts/$name.js" ] || [ -e "framework/server/scripts/$name.ts" ]; then
   NODE_ENV=$NODE_ENV \
   SERVER=$SERVER \

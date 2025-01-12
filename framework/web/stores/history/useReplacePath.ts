@@ -8,7 +8,7 @@ import {
   getFullPathFromState,
   getPartsFromPath,
 } from 'stores/history/historyStoreHelpers';
-import historyStateQueue from 'core/globalState/historyStateQueue';
+import historyQueue from 'core/globalState/historyQueue';
 import prefetchRoute from 'core/router/prefetchRoute';
 
 export default function useReplacePath(): Stable<(
@@ -77,7 +77,7 @@ export default function useReplacePath(): Stable<(
     if (sync) {
       updateNativeHistory();
     } else {
-      historyStateQueue.push(updateNativeHistory);
+      historyQueue.push(updateNativeHistory);
     }
   }, [getNavState, updateHistoryState]);
 }

@@ -7,13 +7,17 @@ export default async function renameColumn({
   table,
   oldCol,
   newCol,
+  skipValidation,
 }: {
   isMV: boolean,
   table: string,
   oldCol: string,
   newCol: string,
+  skipValidation?: boolean,
 }) {
-  validateTableCols({ table, col: newCol });
+  if (!skipValidation) {
+    validateTableCols({ table, col: newCol });
+  }
 
   try {
     if (!isMV) {

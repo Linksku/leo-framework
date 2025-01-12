@@ -19,8 +19,9 @@ $separatorColor: #eaeaea;
 $greyBackgroundColor: #f8f8f8;
 $activeBackgroundColor: #eee;
 
-$fadedPrimaryColorBg: color.scale($primaryColor, $saturation: -10%, $lightness: 50%);
-$fadedPrimaryColorText: color.mix($primaryColor, $fadedTextColor, $weight: 30%);
+$lightPrimaryColorBg: color.scale($primaryColor, $saturation: -10%, $lightness: 50%);
+$fadedPrimaryColorBg: color.scale($primaryColor, $saturation: -20%, $lightness: 93%);
+$fadedPrimaryColorText: color.scale($primaryColor, $saturation: -80%, $lightness: 30%);
 $activePrimaryColorBg: color.scale($primaryColor, $lightness: -25%);
 $activePrimaryColorBorder: color.scale($primaryColor, $lightness: -25%);
 

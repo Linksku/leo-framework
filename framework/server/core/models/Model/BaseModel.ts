@@ -359,6 +359,11 @@ class BaseModel extends ObjectionModel implements IBaseModel {
   }
 
   override $parseDatabaseJson(obj: ObjectOf<any>): ObjectOf<any> {
+    // obj could be undefined from "on conflict do nothing returning *"
+    if (!obj) {
+      return obj;
+    }
+
     obj = super.$parseDatabaseJson(obj);
     return parseModel(this.constructor as ModelClass, obj, {
       inPlace: true,

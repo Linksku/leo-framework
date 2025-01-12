@@ -207,6 +207,7 @@ export async function down() {
     ? `${command}_${modelType}${isColumnCommand ? `_${columnName}` : ''}`
     : 'custom';
   const filename = `app/server/migrations/${dayjs().format('YYYY/YYYY-MM-DD_HHmmss')}_${fileDescription}.ts`;
+  await mkdirp(path.dirname(path.resolve(`./${filename}`)));
   await fs.writeFile(
     path.resolve(`./${filename}`),
     fileContent,

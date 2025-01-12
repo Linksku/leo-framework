@@ -3,8 +3,6 @@ import ApiError from 'core/ApiError';
 let lastShowAlertTime = Number.MIN_SAFE_INTEGER;
 
 export default function useHandleErrorResponse() {
-  const showToast = useShowToast();
-  const showAlert = useShowAlert();
   const reloadPage = useReloadPage();
 
   return useCallback((err: Error, showToastOnError = true) => {
@@ -61,5 +59,5 @@ export default function useHandleErrorResponse() {
         });
       }
     }
-  }, [showToast, showAlert, reloadPage]);
+  }, [reloadPage]);
 }

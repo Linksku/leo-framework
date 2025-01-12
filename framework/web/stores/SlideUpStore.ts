@@ -1,103 +1,62 @@
+import { getDefaultStore } from 'jotai';
+
 import { addPopHandler, removePopHandler } from 'stores/history/HistoryStore';
-import { useAnimatedValue } from 'core/useAnimation';
 import { API_POST_TIMEOUT } from 'consts/server';
 
-export const [
-  SlideUpProvider,
-  useSlideUpStore,
-  useShowSlideUp,
-  useHideSlideUp,
-] = constate(
-  function SlideUpStore() {
-    const [state, setState] = useStateStable({
-      shown: false,
-      element: null as Stable<ReactElement> | null,
-      numShown: 0,
-    });
-    const ref = useRef({
-      shown: state.shown,
-      hideTimer: null as number | null,
-    });
-    const animatedShownPercent = useAnimatedValue(
-      0,
-      { debugName: 'SlideUps' },
-    );
+export const shownAtom = atom(false);
 
-    const hideSlideUpRaw = useCallback((instant?: boolean) => {
-      if (ref.current.hideTimer) {
-        clearTimeout(ref.current.hideTimer);
-        ref.current.hideTimer = null;
-      }
+export const elemAtom = atom<Stable<ReactElement> | null>(null);
 
-      if (instant) {
-        setState({ shown: false, element: null });
-      } else {
-        setState({ shown: false });
-        ref.current.hideTimer = window.setTimeout(() => {
-          setState({ element: null });
-          // Wait for APIs to complete
-        }, API_POST_TIMEOUT);
-      }
+const ref = {
+  numShown: 0,
+  hideTimer: null as number | null,
+};
 
-      animatedShownPercent.setVal(0, instant ? 0 : undefined);
-    }, [setState, animatedShownPercent]);
+function hideSlideUpRaw(instant?: boolean) {
+  if (ref.hideTimer) {
+    clearTimeout(ref.hideTimer);
+    ref.hideTimer = null;
+  }
 
-    const handlePopHistory = useCallback(() => {
-      if (ref.current.shown) {
-        hideSlideUpRaw();
-        return true;
-      }
-      return false;
-    }, [hideSlideUpRaw]);
+  const store = getDefaultStore();
+  if (instant) {
+    store.set(shownAtom, false);
+    store.set(elemAtom, null);
+  } else {
+    store.set(shownAtom, false);
+    ref.hideTimer = window.setTimeout(() => {
+      store.set(elemAtom, null);
+      // Wait for APIs to complete
+    }, API_POST_TIMEOUT);
+  }
+}
 
-    const hideSlideUp = useCallback((instant?: boolean) => {
-      hideSlideUpRaw(instant);
-      removePopHandler(handlePopHistory);
-    }, [hideSlideUpRaw, handlePopHistory]);
+function handlePopHistory() {
+  if (getDefaultStore().get(shownAtom)) {
+    hideSlideUpRaw();
+    return true;
+  }
+  return false;
+}
 
-    const showSlideUp = useCallback((element: ReactElement) => {
-      if (ref.current.hideTimer) {
-        clearTimeout(ref.current.hideTimer);
-        ref.current.hideTimer = null;
-      }
+export const hideSlideUp = markStable(function hideSlideUp(instant?: boolean) {
+  hideSlideUpRaw(instant);
+  removePopHandler(handlePopHistory);
+});
 
-      setState(s => ({
-        shown: true,
-        element: markStable(React.cloneElement(
-          element,
-          { key: s.numShown },
-        )),
-        numShown: s.numShown + 1,
-      }));
+export const showSlideUp = markStable(function showSlideUp(element: ReactElement) {
+  if (ref.hideTimer) {
+    clearTimeout(ref.hideTimer);
+    ref.hideTimer = null;
+  }
 
-      addPopHandler(handlePopHistory);
-    }, [setState, handlePopHistory]);
+  const store = getDefaultStore();
+  store.set(shownAtom, true);
+  store.set(elemAtom, markStable(React.cloneElement(
+    element,
+    { key: ref.numShown },
+  )));
+  ref.numShown++;
 
-    useEffect(() => {
-      ref.current.shown = state.shown;
-    }, [state.shown]);
-
-    return useMemo(() => ({
-      showSlideUp,
-      hideSlideUp,
-      slideUpShown: state.shown,
-      slideUpElement: state.element,
-      animatedShownPercent,
-    }), [
-      showSlideUp,
-      hideSlideUp,
-      state.shown,
-      state.element,
-      animatedShownPercent,
-    ]);
-  },
-  function SlideUpStore(val) {
-    return val;
-  },
-  function ShowSlideUp(val) {
-    return val.showSlideUp;
-  },
-  function HideSlideUp(val) {
-    return val.hideSlideUp;
-  },
-);
+  addPopHandler(handlePopHistory);
+});
