@@ -1,5 +1,5 @@
 // If ref is used only in callbacks/effects, use useLatest.
-export default function useLatestImmediate<T>(val: T): React.MutableRefObject<T> {
+export default function useLatestImmediate<T>(val: T): React.RefObject<T> {
   const ref = useRef({
     tempVal: val,
     committedVal: val,
@@ -8,7 +8,7 @@ export default function useLatestImmediate<T>(val: T): React.MutableRefObject<T>
   ref.current.tempVal = val;
   const startingUpdateCount = ref.current.updateCount;
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     ref.current.committedVal = ref.current.tempVal;
     ref.current.updateCount++;
   });

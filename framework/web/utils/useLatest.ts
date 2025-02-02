@@ -2,10 +2,10 @@
 // For callbacks, use useLatestCallback
 export default function useLatest<T extends ObjectOf<any> | Primitive>(
   val: T & (T extends AnyFunction ? never : unknown),
-): React.MutableRefObject<T> {
+): React.RefObject<T> {
   const ref = useRef(val);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     ref.current = val;
   });
 

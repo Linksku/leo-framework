@@ -3,9 +3,10 @@ import yaml from 'js-yaml';
 import omit from 'lodash/omit.js';
 
 import './framework/server/core/initEnv.cjs';
+import { APP_NAME_LOWER } from './app/shared/config/config.js';
 
-if (!process.env.SERVER || !process.env.NODE_ENV || !process.env.REDIS_PASS) {
-  throw new Error('Docker: env vars not set.');
+if (!process.env.SERVER || !process.env.NODE_ENV || !process.env.REDIS_PASS || !APP_NAME_LOWER) {
+  throw new Error('Docker: missing config');
 }
 
 const OMIT_SERVICES = process.env.SERVER === 'production'
@@ -144,6 +145,9 @@ function getBrokerConfig(n) {
       KAFKA_TOOLS_LOG4J_LOGLEVEL: 'WARN',
       CONFLUENT_REPORTERS_TELEMETRY_AUTO_ENABLE: false,
     },
+    profiles: [
+      'mz',
+    ],
     healthcheck: {
       test: [
         'CMD',
@@ -190,6 +194,9 @@ const SERVICES = {
       SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: 'WARN',
       SCHEMA_REGISTRY_TOOLS_LOG4J_LOGLEVEL: 'WARN',
     },
+    profiles: [
+      'mz',
+    ],
     healthcheck: {
       test: ['CMD-SHELL', 'curl -f http://localhost:8081 || exit 1'],
       interval: '5s',
@@ -236,6 +243,9 @@ const SERVICES = {
       CONNECT_LOG4J_ROOT_LOGLEVEL: 'WARN',
       CONNECT_TOOLS_LOG4J_LOGLEVEL: 'WARN',
     },
+    profiles: [
+      'mz',
+    ],
     healthcheck: {
       test: ['CMD-SHELL', 'curl -f http://localhost:8083 || exit 1'],
       interval: '5s',
@@ -266,6 +276,9 @@ const SERVICES = {
       --introspection-frequency off
       --log-filter WARN
     `,
+    profiles: [
+      'mz',
+    ],
     healthcheck: {
       test: ['CMD', 'curl', 'http://localhost:6875/status'],
       interval: '5s',

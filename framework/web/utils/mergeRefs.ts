@@ -6,7 +6,7 @@ export default function mergeRefs<T extends HTMLElement | undefined>(
       if (typeof ref === 'function') {
         ref(value);
       } else if (ref) {
-        (ref as React.MutableRefObject<T>).current = value;
+        (ref as React.RefObject<T>).current = value;
       }
     }
   };

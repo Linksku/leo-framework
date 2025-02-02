@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 
 import { REDIS_HOST, REDIS_PORT, REDIS_USER } from 'consts/infra';
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
@@ -12,7 +12,8 @@ export const redisConfig = {
   maxRetriesPerRequest: 2,
   commandTimeout: API_TIMEOUT / 2,
   showFriendlyErrorStack: !process.env.PRODUCTION,
-};
+  lazyConnect: process.env.IS_SERVER_SCRIPT,
+} satisfies RedisOptions;
 
 export function isRedisUnavailableErr(err: unknown): boolean {
   if (!(err instanceof Error)) {

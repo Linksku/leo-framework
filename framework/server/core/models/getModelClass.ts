@@ -8,7 +8,7 @@ export default function getModelClass<T extends ModelType = ModelType>(
   type: ModelType,
 ): ModelTypeToClass<T> {
   if (!typeToModel) {
-    // eslint-disable-next-line unicorn/prefer-module
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const models = (require('core/models/allModels') as { default: typeof ModelsType })
       .default;
     typeToModel = new Map<ModelType, ModelClass>();

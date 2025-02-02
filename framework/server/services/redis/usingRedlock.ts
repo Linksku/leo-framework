@@ -171,6 +171,7 @@ export default async function usingRedlock(
   }
 
   if (lastErr) {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
     throw lastErr;
   }
 }

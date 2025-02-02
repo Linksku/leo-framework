@@ -1,6 +1,6 @@
 import ApiError from 'core/ApiError';
 
-let lastShowAlertTime = Number.MIN_SAFE_INTEGER;
+let lastShowModalTime = Number.MIN_SAFE_INTEGER;
 
 export default function useHandleErrorResponse() {
   const reloadPage = useReloadPage();
@@ -18,8 +18,8 @@ export default function useHandleErrorResponse() {
 
     if (err instanceof ApiError && err.status === 469) {
       // Client is using old JS files
-      if (performance.now() - lastShowAlertTime > 60 * 1000) {
-        showAlert({
+      if (performance.now() - lastShowModalTime > 60 * 1000) {
+        showModal({
           title: 'New app version available',
           okText: 'Reload to Update',
           onOk() {
@@ -29,7 +29,7 @@ export default function useHandleErrorResponse() {
           showCancel: true,
           cancelText: 'Ignore',
         });
-        lastShowAlertTime = performance.now();
+        lastShowModalTime = performance.now();
       }
       return;
     }

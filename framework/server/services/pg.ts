@@ -3,8 +3,8 @@ import pg from 'pg';
 import { PG_BT_HOST, PG_BT_PORT, PG_BT_DB } from 'consts/infra';
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
 
-if (!process.env.PG_BT_USER) {
-  throw new Error('pg: PG_BT_USER env var not set');
+if (!process.env.PG_BT_USER || !process.env.PG_BT_PASS) {
+  throw new Error('pg: env vars not set');
 }
 
 export default ServiceContextLocalStorage.run(

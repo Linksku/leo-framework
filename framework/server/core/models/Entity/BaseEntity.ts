@@ -1,5 +1,7 @@
 import knexRR from 'services/knex/knexRR';
+import knexBT from 'services/knex/knexBT';
 import shallowEqual from 'utils/shallowEqual';
+import { HAS_MVS } from 'config/__generated__/consts';
 import BaseModel from '../Model';
 
 class BaseEntity extends BaseModel implements IBaseEntity {
@@ -55,6 +57,6 @@ class BaseEntity extends BaseModel implements IBaseEntity {
   }
 }
 
-BaseEntity.knex(knexRR);
+BaseEntity.knex(HAS_MVS ? knexRR : knexBT);
 
 export default BaseEntity;

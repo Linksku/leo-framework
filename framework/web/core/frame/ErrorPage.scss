@@ -14,10 +14,6 @@
   min-height: calc(var(--vh100, 100vh) - #{$headerHeight});
 }
 
-.fullHeightHome {
-  min-height: calc(var(--vh100, 100vh) - #{$headerHeight} - #{$footerHeight});
-}
-
 .title {
   margin-bottom: 2rem;
   white-space: initial;

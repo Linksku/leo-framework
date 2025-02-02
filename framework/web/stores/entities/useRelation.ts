@@ -15,7 +15,7 @@ function useCheckRelationExists(
   entity: Entity | null,
   relationName: string,
 ) {
-  const timerRef = useRef<number | undefined>();
+  const timerRef = useRef<number | undefined>(undefined);
 
   const isRouteVisible = useIsRouteVisible(true) ?? true;
   const hadBeenActive = useHadRouteBeenActive(true) ?? true;

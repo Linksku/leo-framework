@@ -1,7 +1,7 @@
 type ReactNode = React.ReactNode;
 type ReactElement = React.ReactElement;
-type ReactFragment = React.ReactFragment;
 type SetState<T> = Stable<React.Dispatch<React.SetStateAction<T>>>;
+type SVGFactory = React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 declare class __STABLE {
@@ -22,8 +22,8 @@ type Stable<T> = T extends Primitive ? T
 type StableTypes = Primitive
   | StableObjects
   | React.ComponentType<any>
-  | React.MutableRefObject<any>
-  | React.SVGFactory
+  | React.RefObject<any>
+  | SVGFactory
   | HTMLElement
   | __STABLE;
 

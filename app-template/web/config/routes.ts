@@ -1,9 +1,19 @@
-const routes = [
-  {
-    type: 'home',
-    pattern: '/',
-    Component: React.lazy(async () => import(/* webpackChunkName: 'HomeRoute' */ '../routes/HomeFeedRoute')),
-  },
-];
-
-export default routes as Stable<(typeof routes)[number]>[];
+export default [
+  [
+    '/',
+    () => import('routes/HomeRoute'),
+  ],
+  [
+    /.*/i,
+    () => import(
+      /* webpackChunkName: 'NotFoundRoute' */ 'routes/NotFoundRoute'
+    ),
+  ],
+] as [
+  RouteConfig['pattern'],
+  (() => Promise<{ default: React.ComponentType<any> | React.NamedExoticComponent<any> }>),
+  Omit<
+    RouteConfig,
+    'pattern' | 'importComponent' | 'getComponent' | 'regexPrefix'
+  >?,
+][];

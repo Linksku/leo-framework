@@ -24,6 +24,7 @@ export default async function checkMZUpdating(timeout = 60 * 1000) {
   await retry(
     async () => {
       if (await redis.get(START_DEPLOY_REDIS_KEY)) {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw forceStopRetry(new Error('Deploying'));
       }
 

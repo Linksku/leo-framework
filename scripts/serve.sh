@@ -9,7 +9,7 @@ if [ "$SERVER" == "production" ]; then
   exit 1
 fi
 
-if [ "$( docker container inspect -f '{{.State.Running}}' $(yarn dc ps -q materialize) )" != "true" ]; then
+if [ "$( docker container inspect -f '{{.State.Running}}' $(yarn dc ps -q redis) )" != "true" ]; then
   yarn docker || { echo 'Docker failed' ; exit 1; }
 fi
 

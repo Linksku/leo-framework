@@ -1,8 +1,6 @@
-import customRoutes from 'config/routes';
-import defaultRoutes from 'routes/defaultRoutes';
+import routes from 'config/routes';
 
-const allRoutes = [...customRoutes, ...defaultRoutes];
-export const allRouteConfigs = allRoutes.map(route => {
+export const allRouteConfigs = routes.map(route => {
   let regexPrefix: string | null = null;
   if (route[0] instanceof RegExp) {
     if (!process.env.PRODUCTION && !route[0].flags.includes('i')) {

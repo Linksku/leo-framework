@@ -1,4 +1,4 @@
-import type { NextFunction } from 'express';
+import type { NextFunction, RequestHandler } from 'express';
 import express from 'express';
 import multer from 'multer';
 import cookieParser from 'cookie-parser';
@@ -16,6 +16,7 @@ import { API_ROUTES_HEADERS, CORS_ORIGIN } from 'consts/httpHeaders';
 import streamApi from 'apis/streamApi';
 import 'apis/authApis';
 import 'apis/batchedApi';
+import 'apis/coreApis';
 import 'apis/debugApis';
 import 'apis/ftueApis';
 import 'apis/notifsApis';
@@ -153,7 +154,7 @@ for (const api of apis) {
   } else if (api.config.fileFields) {
     router[api.config.method ?? 'get'](
       `/${api.config.name}`,
-      upload.fields(api.config.fileFields),
+      upload.fields(api.config.fileFields) as RequestHandler,
       apiWrap(api),
     );
   } else {

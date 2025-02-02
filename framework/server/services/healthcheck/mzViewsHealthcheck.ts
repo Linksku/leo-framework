@@ -1,6 +1,7 @@
 import showMzSystemRows from 'utils/db/showMzSystemRows';
 import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import getEntitiesForMZSources from 'scripts/mv/helpers/getEntitiesForMZSources';
+import { HAS_MVS } from 'config/__generated__/consts';
 import { addHealthcheck } from './HealthcheckManager';
 
 const expectedViews: string[] = [
@@ -10,6 +11,7 @@ const expectedViews: string[] = [
 ];
 
 addHealthcheck('mzViews', {
+  disabled: !HAS_MVS,
   deps: ['mzSources'],
   run: async function mzViewsHealthcheck() {
     const views = await showMzSystemRows('SHOW VIEWS');

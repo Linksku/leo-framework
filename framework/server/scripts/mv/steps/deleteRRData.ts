@@ -1,7 +1,12 @@
 import knexRR from 'services/knex/knexRR';
 import { PG_RR_SCHEMA } from 'consts/infra';
+import { HAS_MVS } from 'config/__generated__/consts';
 
 export default async function deleteRRData(tables?: string[]) {
+  if (!HAS_MVS) {
+    return;
+  }
+
   const startTime = performance.now();
   printDebug('Deleting RR data', 'highlight');
 

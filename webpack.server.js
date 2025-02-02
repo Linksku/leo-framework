@@ -62,7 +62,7 @@ export default mergeReplaceArrays(baseConfig, {
       return Array.isArray(v) ? [p, v[1]] : p;
     })),
     new webpack.EnvironmentPlugin({
-      IS_SERVER_SCRIPT: process.env.SERVER_SCRIPT_PATH ? 'true' : '',
+      IS_SERVER_SCRIPT: !!process.env.SERVER_SCRIPT_PATH,
       SERVER_SCRIPT_PATH: process.env.SERVER_SCRIPT_PATH || '',
     }),
   ],

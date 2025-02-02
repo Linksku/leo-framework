@@ -95,11 +95,19 @@ export default async function initInfraWrap(
       acquireTimeout,
     });
   } catch (err) {
-    if (!allowRedisUnavailable || !isRedisUnavailableErr(err)) {
+    if (!allowRedisUnavailable) {
       throw err;
     }
-    isRedisUnavailable = true;
 
-    await cbWrap(false);
+    if ((err instanceof Error
+        && err.message.includes('timed out acquiring lock')
+        && (redisMaster.status === 'connecting' || redisMaster.status === 'reconnecting'))
+      || isRedisUnavailableErr(err)) {
+      isRedisUnavailable = true;
+
+      await cbWrap(false);
+    } else {
+      throw err;
+    }
   }
 }

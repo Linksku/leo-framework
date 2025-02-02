@@ -22,7 +22,7 @@ import {
   JS_CSS_HEADERS,
   STATIC_HEADERS,
 } from 'consts/httpHeaders';
-import getRedirectPath from 'config/getRedirectPath';
+import { getRedirectPath } from 'config/functions';
 
 const htmlFiles = new Map<string, string>();
 
@@ -74,7 +74,7 @@ if (process.env.PRODUCTION) {
 }
 */
 
-app.use(compression());
+app.use(compression() as RequestHandler);
 app.set('etag', 'weak');
 app.disable('x-powered-by');
 
@@ -124,9 +124,7 @@ if (!process.env.PRODUCTION) {
     throw new Error('BullBoard not loaded yet');
   };
 
-  app.use('/admin/queues', (req, res, next) => {
-    handler(req, res, next);
-  });
+  app.use('/admin/queues', (req, res, next) => handler(req, res, next));
 
   setTimeout(() => {
     import('services/bull/BullBoard')

@@ -29,7 +29,7 @@ export type ScrollerProps<
   completedMsg?: Stable<ReactNode>,
   topElement?: Stable<ReactElement>,
   bottomElement?: Stable<ReactElement>,
-  scrollableParentRef?: React.RefObject<HTMLDivElement> | null,
+  scrollableParentRef?: React.RefObject<HTMLDivElement | null> | null,
   className?: string,
   columnClassName?: string,
   errorClassName?: string,

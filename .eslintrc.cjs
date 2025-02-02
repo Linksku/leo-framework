@@ -40,6 +40,7 @@ const config = {
   },
   plugins: [
     'eslint-plugin-local-rules',
+    '@stylistic/eslint-plugin',
   ],
   extends: [
     'airbnb',
@@ -201,7 +202,7 @@ const config = {
     'function-paren-newline': 0,
     'no-template-curly-in-string': 0,
     'no-restricted-exports': 0,
-    // Same as unicorn/prefer-module
+    // Same as @typescript-eslint/no-require-imports
     'global-require': 0,
     'no-constant-condition': 0,
     'prefer-template': 0,
@@ -266,7 +267,8 @@ const config = {
     'unicorn/consistent-function-scoping': 0,
     'unicorn/no-array-reduce': 0,
     'unicorn/consistent-destructuring': 1,
-    'unicorn/prefer-module': 1,
+    // Same as @typescript-eslint/no-require-imports
+    'unicorn/prefer-module': 0,
     'unicorn/prefer-switch': 0,
     'unicorn/prefer-node-protocol': 0,
     'unicorn/no-useless-undefined': 0,
@@ -295,6 +297,9 @@ const config = {
     // Low browser support
     'unicorn/prefer-string-replace-all': 0,
     'unicorn/no-unnecessary-polyfills': 0,
+    'unicorn/prefer-string-raw': 0,
+    'unicorn/consistent-existence-index-check': 0,
+    'unicorn/prefer-global-this': 0,
   },
   overrides: [
     {
@@ -315,8 +320,6 @@ const config = {
           ignoreRestSiblings: true,
         }],
         '@typescript-eslint/indent': 0,
-        'comma-dangle': 0,
-        '@typescript-eslint/comma-dangle': [2, 'always-multiline'],
         camelcase: 0,
         '@typescript-eslint/naming-convention': [
           1,
@@ -342,16 +345,23 @@ const config = {
           hoist: 'functions',
           allow: ['_'],
         }],
+        'comma-dangle': 0,
+        '@stylistic/comma-dangle': [2, 'always-multiline'],
         semi: 0,
-        '@typescript-eslint/semi': [2, 'always'],
+        '@stylistic/semi': [2, 'always'],
         quotes: 0,
-        '@typescript-eslint/quotes': [
+        '@stylistic/quotes': [
           2,
           'single',
           {
             avoidEscape: true,
           },
         ],
+        '@stylistic/space-before-function-paren': [2, {
+          anonymous: 'never',
+          named: 'never',
+          asyncArrow: 'always',
+        }],
         '@typescript-eslint/no-var-requires': 0,
         '@typescript-eslint/ban-ts-comment': [2, {
           'ts-expect-error': 'allow-with-description',
@@ -385,11 +395,6 @@ const config = {
         '@typescript-eslint/no-non-null-assertion': 2,
         '@typescript-eslint/no-empty-function': 2,
         '@typescript-eslint/no-use-before-define': 2,
-        '@typescript-eslint/space-before-function-paren': [2, {
-          anonymous: 'never',
-          named: 'never',
-          asyncArrow: 'always',
-        }],
         '@typescript-eslint/no-unsafe-member-access': 1,
         '@typescript-eslint/no-unsafe-assignment': 0,
         '@typescript-eslint/no-unsafe-return': 0,
@@ -400,6 +405,8 @@ const config = {
         '@typescript-eslint/no-base-to-string': 1,
         '@typescript-eslint/restrict-template-expressions': 0,
         '@typescript-eslint/restrict-plus-operands': 1,
+        '@typescript-eslint/no-empty-object-type': 2,
+        '@typescript-eslint/no-unsafe-function-type': 1,
       },
     },
     // Web
@@ -689,6 +696,7 @@ const config = {
       },
       rules: {
         'no-unused-expressions': 0,
+        '@typescript-eslint/no-unused-expressions': 0,
       },
       globals: {
         ...mapValues(sharedAppGlobals, () => false),
@@ -719,6 +727,7 @@ const config = {
       },
       rules: {
         'no-unused-expressions': 0,
+        '@typescript-eslint/no-unused-expressions': 0,
       },
       globals: {
         ...mapValues(sharedGlobals, () => false),
@@ -740,7 +749,6 @@ const config = {
         'no-console': 0,
         'no-await-in-loop': 0,
         'unicorn/no-process-exit': 0,
-        'unicorn/prefer-module': 0,
       },
     },
   ],

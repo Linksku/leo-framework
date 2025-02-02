@@ -6,6 +6,7 @@ import { APP_NAME_LOWER } from 'config';
 import initInfraWrap from 'utils/infra/initInfraWrap';
 import throttledPromiseAll from 'utils/throttledPromiseAll';
 import safeParseJson from 'utils/safeParseJson';
+import { HAS_MVS } from 'config/__generated__/consts';
 import dockerCompose from '../../../docker-compose';
 
 async function getDockerComposeVersion() {
@@ -51,14 +52,21 @@ export default function startDockerCompose({ allowRecreate }: {
       throw new Error(`startDockerCompose: expected Docker Compose v${dcVersion}`);
     }
 
-    const cmd = allowRecreate === true
-      || (allowRecreate == null
-        && !process.env.IS_DOCKER
-        && !process.env.IS_SERVER_SCRIPT)
+    allowRecreate ??= !process.env.IS_DOCKER && !process.env.IS_SERVER_SCRIPT;
+
+    const cmd = allowRecreate
       // Might stop the script that's running this function, e.g. monitorInfra
       ? `yarn dc -p ${APP_NAME_LOWER} --compatibility up -d --remove-orphans`
       : `yarn dc -p ${APP_NAME_LOWER} --compatibility up -d --remove-orphans --no-recreate`;
     await exec(cmd, { stream: true });
+
+    if (HAS_MVS) {
+      const cmd2 = allowRecreate
+        // Might stop the script that's running this function, e.g. monitorInfra
+        ? `yarn dc -p ${APP_NAME_LOWER} --profile mz --compatibility up -d --remove-orphans`
+        : `yarn dc -p ${APP_NAME_LOWER} --profile mz --compatibility up -d --remove-orphans --no-recreate`;
+      await exec(cmd2, { stream: true });
+    }
 
     const remainingServices = new Set(
       TS.objEntries(dockerCompose)

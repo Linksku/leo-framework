@@ -43,11 +43,11 @@ const HANDLED_STATIC_PROPS = [
 
 export type ModelConfig<
   Type extends ModelType,
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   StaticProps extends ObjectOf<any> = {
     virtualAttributes?: string[],
   },
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   Props extends ObjectOf<any> = {},
 > = {
   staticProps: StaticProps,

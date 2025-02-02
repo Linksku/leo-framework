@@ -17,6 +17,7 @@ function getSchemaTypeError({
 
   if (schema.default !== undefined) {
     if (!defaultType || schema.default !== pgValToJSType(defaultType)) {
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       return `default should be ${schema.default}`;
     }
   } else if (defaultType) {
@@ -150,6 +151,7 @@ export default function doesPgTypeMatchSchema({
     }
     if (schema.default !== undefined) {
       return !defaultType || pgValToJSType(defaultType) !== schema.default
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         ? `default should be ${schema.default}`
         : null;
     }

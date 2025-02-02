@@ -21,7 +21,7 @@ function useShallowMemoArr<T>(arr: T[] | null) {
       }
       return s;
     },
-  ) as Stable<T[]> | null;
+  );
 }
 
 export default useShallowMemoArr;

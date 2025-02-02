@@ -1,8 +1,10 @@
 import exec from 'utils/exec';
 import { APP_NAME_LOWER } from 'config';
+import { HAS_MVS } from 'config/__generated__/consts';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('kafkaConnect', {
+  disabled: !HAS_MVS,
   run: async function kafkaConnectHealthcheck() {
     let errors: string[];
     try {

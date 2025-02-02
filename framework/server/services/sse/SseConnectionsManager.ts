@@ -33,7 +33,7 @@ const SseConnectionsManager = {
 
     if (!SseBroadcastManager) {
       SseBroadcastManager
-        // eslint-disable-next-line unicorn/prefer-module
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         = (require('./SseBroadcastManager') as { default: typeof SseBroadcastManagerType })
           .default;
     }

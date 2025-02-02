@@ -5,10 +5,14 @@ import ucFirst from 'utils/ucFirst';
 
 const validateFns = new Map<JsonSchema, ValidateFunction>();
 
-export function getCompiledValidator(schema: JsonSchema) {
+export function getCompiledValidator(schema: JsonSchema, ctx: string) {
   let validateFn = validateFns.get(schema);
   if (!validateFn) {
-    validateFn = getAjv().compile(schema);
+    try {
+      validateFn = getAjv().compile(schema);
+    } catch (err) {
+      throw getErr(err, { ctx });
+    }
     validateFns.set(schema, validateFn);
   }
   return validateFn;
@@ -20,7 +24,7 @@ export default function apiValidateFn(
   validateSchema: JsonSchema,
   data: any,
 ) {
-  const validateFn = getCompiledValidator(validateSchema);
+  const validateFn = getCompiledValidator(validateSchema, `${apiName} ${type}`);
 
   if (!validateFn(data)) {
     const error = validateFn.errors?.[0];

@@ -12,6 +12,7 @@ import {
   MZ_ENABLE_SKIP_COLUMNS,
   DBZ_ENABLE_SKIP_COLUMNS,
 } from 'consts/mz';
+import { HAS_MVS } from 'config/__generated__/consts';
 import fetchBTPublications from '../helpers/fetchBTPublications';
 
 function getPublicationTables(models: EntityClass[]) {
@@ -33,6 +34,11 @@ function getPublicationTables(models: EntityClass[]) {
 }
 
 export default async function createBTPublications() {
+  if (!EntityModels.length || !HAS_MVS) {
+    printDebug('No publications needed', 'highlight');
+    return;
+  }
+
   const startTime = performance.now();
   const updateableModels = EntityModels
     .filter(Model => !Model.useInsertOnlyPublication);

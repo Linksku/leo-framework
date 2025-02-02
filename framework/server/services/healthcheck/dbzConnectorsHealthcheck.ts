@@ -6,10 +6,11 @@ import {
 } from 'consts/mz';
 import fetchKafkaConnectors from 'utils/infra/fetchKafkaConnectors';
 import EntityModels from 'core/models/allEntityModels';
+import { HAS_MVS } from 'config/__generated__/consts';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('dbzConnectors', {
-  disabled: !DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY,
+  disabled: (!DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY) || !HAS_MVS,
   run: async function dbzConnectorsHealthcheck() {
     const {
       updateableConnectors,

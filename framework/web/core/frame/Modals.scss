@@ -1,0 +1,17 @@
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--vh100, 100vh);
+  z-index: $zIndexModal;
+  background-color: rgb(94 110 141 / 90%);
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  &.visible {
+    @include fadeIn(0.2s);
+
+    opacity: 1;
+  }
+}

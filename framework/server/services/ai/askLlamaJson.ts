@@ -2,6 +2,7 @@ import type {
   BedrockRuntimeClient as BedrockRuntimeClientType,
   InvokeModelCommand as InvokeModelCommandType,
 } from '@aws-sdk/client-bedrock-runtime';
+import { AWS_ACCESS_ID, AWS_BEDROCK_REGION } from 'config/serverConfig';
 
 // import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 let bedrockClient: BedrockRuntimeClientType | null = null;
@@ -13,7 +14,7 @@ let importPromise: Promise<{
 
 const decoder = new TextDecoder('utf-8');
 
-function cleanJson(str: string): string {
+function cleanJsonObj(str: string): string {
   const firstIdx = str.indexOf('{');
   const lastIdx = str.lastIndexOf('}');
   if (firstIdx === -1 || lastIdx === -1) {
@@ -22,23 +23,46 @@ function cleanJson(str: string): string {
   return str.slice(firstIdx, lastIdx + 1);
 }
 
+function cleanJsonArr(str: string): string {
+  const firstIdx = str.indexOf('[');
+  const lastIdx = str.lastIndexOf(']');
+  if (firstIdx === -1 || lastIdx === -1) {
+    throw new Error(`detectLabels: invalid JSON: ${str}`);
+  }
+  return str.slice(firstIdx, lastIdx + 1);
+}
+
+function validateResponseObj(
+  fields: ObjectOf<{ type: string, description: string }>,
+  obj: unknown,
+): boolean {
+  return TS.isObj(obj)
+    && TS.objEntries(fields).every(([key, desc]) => desc.type.endsWith('?') || key in obj)
+    && Object.keys(obj).every(key => Object.prototype.hasOwnProperty.call(fields, key));
+}
+
 export default async function askLlamaJson<
   Fields extends ObjectOf<{ type: string, description: string }>,
+  IsArray extends boolean = false,
 >({
   modelId = 'us.meta.llama3-2-11b-instruct-v1:0',
   context,
+  isArray,
   fields,
   image,
   maxOutputLength = 512,
 }: {
   modelId?: string,
   context?: string,
+  isArray?: IsArray,
   fields: Fields,
   image?: Buffer,
   maxOutputLength?: number,
-}): Promise<{
-  [K in keyof Fields]: unknown;
-}> {
+}): Promise<
+  IsArray extends true
+    ? { [K in keyof Fields]: unknown }[]
+    : { [K in keyof Fields]: unknown }
+> {
   const imgStr = image?.toString('base64');
   if (imgStr && imgStr.length > 1_000_000) {
     throw new Error('askLlamaJson: image too large');
@@ -48,9 +72,9 @@ export default async function askLlamaJson<
     importPromise ??= import('@aws-sdk/client-bedrock-runtime')
       .then(({ BedrockRuntimeClient, InvokeModelCommand }) => ({
         bedrockClient: new BedrockRuntimeClient({
-          region: process.env.AWS_BEDROCK_REGION,
+          region: AWS_BEDROCK_REGION,
           credentials: {
-            accessKeyId: process.env.AWS_ACCESS_ID,
+            accessKeyId: AWS_ACCESS_ID,
             secretAccessKey: process.env.AWS_SECRET_KEY,
           },
         }),
@@ -60,15 +84,16 @@ export default async function askLlamaJson<
   }
 
   const fieldsEntries = TS.objEntries(fields);
+  const format = `{${fieldsEntries.map(([key, val]) => `"${key}":${val.type}`).join(',')}}${isArray ? '[]' : ''}`;
   const prompt = [
-    `Generate JSON with the format {${fieldsEntries.map(([key, val]) => `"${key}":${val.type}`).join(',')}}`,
+    `Generate ${isArray ? 'a JSON array' : 'JSON'} with the format ${format}`,
     'JSON fields:',
     ...fieldsEntries.map(([key, val]) => `${key}: ${val.description}`),
     '',
     ...(context ? [context] : []),
     'No text outside the JSON.',
   ].join('\n');
-  const jsonPrefix = `{"${fieldsEntries[0][0]}":`;
+  const jsonPrefix = `${isArray ? '[' : ''}{"${fieldsEntries[0][0].endsWith('?') ? '' : `${fieldsEntries[0][0]}":`}`;
 
   const command = new Command({
     modelId,
@@ -110,12 +135,17 @@ export default async function askLlamaJson<
     );
   }
 
-  const parsed = JSON.parse(cleanJson(jsonPrefix + output.generation));
-  return TS.assertType<{
-    [K in keyof Fields]: unknown;
-  }>(
-    parsed,
-    val => TS.isObj(val) && TS.objEntries(fields).every(pair => pair[0] in val),
-    new Error(`askLlamaJson: invalid response: ${output.generation.slice(0, 200)}`),
-  );
+  const fullOutput = jsonPrefix + output.generation;
+  const parsed = JSON.parse(isArray ? cleanJsonArr(fullOutput) : cleanJsonObj(fullOutput));
+  return isArray
+    ? TS.assertType(
+      parsed,
+      arr => Array.isArray(arr) && arr.every(val => validateResponseObj(fields, val)),
+      new Error(`askLlamaJson: invalid decoded: ${output.generation.slice(0, 200)}`),
+    )
+    : TS.assertType(
+      parsed,
+      val => validateResponseObj(fields, val),
+      new Error(`askLlamaJson: invalid decoded: ${output.generation.slice(0, 200)}`),
+    );
 }

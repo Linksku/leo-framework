@@ -6,7 +6,6 @@ import type {
   BaseHistoryState,
   NavState,
 } from './historyStoreTypes';
-import getComputedNavState from './getComputedNavState';
 import { queryStrToQuery, getFullPathFromState } from './historyStoreHelpers';
 
 export type { NavState } from './historyStoreTypes';
@@ -176,15 +175,26 @@ export function getInitialHistoryState(): BaseHistoryState {
       : 'forward';
   }
 
+  const backStates = nativeHistoryState?.backId != null && nativeHistoryState?.backPath
+    ? markStable([buildHistoryState(getNativeStatePart(nativeHistoryState, 'back'))])
+    : EMPTY_ARR;
+  const forwardStates = nativeHistoryState?.forwardId != null && nativeHistoryState?.forwardPath
+    ? markStable([buildHistoryState(getNativeStatePart(nativeHistoryState, 'forward'))])
+    : EMPTY_ARR;
+  const prevState = direction === 'forward'
+    ? backStates[0]
+    : (direction === 'back' ? forwardStates[0] : null);
+  const nextState = direction === 'forward'
+    ? forwardStates[0]
+    : (direction === 'back' ? backStates[0] : null);
+
   return {
     curState,
-    backStates: nativeHistoryState?.backId != null && nativeHistoryState?.backPath
-      ? markStable([buildHistoryState(getNativeStatePart(nativeHistoryState, 'back'))])
-      : EMPTY_ARR,
-    forwardStates: nativeHistoryState?.forwardId != null && nativeHistoryState?.forwardPath
-      ? markStable([buildHistoryState(getNativeStatePart(nativeHistoryState, 'forward'))])
-      : EMPTY_ARR,
+    backStates,
+    forwardStates,
     direction,
+    prevState: prevState ?? null,
+    nextState: nextState ?? null,
     isInitialLoad: !lastPoppedStateId,
     replacedNavCount: null,
     popHandlers: [] as unknown as Stable<(() => boolean)[]>,
@@ -238,18 +248,13 @@ export const [
   HistoryProvider,
   useHistoryStore,
   useNavState,
-  useHomeTab,
-  useHomeParts,
-  useIsHome,
   useGetNavState,
   useUpdateHistoryState,
 ] = constate(
   function HistoryStore() {
-    const [pendingNavState, setPendingNavState] = useState<NavState>(() => markStable({
-      ...HistoryStoreState,
-      ...getComputedNavState(HistoryStoreState, null),
-    }));
-    const latestNavState = useLatest(pendingNavState);
+    const [pendingNavState, setPendingNavState] = useState<NavState>(
+      () => markStable(HistoryStoreState),
+    );
 
     const [deferredNavState, setDeferredNavState] = useState<NavState>(pendingNavState);
     // Without useEffect, app freezes when updateHistoryState is called outside an event handler
@@ -263,6 +268,7 @@ export const [
     }, [pendingNavState]);
 
     // Only for event handlers
+    const latestNavState = useLatest(pendingNavState);
     const getNavState = useCallback(
       () => latestNavState.current,
       [latestNavState],
@@ -283,13 +289,15 @@ export const [
         ...HistoryStoreState,
         ...patch,
       };
-      const newNavState = markStable({
-        ...HistoryStoreState,
-        ...getComputedNavState(HistoryStoreState, latestNavState.current),
-      });
+      HistoryStoreState.prevState = HistoryStoreState.direction === 'forward'
+        ? HistoryStoreState.backStates[0]
+        : (HistoryStoreState.direction === 'back' ? HistoryStoreState.forwardStates[0] : null);
+      HistoryStoreState.nextState = HistoryStoreState.direction === 'forward'
+        ? HistoryStoreState.forwardStates[0]
+        : (HistoryStoreState.direction === 'back' ? HistoryStoreState.backStates[0] : null);
 
-      setPendingNavState(newNavState);
-    }, [latestNavState]);
+      setPendingNavState(markStable(HistoryStoreState));
+    }, []);
 
     // useEffectInitialMount(() => {
     // todo: low/mid scroll to hash in homewrap and stackwrap
@@ -312,15 +320,6 @@ export const [
   },
   function NavState(val) {
     return val.deferredNavState;
-  },
-  function HomeTab(val) {
-    return val.deferredNavState.homeTab;
-  },
-  function HomeParts(val) {
-    return val.deferredNavState.homeParts;
-  },
-  function IsHome(val) {
-    return val.deferredNavState.isHome;
   },
   function GetNavState(val) {
     return val.getNavState;

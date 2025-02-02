@@ -6,7 +6,7 @@ import Router from 'core/router/Router';
 import ErrorBoundary from 'core/frame/ErrorBoundary';
 import ErrorPage from 'core/frame/ErrorPage';
 import useTimeComponentPerf from 'utils/useTimeComponentPerf';
-import LoadingRoute from 'routes/LoadingRoute';
+import LoadingRoute from 'core/LoadingRoute';
 import useEffectInitialMount from 'utils/useEffectInitialMount';
 import detectPlatform from 'utils/detectPlatform';
 
@@ -88,7 +88,7 @@ export default function App() {
 
   return (
     <ErrorBoundary
-      Loading={<LoadingRoute />}
+      loadingElem={<LoadingRoute />}
       renderError={msg => (
         <ErrorPage
           title="Error"

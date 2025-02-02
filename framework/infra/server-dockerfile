@@ -22,6 +22,7 @@ COPY env env
 # Sync with webpack.server.js
 COPY package.docker.json package.json
 COPY framework/server/core/initEnv.cjs framework/server/core/initEnv.cjs
+COPY app/shared/config/config.js app/shared/config/config.js
 COPY patches patches
 COPY build/production build/production
 RUN touch /var/run/docker.sock

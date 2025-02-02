@@ -5,7 +5,7 @@ export default function useAccumulatedVal<T>(
   const ref = useRef(initialVal);
 
   const newVal = accumulator(ref.current);
-  useLayoutEffect(() => {
+  useEffect(() => {
     ref.current = newVal;
   });
 

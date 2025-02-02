@@ -1,0 +1,22 @@
+NODE_ENV=development
+SERVER=development
+
+# Infra
+PG_BT_USER=postgres
+PG_BT_PASS=
+PG_BT_SUPERUSER=postgres
+MZ_USER=materialize
+MZ_PASS=materialize
+PG_RR_USER=postgres
+PG_RR_PASS=
+PG_RR_SUPERUSER=postgres
+REDIS_PASS=
+MAX_CPU_PERCENT=100
+
+# Misc
+PASSWORD_PEPPER=
+JWT_KEY=
+
+# Required for non-dev
+SSL_KEY=/etc/letsencrypt/live/example.com/privkey.pem
+SSL_CERT=/etc/letsencrypt/live/example.com/fullchain.pem

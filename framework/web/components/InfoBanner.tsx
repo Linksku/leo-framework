@@ -10,7 +10,7 @@ export default function InfoBanner({
   className,
   msgClassName,
 }: {
-  LeftSvg?: React.SVGFactory,
+  LeftSvg?: SVGFactory,
   msg: string | ReactElement,
   linkProps?: Parameters<typeof Link>[0],
   isWarning?: boolean,

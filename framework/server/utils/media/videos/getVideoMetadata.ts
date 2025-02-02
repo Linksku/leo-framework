@@ -4,6 +4,7 @@ export default async function getVideoMetadata(video: FfmpegCommand) {
   const stream = await new Promise<Ffmpeg.FfprobeStream>((succ, fail) => {
     video.ffprobe((err, metadata) => {
       if (err) {
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         fail(err);
         return;
       }

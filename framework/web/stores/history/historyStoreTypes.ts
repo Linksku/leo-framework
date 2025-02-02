@@ -1,5 +1,3 @@
-import type { HomeTab } from 'config/homeTabs';
-
 export type NativeHistoryState = {
   id: number,
   path: string,
@@ -28,6 +26,8 @@ export type BaseHistoryState ={
   backStates: Stable<HistoryState[]>,
   forwardStates: Stable<HistoryState[]>,
   direction: Direction,
+  prevState: HistoryState | null,
+  nextState: HistoryState | null,
   isInitialLoad: boolean,
   replacedNavCount: number | null,
   popHandlers: Stable<(() => boolean)[]>,
@@ -35,20 +35,4 @@ export type BaseHistoryState ={
   navCount: number,
 };
 
-export type ComputedNavState = {
-  prevState: HistoryState | null,
-  nextState: HistoryState | null,
-  lastHomeState: HistoryState | null,
-  homeTab: HomeTab | null,
-  homeParts: string[],
-  isHome: boolean,
-  isBackHome: boolean,
-  isForwardHome: boolean,
-  isPrevHome: boolean,
-  isNextHome: boolean,
-  curStack: HistoryState,
-  leftStack: HistoryState | null,
-  rightStack: HistoryState | null,
-};
-
-export type NavState = Stable<BaseHistoryState & ComputedNavState>;
+export type NavState = Stable<BaseHistoryState>;

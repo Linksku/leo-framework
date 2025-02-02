@@ -6,7 +6,7 @@ import 'compression';
 
 declare global {
   interface FrameworkEnv {
-    IS_SERVER_SCRIPT?: string;
+    IS_SERVER_SCRIPT?: boolean;
     SERVER_SCRIPT_PATH?: string;
     IS_DOCKER?: boolean;
 
@@ -26,16 +26,12 @@ declare global {
     JWT_KEY: string;
     SSL_KEY: string;
     SSL_CERT: string;
-    AWS_REGION: string;
-    AWS_BEDROCK_REGION: string;
-    AWS_ACCESS_ID: string;
     AWS_SECRET_KEY: string;
     MAPBOX_TOKEN: string;
     DO_SPACES_SECRET: string;
     CF_ZONE_ID: string;
     CF_USERNAME: string;
     CF_API_KEY: string;
-    FIREBASE_CLIENT_EMAIL: string;
     FIREBASE_PRIVATE_KEY: string;
     INSTAGRAM_APP_SECRET: string;
     PROD_IP: string;

@@ -8,7 +8,7 @@ function IconButton(
     overrides,
     ...props
   }: {
-    Svg: React.SVGFactory,
+    Svg: SVGFactory,
     svgOverrides?: Parameters<typeof Button>[0]['leftSvgOverrides'],
     className?: string,
   } & ({ label: ReactNode } | { label?: ReactNode, 'aria-label': string })

@@ -39,6 +39,7 @@ export default async function waitForMZSourcesCatchUp(
   await retry(
     async () => {
       if (await redis.get(START_DEPLOY_REDIS_KEY)) {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw forceStopRetry(new Error('Deploying'));
       }
 
@@ -60,6 +61,7 @@ export default async function waitForMZSourcesCatchUp(
           if (err instanceof Error
             && (err.message.includes(' has been altered')
               || err.message.includes('Connection terminated unexpectedly'))) {
+            // eslint-disable-next-line @typescript-eslint/only-throw-error
             throw forceStopRetry(err);
           }
           throw err;

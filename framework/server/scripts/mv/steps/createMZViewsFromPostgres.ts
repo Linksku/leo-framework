@@ -16,6 +16,12 @@ export default async function createMZViewsFromPostgres() {
     return;
   }
 
+  const viewsToCreate = getEntitiesForMZSources('pg');
+  if (!viewsToCreate.length) {
+    printDebug('No MZ views from PG needed', 'highlight');
+    return;
+  }
+
   printDebug('Creating Postgres source', 'highlight');
 
   /*
@@ -61,7 +67,6 @@ export default async function createMZViewsFromPostgres() {
     } */
   }
 
-  const viewsToCreate = getEntitiesForMZSources('pg');
   const existingViews = new Set(await showMzSystemRows('SHOW VIEWS'));
   if (viewsToCreate.every(Model => existingViews.has(Model.type))) {
     printDebug('Views already created', 'info');

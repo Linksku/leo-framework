@@ -1,9 +1,10 @@
 import cluster from 'cluster';
 
+import isSecondaryServer from 'utils/isSecondaryServer';
 import randInt from 'utils/randInt';
 
 export default function scheduleRestartWorker() {
-  if (cluster.isMaster) {
+  if (!isSecondaryServer) {
     return;
   }
 

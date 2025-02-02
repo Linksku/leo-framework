@@ -9,7 +9,7 @@ function useCheckEntityExists(
   entity: Entity | null,
 ) {
   const [waited, setWaited] = useState(false);
-  const timerRef = useRef<number | undefined>();
+  const timerRef = useRef<number | undefined>(undefined);
   // Prevents shouldFetch from flipping back to false
   const hadNoEntity = useAccumulatedVal(
     false,

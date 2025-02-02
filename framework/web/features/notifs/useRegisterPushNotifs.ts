@@ -85,6 +85,7 @@ export default function useRegisterPushNotifs(): Stable<() => Promise<boolean>> 
             .catch(fail);
 
           PushNotifications.addListener('registrationError', err => {
+            // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
             fail(err);
           })
             .catch(fail);

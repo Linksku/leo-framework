@@ -16,8 +16,10 @@ if (!process.env.SERVER || !process.env.NODE_ENV) {
 
 let fn: AnyFunction;
 try {
-  const module = await import(
-  `../../${process.env.SERVER_SCRIPT_PATH}`
+  //
+  // eslint-disable-next-line import/no-dynamic-require, @typescript-eslint/no-require-imports
+  const module: { default: AnyFunction } = require(
+  `../../${process.env.SERVER_SCRIPT_PATH}`,
   );
   fn = module.default;
 } catch (err) {
@@ -31,7 +33,7 @@ let promise: any;
 try {
   // todo: low/mid args validation and typing
   // Note: yargs built-in validation allows non-numbers and converts them to NaN
-  promise = (fn)(yargs(process.argv).argv);
+  promise = fn(yargs(process.argv).argv);
 } catch (err) {
   printDebug(getErr(err, { ctx: `serverScript (${process.env.SERVER_SCRIPT_PATH})` }), 'error');
   await ErrorLogger.flushAndExit(1);

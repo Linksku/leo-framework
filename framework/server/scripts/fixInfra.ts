@@ -12,7 +12,7 @@ import {
 } from 'services/healthcheck/HealthcheckManager';
 import { APP_NAME_LOWER } from 'config';
 import exec from 'utils/exec';
-import restartMZ from 'utils/infra/restartMZ';
+import startMZDocker from 'utils/infra/startMZDocker';
 import redisFlushAll from 'utils/infra/redisFlushAll';
 import { HEALTHCHECK, REDLOCK } from 'consts/coreRedisNamespaces';
 import getKafkaAdmin from 'services/getKafkaAdmin';
@@ -42,6 +42,7 @@ import listKafkaTopics from 'utils/infra/listKafkaTopics';
 import MaterializedViewModels from 'core/models/allMaterializedViewModels';
 import startDockerCompose from 'scripts/startDockerCompose';
 import { createEachModel } from 'config/functions';
+import { HAS_MVS } from 'config/__generated__/consts';
 import getServersStatus from './getServersStatus';
 import runHealthchecksOnce from './runHealthchecksOnce';
 import initRR from './mv/initRR';
@@ -358,7 +359,7 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
       })()
       : null,
     // todo: low/mid maybe check if MZ can recover automatically
-    mzRunning: isMzRunning(),
+    mzRunning: HAS_MVS ? false : isMzRunning(),
     hasMZKafkaErrorsTable: failing.has('mzSinkPrometheus')
       ? (async () => {
         try {
@@ -389,9 +390,9 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
     })(),
   });
 
-  if (!mzRunning) {
+  if (!mzRunning && HAS_MVS) {
     printDebug('fixInfra: MZ isn\'t running, restarting');
-    await restartMZ();
+    await startMZDocker(true);
     await initOrRecreateMZ(failing, true);
   } else if (!failing.size) {
     // pass

@@ -1,7 +1,6 @@
 import '@capacitor/app/dist/esm/web.js';
 import '@capacitor/screen-orientation/dist/esm/web.js';
 import '@capacitor/splash-screen/dist/esm/web.js';
-import 'core/frame/stack/StackWrapInner';
 import 'stores/entities/useEntity';
 import 'stores/entities/useAllEntities';
 import 'stores/entities/useEntitiesArr';

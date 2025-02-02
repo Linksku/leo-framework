@@ -87,7 +87,7 @@ export default function createBullQueue<
 >(
   name: string,
   opts?: QueueOptions,
-) {
+): Queue<DataType, ResultType, NameType> {
   const queue = new Queue<DataType, ResultType, NameType>(name, {
     connection: {
       ...omit(redisConfig, 'commandTimeout'),

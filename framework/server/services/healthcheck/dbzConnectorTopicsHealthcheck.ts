@@ -7,13 +7,14 @@ import {
 import EntityModels from 'core/models/allEntityModels';
 import listKafkaTopics from 'utils/infra/listKafkaTopics';
 import getKafkaTopicsWithoutMessages from 'utils/infra/getKafkaTopicsWithoutMessages';
+import { HAS_MVS } from 'config/__generated__/consts';
 import { addHealthcheck } from './HealthcheckManager';
 
 const DBZ_TOPICS_REGEX = new RegExp(`^(${DBZ_TOPIC_UPDATEABLE_PREFIX}|${DBZ_TOPIC_INSERT_ONLY_PREFIX})`);
 
 // Note: dbz may not create topic messages even if healthcheck passes
 addHealthcheck('dbzConnectorTopics', {
-  disabled: !DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY,
+  disabled: (!DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY) || !HAS_MVS,
   run: async function dbzConnectorTopicsHealthcheck() {
     const topics = await listKafkaTopics(DBZ_TOPICS_REGEX);
     if (!topics.length) {
@@ -76,7 +77,7 @@ addHealthcheck('dbzConnectorTopics', {
 
 addHealthcheck('dbzConnectorTopicMessages', {
   // Doesn't work unless rows are continuously inserted
-  disabled: true, // !DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY,
+  disabled: true, // (!DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY) || !HAS_MVS
   run: async function dbzConnectorTopicMessagesHealthcheck() {
     const remainingTopics = await getKafkaTopicsWithoutMessages(
       DBZ_TOPICS_REGEX,

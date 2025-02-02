@@ -55,7 +55,7 @@ async function _log(level: SeverityLevel, err: Error) {
   try {
     Sentry.withScope(scope => {
       if (!setErrorLoggerScope) {
-        // eslint-disable-next-line unicorn/prefer-module
+        // eslint-disable-next-line unicorn/prefer-module, @typescript-eslint/no-require-imports
         setErrorLoggerScope = (require('./setErrorLoggerScope') as {
           default: typeof setErrorLoggerScopeType,
         }).default;

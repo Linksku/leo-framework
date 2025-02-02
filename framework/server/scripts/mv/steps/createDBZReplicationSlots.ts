@@ -5,9 +5,15 @@ import {
   DBZ_FOR_UPDATEABLE,
   DBZ_FOR_INSERT_ONLY,
 } from 'consts/mz';
+import EntityModels from 'core/models/allEntityModels';
+import { HAS_MVS } from 'config/__generated__/consts';
 
 export default async function createDBZReplicationSlots() {
   if (!DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY) {
+    return;
+  }
+  if (!EntityModels.length || !HAS_MVS) {
+    printDebug('No replication slots needed', 'highlight');
     return;
   }
 

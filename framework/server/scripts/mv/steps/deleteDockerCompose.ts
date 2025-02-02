@@ -9,5 +9,6 @@ export default async function deleteDockerCompose() {
   }
 
   printDebug('Deleting Docker containers', 'highlight');
+  await exec(`yarn dc -p ${APP_NAME_LOWER} --profile mz down`, { stream: true });
   await exec(`yarn dc -p ${APP_NAME_LOWER} down`, { stream: true });
 }

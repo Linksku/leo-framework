@@ -3,7 +3,7 @@ export default {
   homeWrapInner: 'home-wrap-inner',
 
   // Common
-  alertOkBtn: 'alert-ok-btn',
+  modalOkBtn: 'modal-ok-btn',
 
   // Specific routes
   loginForm: 'login-form',

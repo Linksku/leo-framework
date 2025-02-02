@@ -5,7 +5,7 @@ import throttledPromiseAll from 'utils/throttledPromiseAll';
 
 export default async function checkPendingMigrations() {
   const migrationState = await getMigrationState();
-  const allMigrations = getAllMigrations();
+  const allMigrations = await getAllMigrations();
   const pendingMigrations = allMigrations.filter(
     filename => filename > migrationState.lastMigration,
   );

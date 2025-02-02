@@ -1,8 +1,10 @@
 import type { Page } from 'objection';
 import type { Knex } from 'knex';
 import { QueryBuilder as BaseQueryBuilder } from 'objection';
-// @ts-expect-error Objection is missing type
-import { KnexOperation as _KnexOperation } from 'objection/lib/queryBuilder/operations/KnexOperation.js';
+import {
+  KnexOperation as _KnexOperation,
+  // @ts-expect-error Objection is missing type
+} from 'objection/lib/queryBuilder/operations/KnexOperation.js';
 
 import formatTsquery from 'utils/db/formatTsquery';
 import { AGGREGATE_FUNCTIONS } from 'consts/pg';

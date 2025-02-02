@@ -24,7 +24,7 @@ export default function useVisibilityObserver<T extends HTMLElement | undefined>
   const wasVisible = usePrevious(isVisible);
   const hadRouteBeenActive = useHadRouteBeenActive(true);
   const getIsMounted = useGetIsMounted();
-  const elemRef = useRef<T>();
+  const elemRef = useRef<T>(undefined);
   const getIsFirstRender = useGetIsFirstRender();
 
   const observerRef = useRef<IntersectionObserver | null>(null);

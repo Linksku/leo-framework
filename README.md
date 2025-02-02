@@ -4,13 +4,14 @@ This is the public version of my private repo with commits squashed.
 
 1. Clone this repo
 
-2. Run:
+2. In the project root, run:
 ```
 mv .git .git-framework
 git init
-cp app-template app
+cp -r app-template app
 cp env/env-template env/env.dev
 cp env/secrets-template env/secrets
+git add -A && git commit -m "Initial"
 ```
 
 ## Installation ##
@@ -26,13 +27,18 @@ cp env/secrets-template env/secrets
 - sentry-cli
 - libvips
 
-2. Run in the project root:
+2. Run:
 ```
 corepack enable
 yarn set version stable
 yarn install
 sudo npm i -g zx
+yarn build:types
 ```
+
+3. Edit:
+- env/env.dev
+- app/shared/config/config.js
 
 ### Decrypt Secrets ###
 

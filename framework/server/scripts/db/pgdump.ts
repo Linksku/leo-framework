@@ -23,6 +23,8 @@ import {
   PG_RR_DB,
   PG_RR_SCHEMA,
 } from 'consts/infra';
+import { frameworkModels, appModels } from 'core/models/allModels';
+import { HAS_MVS } from 'config/__generated__/consts';
 
 type Tables = ObjectOf<{
   cols: ObjectOf<string>,
@@ -39,6 +41,7 @@ type Tables = ObjectOf<{
       nulls: string,
     }[],
     expression: string,
+    idx: number,
   }[],
   normalIndexes: {
     name: string,
@@ -47,16 +50,18 @@ type Tables = ObjectOf<{
       nulls: string,
     }[],
     expression: string,
+    idx: number,
   }[],
   foreignKeys: {
     name: string,
     col: string,
     expression: string,
     references: [string, string],
+    idx: number,
   }[],
 }>;
 
-function parseTables(lines: string[]) {
+function parseTables(origLines: string[]) {
   let hasError = false;
   function printError(str: string) {
     printDebug(str, 'error');
@@ -72,9 +77,9 @@ function parseTables(lines: string[]) {
     line: string,
     idx: number,
   }[] | null = null;
-  lines = lines.filter((line, idx) => {
+  let lines: (string | null)[] = origLines.map((line, lineIdx) => {
     if (!line.trim() || line.startsWith('--') || line.startsWith('SET ')) {
-      return false;
+      return null;
     }
 
     if (tableCols && line.endsWith(');')) {
@@ -89,7 +94,7 @@ function parseTables(lines: string[]) {
         tableLines.push({
           col: match[1],
           line,
-          idx,
+          idx: lineIdx,
         });
       }
     } else if (!tableCols && line.startsWith('CREATE TABLE ')) {
@@ -107,13 +112,17 @@ function parseTables(lines: string[]) {
         foreignKeys: [],
       };
     } else {
-      return true;
+      return line;
     }
-    return false;
+    return null;
   });
 
   // Parse constraints
-  lines = lines.filter(line => {
+  lines = lines.map((line, lineIdx) => {
+    if (line == null) {
+      return null;
+    }
+
     const match = line.match(
       /^\s*ALTER TABLE (?:ONLY )?(?:\w+\.)?"?(\w+)"? ADD CONSTRAINT "?(\w+)"? (\w+) KEY \(([^)]+)\)\s*(?:REFERENCES (?:"?\w+"?\.)?([^)]+\)))?/,
     );
@@ -132,6 +141,7 @@ function parseTables(lines: string[]) {
               };
             }),
           expression: match[4],
+          idx: lineIdx,
         });
       } else if (match[3] === 'FOREIGN') {
         const references = match[5]
@@ -143,20 +153,25 @@ function parseTables(lines: string[]) {
           col: match[4].replaceAll('"', '').trim(),
           expression: match[4],
           references,
+          idx: lineIdx,
         });
       } else {
         printError(`Unhandled key "${line}"`);
       }
-      return false;
+      return null;
     }
     if (match) {
       printError(`Index "${match[3]}" without table "${match[1]}"`);
     }
-    return true;
+    return line;
   });
 
   // Parse indexes
-  lines = lines.filter(line => {
+  lines = lines.filter((line, lineIdx) => {
+    if (line == null) {
+      return null;
+    }
+
     const match = line.match(
       /^\s*CREATE (\w+ )?INDEX "?(\w+)"? ON (?:\w+\.)?"?(\w+)"? USING (\w+ \((.+?)\))( WHERE .+)?( NULLS NOT DISTINCT)?;$/,
     );
@@ -175,6 +190,7 @@ function parseTables(lines: string[]) {
             };
           }),
           expression: match[4],
+          idx: lineIdx,
         });
       } else {
         table.normalIndexes.push({
@@ -187,40 +203,45 @@ function parseTables(lines: string[]) {
             };
           }),
           expression: match[4],
+          idx: lineIdx,
         });
       }
-      return false;
+      return null;
     }
     if (match) {
       printError(`Index "${match[2]}" without table "${match[3]}"`);
     }
-    return true;
+    return line;
   });
 
   // Filter unhandled lines
   let alterTable = false;
-  lines = lines.filter(line => {
+  lines = lines.map(line => {
+    if (line == null) {
+      return null;
+    }
+
     if (alterTable) {
       if (line.endsWith(');')) {
         alterTable = false;
       }
-      return false;
+      return null;
     }
 
     const match = line.match(/^\s*ALTER TABLE (?:\w+\.)?"?(\w+)"? ALTER COLUMN /);
     if (match) {
       alterTable = true;
-      return false;
+      return null;
     }
 
-    return true;
+    return line;
   });
 
   if (hasError) {
     printDebug('pgdump: had errors', 'error');
   }
 
-  console.log(`${lines.length} lines unprocessed.`);
+  console.log(`${TS.filterNulls(lines).length} lines unprocessed.`);
   return tables;
 }
 
@@ -437,7 +458,12 @@ function printTableWarnings(
   }
 }
 
-function reorderColumns(tables: Tables, models: ModelClass[], lines: string[]) {
+function fixColumns(
+  tables: Tables,
+  models: ModelClass[],
+  lines: string[],
+  isFramework: boolean,
+) {
   const tableNameToModel = Object.fromEntries(
     models.map(m => [m.tableName, m]),
   );
@@ -450,19 +476,54 @@ function reorderColumns(tables: Tables, models: ModelClass[], lines: string[]) {
     if (!Model) {
       throw new Error(`Model not found for table "${tableName}"`);
     }
+
     const colToIdx = Object.fromEntries(
       Object.keys(Model.getSchema()).map((col, idx) => [col, idx]),
     );
-    const tableLines = [...table.lines].sort((a, b) => colToIdx[a.col] - colToIdx[b.col]);
+    const tableLines = [...table.lines].sort((a, b) => {
+      if (!(a.col in colToIdx)) {
+        return 1;
+      }
+      if (!(b.col in colToIdx)) {
+        return -1;
+      }
+      return colToIdx[a.col] - colToIdx[b.col];
+    });
+
     const firstLineIdx = Math.min(...tableLines.map(line => line.idx));
+    const numTableLines = isFramework
+      ? tableLines.filter(line => line.col in colToIdx).length
+      : tableLines.length;
     for (const [idx, line] of tableLines.entries()) {
-      if (idx !== tableLines.length - 1 && !line.line.endsWith(',')) {
+      if (idx >= numTableLines) {
+        line.line = '';
+      } else if (idx !== numTableLines - 1 && !line.line.endsWith(',')) {
         line.line = `${line.line},`;
-      } else if (idx === tableLines.length - 1 && line.line.endsWith(',')) {
+      } else if (idx === numTableLines - 1 && line.line.endsWith(',')) {
         line.line = line.line.slice(0, -1);
       }
 
       lines.splice(firstLineIdx + idx, 1, line.line);
+    }
+
+    if (isFramework) {
+      for (const index of table.uniqueIndexes) {
+        if (index.cols.some(col => !(col.name in colToIdx))) {
+          lines[index.idx] = '';
+        }
+      }
+
+      for (const index of table.normalIndexes) {
+        if (index.cols.some(col => !(col.name in colToIdx))) {
+          lines[index.idx] = '';
+        }
+      }
+
+      for (const fk of table.foreignKeys) {
+        if (!(fk.col in colToIdx)) {
+          lines[fk.idx] = '';
+        }
+      }
     }
   }
 }
@@ -478,6 +539,7 @@ async function dumpDb({
   isBT,
   outFile,
   showWarnings,
+  isFramework,
 }: {
   models: ModelClass[],
   host: string,
@@ -489,13 +551,22 @@ async function dumpDb({
   isBT: boolean,
   outFile: string,
   showWarnings: boolean,
+  isFramework: boolean,
 }) {
   const rows = await (isBT ? knexBT : knexRR).raw('SHOW TIMEZONE');
   if (rows?.rows?.[0]?.TimeZone !== 'UTC') {
     await ErrorLogger.fatal(new Error('pgdump: DB isn\'t UTC.'));
   }
+  const modelTypesSet = new Set(models.map(m => m.type));
   const out = await exec(
-    `pg_dump --host ${host} --port ${port} --username ${user} --schema-only --format=plain --no-owner --schema ${schema} ${db}`,
+    `pg_dump --host ${host} --port ${port} --username ${user} \
+    --schema-only --schema ${schema} ${db} \
+    ${isFramework
+      ? appModels.filter(m => !modelTypesSet.has(m.type))
+        .map(m => `--exclude-table '"${m.Model.tableName}"'`)
+        .join(' ')
+      : ''} \
+    --format=plain --no-owner`,
     {
       env: {
         PGPASSWORD: pass,
@@ -530,11 +601,14 @@ CREATE EXTENSION IF NOT EXISTS tsm_system_rows SCHEMA "${PG_RR_SCHEMA}";`);
   if (showWarnings) {
     printTableWarnings(tables, models, isBT);
   }
-  reorderColumns(tables, models, lines);
+  fixColumns(tables, models, lines, isFramework);
 
   await fs.writeFile(
-    path.resolve(`./app/${outFile}.sql`),
-    lines.join('\n'),
+    outFile,
+    (isFramework ? lines.filter(line => !line.startsWith('--')) : lines)
+      .join('\n')
+      .replaceAll(/\n\n+/g, '\n\n')
+      .trim() + '\n',
   );
 }
 
@@ -546,7 +620,7 @@ type Props = {
 
 export default async function pgdump(args?: Arguments<Props> | Props) {
   if (args?.dumpBT !== false) {
-    printDebug('pgdump BT', 'info');
+    printDebug('pgdump app BT', 'info');
     await dumpDb({
       models: EntityModels,
       host: PG_BT_HOST,
@@ -556,13 +630,31 @@ export default async function pgdump(args?: Arguments<Props> | Props) {
       db: PG_BT_DB,
       schema: PG_BT_SCHEMA,
       isBT: true,
-      outFile: 'pgdumpBT',
+      outFile: path.resolve('./app/pgdumpBT.sql'),
       showWarnings: args?.showWarnings ?? true,
+      isFramework: false,
+    });
+
+    printDebug('pgdump framework BT', 'info');
+    await dumpDb({
+      models: frameworkModels
+        .map(model => model.Model)
+        .filter(Model => TS.extends(Model, Entity)),
+      host: PG_BT_HOST,
+      port: PG_BT_PORT,
+      user: process.env.PG_BT_USER,
+      pass: process.env.PG_BT_PASS,
+      db: PG_BT_DB,
+      schema: PG_BT_SCHEMA,
+      isBT: true,
+      outFile: path.resolve('./framework/pgdumpBT.sql'),
+      showWarnings: false,
+      isFramework: true,
     });
   }
 
-  if (args?.dumpRR !== false) {
-    printDebug('pgdump RR', 'info');
+  if (HAS_MVS && args?.dumpRR !== false) {
+    printDebug('pgdump app RR', 'info');
     await dumpDb({
       models: [
         ...EntityModels,
@@ -575,8 +667,9 @@ export default async function pgdump(args?: Arguments<Props> | Props) {
       db: PG_RR_DB,
       schema: PG_RR_SCHEMA,
       isBT: false,
-      outFile: 'pgdumpRR',
+      outFile: path.resolve('./app/pgdumpRR.sql'),
       showWarnings: args?.showWarnings ?? true,
+      isFramework: false,
     });
   }
 
@@ -587,11 +680,13 @@ export default async function pgdump(args?: Arguments<Props> | Props) {
       details: `psql -d ${PG_BT_DB} -f app/pgdumpBT.sql --username ${process.env.PG_BT_USER} --password --host=${PG_BT_HOST} -v ON_ERROR_STOP=1`,
     },
   );
-  printDebug(
-    'Restore RR',
-    'info',
-    {
-      details: `psql -d ${PG_RR_DB} -f app/pgdumpRR.sql --username ${process.env.PG_RR_USER} --password --host=${PG_RR_HOST} -v ON_ERROR_STOP=1`,
-    },
-  );
+  if (HAS_MVS && args?.dumpRR !== false) {
+    printDebug(
+      'Restore RR',
+      'info',
+      {
+        details: `psql -d ${PG_RR_DB} -f app/pgdumpRR.sql --username ${process.env.PG_RR_USER} --password --host=${PG_RR_HOST} -v ON_ERROR_STOP=1`,
+      },
+    );
+  }
 }

@@ -27,7 +27,7 @@ type Primitive =
 
 // Not comprehensive.
 type BuiltInObjects =
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   | Function
   | Date
   | Error
@@ -42,23 +42,23 @@ interface JsonObj {
   [k: string]: Json;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+// eslint-disable-next-line @typescript-eslint/no-empty-interface, @typescript-eslint/no-empty-object-type
 interface JsonArr extends Array<Json> {}
 
 type Json = JsonPrimitive | JsonObj | JsonArr;
 
 type AnyFunction = (...args: any[]) => any;
 
-// eslint-disable-next-line @typescript-eslint/ban-types
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 interface Constructor<T> extends Function { new (...args: any[]): T; }
 
 type RequiredKeys<T> = {
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   [K in keyof T]-?: {} extends Pick<T, K> ? never : K;
 }[keyof T];
 
 type RequiredDefinedKeys<T> = {
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   [K in keyof T]-?: {} extends Pick<T, K>
     ? never
     : undefined extends T[K]
@@ -67,7 +67,7 @@ type RequiredDefinedKeys<T> = {
 }[keyof T];
 
 type OptionalKeys<T> = Exclude<{
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   [K in keyof T]-?: {} extends Pick<T, K> ? K : never;
 }[keyof T], undefined>;
 

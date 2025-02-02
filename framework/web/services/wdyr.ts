@@ -1,20 +1,21 @@
 import type whyDidYouRenderType from '@welldone-software/why-did-you-render';
+import type { UpdateInfo } from '@welldone-software/why-did-you-render';
 
 import isDebug from 'utils/isDebug';
 
 if (!process.env.PRODUCTION && isDebug) {
   const whyDidYouRender: typeof whyDidYouRenderType
-    // eslint-disable-next-line unicorn/prefer-module
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     = require('@welldone-software/why-did-you-render');
 
-  let prevUseState: ObjectOf<any> | null = null;
+  let prevUseState: UpdateInfo | null = null;
 
   whyDidYouRender(React, {
     trackAllPureComponents: true,
     trackHooks: true,
     notifier(props) {
       if (props.hookName === 'useState') {
-        if (props.prevHook === prevUseState?.nextHook) {
+        if (props.prevHookResult === prevUseState?.nextHookResult) {
           return;
         }
         prevUseState = props;

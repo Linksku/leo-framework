@@ -1,7 +1,7 @@
 import type { UseFormRegister, RegisterOptions } from 'react-hook-form';
 
 import mergeRefs from 'utils/mergeRefs';
-import useAutoFocusOnEnterRoute from 'core/router/useAutoFocusOnEnterRoute';
+import useAutoFocusOnEnterRoute from 'core/useAutoFocusOnEnterRoute';
 
 import FormError from 'components/form/FormError';
 import styles from './Textarea.scss';

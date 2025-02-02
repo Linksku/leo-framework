@@ -1,11 +1,10 @@
-import { useIsHome } from 'stores/history/HistoryStore';
 import styles from './ErrorPage.scss';
 
 type Props = {
   title: ReactNode,
   content?: ReactNode,
   showReload?: boolean,
-  btns?: ReactElement | ReactFragment | (ReactElement | ReactFragment)[],
+  btns?: ReactElement | ReactElement[],
   fullHeight?: boolean,
   className?: string,
 };
@@ -19,13 +18,11 @@ export default function ErrorPage({
   className,
 }: Props) {
   const reloadPage = useReloadPage(true);
-  const isHome = useIsHome(true);
 
   return (
     <div
       className={cx(styles.container, className, {
-        [styles.fullHeight]: fullHeight && !isHome,
-        [styles.fullHeightHome]: fullHeight && isHome,
+        [styles.fullHeight]: fullHeight,
       })}
     >
       <h2 className={styles.title}>{title}</h2>

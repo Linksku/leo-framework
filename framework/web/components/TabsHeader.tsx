@@ -9,7 +9,7 @@ export default function TabsHeader<T extends string>({
 }: {
   tabs: Nullish<{
     key: T,
-    Icon?: React.SVGFactory,
+    Icon?: SVGFactory,
     name: string,
     onClick?: HandleClickLink,
   }>[],

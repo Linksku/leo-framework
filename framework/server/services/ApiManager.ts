@@ -26,10 +26,10 @@ export function defineApi<Name extends ApiName>(
   );
 
   setTimeout(() => {
-    getCompiledValidator(config.paramsSchema);
+    getCompiledValidator(config.paramsSchema, `${config.name} params`);
 
     if (config.dataSchema) {
-      getCompiledValidator(config.dataSchema);
+      getCompiledValidator(config.dataSchema, `${config.name} data`);
     }
   }, 0);
 }

@@ -15,6 +15,7 @@ import formatError from 'utils/formatErr';
 import { INIT_INFRA_REDIS_KEY } from 'consts/infra';
 import stringify from 'utils/stringify';
 import { DBZ_FOR_INSERT_ONLY, DBZ_FOR_UPDATEABLE } from 'consts/mz';
+import isSecondaryServer from 'utils/isSecondaryServer';
 
 export type HealthcheckName =
   | 'memory'
@@ -474,7 +475,9 @@ async function _updateLocked() {
 
   setTimeout(_updateLocked, 10 * 1000);
 }
-wrapPromise(_updateLocked(), 'fatal', 'HealthcheckManager._updateLocked');
+if (isSecondaryServer) {
+  wrapPromise(_updateLocked(), 'fatal', 'HealthcheckManager._updateLocked');
+}
 
 export function isHealthy({ onlyFatal, ignoreStaleRR }: {
   onlyFatal?: boolean,

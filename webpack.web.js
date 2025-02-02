@@ -83,7 +83,7 @@ export default mergeReplaceArrays(baseConfig, {
         ],
       },
       {
-        test: /\/(fa5|boxicons)\/.+\.svg$/,
+        test: /\/(svgs|boxicons)\/.+\.svg$/,
         use: [mergeReplaceArrays(svgrLoader, {
           options: {
             svgoConfig: {
@@ -107,7 +107,7 @@ export default mergeReplaceArrays(baseConfig, {
       },
       {
         test: /\.svg$/,
-        exclude: /\/(fa5|boxicons)\/.+\.svg$/,
+        exclude: /\/(svgs|boxicons)\/.+\.svg$/,
         use: [svgrLoader],
       },
       ...baseConfig.module.rules,

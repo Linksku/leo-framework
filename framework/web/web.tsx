@@ -65,7 +65,14 @@ if (tz >= -3 && tz <= 0
   // eslint-disable-next-line no-alert
   alert('Not available in Europe.');
 } else {
-  const root = createRoot(TS.notNull(document.getElementById('react')));
+  const root = createRoot(
+    TS.notNull(document.getElementById('react')),
+    {
+      onUncaughtError(err) {
+        ErrorLogger.error(err);
+      },
+    },
+  );
   root.render(
     <React.StrictMode>
       <App />

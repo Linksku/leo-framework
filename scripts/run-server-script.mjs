@@ -30,13 +30,13 @@ if (runInDocker) {
   await $`yarn dc start server-script`.quiet();
   await $`yarn dc exec -u 0 server-script sh -c "mkdir -p ${path.dirname(buildPath)}"`.quiet();
   await $`yarn dc cp ${buildPath} server-script:/usr/src/${buildPath}`.quiet();
-  await $`
+  await $({ stdio: ['inherit', 'pipe', 'pipe'] })`
     yarn dc exec -it -u 0 server-script \\
     node --experimental-specifier-resolution=node --no-warnings \\
     /usr/src/${buildPath} ${process.argv.slice(4)}
   `;
 } else {
-  await $`
+  await $({ stdio: ['inherit', 'pipe', 'pipe'] })`
     node --experimental-specifier-resolution=node --no-warnings \\
     ${buildPath} ${process.argv.slice(4)}
   `;

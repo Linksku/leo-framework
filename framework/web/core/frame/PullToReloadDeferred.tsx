@@ -11,7 +11,7 @@ export default function PullToReloadDeferred({
 }: React.PropsWithChildren<Props>) {
   return (
     <ErrorBoundary
-      Loading={(
+      loadingElem={(
         <div {...props}>
           {children}
         </div>

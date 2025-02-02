@@ -2,6 +2,7 @@ import { APP_NAME_LOWER } from 'config';
 import exec from 'utils/exec';
 import dockerCompose from '../../../../docker-compose';
 
+// todo: high/easy handle mz profile
 export default async function getDockerComposeStatus() {
   const out = await exec(`yarn dc -p ${APP_NAME_LOWER} ps --format json`);
   // https://github.com/docker/compose/pull/10918

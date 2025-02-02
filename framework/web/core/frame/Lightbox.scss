@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   height: var(--vh100, 100vh);
-  z-index: $zIndexAlert;
+  z-index: $zIndexModal;
   background-color: rgb(94 110 141 / 90%);
   opacity: 0;
   transition: opacity 0.1s;

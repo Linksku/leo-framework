@@ -70,5 +70,6 @@ declare namespace NodeJS {
     env: FrameworkEnv;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface ProcessEnv extends FrameworkEnv {}
 }

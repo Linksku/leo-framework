@@ -108,7 +108,7 @@ export default async function migrateUp(params: Arguments) {
   }
 
   const migrationState = await getMigrationState();
-  const allMigrations = getAllMigrations();
+  const allMigrations = await getAllMigrations();
   const migrationsToRun = allMigrations
     .filter(filename => filename > migrationState.lastMigration);
   if (!migrationsToRun.length) {

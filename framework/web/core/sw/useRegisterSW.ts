@@ -1,3 +1,9 @@
+import {
+  FIREBASE_APP_ID,
+  FIREBASE_KEY,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_PROJECT_ID,
+} from 'config/config';
 import { HOME_URL } from 'consts/server';
 import useSWVersionStorage from 'core/storage/useSWVersionStorage';
 
@@ -24,6 +30,10 @@ export default function useRegisterSW() {
   }, [lastSWVersion, setSWVersion]);
 
   return navigator.serviceWorker
+    && FIREBASE_PROJECT_ID
+    && FIREBASE_APP_ID
+    && FIREBASE_KEY
+    && FIREBASE_MESSAGING_SENDER_ID
     ? cb
     : null;
 }

@@ -10,9 +10,9 @@ type VirtualModelConfigStaticProps = {
 
 export type VirtualModelConfig<
   Type extends ModelType,
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   StaticProps extends ObjectOf<any> = {},
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   Props extends ObjectOf<any> = {},
 > = ModelConfig<Type, StaticProps, Props>
   & VirtualModelConfigStaticProps;

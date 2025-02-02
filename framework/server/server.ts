@@ -25,6 +25,8 @@ import { startCronJobs } from 'services/cron/CronManager';
 import { MODEL_NAMESPACES, PUB_SUB, RATE_LIMIT } from 'consts/coreRedisNamespaces';
 import stringify from 'utils/stringify';
 import { INDEX_ERROR_HEADERS } from 'consts/httpHeaders';
+import isSecondaryServer from 'utils/isSecondaryServer';
+import isPrimaryServer from 'utils/isPrimaryServer';
 
 process.on('unhandledRejection', reason => {
   ErrorLogger.error(new Error(`unhandled rejection: ${stringify(reason)}`));
@@ -35,7 +37,7 @@ try {
     throw new Error('server: env vars not set.');
   }
 
-  if (cluster.isMaster) {
+  if (isPrimaryServer) {
     printDebug('Starting server.', 'info', { prod: 'always' });
 
     if (process.env.PRODUCTION) {
@@ -73,7 +75,7 @@ try {
     });
   }
 
-  if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
+  if (isSecondaryServer) {
     // todo: low/mid share healthcheck state within cluster
     withErrCtx(() => startHealthchecks(), 'server: startHealthchecks');
     try {

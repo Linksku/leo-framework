@@ -55,7 +55,7 @@ export default function GeolocateButton({
             );
           }
 
-          showAlert({
+          showModal({
             title: 'Failed to get location',
             msg,
           });

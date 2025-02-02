@@ -7,6 +7,7 @@ import isDebug from 'utils/isDebug';
 export const [
   RouteProvider,
   useRouteStore,
+  useRoutePath,
   useRouteMatches,
   useRouteQueryRaw,
   useGetRouteState,
@@ -33,23 +34,14 @@ export const [
       curState,
       backStates,
       forwardStates,
-      direction,
       replacedNavCount,
-      isHome,
-      isBackHome,
-      isForwardHome,
-      homeTab,
-      homeParts,
-      curStack,
-      leftStack,
-      rightStack,
     } = navState;
     const backState = backStates.at(0) ?? null;
     const forwardState = forwardStates.at(0) ?? null;
 
-    const isCurStack = initialHistoryState.key === curStack?.key;
-    const isLeftStack = initialHistoryState.key === leftStack?.key;
-    const isRightStack = initialHistoryState.key === rightStack?.key;
+    const isCurState = initialHistoryState.key === curState?.key;
+    const isBackState = initialHistoryState.key === backState?.key;
+    const isForwardState = initialHistoryState.key === forwardState?.key;
     const [routeState, setRouteState] = useState(() => ({
       historyState: initialHistoryState,
       key: initialHistoryState.key,
@@ -58,40 +50,29 @@ export const [
       queryStr: initialHistoryState.queryStr,
       hash: initialHistoryState.hash,
       id: initialHistoryState.id,
-      backState: isCurStack
+      backState: isCurState
         ? backState
-        : (isRightStack ? curState : null),
-      forwardState: isCurStack
+        : (isForwardState ? curState : null),
+      forwardState: isCurState
         ? forwardState
-        : (isLeftStack ? curState : null),
+        : (isBackState ? curState : null),
       replacedNavCount,
-      isHome: isCurStack
-        ? isHome
-        : (direction === 'forward'
-          ? isLeftStack && isBackHome
-          : isLeftStack && isForwardHome),
-      homeTab,
-      homeParts,
       // Note: don't include "direction"/"prevState" here, they change based on navigation
     }));
 
     useEffect(() => {
-      // If this route wasn't curStack on first render, then some state might be wrong
-      if (isCurStack
+      // If this route wasn't curState on first render, then some state might be wrong
+      if (isCurState
         && (routeState.backState !== backState
-          || routeState.forwardState !== forwardState
-          || routeState.homeTab !== homeTab
-          || routeState.homeParts !== homeParts)) {
+          || routeState.forwardState !== forwardState)) {
         setRouteState(s => ({
           ...s,
           backState,
           forwardState,
-          homeTab,
-          homeParts,
         }));
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isCurStack]);
+    }, [isCurState]);
 
     // HomeWrapInner or StackWrapInner
     const routeContainerRef = markStable(useRef<Stable<HTMLDivElement> | null>(null));
@@ -118,9 +99,7 @@ export const [
       routeConfig,
       matches,
       routeContainerRef,
-      isCurStack,
-      isLeftStack,
-      isRightStack,
+      isCurState,
       isRouteActive,
       wasRouteActive,
       hadRouteBeenActive,
@@ -133,9 +112,7 @@ export const [
       routeConfig,
       matches,
       routeContainerRef,
-      isCurStack,
-      isLeftStack,
-      isRightStack,
+      isCurState,
       isRouteActive,
       wasRouteActive,
       hadRouteBeenActive,
@@ -158,6 +135,9 @@ export const [
   },
   function RouteStore(val) {
     return val;
+  },
+  function RoutePath(val) {
+    return val.path;
   },
   function RouteMatches(val) {
     return val.matches;

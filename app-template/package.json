@@ -1,7 +1,9 @@
 {
-  "name": "template",
+  "name": "app",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
+  "node": ">=16",
   "dependencies": {},
   "license": "WTFPL"
 }

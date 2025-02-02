@@ -29,7 +29,7 @@ export default async function migrationRollback() {
     await updateMigrationState(
       rollback.type === 'up'
         ? filesRan.at(-1)
-        : getPrevMigration(filesRan.at(-1)),
+        : await getPrevMigration(filesRan.at(-1)),
       {
         type: rollback.type === 'up' ? 'down' : 'up',
         files: filesRan.slice().reverse(),

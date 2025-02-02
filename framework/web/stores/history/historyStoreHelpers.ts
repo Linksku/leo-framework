@@ -1,8 +1,6 @@
 import getUrlParams from 'utils/getUrlParams';
 import stringifyUrlQuery from 'utils/stringifyUrlQuery';
 
-export type { NavState } from './historyStoreTypes';
-
 export const MAX_BACK_STATES = 5;
 
 export const MAX_FORWARD_STATES = 5;

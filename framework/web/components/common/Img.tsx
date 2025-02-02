@@ -1,4 +1,4 @@
-import ImageSvg from 'boxicons/svg/regular/bx-image.svg';
+import ImageSvg from 'svgs/boxicons/regular/bx-image.svg';
 
 import { useImageHandlers } from 'stores/BatchImagesLoadStore';
 import { API_TIMEOUT } from 'consts/server';
@@ -21,7 +21,7 @@ type Props = {
   thumbFit?: 'cover' | 'contain' | 'fill',
   offCenter?: boolean, // For cropped images with fit: cover
   backgroundColor?: string,
-  defaultSvg?: React.SVGFactory,
+  defaultSvg?: SVGFactory,
   svgPadding?: string,
   svgFill?: string,
   svgBackgroundColor?: string,
@@ -144,9 +144,7 @@ export default function Img({
               borderRadius,
               visibility: showImage || showThumb ? undefined : 'hidden',
             }}
-            // @ts-expect-error missing fetchPriority in React types
-            // eslint-disable-next-line react/no-unknown-property
-            fetchpriority={fetchPriority}
+            fetchPriority={fetchPriority}
             {...imgHandlers}
             onError={() => {
               if (showThumb) {

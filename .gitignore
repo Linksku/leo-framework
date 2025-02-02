@@ -52,9 +52,14 @@ package-lock.json
 /tmp
 /tmp.*
 /*.dump
-/env/
+
+# App-specific
+/env/*
+!/env/env-template
+!/env/secrets-template
 /app/
 /capacitor/android/
 /capacitor/ios/
 /capacitor/resources/
 /capacitor/app-store/
+__generated__

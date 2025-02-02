@@ -1,5 +1,5 @@
 import type { Props as SwipeProps } from 'core/useSwipeNavigation';
-import Swipeable from 'core/frame/Swipeable';
+import Swipeable from 'components/Swipeable';
 import ErrorBoundary from 'core/frame/ErrorBoundary';
 import { useAnimatedValue, useAnimation } from 'core/useAnimation';
 import usePrevious from 'utils/usePrevious';
@@ -109,7 +109,7 @@ export default function SlideUps() {
         <div className={styles.dragSymbol} />
         <div className={styles.containerInner}>
           <ErrorBoundary
-            Loading={(
+            loadingElem={(
               <Spinner
                 verticalMargin={20}
                 dimRem={4}

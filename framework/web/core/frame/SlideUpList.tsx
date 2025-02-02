@@ -25,7 +25,7 @@ export default function SlideUpList({
   context,
 }: Props) {
   const itemsShown = TS.filterNulls(items)
-    .filter(item => item && (item === 'separator' || item.content));
+    .filter(item => !!(item && (item === 'separator' || item.content)));
 
   useEffectOncePerDeps(() => {
     if (!itemsShown.length) {

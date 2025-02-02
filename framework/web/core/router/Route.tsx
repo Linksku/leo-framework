@@ -1,15 +1,10 @@
 import { Freeze } from 'react-freeze';
 
 import type { NavState } from 'stores/history/HistoryStore';
-import StackWrapOuter from 'core/frame/stack/StackWrapOuter';
-import LoadingHomeInnerRoute from 'routes/LoadingHomeInnerRoute';
-import LoadingStackInnerRoute from 'routes/LoadingStackInnerRoute';
-import ErrorBoundary from 'core/frame/ErrorBoundary';
-import ErrorPage from 'core/frame/ErrorPage';
+import { RouteRenderer } from 'config/components';
 import { RouteProvider } from 'stores/RouteStore';
 import { BatchImagesLoadProvider } from 'stores/BatchImagesLoadStore';
 import useIsFirstRender from 'utils/useIsFirstRender';
-import AuthRequiredRoute from 'routes/AuthRequiredRoute';
 import usePrevious from 'utils/usePrevious';
 
 type RouteProps = {
@@ -28,9 +23,10 @@ const Route = React.memo(function Route({
   navState,
 }: RouteProps & { navState: NavState }) {
   const Component = routeConfig.getComponent();
+  const authState = useAuthState();
   // Allows route transition animations to begin before the route content renders
   const [skipRender, setSkipRender] = useState(() => {
-    const renderImmediately = historyState.key === navState.curStack.key && (
+    const renderImmediately = historyState.key === navState.curState.key && (
       // First page load
       navState.direction === 'none'
       // Maybe refreshed
@@ -38,7 +34,6 @@ const Route = React.memo(function Route({
       || navState.replacedNavCount != null);
     return !renderImmediately;
   });
-  const authState = useAuthState();
 
   useEffect(() => {
     if (skipRender) {
@@ -50,23 +45,6 @@ const Route = React.memo(function Route({
     }
   }, [skipRender]);
 
-  let inner: ReactNode;
-  if (skipRender) {
-    inner = null;
-  } else if (routeConfig.auth && authState === 'out') {
-    inner = <AuthRequiredRoute />;
-  } else if (routeConfig.auth && authState === 'fetching') {
-    inner = routeConfig.homeTab
-      ? <LoadingHomeInnerRoute />
-      : <LoadingStackInnerRoute />;
-  } else {
-    inner = (
-      <BatchImagesLoadProvider>
-        <Component />
-      </BatchImagesLoadProvider>
-    );
-  }
-
   // todo: mid/blocked when offscreen api is available, remove Freeze
   return (
     <RouteProvider
@@ -77,24 +55,16 @@ const Route = React.memo(function Route({
       navState={navState}
     >
       <Freeze freeze={isFrozen}>
-        {routeConfig.homeTab
-          ? (
-            <ErrorBoundary
-              Loading={<LoadingHomeInnerRoute />}
-              renderError={msg => (
-                <ErrorPage
-                  title="Error"
-                  content={msg}
-                />
-              )}
-            >
-              {inner}
-            </ErrorBoundary>
-          )
+        {skipRender
+          ? null
           : (
-            <StackWrapOuter>
-              {inner}
-            </StackWrapOuter>
+            <BatchImagesLoadProvider>
+              <RouteRenderer
+                Component={Component}
+                loading={routeConfig.auth && authState === 'fetching'}
+                missingAuth={routeConfig.auth && authState === 'out'}
+              />
+            </BatchImagesLoadProvider>
           )}
       </Freeze>
     </RouteProvider>
@@ -120,7 +90,7 @@ export default function RouteContainer({
   deferredNavState: NavState,
 }) {
   const isFirstRender = useIsFirstRender();
-  const isCurStack = historyState.key === pendingNavState.curStack.key;
+  const isCurState = historyState.key === pendingNavState.curState.key;
 
   const prevDeferredNavState = usePrevious(deferredNavState);
   const prevIsFrozen = usePrevious(isFrozen);
@@ -144,13 +114,13 @@ export default function RouteContainer({
     if (!isFirstRender) {
       // React.startTransition(() => {
       setTimeout(() => {
-        setNavState(isCurStack
+        setNavState(isCurState
           ? pendingNavState
           : deferredNavState);
       }, 0);
       // });
     }
-  }, [isFirstRender, isCurStack, pendingNavState, deferredNavState]);
+  }, [isFirstRender, isCurState, pendingNavState, deferredNavState]);
 
   return (
     <Route

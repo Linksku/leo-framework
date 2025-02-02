@@ -11,9 +11,11 @@ import listKafkaTopics from 'utils/infra/listKafkaTopics';
 import getKafkaTopicsWithoutMessages from 'utils/infra/getKafkaTopicsWithoutMessages';
 import { RECREATE_MZ_SINKS_REDIS_KEY } from 'consts/infra';
 import { redisMaster } from 'services/redis';
+import { HAS_MVS } from 'config/__generated__/consts';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('mzSinkTopics', {
+  disabled: !HAS_MVS,
   run: async function mzSinkTopicsHealthcheck() {
     if (await redisMaster.exists(RECREATE_MZ_SINKS_REDIS_KEY)) {
       return;
@@ -62,7 +64,7 @@ addHealthcheck('mzSinkTopics', {
 });
 
 addHealthcheck('mzSinkTopicMessages', {
-  disabled: !DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY,
+  disabled: !HAS_MVS || (!DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY),
   deps: ['mzSinks', 'mzSinkTopics'],
   run: async function mzSinkTopicMessagesHealthcheck() {
     if (await redisMaster.exists(RECREATE_MZ_SINKS_REDIS_KEY)) {

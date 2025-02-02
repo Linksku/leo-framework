@@ -8,6 +8,7 @@ import {
   MZ_SOURCE_PG,
   MZ_TIMESTAMP_FREQUENCY,
 } from 'consts/mz';
+import { HAS_MVS } from 'config/__generated__/consts';
 import { addHealthcheck } from './HealthcheckManager';
 
 const dbzEntities = getEntitiesForMZSources('dbz');
@@ -15,6 +16,7 @@ const pgEntities = getEntitiesForMZSources('pg');
 const shouldHavePgSource = !DBZ_FOR_UPDATEABLE || !DBZ_FOR_INSERT_ONLY;
 
 addHealthcheck('mzSources', {
+  disabled: !HAS_MVS,
   run: async function mzSourcesHealthcheck() {
     const existingSources = await showMzSystemRows('SHOW SOURCES');
     if (existingSources.length === 0) {
@@ -57,7 +59,7 @@ addHealthcheck('mzSources', {
 // Note: this error could be caused by inserting with an invalid publication:
 //   Source error: u1/3: file IO: source table foo with oid 123 has been altered
 addHealthcheck('mzDbzSourceRows', {
-  disabled: !DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY,
+  disabled: !HAS_MVS || (!DBZ_FOR_UPDATEABLE && !DBZ_FOR_INSERT_ONLY),
   deps: ['mzSources'],
   run: async function mzDbzSourceRowsHealthcheck() {
     const hasBTRows: Partial<Record<EntityType, boolean>> = Object.create(null);
@@ -143,7 +145,7 @@ addHealthcheck('mzDbzSourceRows', {
 });
 
 addHealthcheck('mzPgSourceRows', {
-  disabled: DBZ_FOR_UPDATEABLE && DBZ_FOR_INSERT_ONLY,
+  disabled: !HAS_MVS || (DBZ_FOR_UPDATEABLE && DBZ_FOR_INSERT_ONLY),
   deps: ['mzSources'],
   run: async function mzPgSourceRowsHealthcheck() {
     const remainingEntities = new Set(pgEntities);
@@ -171,6 +173,7 @@ addHealthcheck('mzPgSourceRows', {
                 || err.message.includes('Defined query timeout'))) {
               throw err;
             }
+            // eslint-disable-next-line @typescript-eslint/only-throw-error
             throw forceStopRetry(err);
           }
         });

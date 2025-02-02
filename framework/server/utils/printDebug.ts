@@ -4,15 +4,14 @@ import dayjs from 'dayjs';
 import formatErr from 'utils/formatErr';
 import getServerId from 'utils/getServerId';
 
-const MSG_TYPES = new Set([
-  'normal',
-  'success',
-  'highlight',
-  'info',
-  'warn',
-  'error',
-  'fail',
-] as const);
+type MsgType =
+  | 'normal'
+  | 'success'
+  | 'highlight'
+  | 'info'
+  | 'warn'
+  | 'error'
+  | 'fail';
 
 const MSG_TYPE_TO_COLOR = TS.literal({
   normal: 'reset',
@@ -22,9 +21,7 @@ const MSG_TYPE_TO_COLOR = TS.literal({
   warn: 'yellow',
   error: 'redBright',
   fail: 'redBright',
-} as const);
-
-type MsgType = typeof MSG_TYPES extends Set<infer U> ? U : never;
+} as const) satisfies Record<MsgType, string>;
 
 export default function printDebug(
   val: any,

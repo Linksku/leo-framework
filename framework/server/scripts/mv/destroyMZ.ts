@@ -11,6 +11,7 @@ import initInfraWrap from 'utils/infra/initInfraWrap';
 import isMzRunning from 'utils/infra/isMzRunning';
 import deleteTopicsAndSchema from 'utils/infra/deleteTopicsAndSchema';
 import MaterializedViewModels from 'core/models/allMaterializedViewModels';
+import { HAS_MVS } from 'config/__generated__/consts';
 import deleteMZSinkConnectors from './steps/deleteMZSinkConnectors';
 import deleteMZSinks from './steps/deleteMZSinks';
 import deleteMZViews from './steps/deleteMZViews';
@@ -30,6 +31,10 @@ type Props = {
 
 // todo: low/mid put a wrapper around server scripts for types
 export default async function destroyMZ(args?: Arguments<Props> | Props) {
+  if (!HAS_MVS) {
+    return;
+  }
+
   const shouldDeleteSinkConnectors = !MZ_ENABLE_CONSISTENCY_TOPIC
     || args?.deleteMZSinkConnectors
     || args?.deleteRRMVData;

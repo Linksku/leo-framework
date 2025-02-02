@@ -1,8 +1,10 @@
 import checkMZUpdating from 'scripts/mv/helpers/checkMZUpdating';
+import { HAS_MVS } from 'config/__generated__/consts';
 import { addHealthcheck } from './HealthcheckManager';
 
 // todo: low/mid split mzUpdatingHealthcheck into steps
 addHealthcheck('mzUpdating', {
+  disabled: !HAS_MVS,
   deps: [
     'pgBT',
     'replicationSlots',

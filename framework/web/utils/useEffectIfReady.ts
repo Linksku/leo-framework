@@ -1,5 +1,5 @@
 export default function useEffectIfReady(
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   cb: Function,
   deps: StableDependencyList,
   isReady: boolean,
@@ -8,6 +8,7 @@ export default function useEffectIfReady(
     if (!isReady) {
       return undefined;
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     return cb();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, isReady]);

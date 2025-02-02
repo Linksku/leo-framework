@@ -1,8 +1,10 @@
 import throttledPromiseAll from 'utils/throttledPromiseAll';
 import EntityModels from 'core/models/allEntityModels';
+import { HAS_MVS } from 'config/__generated__/consts';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('rrEntities', {
+  disabled: !HAS_MVS,
   deps: ['pgRR'],
   run: async function rrEntitiesHealthcheck() {
     const tablesMissingData: string[] = [];

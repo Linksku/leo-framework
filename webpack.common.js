@@ -56,7 +56,7 @@ export default {
     extensions: ['.js', '.ts', '.tsx', '.cjs'],
     alias: {
       // SVGR imports boxicons/node_modules/react
-      react: path.resolve('./node_modules/react/index.js'),
+      // react: path.resolve('./node_modules/react/index.js'),
     },
   },
   optimization: {

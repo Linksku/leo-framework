@@ -34,7 +34,7 @@ export default async function getKafkaTopicsWithoutMessages(
           }
 
           timer = setTimeout(() => {
-            fail();
+            fail(new Error('getLatestKafkaMessage: timed out'));
             wrapPromise(
               consumer.disconnect(),
               'error',
@@ -68,7 +68,10 @@ export default async function getKafkaTopicsWithoutMessages(
             }
           },
         })
-          .catch(err => fail(err));
+          .catch(err => {
+            // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+            fail(err);
+          });
       }),
       {
         timeout,

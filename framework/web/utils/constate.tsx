@@ -79,6 +79,7 @@ function constate<Props, Value, Selectors extends Selector<Value>[]>(
     children,
     ...props
   }) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const value = useValue(props as Props);
     let element = children as React.ReactElement;
     for (let i = 0; i < contexts.length; i += 1) {

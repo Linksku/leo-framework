@@ -1,12 +1,12 @@
-import CopySvg from 'boxicons/svg/regular/bx-copy.svg';
-import ShareSvg from 'boxicons/svg/regular/bx-share-alt.svg';
-import FacebookSvg from 'boxicons/svg/logos/bxl-facebook-circle.svg';
-import TwitterSvg from 'boxicons/svg/logos/bxl-twitter.svg';
-import RedditSvg from 'boxicons/svg/logos/bxl-reddit.svg';
-import PinterestSvg from 'boxicons/svg/logos/bxl-pinterest.svg';
-import MessengerSvg from 'boxicons/svg/logos/bxl-messenger.svg';
-import InstagramSvg from 'boxicons/svg/logos/bxl-instagram.svg';
-import WhatsAppSvg from 'boxicons/svg/logos/bxl-whatsapp.svg';
+import CopySvg from 'svgs/boxicons/regular/bx-copy.svg';
+import ShareSvg from 'svgs/boxicons/regular/bx-share-alt.svg';
+import FacebookSvg from 'svgs/boxicons/logos/bxl-facebook-circle.svg';
+import TwitterSvg from 'svgs/boxicons/logos/bxl-twitter.svg';
+import RedditSvg from 'svgs/boxicons/logos/bxl-reddit.svg';
+import PinterestSvg from 'svgs/boxicons/logos/bxl-pinterest.svg';
+import MessengerSvg from 'svgs/boxicons/logos/bxl-messenger.svg';
+import InstagramSvg from 'svgs/boxicons/logos/bxl-instagram.svg';
+import WhatsAppSvg from 'svgs/boxicons/logos/bxl-whatsapp.svg';
 import { Share } from '@capacitor/share';
 import QRCode from 'qrcode';
 
@@ -23,7 +23,7 @@ const SOCIAL_BTNS: [
   type: 'mobile' | 'desktop' | 'both',
   string,
   string,
-  React.SVGFactory,
+  SVGFactory,
   string,
 ][] = [
   [

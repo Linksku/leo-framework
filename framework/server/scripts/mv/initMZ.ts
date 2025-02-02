@@ -4,6 +4,7 @@ import initInfraWrap from 'utils/infra/initInfraWrap';
 import redis from 'services/redis';
 import { START_DEPLOY_REDIS_KEY } from 'consts/infra';
 import startDockerCompose from 'scripts/startDockerCompose';
+import { HAS_MVS } from 'config/__generated__/consts';
 import checkPendingMigrations from './steps/checkPendingMigrations';
 import createMZViewsFromDBZ from './steps/createMZViewsFromDBZ';
 import createMZViewsFromPostgres from './steps/createMZViewsFromPostgres';
@@ -16,17 +17,25 @@ import updateRRTablesComments from './steps/updateRRTablesComments';
 import waitForRRTablesData from './steps/waitForRRTablesData';
 import waitForMZStartUpdating from './steps/waitForMZStartUpdating';
 
-export default function initMZ({ sourceTimeout, waitForComplete }: {
+export default function initMZ({ sourceTimeout, waitForComplete, skipPendingMigrations }: {
   sourceTimeout?: number,
   waitForComplete?: boolean,
+  skipPendingMigrations?: boolean,
 } = {}) {
   // todo: high/hard create 2 separate MZ pipelines
   return initInfraWrap(async () => {
-    await withErrCtx(checkPendingMigrations(), 'initMZ: checkPendingMigrations');
+    if (!skipPendingMigrations) {
+      await withErrCtx(checkPendingMigrations(), 'initMZ: checkPendingMigrations');
+    }
 
     await withErrCtx(startDockerCompose(), 'initMZ: startDockerCompose');
 
     if (await redis.get(START_DEPLOY_REDIS_KEY)) {
+      return;
+    }
+
+    if (!HAS_MVS) {
+      printDebug('No MZ views needed', 'highlight');
       return;
     }
 

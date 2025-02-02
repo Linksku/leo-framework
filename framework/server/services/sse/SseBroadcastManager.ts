@@ -1,12 +1,10 @@
-import cluster from 'cluster';
-
 import SseConnectionsManager from 'services/sse/SseConnectionsManager';
 import PubSubManager from 'services/PubSubManager';
 import serializeSseEvent from 'utils/serializeSseEvent';
 import formatApiSuccessResponse from 'routes/apis/formatApiSuccessResponse';
 import { canSubscribeToSse } from 'config/functions';
-import { NUM_CLUSTER_SERVERS } from 'consts/infra';
 import fastJson from 'services/fastJson';
+import isSecondaryServer from 'utils/isSecondaryServer';
 
 type SubUnsubMessage = {
   sessionId: string,
@@ -229,7 +227,7 @@ const SseBroadcastManager = {
   },
 };
 
-if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
+if (isSecondaryServer) {
   setTimeout(() => {
     // User called `subscribe` API and connected to different server.
     PubSubManager.subscribe(SUBSCRIBE_EVENT_NAME, (msg: string) => {

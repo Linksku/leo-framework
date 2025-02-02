@@ -63,7 +63,7 @@ type _ApiAllRelations = Partial<{
   [T in RRModelType]: (keyof AllModelRelationsMap[T] & string)[];
 }>;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+// eslint-disable-next-line @typescript-eslint/no-empty-interface,  @typescript-eslint/no-empty-object-type
 interface ApiAllRelations extends _ApiAllRelations {}
 
 type ApiParams<Name extends ApiName> = ApiNameToParams[Name] & {

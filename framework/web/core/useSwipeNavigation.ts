@@ -179,13 +179,13 @@ export type Props<T extends HTMLElement> = {
   ) => void,
   disabled?: boolean,
   elementDim?: number,
-  elementRef?: React.MutableRefObject<T | null>,
+  elementRef?: React.RefObject<T | null>,
   maxSwipeStartDist?: number | [number | undefined, number | undefined]
   dragOpts?: UserDragConfig,
 };
 
 export type Ret<T extends HTMLElement> = {
-  ref: React.MutableRefObject<T | null>,
+  ref: React.RefObject<T | null>,
   bindSwipe: (...args: any[]) => ReactDOMAttributes,
 };
 

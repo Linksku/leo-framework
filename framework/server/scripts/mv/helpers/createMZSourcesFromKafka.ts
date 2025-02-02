@@ -69,6 +69,7 @@ export default async function createMZSourcesFromKafka(
           } else if (err instanceof Error
             && err.message.includes('registry: subject not found')
             && performance.now() - startSource > 60 * 1000) {
+            // eslint-disable-next-line @typescript-eslint/only-throw-error
             throw forceStopRetry(err);
           } else {
             throw err instanceof Error

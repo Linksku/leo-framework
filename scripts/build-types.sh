@@ -3,19 +3,28 @@
 start_time=$(date -d "1 minute ago" +"%Y-%m-%d %T")
 
 # todo: low/mid pause monitor-infra when rebuilding models
-if [ -e ./framework/server/config/__generated__/allModels.ts ]; then
-  echo "export const frameworkModels = [];
 
+mkdir -p ./framework/server/config/__generated__
+echo "export const frameworkModels = [];
 export const appModels = [];
 " > ./framework/server/config/__generated__/allModels.ts
-fi
+echo "module.exports = {
+  frameworkModels: [],
+  appModels: [],
+};
+" > ./framework/server/config/__generated__/allModels.cjs
+echo "export const HAS_MVS = false;" > ./framework/server/config/__generated__/consts.ts
 
-if [ -e ./app/server/config/__generated__/allModels.ts ]; then
-  echo "export const frameworkModels = [];
-
+mkdir -p ./app/server/config/__generated__
+echo "export const frameworkModels = [];
 export const appModels = [];
 " > ./app/server/config/__generated__/allModels.ts
-fi
+echo "module.exports = {
+  frameworkModels: [],
+  appModels: [],
+};
+" > ./app/server/config/__generated__/allModels.cjs
+echo "export const HAS_MVS = false;" > ./app/server/config/__generated__/consts.ts
 
 rm -f ./framework/web/types/__generated__/globals.d.ts
 rm -f ./app/web/types/__generated__/globals.d.ts

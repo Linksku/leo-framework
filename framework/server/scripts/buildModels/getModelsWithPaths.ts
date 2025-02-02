@@ -63,14 +63,14 @@ export default async function getModelsWithPaths(): Promise<{
       .map(p => ({
         path: p,
         // "server/models" needed for Webpack dynamic import
-        // eslint-disable-next-line import/no-dynamic-require, unicorn/prefer-module
+        // eslint-disable-next-line import/no-dynamic-require, @typescript-eslint/no-require-imports
         Model: (require(`../../../../app/server/models/${p}`) as { default: ModelClass })
           .default,
       }))),
     frameworkModels: filterModels(frameworkModelPaths
       .map(p => ({
         path: p,
-        // eslint-disable-next-line import/no-dynamic-require, unicorn/prefer-module
+        // eslint-disable-next-line import/no-dynamic-require, @typescript-eslint/no-require-imports
         Model: (require(`../../../../framework/server/models/${p}`) as { default: ModelClass })
           .default,
       }))),

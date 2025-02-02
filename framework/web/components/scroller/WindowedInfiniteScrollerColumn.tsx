@@ -184,7 +184,7 @@ function WindowedInfiniteScrollerListItem<ItemType extends string | number>({
           className={styles.listItemInner}
         >
           <ErrorBoundary
-            Loading={<Spinner dimRem={3} />}
+            loadingElem={<Spinner dimRem={3} />}
           >
             <ItemRenderer
               item={item}
@@ -218,7 +218,7 @@ export type ColumnProps<
   initialVisibleItems: Set<ItemType>,
   itemToRow: Map<ItemType, Row<ItemType>>,
   onReachEnd: Stable<(colIdx: number) => void>,
-  scrollableElemRef: React.RefObject<HTMLDivElement> | null,
+  scrollableElemRef: React.RefObject<HTMLDivElement | null> | null,
   scrollParentRelative: Stable<(px: number) => void>,
 } & Pick<ItemProps<ItemType, OtherItemProps>, 'ItemRenderer' | 'otherItemProps'>;
 

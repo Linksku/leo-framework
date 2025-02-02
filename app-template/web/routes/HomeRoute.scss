@@ -1,0 +1,18 @@
+.container {
+  padding: 5rem $containerPadding;
+  text-align: center;
+
+  @include gtLg {
+    min-height: auto;
+  }
+}
+
+.title {
+  margin-bottom: 2rem;
+  white-space: initial;
+}
+
+.content {
+  text-wrap: balance;
+  padding: 0 2rem;
+}

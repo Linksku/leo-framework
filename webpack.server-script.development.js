@@ -8,5 +8,5 @@ export default mergeReplaceArrays(baseConfig, {
   output: {
     path: path.resolve('./build/development/server-script'),
   },
-  stats: 'none',
+  stats: 'errors-only',
 });

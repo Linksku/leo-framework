@@ -1,4 +1,3 @@
-import cluster from 'cluster';
 import {
   type Message,
   type AndroidConfig,
@@ -19,11 +18,12 @@ import generateRandUnsignedInt from 'utils/generateRandUnsignedInt';
 import createBullQueue, { createBullWorker } from 'services/bull/createBullQueue';
 import SseBroadcastManager from 'services/sse/SseBroadcastManager';
 import formatApiSuccessResponse from 'routes/apis/formatApiSuccessResponse';
-import { NUM_CLUSTER_SERVERS } from 'consts/infra';
 import getFirebaseAdmin from 'services/getFirebaseAdmin';
 import { HOME_URL } from 'consts/server';
 import truncateStr from 'utils/truncateStr';
 import sendSimpleEmail from 'services/email/sendSimpleEmail';
+import isSecondaryServer from 'utils/isSecondaryServer';
+import { Queue } from 'bullmq';
 
 /*
 todo: high/hard make notifs scaleable
@@ -112,11 +112,11 @@ export const PLATFORM_TO_OS = {
   'other-native': 'other',
 } satisfies Record<PlatformType, string>;
 
-export const queue = createBullQueue<{
+let notifsQueue: Queue<{
   type: string,
   input: any,
   time: number,
-}>('NotifsManager');
+}> | null = null;
 
 const notifConfigs = new Map<string, NotifConfig & {
   genNotifs: GenNotifs<any, any>,
@@ -150,8 +150,11 @@ export function registerNotifType<T extends NotifConfig, Input extends JsonObj, 
   return {
     config: fullConfig,
     queue(input: Input) {
+      if (!notifsQueue) {
+        notifsQueue = createBullQueue('NotifsManager');
+      }
       wrapPromise(
-        queue.add(
+        notifsQueue.add(
           'NotifsManager',
           {
             type: config.type,
@@ -347,7 +350,7 @@ async function sendEmails(
   });
 }
 
-if (!cluster.isMaster || NUM_CLUSTER_SERVERS === 1) {
+if (isSecondaryServer) {
   createBullWorker(
     'NotifsManager',
     async job => {

@@ -1,7 +1,9 @@
 import getPgReplicationStatus from 'utils/infra/getPgReplicationStatus';
+import { HAS_MVS } from 'config/__generated__/consts';
 import { addHealthcheck } from './HealthcheckManager';
 
 addHealthcheck('replicationSlots', {
+  disabled: !HAS_MVS,
   deps: ['pgBT'],
   run: async function replicationSlotsHealthcheck() {
     const {

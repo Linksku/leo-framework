@@ -29,7 +29,7 @@ export default async function migrateDown(params: Arguments) {
   await ret;
 
   await updateMigrationState(
-    getPrevMigration(filename),
+    await getPrevMigration(filename),
     {
       type: 'up',
       files: [`${filename}.ts`],

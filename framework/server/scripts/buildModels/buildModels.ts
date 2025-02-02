@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 
+import MaterializedView from 'core/models/MaterializedView';
 import getModelsWithPaths, { ModelsArr } from './getModelsWithPaths';
 
 function getOutput({
@@ -60,6 +61,12 @@ export default async function buildModels() {
     app: mkdirp(path.resolve('./app/server/config/__generated__')),
   });
 
+  if (frameworkModels.some(
+    m => m.Model.type !== 'mzTestMV' && TS.extends(m.Model, MaterializedView),
+  )) {
+    throw new Error('buildModels: MVs shouldn\'t be in framework');
+  }
+
   await Promise.all([
     fs.writeFile(
       path.resolve('./framework/server/config/__generated__/allModels.ts'),
@@ -80,6 +87,11 @@ export default async function buildModels() {
       }),
     ),
     fs.writeFile(
+      path.resolve('./framework/server/config/__generated__/consts.ts'),
+      `export const HAS_MVS = false;
+`,
+    ),
+    fs.writeFile(
       path.resolve('./app/server/config/__generated__/allModels.ts'),
       getOutput({
         frameworkModels,
@@ -96,6 +108,15 @@ export default async function buildModels() {
         forFramework: false,
         isCjs: true,
       }),
+    ),
+    fs.writeFile(
+      path.resolve('./app/server/config/__generated__/consts.ts'),
+      `export const HAS_MVS = ${
+        appModels.some(m => m.Model.type !== 'mzTestMV' && TS.extends(m.Model, MaterializedView))
+          ? 'true'
+          : 'false'
+      };
+`,
     ),
   ]);
 }

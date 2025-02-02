@@ -13,14 +13,19 @@ export default async function createMZViewsFromDBZ() {
     return;
   }
 
-  await withErrCtx(createDBZConnectors(), 'createMZViewsFromDBZ: createDBZConnectors');
-
   const updateableModels = DBZ_FOR_UPDATEABLE
     ? EntityModels.filter(model => !model.useInsertOnlyPublication)
     : [];
   const insertOnlyModels = DBZ_FOR_INSERT_ONLY
     ? EntityModels.filter(model => model.useInsertOnlyPublication)
     : [];
+  if (!updateableModels.length && !insertOnlyModels.length) {
+    printDebug('No MZ views from DBZ needed', 'highlight');
+    return;
+  }
+
+  await withErrCtx(createDBZConnectors(), 'createMZViewsFromDBZ: createDBZConnectors');
+
   await Promise.all([
     updateableModels.length
       ? withErrCtx(

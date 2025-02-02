@@ -1,4 +1,4 @@
-import createEntityClass from 'services/model/createEntityClass';
+import createEntityClass from 'core/models/createEntityClass';
 import BaseUserMixin from 'models/user/BaseUserMixin';
 
 export default createEntityClass(

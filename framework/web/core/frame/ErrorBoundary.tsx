@@ -16,7 +16,7 @@ function getErrorMessage(err: Error) {
 }
 
 type Props = {
-  Loading?: ReactNode,
+  loadingElem?: ReactNode,
   renderError?: (msg: string, err: Error) => ReactNode,
 };
 
@@ -39,7 +39,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   override render() {
     const {
       children,
-      Loading,
+      loadingElem,
       renderError,
     } = this.props;
     const { err } = this.state;
@@ -58,7 +58,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     }
     return (
       <React.Suspense
-        fallback={Loading ?? <Spinner verticalMargin={30} />}
+        fallback={loadingElem ?? <Spinner verticalMargin={30} />}
       >
         {children}
       </React.Suspense>

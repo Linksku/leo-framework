@@ -1,11 +1,11 @@
-import cluster from 'cluster';
+import isPrimaryServer from 'utils/isPrimaryServer';
 
 export default async function initCheckTimeZone() {
   if ((new Date()).getTimezoneOffset() !== 0) {
     await ErrorLogger.fatal(new Error('initCheckTimeZone: Node TZ isn\'t UTC'));
   }
 
-  if (!cluster.isMaster) {
+  if (!isPrimaryServer) {
     return;
   }
 

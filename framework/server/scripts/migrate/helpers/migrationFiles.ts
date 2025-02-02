@@ -1,8 +1,15 @@
-export function getAllMigrations() {
-  // eslint-disable-next-line unicorn/prefer-module
+import fileExists from 'utils/fileExists';
+
+// Year must be hardcoded to avoid bundling all old migrations
+const MIGRATIONS_PATH = '../../../../../app/server/migrations/2025';
+
+export async function getAllMigrations() {
+  if (!await fileExists(MIGRATIONS_PATH)) {
+    return [];
+  }
+
   const allMigrations = require.context(
-    // Year must be hardcoded
-    '../../../../../app/server/migrations/2024',
+    MIGRATIONS_PATH,
     true,
     /\.ts$/,
   );
@@ -19,14 +26,13 @@ export async function getMigration(filename: string) {
     throw getErr('getMigration: invalid migration file name', { filename });
   }
 
-  const allMigrations = getAllMigrations();
+  const allMigrations = await getAllMigrations();
   const fullPath = allMigrations.find(m => m.endsWith(filename));
   if (!fullPath) {
     throw getErr('getMigration: migration not found', { filename });
   }
 
-  // Hardcode year to avoid bundling all old migrations
-  const file = await import('../../../../../app/server/migrations/2024/' + fullPath);
+  const file = await import(`${MIGRATIONS_PATH}/${fullPath}`);
   return TS.assertType<{
     up: AnyFunction,
     down?: AnyFunction,
@@ -38,7 +44,7 @@ export async function getMigration(filename: string) {
   );
 }
 
-export function getPrevMigration(filename: string) {
-  const allMigrations = getAllMigrations();
+export async function getPrevMigration(filename: string) {
+  const allMigrations = await getAllMigrations();
   return allMigrations.slice().reverse().find(m => m < filename) ?? '1000-00-00_000000.ts';
 }

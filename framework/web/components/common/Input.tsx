@@ -1,6 +1,6 @@
 import type { UseFormRegister, RegisterOptions } from 'react-hook-form';
 
-import useAutoFocusOnEnterRoute from 'core/router/useAutoFocusOnEnterRoute';
+import useAutoFocusOnEnterRoute from 'core/useAutoFocusOnEnterRoute';
 import mergeRefs from 'utils/mergeRefs';
 import FormError from 'components/form/FormError';
 import detectPlatform from 'utils/detectPlatform';
@@ -10,11 +10,11 @@ import styles from './Input.scss';
 type Props = {
   label?: ReactNode,
   labelProps?: React.HTMLAttributes<HTMLLabelElement>,
-  PrefixSvg?: React.SVGFactory | null,
+  PrefixSvg?: SVGFactory | null,
   prefix?: ReactNode,
   prefixClassName?: string,
   prefixProps?: React.HTMLAttributes<HTMLSpanElement>,
-  SuffixSvg?: React.SVGFactory | null,
+  SuffixSvg?: SVGFactory | null,
   suffix?: ReactNode,
   suffixClassName?: string,
   suffixProps?: React.HTMLAttributes<HTMLSpanElement>,

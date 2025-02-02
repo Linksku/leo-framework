@@ -92,15 +92,20 @@ export default async function createDBZConnectors() {
     return;
   }
 
-  printDebug('Waiting for Kafka Connect to be ready', 'highlight');
-  await withErrCtx(waitForKafkaConnectReady(), 'createDBZConnectors: waitForKafkaConnectReady');
-
   const updateableModels = DBZ_FOR_UPDATEABLE
     ? EntityModels.filter(model => !model.useInsertOnlyPublication)
     : [];
   const insertOnlyModels = DBZ_FOR_INSERT_ONLY
     ? EntityModels.filter(model => model.useInsertOnlyPublication)
     : [];
+  if (!updateableModels.length && !insertOnlyModels.length) {
+    printDebug('No DBZ connectors needed', 'highlight');
+    return;
+  }
+
+  printDebug('Waiting for Kafka Connect to be ready', 'highlight');
+  await withErrCtx(waitForKafkaConnectReady(), 'createDBZConnectors: waitForKafkaConnectReady');
+
   await Promise.all([
     updateableModels.length
       ? withErrCtx(

@@ -3,6 +3,7 @@ import getServerId from 'utils/getServerId';
 import { PUB_SUB } from 'consts/coreRedisNamespaces';
 import safeParseJson from 'utils/safeParseJson';
 import fastJson from 'services/fastJson';
+import isSecondaryServer from 'utils/isSecondaryServer';
 
 const stringifyMsg = fastJson({
   type: 'object',
@@ -126,8 +127,10 @@ const PubSubManager = {
   },
 };
 
-setTimeout(() => {
-  redisSub.on('message', PubSubManager.handleMessage);
-}, 0);
+if (isSecondaryServer) {
+  setTimeout(() => {
+    redisSub.on('message', PubSubManager.handleMessage);
+  }, 0);
+}
 
 export default PubSubManager;

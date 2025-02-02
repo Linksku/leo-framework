@@ -4,7 +4,7 @@ declare module '*.scss' {
 }
 
 declare module '*.svg' {
-  const content: Stable<React.SVGFactory>;
+  const content: Stable<SVGFactory>;
   export default content;
 }
 

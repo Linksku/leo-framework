@@ -1,7 +1,9 @@
-import cluster from 'cluster';
 import semver from 'semver';
 
+import { HAS_MVS } from 'config/__generated__/consts';
+import knexBT from 'services/knex/knexBT';
 import knexRR from 'services/knex/knexRR';
+import isPrimaryServer from 'utils/isPrimaryServer';
 
 const PG_EXTENSIONS = {
   postgis: '3.2.1',
@@ -9,11 +11,12 @@ const PG_EXTENSIONS = {
 };
 
 export default async function initCheckPgExtensions() {
-  if (!cluster.isMaster) {
+  if (!isPrimaryServer) {
     return;
   }
 
-  const rows = await knexRR<{ extname: string, extversion: string }>('pg_extension')
+  const knex = HAS_MVS ? knexRR : knexBT;
+  const rows = await knex<{ extname: string, extversion: string }>('pg_extension')
     .select(['extname', 'extversion']);
   const missing = new Set(Object.keys(PG_EXTENSIONS));
   for (const row of rows) {
