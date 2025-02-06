@@ -1,4 +1,4 @@
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 import { useHadRouteBeenActive, useIsRouteVisible } from 'stores/RouteStore';
 import useAccumulatedVal from 'utils/useAccumulatedVal';
 
@@ -52,7 +52,7 @@ function useCheckEntityExists(
 
     timerRef.current = window.setTimeout(() => {
       setWaited(true);
-    }, API_TIMEOUT);
+    }, DEFAULT_API_TIMEOUT);
 
     return () => {
       clearTimeout(timerRef.current);

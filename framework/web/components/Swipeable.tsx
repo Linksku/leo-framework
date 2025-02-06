@@ -6,20 +6,19 @@ const SwipeNavigationLoader = reactLazy(() => import(
 ), null);
 
 export type Props = {
+  ref?: React.Ref<HTMLDivElement>,
   swipeProps: Stable<SwipeProps<HTMLElement>>,
 } & React.HTMLAttributes<HTMLDivElement>;
 
-function Swipeable(
-  {
-    swipeProps,
-    children,
-    style,
-    ...props
-  }: React.PropsWithChildren<
-    Props
-  >,
-  forwardedRef?: React.ForwardedRef<HTMLDivElement>,
-) {
+export default function Swipeable({
+  ref: forwardedRef,
+  swipeProps,
+  children,
+  style,
+  ...props
+}: React.PropsWithChildren<
+  Props
+>) {
   const [{ ref: swipeRef, bindSwipe }, setRet] = React.useState<SwipeRet<HTMLElement>>({
     ref: useRef(null),
     bindSwipe: () => ({}),
@@ -53,5 +52,3 @@ function Swipeable(
     </>
   );
 }
-
-export default React.forwardRef(Swipeable);

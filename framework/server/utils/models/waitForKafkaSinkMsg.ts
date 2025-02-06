@@ -2,7 +2,7 @@ import { MZ_ENABLE_CONSISTENCY_TOPIC, MZ_SINK_TOPIC_PREFIX } from 'consts/mz';
 import type { Consumer } from 'kafkajs';
 
 import getSchemaRegistry from 'services/getSchemaRegistry';
-import { API_POST_TIMEOUT } from 'consts/server';
+import { DEFAULT_POST_API_TIMEOUT } from 'consts/server';
 import createKafkaConsumer from 'utils/infra/createKafkaConsumer';
 import listKafkaTopics from 'utils/infra/listKafkaTopics';
 
@@ -32,7 +32,7 @@ export default async function waitForKafkaSinkMsg<
 >(
   modelType: T,
   partial: P,
-  { timeout = API_POST_TIMEOUT / 2 }: {
+  { timeout = DEFAULT_POST_API_TIMEOUT / 2 }: {
     timeout?: number,
   } = {},
 ): Promise<void> {

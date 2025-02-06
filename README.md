@@ -14,6 +14,8 @@ cp env/secrets-template env/secrets
 git add -A && git commit -m "Initial"
 ```
 
+3. Set up git-crypt and add team members
+
 ## Installation ##
 
 1. Install:

@@ -8,6 +8,7 @@ export type HandleClickLink = React.EventHandler<
 >;
 
 type Props = {
+  ref?: React.Ref<HTMLAnchorElement | HTMLSpanElement | HTMLDivElement>
   Element?: 'span' | 'div' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5',
   href?: string,
   onClick?: HandleClickLink,
@@ -20,24 +21,22 @@ type Props = {
 
 // todo: mid/hard make clients open _blank in browser
 // todo: low/mid maybe preload route on hover
-function Link(
-  {
-    Element,
-    href,
-    onClick,
-    disabled,
-    replace,
-    blue,
-    activeBg,
-    rel,
-    target,
-    role,
-    children,
-    className,
-    ...props
-  }: React.PropsWithChildren<Props>,
-  ref?: React.ForwardedRef<HTMLAnchorElement | HTMLSpanElement | HTMLDivElement>,
-) {
+export default function Link({
+  ref,
+  Element,
+  href,
+  onClick,
+  disabled,
+  replace,
+  blue,
+  activeBg,
+  rel,
+  target,
+  role,
+  children,
+  className,
+  ...props
+}: React.PropsWithChildren<Props>) {
   if (!process.env.PRODUCTION && href != null) {
     if (ABSOLUTE_URL_REGEX.test(href)) {
       const idx = href.indexOf(':');
@@ -151,5 +150,3 @@ function Link(
     </Element>
   );
 }
-
-export default React.forwardRef(Link);

@@ -3,7 +3,7 @@ import QuickLRU from 'quick-lru';
 
 import redis from 'services/redis';
 import { DEFAULT_REDIS_CACHE_TTL } from 'consts/infra';
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 import createDataLoader from 'utils/createDataLoader';
 import RedisDataLoader from 'services/redis/RedisDataLoader';
 import promiseTimeout from 'utils/promiseTimeout';
@@ -46,7 +46,7 @@ export default class BaseRedisCache<T> {
     serialize,
     unserialize,
     redisTtl = DEFAULT_REDIS_CACHE_TTL,
-    lruTtl = API_TIMEOUT / 2,
+    lruTtl = DEFAULT_API_TIMEOUT / 2,
     lruMaxSize,
     disableDataLoader = false,
   }: ConstructorProps<T>) {

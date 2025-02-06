@@ -37,6 +37,7 @@ declare global {
       type: 'image' | 'video' | 'imageVideo',
       maxCount: number,
     }[],
+    timeout: number,
   };
 
   type RawApiConfig<Name extends ApiName> = Pick<ApiConfig<Name>, 'method' | 'name' | 'auth'>;

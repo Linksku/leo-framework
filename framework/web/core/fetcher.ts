@@ -1,6 +1,6 @@
 import removeUndefinedValues from 'utils/removeUndefinedValues';
 import promiseTimeout from 'utils/promiseTimeout';
-import { API_TIMEOUT, API_POST_TIMEOUT } from 'consts/server';
+import { MAX_API_TIMEOUT } from 'consts/server';
 import TimeoutError from 'core/TimeoutError';
 import safeParseJson from 'utils/safeParseJson';
 import getUrlParams from 'utils/getUrlParams';
@@ -130,7 +130,7 @@ function _fetchJson(
     {
       timeout: opts.timeout
         // Allow for a bit of transport time
-        ?? ((method === 'GET' ? API_TIMEOUT : API_POST_TIMEOUT) + 1000),
+        ?? (MAX_API_TIMEOUT + 1000),
       getErr: () => new TimeoutError(
         !process.env.PRODUCTION
           ? `Fetch(${url}) timed out`

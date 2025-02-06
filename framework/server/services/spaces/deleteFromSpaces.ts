@@ -1,5 +1,5 @@
 import promiseTimeout from 'utils/promiseTimeout';
-import { API_POST_TIMEOUT } from 'consts/server';
+import { DEFAULT_POST_API_TIMEOUT } from 'consts/server';
 import { DO_SPACES_BUCKET } from 'config/serverConfig';
 import getSpaces from './getSpaces';
 
@@ -25,7 +25,7 @@ export default async function deleteFromSpaces(urlOrPath: string): Promise<void>
         })
         .promise(),
       {
-        timeout: API_POST_TIMEOUT / 2,
+        timeout: DEFAULT_POST_API_TIMEOUT / 2,
         getErr: () => new Error('deleteFromSpaces: deleting file timed out.'),
       },
     );

@@ -1,30 +1,30 @@
 import styles from './IconButton.scss';
 
-function IconButton(
-  {
-    small,
-    Svg,
-    svgOverrides,
-    overrides,
-    ...props
-  }: {
-    Svg: SVGFactory,
-    svgOverrides?: Parameters<typeof Button>[0]['leftSvgOverrides'],
-    className?: string,
-  } & ({ label: ReactNode } | { label?: ReactNode, 'aria-label': string })
-   & Omit<
-    Parameters<typeof Button>[0],
-    | 'LeftSvg'
-    | 'leftSvgClassName'
-    | 'leftSvgOverrides'
-    | 'RightSvg'
-    | 'rightSvgClassName'
-    | 'rightSvgOverrides'
-    | 'label'
-    | 'className'
-  >,
-  ref?: React.ForwardedRef<HTMLElement>,
-) {
+export default function IconButton({
+  ref,
+  Svg,
+  svgOverrides,
+  overrides,
+  small,
+  ...props
+}: {
+  ref?: React.Ref<HTMLElement>,
+  Svg: SVGFactory,
+  svgOverrides?: Parameters<typeof Button>[0]['leftSvgOverrides'],
+  className?: string,
+  'aria-label': string,
+}
+  & Omit<
+  Parameters<typeof Button>[0],
+  | 'LeftSvg'
+  | 'leftSvgClassName'
+  | 'leftSvgOverrides'
+  | 'RightSvg'
+  | 'rightSvgClassName'
+  | 'rightSvgOverrides'
+  | 'label'
+  | 'className'
+>) {
   return (
     <Button
       {...props}
@@ -49,5 +49,3 @@ function IconButton(
     />
   );
 }
-
-export default React.forwardRef(IconButton);

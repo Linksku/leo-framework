@@ -1,7 +1,7 @@
 import { getDefaultStore } from 'jotai';
 
 import { addPopHandler, removePopHandler } from 'stores/history/HistoryStore';
-import { API_POST_TIMEOUT } from 'consts/server';
+import { DEFAULT_POST_API_TIMEOUT } from 'consts/server';
 
 export const shownAtom = atom(false);
 
@@ -27,7 +27,7 @@ function hideSlideUpRaw(instant?: boolean) {
     ref.hideTimer = window.setTimeout(() => {
       store.set(elemAtom, null);
       // Wait for APIs to complete
-    }, API_POST_TIMEOUT);
+    }, DEFAULT_POST_API_TIMEOUT);
   }
 }
 

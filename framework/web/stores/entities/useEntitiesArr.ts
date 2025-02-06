@@ -1,6 +1,6 @@
 import type { EntitiesMap } from 'stores/entities/EntitiesStore';
 import { entitiesMapsFamily, EntitiesUsage } from 'stores/entities/EntitiesStore';
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 import useTimeout from 'utils/useTimeout';
 import useShallowMemoArr from 'utils/useShallowMemoArr';
 
@@ -70,7 +70,7 @@ function useEntitiesArr<T extends EntityType>(
           setWaited(true);
         }
       }, [opts.allowMissing, waited, stableIds, allEntities]),
-      API_TIMEOUT,
+      DEFAULT_API_TIMEOUT,
     );
     /* eslint-enable react-hooks/rules-of-hooks */
   }

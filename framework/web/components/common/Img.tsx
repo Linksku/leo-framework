@@ -1,7 +1,7 @@
 import ImageSvg from 'svgs/boxicons/regular/bx-image.svg';
 
 import { useImageHandlers } from 'stores/BatchImagesLoadStore';
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 import FixedRatioContainer, {
   Props as FixedRatioContainerProps,
 } from 'components/common/FixedRatioContainer';
@@ -73,7 +73,7 @@ export default function Img({
 
       const timer = window.setTimeout(() => {
         setHadError(true);
-      }, API_TIMEOUT);
+      }, DEFAULT_API_TIMEOUT);
       const handleLoad = () => {
         clearTimeout(timer);
 

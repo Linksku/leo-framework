@@ -29,6 +29,7 @@ const PLACEMENT_TO_PROP = TS.literal({
 } as const);
 
 type Props = {
+  ref?: React.Ref<HTMLElement>,
   // Defaults to previousSibling or parent
   anchor?: HTMLElement,
   title?: string,
@@ -41,7 +42,8 @@ type Props = {
 };
 
 // todo: low/mid create context for scrollable parents, then use portal
-function Tooltip({
+export default React.memo(function Tooltip({
+  ref: forwardedRef,
   anchor,
   title,
   msg,
@@ -50,7 +52,7 @@ function Tooltip({
   placement,
   gap = 3,
   shown,
-}: Props, forwardedRef?: React.ForwardedRef<HTMLElement>) {
+}: Props) {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const arrowRef = useRef<HTMLDivElement>(null);
@@ -237,6 +239,4 @@ function Tooltip({
       </span>
     )
     : tooltip;
-}
-
-export default React.memo(React.forwardRef(Tooltip));
+});

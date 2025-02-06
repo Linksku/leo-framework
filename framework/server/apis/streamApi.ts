@@ -1,4 +1,4 @@
-import { API_TIMEOUT, STREAM_API_DELIM } from 'consts/server';
+import { DEFAULT_API_TIMEOUT, STREAM_API_DELIM } from 'consts/server';
 import { IS_PROFILING_APIS } from 'config';
 import { STREAM_API_HEADERS } from 'consts/httpHeaders';
 import safeParseJson from 'utils/safeParseJson';
@@ -88,7 +88,7 @@ export default async function streamApi(req: ExpressRequest, res: ExpressRespons
               ret = await promiseTimeout(
                 ret,
                 {
-                  timeout: API_TIMEOUT,
+                  timeout: api.config.timeout,
                   getErr: () => new UserFacingError('Request timed out', 504),
                 },
               );
@@ -97,7 +97,8 @@ export default async function streamApi(req: ExpressRequest, res: ExpressRespons
             throw getErr(err, { ctx: `handler(${api.config.name})` });
           }
 
-          if (performance.now() - startTime > API_TIMEOUT && numCompleted < apis.length - 1) {
+          if (performance.now() - startTime > api.config.timeout
+            && numCompleted < apis.length - 1) {
             throw new UserFacingError('Request timed out', 504);
           }
           validateApiRet({ api, ret });
@@ -114,7 +115,8 @@ export default async function streamApi(req: ExpressRequest, res: ExpressRespons
           result = formatAndLogApiErrorResponse(err, 'streamApi', name);
         }
 
-        if (performance.now() - startTime > API_TIMEOUT && numCompleted < apis.length - 1) {
+        if (performance.now() - startTime > (api?.config.timeout ?? DEFAULT_API_TIMEOUT)
+          && numCompleted < apis.length - 1) {
           throw new UserFacingError('Request timed out', 504);
         }
 

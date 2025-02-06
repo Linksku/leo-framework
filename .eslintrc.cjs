@@ -422,7 +422,7 @@ const config = {
       ],
       extends: [
         'airbnb/hooks',
-        'plugin:css-modules/recommended',
+        'plugin:css-modules/recommended', // Doesn't work anymore
       ],
       rules: {
         'local-rules/no-nullish-coalescing-assignment': 2,

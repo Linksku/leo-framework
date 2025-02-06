@@ -4,7 +4,7 @@ import equal from 'fast-deep-equal';
 import useAuthTokenStorage from 'core/storage/useAuthTokenStorage';
 import fetcher from 'core/fetcher';
 import ApiError from 'core/ApiError';
-import { API_TIMEOUT, API_URL, STREAM_API_DELIM } from 'consts/server';
+import { API_URL, MAX_API_TIMEOUT, STREAM_API_DELIM } from 'consts/server';
 import isErrorResponse from 'stores/api/isErrorResponse';
 import useHandleApiEntities from 'stores/api/useHandleApiEntities';
 import useHandleErrorResponse from 'stores/api/useHandleErrorResponse';
@@ -385,7 +385,7 @@ export const [
             },
           ),
           {
-            timeout: API_TIMEOUT,
+            timeout: MAX_API_TIMEOUT,
             getErr: () => new TimeoutError('Request timed out'),
           },
         );
@@ -397,7 +397,7 @@ export const [
             const text = await promiseTimeout(
               res.text(),
               {
-                timeout: API_TIMEOUT - (performance.now() - startTime),
+                timeout: MAX_API_TIMEOUT - (performance.now() - startTime),
                 getErr: () => new TimeoutError('Request timed out'),
               },
             );
@@ -424,7 +424,7 @@ export const [
           const { value, done } = await promiseTimeout(
             stream.read(),
             {
-              timeout: API_TIMEOUT - (performance.now() - startTime),
+              timeout: MAX_API_TIMEOUT - (performance.now() - startTime),
               getErr: () => new TimeoutError('Request timed out'),
             },
           );

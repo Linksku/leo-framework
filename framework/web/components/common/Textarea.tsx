@@ -7,6 +7,7 @@ import FormError from 'components/form/FormError';
 import styles from './Textarea.scss';
 
 type Props = {
+  ref?: React.Ref<HTMLTextAreaElement>,
   className?: string,
   textareaClassName?: string,
   label?: ReactNode,
@@ -26,7 +27,8 @@ type Props = {
   disabled?: boolean,
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
-function Textarea({
+export default function Textarea({
+  ref,
   children,
   className,
   textareaClassName,
@@ -38,7 +40,7 @@ function Textarea({
   overrides,
   autoFocus,
   ...props
-}: Props, ref?: React.ForwardedRef<HTMLTextAreaElement>) {
+}: Props) {
   if (!process.env.PRODUCTION && register && props.required && !registerOpts?.required) {
     throw new Error('Textarea: use registerOpts.required');
   }
@@ -93,5 +95,3 @@ function Textarea({
     )
     : textarea;
 }
-
-export default React.forwardRef(Textarea);

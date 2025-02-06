@@ -54,9 +54,11 @@ package-lock.json
 /*.dump
 
 # App-specific
+/.git-crypt/*
 /env/*
 !/env/env-template
 !/env/secrets-template
+/.sentryclirc
 /app/
 /capacitor/android/
 /capacitor/ios/

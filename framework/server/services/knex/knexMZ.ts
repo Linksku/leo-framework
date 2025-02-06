@@ -1,7 +1,6 @@
 import Knex from 'knex';
 import pg from 'pg';
 
-import { API_TIMEOUT } from 'consts/server';
 import {
   MZ_HOST,
   MZ_PORT,
@@ -53,7 +52,7 @@ const knexMZ = ServiceContextLocalStorage.run(
         cb(null, conn);
       },
     },
-    acquireConnectionTimeout: process.env.IS_SERVER_SCRIPT ? 60 * 1000 : API_TIMEOUT / 2,
+    acquireConnectionTimeout: 60 * 1000,
     debug: !process.env.PRODUCTION,
     log: {
       debug({

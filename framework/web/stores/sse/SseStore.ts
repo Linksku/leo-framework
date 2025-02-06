@@ -1,6 +1,6 @@
 import SseEventEmitter from 'services/SseEventEmitter';
 import serializeSseEvent, { unserializeSseEvent } from 'utils/serializeSseEvent';
-import { API_TIMEOUT, API_URL } from 'consts/server';
+import { DEFAULT_API_TIMEOUT, API_URL } from 'consts/server';
 import useHandleApiEntities from 'stores/api/useHandleApiEntities';
 import deepFreezeIfDev from 'utils/deepFreezeIfDev';
 import { useThrottle } from 'utils/throttle';
@@ -86,14 +86,14 @@ export const [
           });
           SseState.shownOfflineToast = true;
           SseState.offlineToastTimer = null;
-        }, API_TIMEOUT);
+        }, DEFAULT_API_TIMEOUT);
       }
     }, []);
 
     const reconnectAfterDelay = useCallback(() => {
       // This is needed because WS can disconnect right after connecting.
       const prevDelay = Math.min(60 * 1000, 1000 * (2 ** (SseState.numReconnects - 1)));
-      if (performance.now() - SseState.lastReconnectTime > prevDelay + API_TIMEOUT) {
+      if (performance.now() - SseState.lastReconnectTime > prevDelay + DEFAULT_API_TIMEOUT) {
         SseState.numReconnects = 0;
       }
 
@@ -181,7 +181,7 @@ export const [
         }
 
         if (SseState.shownOfflineToast
-          && performance.now() - SseState.lastFocusTabTime > API_TIMEOUT) {
+          && performance.now() - SseState.lastFocusTabTime > DEFAULT_API_TIMEOUT) {
           showToast({
             msg: 'Online',
             closeAfter: 1000,

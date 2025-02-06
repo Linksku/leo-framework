@@ -1,4 +1,4 @@
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 import useVisibilityObserver from 'utils/useVisibilityObserver';
 
 import styles from './ScrollerSpinner.scss';
@@ -28,7 +28,7 @@ export default function ScrollerSpinner({
       if (onSpinnerTimeout) {
         timerRef.current = window.setTimeout(
           onSpinnerTimeout,
-          Math.min(5000, API_TIMEOUT / 2),
+          Math.min(5000, DEFAULT_API_TIMEOUT / 2),
         );
       }
     }, [onSpinnerVisible, onSpinnerTimeout]),
@@ -47,7 +47,7 @@ export default function ScrollerSpinner({
       // In case onVisible runs before useEffect with double useEffect
       timerRef.current = window.setTimeout(
         onSpinnerTimeout,
-        Math.min(5000, API_TIMEOUT / 2),
+        Math.min(5000, DEFAULT_API_TIMEOUT / 2),
       );
     }
 

@@ -6,6 +6,7 @@ import fileToDataUrl from 'utils/fileToDataUrl';
 import styles from './MediaFileInput.scss';
 
 type Props = {
+  ref?: React.Ref<HTMLInputElement>,
   mediaType: 'image' | 'video' | 'both',
   multiple?: boolean,
   defaultFile?: File,
@@ -31,7 +32,8 @@ type Props = {
 };
 
 // todo: high/veryhard edit uploaded image
-function MediaFileInput({
+export default function MediaFileInput({
+  ref,
   mediaType,
   multiple,
   defaultFile,
@@ -48,7 +50,7 @@ function MediaFileInput({
   register,
   registerOpts,
   disabled,
-}: Props, ref?: React.ForwardedRef<HTMLInputElement>) {
+}: Props) {
   if (!process.env.PRODUCTION && register && inputProps?.required && !registerOpts?.required) {
     throw new Error('Select: use registerOpts.required');
   }
@@ -213,5 +215,3 @@ function MediaFileInput({
     </label>
   );
 }
-
-export default React.forwardRef(MediaFileInput);

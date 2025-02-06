@@ -1,13 +1,13 @@
 import type { Knex } from 'knex';
 
-import { API_POST_TIMEOUT } from 'consts/server';
+import { DEFAULT_POST_API_TIMEOUT } from 'consts/server';
 
 // Mostly for testing.
 export default async function waitForQueryReady(
   query: Knex.QueryBuilder<any, unknown[]>,
   {
     minWaitTime = 100,
-    maxWaitTime = API_POST_TIMEOUT / 2,
+    maxWaitTime = DEFAULT_POST_API_TIMEOUT / 2,
     exponentialBackoff = true,
   } = {},
 ) {

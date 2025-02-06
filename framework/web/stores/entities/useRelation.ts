@@ -1,7 +1,7 @@
 import { EntitiesIncludedRelations, getEntitiesState } from 'stores/entities/EntitiesStore';
 import useEntitiesMap from 'stores/entities/useEntitiesMap';
 import useEntityByUniqueFields from 'stores/entities/useEntityByUniqueFields';
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 import useShallowMemoArr from 'utils/useShallowMemoArr';
 import { useRelationConfig } from 'stores/RelationsStore';
 import { useHadRouteBeenActive, useIsRouteVisible } from 'stores/RouteStore';
@@ -50,7 +50,7 @@ function useCheckRelationExists(
       return undefined;
     }
 
-    timerRef.current = window.setTimeout(() => checkRelationExists(), API_TIMEOUT);
+    timerRef.current = window.setTimeout(() => checkRelationExists(), DEFAULT_API_TIMEOUT);
 
     return () => {
       clearTimeout(timerRef.current);

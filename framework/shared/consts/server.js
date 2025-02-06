@@ -33,8 +33,9 @@ export const API_DOMAIN_NAME = PROD_SERVER
 export const API_URL = PROD_SERVER
   ? PROTOCOL + API_DOMAIN_NAME
   : '';
-export const API_TIMEOUT = 10 * 1000;
-export const API_POST_TIMEOUT = 20 * 1000;
+export const DEFAULT_API_TIMEOUT = 10 * 1000;
+export const DEFAULT_POST_API_TIMEOUT = 20 * 1000;
+export const MAX_API_TIMEOUT = 60 * 1000;
 export const STREAM_API_DELIM = ',""␞';
 export const DEFAULT_COOKIES_TTL = 90 * 24 * 60 * 60 * 1000;
 export const DEFAULT_ASSETS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;

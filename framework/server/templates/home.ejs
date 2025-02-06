@@ -8,14 +8,14 @@ const fileName = localStorage.getItem('authToken') ? 'HomeAuthRoute' : 'HomeUnau
 
 const jsLink = document.createElement('link');
 jsLink.rel = 'preload';
-jsLink.href = `https://assets.get3rdspace.com/js/chunks/${fileName}<%= fileVersion %>.js`;
+jsLink.href = `<%= assetsUrl %>/js/chunks/${fileName}<%= fileVersion %>.js`;
 jsLink.as = 'script';
 jsLink.fetchPriority = 'low';
 document.head.appendChild(jsLink);
 
 const cssLink = document.createElement('link');
 cssLink.rel = 'stylesheet';
-cssLink.href = `https://assets.get3rdspace.com/css/chunks/${fileName}<%= fileVersion %>.css`;
+cssLink.href = `<%= assetsUrl %>/css/chunks/${fileName}<%= fileVersion %>.css`;
 cssLink.media = 'none';
 cssLink.onload = () => {
   if (cssLink.media !== 'all') {

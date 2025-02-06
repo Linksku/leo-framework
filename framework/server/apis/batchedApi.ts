@@ -1,7 +1,7 @@
 import { defineApi, nameToApi } from 'services/ApiManager';
 import RequestContextLocalStorage from 'core/requestContext/RequestContextLocalStorage';
 import promiseTimeout from 'utils/promiseTimeout';
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 import { IS_PROFILING_APIS } from 'config';
 import validateApiParams from 'routes/apis/validateApiParams';
 import formatApiHandlerParams from 'routes/apis/formatApiHandlerParams';
@@ -102,10 +102,12 @@ defineApi(
         },
         async () => {
           const startTime = performance.now();
+
+          const api = nameToApi.get(name.toLowerCase()) as
+          unknown as ApiDefinition<Name> | undefined;
+
           let result: ApiRouteRet<Name> | ApiErrorResponse;
           try {
-            const api = nameToApi.get(name.toLowerCase()) as
-              unknown as ApiDefinition<Name> | undefined;
             if (!api) {
               throw new UserFacingError('API not found.', 404);
             }
@@ -131,13 +133,13 @@ defineApi(
               ret = await promiseTimeout(
                 ret,
                 {
-                  timeout: API_TIMEOUT,
+                  timeout: api.config.timeout,
                   getErr: () => new UserFacingError('Request timed out', 504),
                 },
               );
             }
 
-            if (performance.now() - startTime > API_TIMEOUT) {
+            if (performance.now() - startTime > api.config.timeout) {
               throw new UserFacingError('Request timed out', 504);
             }
 
@@ -156,7 +158,7 @@ defineApi(
             console.log(`batchedApi(${name}): handler took ${Math.round(performance.now() - startTime)}ms`);
           }
 
-          if (performance.now() - startTime > API_TIMEOUT) {
+          if (performance.now() - startTime > (api?.config.timeout ?? DEFAULT_API_TIMEOUT)) {
             throw new UserFacingError('Request timed out', 504);
           }
           return result;

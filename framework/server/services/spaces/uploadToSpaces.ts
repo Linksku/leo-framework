@@ -2,7 +2,7 @@ import path from 'path';
 import type { Readable } from 'stream';
 
 import promiseTimeout from 'utils/promiseTimeout';
-import { API_POST_TIMEOUT, DEFAULT_ASSETS_CACHE_TTL } from 'consts/server';
+import { DEFAULT_POST_API_TIMEOUT, DEFAULT_ASSETS_CACHE_TTL } from 'consts/server';
 import {
   DO_SPACES_HOST,
   DO_SPACES_BUCKET,
@@ -29,7 +29,7 @@ export default async function uploadToSpaces({
   contentType,
   isPrivate,
   maxAge = DEFAULT_ASSETS_CACHE_TTL,
-  timeout = API_POST_TIMEOUT / 2,
+  timeout = DEFAULT_POST_API_TIMEOUT / 2,
 }: Props): Promise<string> {
   if (process.env.SERVER !== 'production' && prefix.startsWith('p/')) {
     throw new Error('uploadToSpaces: can\'t upload to prod in dev');

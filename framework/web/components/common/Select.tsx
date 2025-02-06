@@ -3,6 +3,7 @@ import type { UseFormRegister, RegisterOptions } from 'react-hook-form';
 import styles from './Select.scss';
 
 type Props<T extends string> = {
+  ref?: React.Ref<HTMLSelectElement>,
   options: Stable<{ key: T, label: string }[]>,
   value?: T,
   defaultValue?: T,
@@ -17,7 +18,8 @@ type Props<T extends string> = {
   >
 } & React.SelectHTMLAttributes<HTMLSelectElement>;
 
-function Select<T extends string>({
+export default function Select<T extends string>({
+  ref,
   className,
   options,
   value,
@@ -32,7 +34,7 @@ function Select<T extends string>({
   registerOpts,
   overrides,
   ...props
-}: Props<T>, ref?: React.ForwardedRef<HTMLSelectElement>) {
+}: Props<T>) {
   if (!process.env.PRODUCTION && register && props.required && !registerOpts?.required) {
     throw new Error('Select: use registerOpts.required');
   }
@@ -98,5 +100,3 @@ function Select<T extends string>({
     </label>
   );
 }
-
-export default React.forwardRef(Select) as typeof Select;

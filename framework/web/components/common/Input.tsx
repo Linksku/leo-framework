@@ -8,6 +8,7 @@ import detectPlatform from 'utils/detectPlatform';
 import styles from './Input.scss';
 
 type Props = {
+  ref?: React.Ref<HTMLInputElement>,
   label?: ReactNode,
   labelProps?: React.HTMLAttributes<HTMLLabelElement>,
   PrefixSvg?: SVGFactory | null,
@@ -29,8 +30,8 @@ type Props = {
   >,
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix' | 'readOnly'>;
 
-function Input({
-  children: _,
+export default function Input({
+  ref,
   className,
   label,
   labelProps,
@@ -54,7 +55,7 @@ function Input({
   disabled,
   required,
   ...props
-}: React.PropsWithChildren<Props>, ref?: React.ForwardedRef<HTMLInputElement>) {
+}: Props) {
   if (!process.env.PRODUCTION) {
     if (disabled && onBlur) {
       // https://github.com/facebook/react/issues/9142
@@ -172,5 +173,3 @@ function Input({
     )
     : inputGroup;
 }
-
-export default React.forwardRef(Input);

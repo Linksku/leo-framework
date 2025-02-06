@@ -1,7 +1,7 @@
 import Knex from 'knex';
 import pg from 'pg';
 
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 import {
   PG_BT_HOST,
   PG_BT_PORT,
@@ -59,7 +59,7 @@ const knexBT = ServiceContextLocalStorage.run(
         });
       },
     },
-    acquireConnectionTimeout: process.env.IS_SERVER_SCRIPT ? 60 * 1000 : API_TIMEOUT / 2,
+    acquireConnectionTimeout: process.env.IS_SERVER_SCRIPT ? 60 * 1000 : DEFAULT_API_TIMEOUT / 2,
     debug: !process.env.PRODUCTION,
     log: {
       debug({

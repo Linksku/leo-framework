@@ -22,6 +22,7 @@ type SvgOverrides = Pick<
 >;
 
 type Props = {
+  ref?: React.Ref<HTMLElement>,
   Element?: 'span' | 'div' | 'input' | 'button',
   label?: ReactNode,
   labelClassName?: string,
@@ -72,35 +73,33 @@ type Props = {
   'style'
 >;
 
-function Button(
-  {
-    Element = 'span',
-    className,
-    overrides,
-    label,
-    labelClassName,
-    LeftSvg,
-    RightSvg,
-    leftSvgClassName,
-    leftSvgOverrides,
-    rightSvgClassName,
-    rightSvgOverrides,
-    outline,
-    borderless,
-    fullWidth,
-    href,
-    linkProps,
-    onClick,
-    disabled,
-    fetching,
-    noSpinner,
-    active,
-    small,
-    children,
-    ...props
-  }: Props,
-  ref?: React.ForwardedRef<HTMLElement>,
-) {
+export default function Button({
+  ref,
+  Element = 'span',
+  className,
+  overrides,
+  label,
+  labelClassName,
+  LeftSvg,
+  RightSvg,
+  leftSvgClassName,
+  leftSvgOverrides,
+  rightSvgClassName,
+  rightSvgOverrides,
+  outline,
+  borderless,
+  fullWidth,
+  href,
+  linkProps,
+  onClick,
+  disabled,
+  fetching,
+  noSpinner,
+  active,
+  small,
+  children,
+  ...props
+}: Props) {
   if (!process.env.PRODUCTION) {
     if (Element === 'input') {
       if (label) {
@@ -109,6 +108,8 @@ function Button(
       if (fetching) {
         ErrorLogger.warn(new Error('Button: input can\'t be fetching.'));
       }
+    } else if (props.type) {
+      throw new Error('Button: missing Element=input.');
     }
     if (children) {
       throw new Error('Button: use label instead of children.');
@@ -253,5 +254,3 @@ function Button(
     </Link>
   );
 }
-
-export default React.forwardRef(Button);

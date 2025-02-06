@@ -8,7 +8,7 @@ import {
 } from 'utils/models/mergeEntityProps';
 import useTimeout from 'utils/useTimeout';
 import isDebug from 'utils/isDebug';
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 
 export type EntityEventHandler<T extends EntityType> =
   (
@@ -405,7 +405,8 @@ export const [
         for (const entities of EntitiesState.values()) {
           for (const entity of entities.values()) {
             const usage = EntitiesUsage.get(entity);
-            if (usage && !usage.lastReadTime && performance.now() - usage.fetchTime > API_TIMEOUT) {
+            if (usage && !usage.lastReadTime
+              && performance.now() - usage.fetchTime > DEFAULT_API_TIMEOUT) {
               notUsed.push(entity);
             }
             numEntities++;
@@ -420,7 +421,7 @@ export const [
           // eslint-disable-next-line no-console
           console.log(`All ${numEntities} entities used.`);
         }
-      }, []), API_TIMEOUT * 2);
+      }, []), DEFAULT_API_TIMEOUT * 2);
     }
 
     return useMemo(() => ({

@@ -1,15 +1,17 @@
 type Props = {
+  ref?: React.Ref<HTMLFormElement>,
   onSubmit: ((e?: React.BaseSyntheticEvent) => void)
     | ((e?: React.BaseSyntheticEvent) => Promise<void>),
     submitOnEnter?: boolean,
 } & React.FormHTMLAttributes<HTMLFormElement>;
 
-function Form({
+export default function Form({
+  ref,
   onSubmit,
   submitOnEnter,
   children,
   ...props
-}: React.PropsWithChildren<Props>, ref?: React.ForwardedRef<HTMLFormElement>) {
+}: React.PropsWithChildren<Props>) {
   const catchAsync = useCatchAsync();
   return (
     <form
@@ -35,5 +37,3 @@ function Form({
     </form>
   );
 }
-
-export default React.forwardRef(Form);

@@ -6,7 +6,7 @@ import { getApiId, getApi, apiNeedsFetch } from 'stores/api/ApiStore';
 import useLatestCallback from 'utils/useLatestCallback';
 import useUpdate from 'utils/useUpdate';
 import useRefInitialState from 'utils/useRefInitialState';
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 import useEnterRoute from 'core/router/useEnterRoute';
 
 export type UseApiOpts<Name extends ApiName> = {
@@ -204,7 +204,7 @@ function useApi<
         clearCache(name, params);
       }
     } else if (!process.env.PRODUCTION
-      && performance.now() - ref.current.firstEffectTime < API_TIMEOUT
+      && performance.now() - ref.current.firstEffectTime < DEFAULT_API_TIMEOUT
       && !equal(ref.current.firstEffectParams, params)) {
       ErrorLogger.warn(new Error(`useApi(${name}): params changed on load`));
     }

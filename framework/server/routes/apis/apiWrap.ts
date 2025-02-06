@@ -1,4 +1,3 @@
-import { API_TIMEOUT, API_POST_TIMEOUT } from 'consts/server';
 import { IS_PROFILING_APIS } from 'config';
 import { API_ROUTES_HEADERS } from 'consts/httpHeaders';
 import randInt from 'utils/randInt';
@@ -94,8 +93,7 @@ export default function apiWrap<Name extends ApiName>(
         throw getErr(err, { ctx: `apiWrap.handler(${api.config.name})` });
       }
 
-      if (performance.now() - startTime
-        > (!api.config.method || api.config.method === 'get' ? API_TIMEOUT : API_POST_TIMEOUT)) {
+      if (performance.now() - startTime > api.config.timeout) {
         throw new UserFacingError('Request timed out', 504);
       }
 

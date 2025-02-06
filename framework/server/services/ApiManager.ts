@@ -1,3 +1,4 @@
+import { DEFAULT_POST_API_TIMEOUT, DEFAULT_API_TIMEOUT } from 'consts/server';
 import { getCompiledValidator } from 'routes/apis/apiValidateFn';
 
 export const nameToApi = new Map<
@@ -6,7 +7,7 @@ export const nameToApi = new Map<
 >();
 
 export function defineApi<Name extends ApiName>(
-  config: ApiConfig<Name>,
+  config: SetOptional<ApiConfig<Name>, 'timeout'>,
   // Note: need to add ApiHandlerParams manually in handlers for VS Code typing
   handler: ApiHandler<Name>,
 ): void {
@@ -17,7 +18,10 @@ export function defineApi<Name extends ApiName>(
 
   const api = {
     raw: false,
-    config,
+    config: {
+      ...config,
+      timeout: config.timeout ?? (config.method === 'post' ? DEFAULT_POST_API_TIMEOUT : DEFAULT_API_TIMEOUT),
+    },
     handler,
   } satisfies ApiDefinition<Name>;
   nameToApi.set(

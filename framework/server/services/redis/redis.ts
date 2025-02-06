@@ -2,7 +2,7 @@ import Redis, { RedisOptions } from 'ioredis';
 
 import { REDIS_HOST, REDIS_PORT, REDIS_USER } from 'consts/infra';
 import ServiceContextLocalStorage, { createServiceContext } from 'services/ServiceContextLocalStorage';
-import { API_TIMEOUT } from 'consts/server';
+import { DEFAULT_API_TIMEOUT } from 'consts/server';
 
 export const redisConfig = {
   host: REDIS_HOST,
@@ -10,7 +10,7 @@ export const redisConfig = {
   username: REDIS_USER,
   password: process.env.REDIS_PASS,
   maxRetriesPerRequest: 2,
-  commandTimeout: API_TIMEOUT / 2,
+  commandTimeout: DEFAULT_API_TIMEOUT / 2,
   showFriendlyErrorStack: !process.env.PRODUCTION,
   lazyConnect: process.env.IS_SERVER_SCRIPT,
 } satisfies RedisOptions;
