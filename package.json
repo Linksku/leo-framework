@@ -84,7 +84,6 @@
     "@capacitor/splash-screen": "^7.0.0",
     "@capacitor/status-bar": "^7.0.0",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
-    "@eslint/js": "^9.19.0",
     "@floating-ui/dom": "^1.6.13",
     "@kafkajs/confluent-schema-registry": "^3.6.1",
     "@sentry/browser": "^8.52.1",
@@ -238,9 +237,6 @@
     "unicorn": "^0.0.1",
     "webpack-bundle-analyzer": "^4.10.2",
     "webpack-node-externals": "^3.0.0"
-  },
-  "resolutions": {
-    "caniuse-lite": "1.0.30001653"
   },
   "license": "MIT"
 }

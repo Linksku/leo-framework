@@ -16,4 +16,4 @@ echo '/capacitor/resources/' >> .gitignore
 echo '/capacitor/app-store/' >> .gitignore
 echo '__generated__' >> .gitignore
 
-printf '%s\n\n%s\n' $'This is the public version of my private repo with commits squashed.' "$(cat README.md)" > README.md
+printf '%s\n\n%s\n' $'This is part of my private repo with commits squashed. [Infra diagram](https://github.com/Linksku/leo-framework/blob/master/framework/infra/infra.png)' "$(cat README.md)" > README.md

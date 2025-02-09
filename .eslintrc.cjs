@@ -40,7 +40,6 @@ const config = {
   },
   plugins: [
     'eslint-plugin-local-rules',
-    '@stylistic/eslint-plugin',
   ],
   extends: [
     'airbnb',
@@ -303,9 +302,13 @@ const config = {
   },
   overrides: [
     {
-      files: ['*.ts', '*.tsx'],
+      files: [
+        '*.ts',
+        '*.tsx',
+      ],
       plugins: [
         '@typescript-eslint',
+        '@stylistic/eslint-plugin',
       ],
       extends: [
         // 'plugin:@typescript-eslint/recommended',

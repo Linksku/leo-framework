@@ -9,6 +9,7 @@ git --git-dir=.git-framework co master
 
 ./scripts/helpers/switch-to-framework.sh || exit 1
 
+git --git-dir=.git-framework checkout master -- yarn.lock
 if [[ -n $(git --git-dir=.git-framework status --porcelain) ]]; then
   echo "Framework has uncommitted changes"
   ./scripts/helpers/switch-to-app.sh || exit 1

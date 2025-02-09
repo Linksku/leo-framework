@@ -1,4 +1,4 @@
-This is the public version of my private repo with commits squashed.
+This is part of my private repo with commits squashed. [Infra diagram](https://github.com/Linksku/leo-framework/blob/master/framework/infra/infra.png)
 
 ## Set Up New App ##
 

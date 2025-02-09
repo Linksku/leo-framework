@@ -1,3 +1,5 @@
+@use 'sass:selector';
+
 @mixin gtXs {
   @media (min-width: #{$screenXs}) {
     @content;
@@ -54,7 +56,7 @@
 }
 
 @mixin optionalAtRoot($sel) {
-  @at-root #{if(not &, $sel, selector-append(&, $sel))} {
+  @at-root #{if(not &, $sel, selector.append(&, $sel))} {
     @content;
   }
 }

@@ -324,10 +324,6 @@ const SERVICES = {
   'monitor-infra': {
     image: 'server',
     depends_on: [
-      ...Object.keys(BROKERS),
-      'schema-registry',
-      'connect',
-      'materialize',
       'redis',
     ],
     restart: 'always',
@@ -384,10 +380,6 @@ const SERVICES = {
   'server-script': {
     image: 'server',
     depends_on: [
-      ...Object.keys(BROKERS),
-      'schema-registry',
-      'connect',
-      'materialize',
       'redis',
       'server',
     ],

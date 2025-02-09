@@ -1,7 +1,7 @@
 import importStartTime from 'core/importStartTime';
 import 'core/browserHacks/polyfills';
 
-import 'styles/styles.scss';
+import 'styles/coreStyles.scss';
 // Import global UI components first so their styles can be overridden
 import 'components/common/Button';
 import 'components/common/Img';

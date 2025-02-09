@@ -109,28 +109,33 @@ export default async function destroyMZ(args?: Arguments<Props> | Props) {
         .catch(err => printDebug(err, 'error')),
     ]);
 
-    await Promise.all([
-      shouldDeleteSinkConnectors
-        // Sometimes deleting once doesn't work, maybe because MZ recreated topics
-        ? withErrCtx(
-          () => deleteTopicsAndSchema(MZ_SINK_TOPIC_PREFIX),
-          'destroyMZ: deleteMZSinkTopics',
-        )
-          .catch(err => printDebug(err, 'error'))
-        : null,
+    try {
+      await Promise.all([
+        shouldDeleteSinkConnectors
+          // Sometimes deleting once doesn't work, maybe because MZ recreated topics
+          ? withErrCtx(
+            () => deleteTopicsAndSchema(MZ_SINK_TOPIC_PREFIX),
+            'destroyMZ: deleteMZSinkTopics',
+          )
+            .catch(err => printDebug(err, 'error'))
+          : null,
 
-      args?.deleteMZReplicationSlots
-        ? withErrCtx(deleteMZReplicationSlots(), 'destroyMZ: deleteMZReplicationSlots')
-        : null,
+        args?.deleteMZReplicationSlots
+          ? withErrCtx(deleteMZReplicationSlots(), 'destroyMZ: deleteMZReplicationSlots')
+          : null,
 
-      // Only delete RR after Docker volume is deleted
-      shouldDeleteRRMVData
-        ? withErrCtx(
-          deleteRRData(MaterializedViewModels.map(r => r.tableName)),
-          'destroyMZ: deleteRRData',
-        )
-        : null,
-    ]);
+        // Only delete RR after Docker volume is deleted
+        shouldDeleteRRMVData
+          ? withErrCtx(
+            deleteRRData(MaterializedViewModels.map(r => r.tableName)),
+            'destroyMZ: deleteRRData',
+          )
+          : null,
+      ]);
+    } catch (err) {
+      printDebug('destroyMZ failed');
+      throw err;
+    }
   });
   await pause(1000);
 }

@@ -1,4 +1,4 @@
-import { DEFAULT_POST_API_TIMEOUT, DEFAULT_API_TIMEOUT } from 'consts/server';
+import { DEFAULT_POST_API_TIMEOUT, DEFAULT_API_TIMEOUT, MAX_API_TIMEOUT } from 'consts/server';
 import { getCompiledValidator } from 'routes/apis/apiValidateFn';
 
 export const nameToApi = new Map<
@@ -16,11 +16,14 @@ export function defineApi<Name extends ApiName>(
     throw new Error(`ApiManager.defineApi: ${name} already defined.`);
   }
 
+  const defaultTimeout = config.method === 'post' ? DEFAULT_POST_API_TIMEOUT : DEFAULT_API_TIMEOUT;
   const api = {
     raw: false,
     config: {
       ...config,
-      timeout: config.timeout ?? (config.method === 'post' ? DEFAULT_POST_API_TIMEOUT : DEFAULT_API_TIMEOUT),
+      timeout: config.timeout && config.timeout > MAX_API_TIMEOUT
+        ? defaultTimeout
+        : (config.timeout ?? defaultTimeout),
     },
     handler,
   } satisfies ApiDefinition<Name>;
