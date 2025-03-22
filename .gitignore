@@ -11,26 +11,17 @@ package-lock.json
 # Git
 .git/
 .git-framework/
-.gitignore-temp
 
 # Build
 /build
 /dist
 /build.*
 /server.tar.gz
-/framework/infra/kafka-connectors/**/target/
-
-# Framework
-/env/env.dev
 
 # Generated
 /stats.json
 /isolate-*.log
 *.tsbuildinfo
-/capacitor/android/app/src/main/assets/
-/app/tests/screenshots/
-/app/tests/videos/
-/framework/tests/fixtures/auth.json
 
 # OS
 .DS_Store
@@ -52,6 +43,14 @@ package-lock.json
 /tmp
 /tmp.*
 /*.dump
+
+# Framework
+/env/env.dev
+/capacitor/android/app/src/main/assets/
+/framework/infra/kafka-connectors/**/target/
+/framework/tests/fixtures/auth.json
+/app/tests/screenshots/
+/app/tests/videos/
 
 # App-specific
 /.git-crypt/*

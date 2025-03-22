@@ -42,7 +42,7 @@ export default async function addMetaTags(req: ExpressRequest, html: string) {
       if (pair[0] === 'canonical') {
         return `<link rel="canonical" href="${HOME_URL}${encode(pair[1])}" />`;
       }
-      return `<meta property="${encode(pair[0])}" content="${encode(pair[1])}"/>`;
+      return `<meta ${pair[0].includes(':') ? 'property' : 'name'}="${encode(pair[0])}" content="${encode(pair[1])}"/>`;
     })
     .join('\n');
 

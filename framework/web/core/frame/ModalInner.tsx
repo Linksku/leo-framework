@@ -21,6 +21,7 @@ export default function ModalInner(props: React.PropsWithChildren<
     title,
     msg,
     closeable = true,
+    confirmBeforeClose = false,
     showOk = true,
     okText = 'OK',
     okBtnProps,
@@ -73,10 +74,16 @@ export default function ModalInner(props: React.PropsWithChildren<
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (disabled) {
       return;
     }
+
+    if (confirmBeforeClose
+      && !await showConfirm({ msg: 'Are you sure you want to close?' })) {
+      return;
+    }
+
     onCancel?.();
     hideModal();
   };

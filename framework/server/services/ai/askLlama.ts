@@ -19,7 +19,7 @@ export default async function askLlama({
   prompt,
   outputPrefix,
   image,
-  maxOutputLength = 512,
+  maxOutputLength = 1024,
 }: {
   modelId?: string,
   prompt: string,
@@ -79,12 +79,12 @@ export default async function askLlama({
   );
 
   if (output.prompt_token_count && output.prompt_token_count > 5000) {
-    ErrorLogger.warn(new Error('askLlamaJson: prompt_token_count > 5000'), { prompt });
+    ErrorLogger.warn(new Error('askLlama: prompt_token_count > 5000'), { prompt });
   } else if (output.generation_token_count
       && output.generation_token_count > 5000
       && output.generation_token_count > maxOutputLength) {
     ErrorLogger.warn(
-      new Error('askLlamaJson: generation_token_count > 5000'),
+      new Error('askLlama: generation_token_count > 5000'),
       { generation: output.generation },
     );
   }

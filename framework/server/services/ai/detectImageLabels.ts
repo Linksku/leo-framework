@@ -23,13 +23,6 @@ export default async function detectImageLabels(
     throw new Error(`detectInappropriateImage: invalid data: ${stringify(data)}`);
   }
 
-  if (typeof data.interests === 'string') {
-    data.interests = data.interests.split(',').map(str => str.trim());
-  }
-  if (typeof data.tags === 'string') {
-    data.tags = data.tags.split(',').map(str => str.trim());
-  }
-
   return TS.assertType(
     data,
     val => TS.isObj(val) && Array.isArray(val.interests) && Array.isArray(val.tags),

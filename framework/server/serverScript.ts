@@ -7,7 +7,7 @@ import 'services/knex/knexBT';
 
 if (!process.env.SERVER_SCRIPT_PATH
   || !process.env.SERVER_SCRIPT_PATH.includes('/scripts/')) {
-  throw new Error('serverScript: script not found.');
+  throw new Error(`serverScript: script not found: ${process.env.SERVER_SCRIPT_PATH}`);
 }
 
 if (!process.env.SERVER || !process.env.NODE_ENV) {

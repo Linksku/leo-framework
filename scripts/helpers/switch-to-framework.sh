@@ -1,7 +1,5 @@
 #!/bin/bash
 
-cp .gitignore .gitignore-temp
-
 echo '' >> .gitignore
 echo '# App-specific' >> .gitignore
 echo '/.git-crypt/*' >> .gitignore
@@ -16,4 +14,4 @@ echo '/capacitor/resources/' >> .gitignore
 echo '/capacitor/app-store/' >> .gitignore
 echo '__generated__' >> .gitignore
 
-printf '%s\n\n%s\n' $'This is part of my private repo with commits squashed. [Infra diagram](https://github.com/Linksku/leo-framework/blob/master/framework/infra/infra.png)' "$(cat README.md)" > README.md
+printf '%s\n\n%s\n' $'This is the core of my private repo (without app-specific code) with commits squashed. [Infra diagram](https://github.com/Linksku/leo-framework/blob/master/framework/infra/infra.png)' "$(cat README.md)" > README.md

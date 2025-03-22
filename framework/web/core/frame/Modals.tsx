@@ -17,7 +17,12 @@ function ModalWrap({ modal, children }: React.PropsWithChildren<{ modal: Modal }
   return (
     <div
       onClick={modal.closeable !== false
-        ? () => {
+        ? async () => {
+          if (modal.confirmBeforeClose
+            && !await showConfirm({ msg: 'Are you sure you want to close?' })) {
+            return;
+          }
+
           modal.onClose?.();
           hideLastModal();
         }
@@ -49,7 +54,6 @@ function ModalWrap({ modal, children }: React.PropsWithChildren<{ modal: Modal }
   );
 }
 
-// todo: mid/mid warn before closing modal
 export default function Modals() {
   const ref = useRef({
     isHiding: false,
@@ -76,20 +80,19 @@ export default function Modals() {
   }, [closedAllModals, modals, update]);
 
   if (modals.length) {
-    return (
-      <ModalWrap modal={TS.defined(modals.at(-1))}>
-        {modals.map(modal => (
-          <ModalProvider
-            key={modal.id}
-            modal={modal}
-          >
-            {modal.elem ?? <ModalInner />}
-          </ModalProvider>
-        ))}
+    return modals.map(modal => (
+      <ModalWrap modal={modal}>
+        <ModalProvider
+          key={modal.id}
+          modal={modal}
+        >
+          {modal.elem ?? <ModalInner />}
+        </ModalProvider>
       </ModalWrap>
-    );
+    ));
   }
 
+  // todo: low/easy check modal closing animation
   const prevModal = prevModals?.at(-1);
   return prevModal
     ? (

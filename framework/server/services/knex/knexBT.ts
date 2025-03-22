@@ -17,6 +17,10 @@ if (!process.env.PG_BT_USER) {
   throw new Error('knexBT: PG_BT_USER env var not set.');
 }
 
+if (!process.env.PG_BT_PASS) {
+  throw new Error('knexBT: PG_BT_PASS env var not set.');
+}
+
 // BT = base table, aka master
 const knexBT = ServiceContextLocalStorage.run(
   createServiceContext('knexBT'),

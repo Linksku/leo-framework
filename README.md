@@ -1,4 +1,4 @@
-This is part of my private repo with commits squashed. [Infra diagram](https://github.com/Linksku/leo-framework/blob/master/framework/infra/infra.png)
+This is the core of my private repo (without app-specific code) with commits squashed. [Infra diagram](https://github.com/Linksku/leo-framework/blob/master/framework/infra/infra.png)
 
 ## Set Up New App ##
 
@@ -6,15 +6,10 @@ This is part of my private repo with commits squashed. [Infra diagram](https://g
 
 2. In the project root, run:
 ```
-mv .git .git-framework
-git init
-cp -r app-template app
-cp env/env-template env/env.dev
-cp env/secrets-template env/secrets
-git add -A && git commit -m "Initial"
+scripts/setup.sh
 ```
 
-3. Set up git-crypt and add team members
+3. Set up git-crypt, add team members if needed
 
 ## Installation ##
 
@@ -41,6 +36,7 @@ yarn build:types
 3. Edit:
 - env/env.dev
 - app/shared/config/config.js
+- app/server/config/serverConfig.ts
 
 ### Decrypt Secrets ###
 

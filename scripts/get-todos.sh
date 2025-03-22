@@ -16,7 +16,8 @@ else
   search='todo: (veryhigh/(easy|mid|hard)|high/(easy|mid))|(mid/easy) '
 fi
 
-git grep -il todo: \*.{js,ts,tsx,cjs,css,scss,html} \
+git grep -il "todo:" \*.{js,ts,tsx,cjs,css,scss,html} \
+  | grep "^${2:-}" \
   | xargs -n1 git blame -f -e --ignore-revs-file .git-blame-ignore-revs \
   | LC_ALL=C grep -i -E "$search" \
   | if [ "$1" = "misc" ]; then LC_ALL=C grep -i -v -E 'todo: (veryhigh|high|mid|low)/(veryhard|hard|mid|easy)'; else cat; fi \

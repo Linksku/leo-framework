@@ -164,6 +164,7 @@ export function loadErrorLogger(userId : IUser['id'] | null): void {
   if (!process.env.PRODUCTION || process.env.SERVER !== 'production') {
     return;
   }
+
   latestUserId = userId;
 
   Promise.all([

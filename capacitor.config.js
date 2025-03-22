@@ -48,7 +48,8 @@ export default (async () => {
       SplashScreen: {
         backgroundColor: '#FFFFFF',
         launchShowDuration: 5000,
-        androidScaleType: 'CENTER_CROP',
+        androidScaleType: 'CENTER_INSIDE',
+        splashImmersive: true,
       },
       GoogleAuth: {
         androidClientId: GOOGLE_CLIENT_ID_ANDROID,

@@ -8,13 +8,10 @@ export default function getExpectedDockerServices() {
       if (!profiles || !Array.isArray(profiles)) {
         return true;
       }
-      if (profiles.includes('materialize-dashboard')) {
-        return false;
+      if (HAS_MVS && profiles.includes('mz')) {
+        return true;
       }
-      if (!HAS_MVS && profiles.includes('mz')) {
-        return false;
-      }
-      return true;
+      return false;
     })
     .map(pair => pair[0]);
 }

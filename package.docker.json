@@ -10,17 +10,17 @@
     "dc": "node ./docker-compose.js | docker compose -f -"
   },
   "dependencies": {
-    "@sentry/node": "^8.52.1",
+    "@sentry/node": "^9.1.0",
     "bcrypt": "^5.1.1",
-    "bullmq": "^5.39.1",
+    "bullmq": "^5.41.1",
     "dotenv": "^16.4.7",
-    "firebase-admin": "^13.0.2",
+    "firebase-admin": "^13.1.0",
     "fluent-ffmpeg": "^2.1.3",
     "json-schema-to-typescript": "^15.0.4",
     "kafkajs": "^2.2.4",
     "knex": "^3.1.0",
     "patch-package": "^8.0.0",
-    "pg": "^8.13.1",
+    "pg": "^8.13.3",
     "sharp": "^0.33.5"
   },
   "license": "MIT"

@@ -15,9 +15,11 @@ if (!process.env.SERVER || !process.env.NODE_ENV) {
 process.env.FORCE_COLOR = '3';
 $.verbose = true;
 
-const scriptName = argv._[0];
+const scriptName = argv._[0].endsWith('scripts/run-server-script.mjs')
+  ? argv._[1]
+  : argv._[0];
 if (!scriptName) {
-  throw new Error('Missing script name');
+  throw new Error(`run-server-script: missing script name: ${argv._.join(' ')}`);
 }
 
 await $`scripts/build-server-script.sh ${scriptName}`;

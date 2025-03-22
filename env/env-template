@@ -3,14 +3,14 @@ SERVER=development
 
 # Infra
 PG_BT_USER=postgres
-PG_BT_PASS=
+PG_BT_PASS=postgres
 PG_BT_SUPERUSER=postgres
 MZ_USER=materialize
 MZ_PASS=materialize
 PG_RR_USER=postgres
-PG_RR_PASS=
+PG_RR_PASS=postgres
 PG_RR_SUPERUSER=postgres
-REDIS_PASS=
+REDIS_PASS=redis
 MAX_CPU_PERCENT=100
 
 # Misc

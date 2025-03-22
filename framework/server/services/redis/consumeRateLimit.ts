@@ -66,8 +66,7 @@ const rateLimiters = {
   }),
 } satisfies ObjectOf<RateLimiterRedis>;
 
-// todo: low/easy rename rate limit functions
-export function penaltyRateLimit(type: keyof typeof rateLimiters, points: number) {
+export function incrementRateLimit(type: keyof typeof rateLimiters, points: number) {
   return rateLimiters[type].penalty(points);
 }
 

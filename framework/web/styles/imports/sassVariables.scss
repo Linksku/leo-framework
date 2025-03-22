@@ -49,14 +49,23 @@ $inputPlaceholderColor: $fadedTextColor;
 // Layout.
 // iOS insets leave too much space
 $insetMultiplier: 0.9;
-$insetTop: calc(env(safe-area-inset-top, 0px) * $insetMultiplier);
+$insetTop: var(
+  --inset-top-override,
+  calc(env(safe-area-inset-top, 0px) * $insetMultiplier)
+);
 $insetBottom: var(
-  --bottom-inset-hack,
+  --inset-bottom-override,
   calc(env(safe-area-inset-bottom, 0px) * $insetMultiplier)
 );
-$insetLeft: calc(env(safe-area-inset-left, 0px) * $insetMultiplier);
-$insetRight: calc(env(safe-area-inset-right, 0px) * $insetMultiplier);
-$offsetTop: var(--top-inset-hack, 0px);
+$insetLeft: var(
+  --inset-left-override,
+  calc(env(safe-area-inset-left, 0px) * $insetMultiplier)
+);
+$insetRight: var(
+  --inset-right-override,
+  calc(env(safe-area-inset-right, 0px) * $insetMultiplier)
+);
+$offsetTop: var(--offset-top, 0px);
 
 $bodyMinWidth: 280px;
 $bodyMinHeight: 300px;

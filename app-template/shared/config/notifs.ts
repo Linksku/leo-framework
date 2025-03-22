@@ -27,7 +27,9 @@ export const NOTIF_CHANNEL_CONFIGS = {
   }
 >;
 
-export const UNSUB_NOTIF_ENTITIES = [];
+export const UNSUB_NOTIF_ENTITIES = TS.literal([
+  'user',
+] as const);
 
 export type UnsubNotifEntity = typeof UNSUB_NOTIF_ENTITIES[number];
 

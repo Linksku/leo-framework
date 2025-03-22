@@ -9,6 +9,7 @@ export type Modal = {
   elem?: ReactElement,
   closeAfter?: number | null,
   closeable?: boolean,
+  confirmBeforeClose?: boolean,
   showOk?: boolean,
   okText?: string,
   okBtnProps?: Parameters<typeof Button>[0] | null,
@@ -37,10 +38,13 @@ function handlePopHistory() {
 }
 
 export const showModal = markStable(function showModal(
-  props: ReactElement | Partial<Modal>,
-  opts?: { closeAfter?: number },
+  propsOrElem: ReactElement | Partial<Modal>,
+  opts?: {
+    closeAfter?: number,
+    confirmBeforeClose?: boolean,
+  },
 ) {
-  const isElem = React.isValidElement(props);
+  const isElem = React.isValidElement(propsOrElem);
   const modalId = _nextModalId;
   _nextModalId++;
 
@@ -50,18 +54,19 @@ export const showModal = markStable(function showModal(
     isElem
       ? {
         id: modalId,
-        elem: props,
+        elem: propsOrElem,
         closeAfter: opts?.closeAfter,
+        confirmBeforeClose: opts?.confirmBeforeClose,
       }
       : {
         id: modalId,
-        ...props,
+        ...propsOrElem,
       },
   ]);
 
   addPopHandler(handlePopHistory);
 
-  const closeAfter = isElem ? opts?.closeAfter : props.closeAfter;
+  const closeAfter = isElem ? opts?.closeAfter : propsOrElem.closeAfter;
   if (closeAfter != null) {
     setTimeout(() => {
       requestAnimationFrame(() => {

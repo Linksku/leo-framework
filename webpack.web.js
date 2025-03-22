@@ -57,6 +57,7 @@ export default mergeReplaceArrays(baseConfig, {
               importLoaders: 3,
               modules: {
                 namedExport: false,
+                // Handled in shortenCssClass for prod
                 localIdentName: '[name]__[local]',
               },
             },

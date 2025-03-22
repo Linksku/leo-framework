@@ -22,6 +22,10 @@ const EventLogger = {
       ErrorLogger.warn(new Error(`EventLogger.track(${eventName}): invalid name`));
     }
 
+    if (!process.env.PRODUCTION || process.env.SERVER !== 'production') {
+      return;
+    }
+
     if (Mixpanel) {
       requestIdleCallback(() => {
         (Mixpanel as typeof MixpanelType).track(eventName, eventProps);
@@ -48,6 +52,10 @@ export function clearEventLoggerUser(): void {
 }
 
 export function loadEventLogger(user: Entity<'user'> | null): void {
+  if (!process.env.PRODUCTION || process.env.SERVER !== 'production') {
+    return;
+  }
+
   latestUser = user;
 
   retryImport(() => import(/* webpackChunkName: 'Mixpanel' */ 'mixpanel-browser'))

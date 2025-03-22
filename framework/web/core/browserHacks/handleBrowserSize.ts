@@ -10,10 +10,10 @@ if (TS.hasProp(navigator, 'virtualKeyboard')) {
 
 function _handleResize() {
   if (isVirtualKeyboardOpen()) {
-    document.documentElement.style.setProperty('--bottom-inset-hack', '0px');
+    document.documentElement.style.setProperty('--inset-bottom-override', '0px');
   } else {
-    document.documentElement.style.removeProperty('--bottom-inset-hack');
-    document.documentElement.style.removeProperty('--top-inset-hack');
+    document.documentElement.style.removeProperty('--inset-bottom-override');
+    document.documentElement.style.removeProperty('--offset-top');
   }
 
   // Note: on Android, after re-opening screen, height can be wrong
@@ -45,11 +45,11 @@ const throttledHandleScroll = throttle(
     if (isVirtualKeyboardOpen()) {
       // Prevents scrolling up and showing blank space when virtual keyboard is open
       document.documentElement.style.setProperty(
-        '--top-inset-hack',
+        '--offset-top',
         `${window.visualViewport?.offsetTop ?? 0}px`,
       );
     } else {
-      document.documentElement.style.removeProperty('--top-inset-hack');
+      document.documentElement.style.removeProperty('--offset-top');
     }
   },
   { timeout: 100 },

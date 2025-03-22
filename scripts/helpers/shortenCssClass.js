@@ -29,9 +29,9 @@ export default function shortenCssClass(filePath) {
       });
     }
 
-    const baseName = path.parse(loaderContext.resourcePath).name;
+    const fileName = path.parse(loaderContext.resourcePath).name;
     const className = localIdentName
-      .replaceAll(/\[name]/gi, baseName)
+      .replaceAll(/\[name]/gi, fileName)
       .replaceAll(/\[local]/gi, localName);
     if (!cssClasses[className]) {
       cssClasses[className] = intToChars(nextInt);

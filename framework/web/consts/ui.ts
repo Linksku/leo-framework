@@ -10,6 +10,8 @@ export const SCREEN_MD = 768;
 
 export const SCREEN_LG = 900;
 
+export const BODY_MIN_WIDTH = 280;
+
 export const CONTAINER_MAX_WIDTH = SCREEN_LG;
 
 // Colors

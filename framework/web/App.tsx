@@ -1,6 +1,5 @@
 import { SplashScreen } from '@capacitor/splash-screen';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
-import { StatusBar } from '@capacitor/status-bar';
 
 import Router from 'core/router/Router';
 import ErrorBoundary from 'core/frame/ErrorBoundary';
@@ -37,10 +36,24 @@ export default function App() {
           ErrorLogger.warn(err, { ctx: 'ScreenOrientation.lock' });
         });
 
-      StatusBar.setBackgroundColor({ color: '#ffffff' })
-        .catch(err => {
-          ErrorLogger.warn(err, { ctx: 'StatusBar.setBackgroundColor' });
-        });
+      // StatusBar.setStyle({ style: Style.Light })
+      //   .catch(err => {
+      //     ErrorLogger.warn(err, { ctx: 'StatusBar.setBackgroundColor' });
+      //   });
+
+      // SafeArea.getSafeAreaInsets()
+      //   .then(data => updateSafeAreaInsets(data.insets))
+      //   .catch(err => {
+      //     ErrorLogger.warn(err, { ctx: 'SafeArea.getSafeAreaInsets' });
+      //   });
+
+      // SafeArea.addListener(
+      //   'safeAreaChanged',
+      //   data => updateSafeAreaInsets(data.insets),
+      // )
+      //   .catch(err => {
+      //     ErrorLogger.warn(err, { ctx: 'SafeArea.safeAreaChanged' });
+      //   });
     }
 
     const effectTime = performance.now();

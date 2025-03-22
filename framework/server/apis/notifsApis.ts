@@ -137,11 +137,16 @@ defineApi(
       type: 'object',
       required: ['entityType', 'entityId'],
       properties: {
-        entityType: {
-          type: 'string',
-          enum: UNSUB_NOTIF_ENTITIES,
-          tsType: 'UnsubNotifEntity',
-        },
+        entityType: UNSUB_NOTIF_ENTITIES.length
+          ? {
+            type: 'string',
+            enum: UNSUB_NOTIF_ENTITIES,
+            tsType: 'UnsubNotifEntity',
+          }
+          : {
+            type: 'null',
+            tsType: 'UnsubNotifEntity',
+          },
         entityId: SchemaConstants.id,
       },
       additionalProperties: false,
@@ -173,11 +178,16 @@ defineApi(
       type: 'object',
       required: ['entityType', 'entityId'],
       properties: {
-        entityType: {
-          type: 'string',
-          enum: UNSUB_NOTIF_ENTITIES,
-          tsType: 'UnsubNotifEntity',
-        },
+        entityType: UNSUB_NOTIF_ENTITIES.length
+          ? {
+            type: 'string',
+            enum: UNSUB_NOTIF_ENTITIES,
+            tsType: 'UnsubNotifEntity',
+          }
+          : {
+            type: 'null',
+            tsType: 'UnsubNotifEntity',
+          },
         entityId: SchemaConstants.id,
       },
       additionalProperties: false,

@@ -2,8 +2,8 @@ export const NGROK_URL = '';
 export const IS_PROFILING_APIS = false;
 
 // Core
-export const APP_NAME = '';
-export const APP_NAME_LOWER = '';
+export const APP_NAME = 'App';
+export const APP_NAME_LOWER = 'app';
 export const DESCRIPTION = '';
 export const PROD_DOMAIN_NAME = 'example.com';
 export const PROD_SHORT_DOMAIN_NAME = 'example.com';
