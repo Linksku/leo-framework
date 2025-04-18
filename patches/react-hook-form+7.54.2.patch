@@ -1,17 +1,17 @@
 diff --git a/node_modules/react-hook-form/dist/index.esm.mjs b/node_modules/react-hook-form/dist/index.esm.mjs
-index 438e50f..363d094 100644
+index 2de86ab..814900c 100644
 --- a/node_modules/react-hook-form/dist/index.esm.mjs
 +++ b/node_modules/react-hook-form/dist/index.esm.mjs
-@@ -1503,7 +1503,7 @@ function schemaErrorLookup(errors, _fields, name) {
+@@ -1541,7 +1541,7 @@ function schemaErrorLookup(errors, _fields, name) {
      };
  }
- 
+
 -var skipValidation = (isBlurEvent, isTouched, isSubmitted, reValidateMode, mode) => {
 +var skipValidation = (isBlurEvent, isTouched, isSubmitted, reValidateMode, mode, hasValue) => {
      if (mode.isOnAll) {
          return false;
      }
-@@ -1511,7 +1511,9 @@ var skipValidation = (isBlurEvent, isTouched, isSubmitted, reValidateMode, mode)
+@@ -1549,7 +1549,9 @@ var skipValidation = (isBlurEvent, isTouched, isSubmitted, reValidateMode, mode)
          return !(isTouched || isBlurEvent);
      }
      else if (isSubmitted ? reValidateMode.isOnBlur : mode.isOnBlur) {
@@ -22,7 +22,7 @@ index 438e50f..363d094 100644
      }
      else if (isSubmitted ? reValidateMode.isOnChange : mode.isOnChange) {
          return isBlurEvent;
-@@ -1931,7 +1933,14 @@ function createFormControl(props = {}) {
+@@ -1980,7 +1982,14 @@ function createFormControl(props = {}) {
                  !_options.resolver &&
                  !get(_formState.errors, name) &&
                  !field._f.deps) ||

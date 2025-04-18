@@ -2,6 +2,7 @@ import { createSecretKey } from 'crypto';
 import JWT, { SignOptions, TokenExpiredError, VerifyOptions } from 'jsonwebtoken';
 
 import type { JwtPayloads } from 'config/jwtPayloads';
+import type { NotifChannel } from 'config/notifs';
 import { DEFAULT_COOKIES_TTL } from 'consts/server';
 
 const jwtKey = process.env.JWT_KEY;

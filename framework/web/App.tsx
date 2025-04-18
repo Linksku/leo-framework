@@ -21,6 +21,28 @@ import { UIFrameProvider } from 'stores/UIFrameStore';
 import providers from 'config/storeProviders';
 import 'core/mainBundleImports';
 
+const PROVIDERS = [
+  // Nav
+  HistoryProvider,
+
+  // UI
+  BatchImagesLoadProvider,
+  UIFrameProvider,
+
+  // Core data
+  EntitiesProvider,
+  EntitiesIndexProvider,
+  AuthProvider,
+  ApiProvider,
+
+  // Other data
+  SseProvider,
+  NotifsProvider,
+
+  // Custom
+  ...providers,
+];
+
 export default function App() {
   useTimeComponentPerf('Render App');
 
@@ -74,31 +96,10 @@ export default function App() {
     });
   });
 
-  let router = <Router />;
-  for (const Component of [
-    // Nav
-    HistoryProvider,
-
-    // UI
-    BatchImagesLoadProvider,
-    UIFrameProvider,
-
-    // Core data
-    EntitiesProvider,
-    EntitiesIndexProvider,
-    AuthProvider,
-    ApiProvider,
-
-    // Other data
-    SseProvider,
-    NotifsProvider,
-
-    // Custom
-    ...providers,
-  ].reverse()) {
-    router = <Component>{router}</Component>;
-  }
-
+  const router = PROVIDERS.reverse().reduce(
+    (inner, Provider) => <Provider>{inner}</Provider>,
+    <Router />,
+  );
   return (
     <ErrorBoundary
       loadingElem={<LoadingRoute />}

@@ -1,10 +1,11 @@
+import type { SseName, SseParams } from 'config/sse';
 import useEffectIfReady from 'utils/useEffectIfReady';
 import useDeepMemoObj from 'utils/useDeepMemoObj';
 
 export default function useSseArr(
   events: {
-    name: string,
-    params: JsonObj,
+    name: SseName,
+    params: SseParams[SseName],
   }[],
   {
     isReady = true,

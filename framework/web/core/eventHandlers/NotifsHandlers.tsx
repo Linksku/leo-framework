@@ -33,8 +33,7 @@ export default function NotifsHandlers() {
 
   useSse(
     'notifCreated',
-    { userId: currentUserId },
-    { isEnabled: !!currentUserId },
+    currentUserId ? { userId: currentUserId } : null,
   );
 
   useHandleEntityEvents(

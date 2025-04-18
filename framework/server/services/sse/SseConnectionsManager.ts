@@ -37,7 +37,7 @@ const SseConnectionsManager = {
         = (require('./SseBroadcastManager') as { default: typeof SseBroadcastManagerType })
           .default;
     }
-    SseBroadcastManager?.unsubscribeAll(sessionId);
+    SseBroadcastManager.unsubscribeAll(sessionId);
     conns.delete(sessionId);
   },
 

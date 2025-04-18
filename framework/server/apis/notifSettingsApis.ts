@@ -1,5 +1,5 @@
 import { defineApi } from 'services/ApiManager';
-import { NOTIF_CHANNELS_ARR, NOTIF_CHANNEL_CONFIGS } from 'config/notifs';
+import { NOTIF_CHANNELS_ARR, NOTIF_CHANNEL_CONFIGS, NotifChannel } from 'config/notifs';
 import { verifyJwt } from 'core/jwt';
 
 defineApi(
@@ -62,7 +62,7 @@ defineApi(
       }
       seen.add(setting.channel);
 
-      const { defaultSettings } = NOTIF_CHANNEL_CONFIGS[setting.channel];
+      const { defaultSettings } = TS.getProp(NOTIF_CHANNEL_CONFIGS, setting.channel);
       if (!defaultSettings) {
         continue;
       } else if ((setting.push == null || setting.push === defaultSettings.push)
@@ -153,7 +153,8 @@ defineApi(
           {
             userId: decoded.userId,
             channel: decoded.channel,
-            push: setting?.push ?? NOTIF_CHANNEL_CONFIGS[decoded.channel].defaultSettings.push,
+            push: setting?.push
+              ?? NOTIF_CHANNEL_CONFIGS[decoded.channel].defaultSettings.push,
             email: false,
           },
           { onDuplicate: 'update' },

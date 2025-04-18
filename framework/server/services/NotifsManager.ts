@@ -8,6 +8,7 @@ import uniq from 'lodash/uniq.js';
 import uniqBy from 'lodash/uniqBy.js';
 
 import type { SseData } from 'services/sse/SseBroadcastManager';
+import type { NotifScope, NotifChannel } from 'config/notifs';
 import { FcmNotifData, NOTIF_APPROX_MAX_LENGTH } from 'consts/notifs';
 import {
   NOTIF_SCOPES,
@@ -479,7 +480,7 @@ if (isSecondaryServer) {
           return;
         }
 
-        SseBroadcastManager.broadcastData(
+        SseBroadcastManager.send(
           'notifCreated',
           { userId: notif.userId },
           {

@@ -5,10 +5,6 @@ import { APP_NAME, NOREPLY_EMAIL } from 'config';
 import { AWS_ACCESS_ID, AWS_REGION } from 'config/serverConfig';
 import { DELETED_USER_EMAIL_DOMAIN } from 'consts/coreUsers';
 
-if (!AWS_ACCESS_ID) {
-  throw new Error('sendEmail: AWS_ACCESS_ID config not set');
-}
-
 let client: SESType | null;
 let clientPromise: Promise<SESType> | null = null;
 
@@ -19,6 +15,13 @@ export default async function sendEmail(
   contentHtml: string,
 ) {
   if (!client) {
+    if (!AWS_ACCESS_ID) {
+      throw new Error('sendEmail: missing AWS_ACCESS_ID');
+    }
+    if (!process.env.AWS_SECRET_KEY) {
+      throw new Error('sendEmail: missing AWS_SECRET_KEY');
+    }
+
     clientPromise ??= import('aws-sdk/clients/ses.js')
       .then(({ default: SESClient }) => new SESClient({
         region: AWS_REGION,

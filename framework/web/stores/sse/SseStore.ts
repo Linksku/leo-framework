@@ -1,3 +1,4 @@
+import type { SseData, SseName, SseParams } from 'config/sse';
 import SseEventEmitter from 'services/SseEventEmitter';
 import serializeSseEvent, { unserializeSseEvent } from 'utils/serializeSseEvent';
 import { DEFAULT_API_TIMEOUT, API_URL } from 'consts/server';
@@ -14,10 +15,11 @@ const SseState = {
   subscriptions: new Map<
     string,
     {
-      serializedEventName: string;
-      name: string,
-      params: Stable<JsonObj>
+      serializedEventName: string,
+      name: SseName,
+      params: Stable<SseParams[SseName]>,
       numSubscribers: number,
+      cbs:((data: SseData[SseName]) => void)[],
     }
   >(),
   readyState: EventSource.CLOSED as number,
@@ -279,7 +281,11 @@ export const [
       [closeSse, sseUnsubscribe],
     );
 
-    const addSubscription = useCallback((name: string, params: Stable<JsonObj>) => {
+    const addSubscription = useCallback(<Name extends SseName>(
+      name: Name,
+      params: Stable<SseParams[Name]>,
+      cb?: (data: SseData[Name]) => void,
+    ) => {
       const serializedEventName = serializeSseEvent(name, params);
       const sub = SseState.subscriptions.get(serializedEventName);
       if (sub) {
@@ -287,14 +293,21 @@ export const [
         if (sub.numSubscribers > 1) {
           return;
         }
+        if (!process.env.PRODUCTION) {
+          // eslint-disable-next-line no-console
+          console.log(`SseStore.addSubscription(${name}): negative subs`);
+        }
       }
 
-      SseState.subscriptions.set(serializedEventName, {
-        serializedEventName,
-        name,
-        params,
-        numSubscribers: sub?.numSubscribers ?? 1,
-      });
+      if (!sub) {
+        SseState.subscriptions.set(serializedEventName, {
+          serializedEventName,
+          name,
+          params,
+          numSubscribers: 1,
+          cbs: cb ? [cb] : [],
+        });
+      }
 
       SseState.queuedSubs.add(serializedEventName);
       SseState.queuedUnsubs.delete(serializedEventName);
@@ -302,7 +315,11 @@ export const [
       processQueuedSubs();
     }, [processQueuedSubs]);
 
-    const removeSubscription = useCallback((name: string, params: Stable<JsonObj>) => {
+    const removeSubscription = useCallback(<Name extends SseName>(
+      name: Name,
+      params: Stable<SseParams[Name]>,
+      cb?: (data: SseData[Name]) => void,
+    ) => {
       const serializedEventName = serializeSseEvent(name, params);
       const sub = SseState.subscriptions.get(serializedEventName);
       if (!sub) {
@@ -310,6 +327,9 @@ export const [
       }
 
       sub.numSubscribers--;
+      if (cb) {
+        sub.cbs = sub.cbs.filter(cb2 => cb2 !== cb);
+      }
       if (sub.numSubscribers > 0) {
         return;
       }

@@ -1,3 +1,4 @@
+import type { SseName, SseParams } from 'config/sse';
 import SseConnectionsManager from 'services/sse/SseConnectionsManager';
 import PubSubManager from 'services/PubSubManager';
 import serializeSseEvent from 'utils/serializeSseEvent';
@@ -41,7 +42,7 @@ const eventTypesToSessionIds = new Map<string, Set<string>>();
 const SseBroadcastManager = {
   async subscribe(
     sessionId: string,
-    events: { name: string, params: JsonObj }[],
+    events: { name: SseName, params: SseParams[SseName] }[],
     currentUserId: Nullish<EntityId>,
   ) {
     if (!process.env.PRODUCTION && events.some(e => !e.name || !e.params)) {
@@ -72,10 +73,10 @@ const SseBroadcastManager = {
       return;
     }
 
-    SseBroadcastManager.subscribeSameServer(sessionId, eventTypes);
+    SseBroadcastManager._subscribeSameServer(sessionId, eventTypes);
   },
 
-  subscribeSameServer(sessionId: string, eventTypes: string[]) {
+  _subscribeSameServer(sessionId: string, eventTypes: string[]) {
     const sessionEventTypes = TS.mapValOrSetDefault(sessionIdToEventTypes, sessionId, new Set());
 
     for (const eventType of eventTypes) {
@@ -83,12 +84,12 @@ const SseBroadcastManager = {
       if (!eventSessionIds.size) {
         PubSubManager.subscribe(
           `sse:${eventType}`,
-          (data: string) => SseBroadcastManager.sendToConnections(eventType, data),
+          (data: string) => SseBroadcastManager._sendToSameServer(eventType, data),
         );
       }
       if (sessionEventTypes.size >= MAX_EVENTS_PER_CONNECTION) {
         ErrorLogger.warn(getErr(
-          'SseBroadcastManager.subscribeSameServer: session reached max events',
+          'SseBroadcastManager._subscribeSameServer: session reached max events',
           { eventTypes: [...sessionEventTypes] },
         ));
         break;
@@ -99,7 +100,7 @@ const SseBroadcastManager = {
     }
   },
 
-  unsubscribe(sessionId: string, events: { name: string, params: JsonObj }[]) {
+  unsubscribe(sessionId: string, events: { name: SseName, params: SseParams[SseName] }[]) {
     const eventTypes = events.map(e => serializeSseEvent(e.name, e.params));
     const conn = SseConnectionsManager.getConn(sessionId);
     if (!conn) {
@@ -110,10 +111,10 @@ const SseBroadcastManager = {
       return;
     }
 
-    SseBroadcastManager.unsubscribeSameServer(sessionId, eventTypes);
+    SseBroadcastManager._unsubscribeSameServer(sessionId, eventTypes);
   },
 
-  unsubscribeSameServer(sessionId: string, eventTypes: string[]) {
+  _unsubscribeSameServer(sessionId: string, eventTypes: string[]) {
     const subbedEventTypes = sessionIdToEventTypes.get(sessionId);
     if (subbedEventTypes) {
       for (const eventType of eventTypes) {
@@ -156,9 +157,9 @@ const SseBroadcastManager = {
     sessionIdToEventTypes.delete(sessionId);
   },
 
-  async broadcastDataImpl(
-    eventName: string,
-    eventParams: JsonObj | JsonObj[],
+  async _sendImpl<Name extends SseName>(
+    eventName: Name,
+    eventParams: SseParams[Name] | SseParams[Name][],
     data: SseData,
   ) {
     const successResponse = await formatApiSuccessResponse('sse' as any, data);
@@ -173,7 +174,7 @@ const SseBroadcastManager = {
       };
       const dataStr = JSON.stringify(processedData);
 
-      SseBroadcastManager.sendToConnections(eventType, dataStr);
+      SseBroadcastManager._sendToSameServer(eventType, dataStr);
       PubSubManager.publish(
         `sse:${eventType}`,
         dataStr,
@@ -181,19 +182,19 @@ const SseBroadcastManager = {
     }
   },
 
-  broadcastData(
-    eventName: string,
-    eventParams: JsonObj | JsonObj[],
+  send<Name extends SseName>(
+    eventName: Name,
+    eventParams: SseParams[Name] | SseParams[Name][],
     data: SseData,
   ) {
     wrapPromise(
-      this.broadcastDataImpl(eventName, eventParams, data),
+      this._sendImpl(eventName, eventParams, data),
       'error',
-      `Sse.broadcastData: ${eventName}`,
+      `Sse._sendImpl: ${eventName}`,
     );
   },
 
-  sendToConnections(eventType: string, data: string) {
+  _sendToSameServer(eventType: string, data: string) {
     const sessionIds = eventTypesToSessionIds.get(eventType);
     if (!sessionIds?.size) {
       return;
@@ -240,7 +241,7 @@ if (isSecondaryServer) {
       }
 
       if (data?.sessionId && SseConnectionsManager.getConn(data.sessionId)) {
-        SseBroadcastManager.subscribeSameServer(data.sessionId, data.eventTypes);
+        SseBroadcastManager._subscribeSameServer(data.sessionId, data.eventTypes);
       }
     });
 
@@ -254,7 +255,7 @@ if (isSecondaryServer) {
       }
 
       if (data?.sessionId && SseConnectionsManager.getConn(data.sessionId)) {
-        SseBroadcastManager.unsubscribeSameServer(data.sessionId, data.eventTypes);
+        SseBroadcastManager._unsubscribeSameServer(data.sessionId, data.eventTypes);
       }
     });
   }, 0);

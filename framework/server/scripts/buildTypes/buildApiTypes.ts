@@ -7,6 +7,7 @@ import { mkdirp } from 'mkdirp';
 import ucFirst from 'utils/ucFirst';
 import 'routes/apis/apisRoute';
 import { getApis } from 'services/ApiManager';
+import { IMPORTED_TYPES } from './buildTypesConsts';
 
 function validateSchema(apiName: string, schema: JSONSchema4) {
   const { required, properties } = schema;
@@ -68,7 +69,10 @@ ${fields.split('\n').slice(1, -2).join('\n').replaceAll('"', '\'')}
     }
   }
 
-  const content = `${paramsInterfaces.join('\n')}
+  const content = `${IMPORTED_TYPES}
+
+declare global {
+${paramsInterfaces.join('\n')}
 ${dataInterfaces.join('\n')}
 type ApiNameToParams = {
 ${
@@ -95,6 +99,7 @@ type ApiName = '${apis.map(a => a.config.name).join(`'
 
 type AuthApiName = '${apis.filter(a => a.config.auth).map(a => a.config.name).join(`'
 | '`)}';
+}
 `;
 
   // todo: low/mid only include default routes in default shared folder

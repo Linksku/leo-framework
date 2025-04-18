@@ -1,3 +1,4 @@
+import type { SseName, SseParams } from 'config/sse';
 import type waitForModelRRInsert from 'utils/models/waitForModelRRInsert';
 
 export function createEachModel(): Promise<void> {
@@ -24,9 +25,9 @@ export function getRedirectPath(_req: ExpressRequest): Promise<string | null> {
   throw new Error('getRedirectPath: not implemented');
 }
 
-export function canSubscribeToSse(
-  _eventName: string,
-  _eventParams: JsonObj,
+export function canSubscribeToSse<Name extends SseName>(
+  _eventName: Name,
+  _eventParams: SseParams[Name],
   _currentUserId: Nullish<EntityId>,
 ): Promise<boolean> {
   throw new Error('canSubscribeToSse: not implemented');

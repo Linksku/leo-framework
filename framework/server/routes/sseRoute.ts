@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 
+import type { SseName, SseParams } from 'config/sse';
 import SseConnectionsManager from 'services/sse/SseConnectionsManager';
 import serializeSseEvent from 'utils/serializeSseEvent';
 import generateUuid from 'utils/generateUuid';
@@ -31,8 +32,8 @@ router.get('/', async (req, res) => {
   try {
     let otp: string | null = null;
     let events: {
-      name: string,
-      params: any,
+      name: SseName,
+      params: SseParams[SseName],
     }[] | null = null;
     if (typeof req.query.params === 'string') {
       const parsed = safeParseJson<ObjectOf<any>>(

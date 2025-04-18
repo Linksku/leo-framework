@@ -1839,12 +1839,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@capacitor/android@npm:^7.0.1":
-  version: 7.0.1
-  resolution: "@capacitor/android@npm:7.0.1"
+"@capacitor/android@npm:^7.1.0":
+  version: 7.1.0
+  resolution: "@capacitor/android@npm:7.1.0"
   peerDependencies:
-    "@capacitor/core": ^7.0.0
-  checksum: 84f0322521d50d03db314e4183b285ddc369b66d319bc34244efc77077241c83fbe431d9fef35e0afdf50f2f18bfad7b98848eac531f49a257bf036e98f5729b
+    "@capacitor/core": ^7.1.0
+  checksum: 5588a930f3c2bcaf44059195775aa5015bf942f3ff5efc672a5b6ae6cff6ac30e816cad3d53d8069134306a2dd9f7a8a49adededf91fc6750896160330cca0e4
   languageName: node
   linkType: hard
 
@@ -1916,9 +1916,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@capacitor/cli@npm:^7.0.1":
-  version: 7.0.1
-  resolution: "@capacitor/cli@npm:7.0.1"
+"@capacitor/cli@npm:^7.1.0":
+  version: 7.1.0
+  resolution: "@capacitor/cli@npm:7.1.0"
   dependencies:
     "@ionic/cli-framework-output": "npm:^2.2.8"
     "@ionic/utils-subprocess": "npm:^3.0.1"
@@ -1940,7 +1940,7 @@ __metadata:
   bin:
     cap: bin/capacitor
     capacitor: bin/capacitor
-  checksum: 4f4e2645ce21f3c1ad1c7d721d72a797fbe5fa373cb25d2974e2dfa7a326c939619067e078db9dd8bfb46b42fe73b371f4241271bbec2e862b33a728fd5d2795
+  checksum: b1d68d7cba0b6fa4afc2eb5ab3c472d07a43a71444a87d8807472ac85baf26dfe2ee30a4ad54805ee6c2a6d1d5022644c029051691d722261ebc66bea575391f
   languageName: node
   linkType: hard
 
@@ -1953,12 +1953,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@capacitor/core@npm:^7.0.1":
-  version: 7.0.1
-  resolution: "@capacitor/core@npm:7.0.1"
+"@capacitor/core@npm:^7.1.0":
+  version: 7.1.0
+  resolution: "@capacitor/core@npm:7.1.0"
   dependencies:
     tslib: "npm:^2.1.0"
-  checksum: bc0ff58548f8c5ed7f809d6958a9272e3d6dac16486858ac14079b8a0e8bcfe2ee478b0e873c94ba2eaf95fc32cb178296bc015758036cafa043a90d1167c093
+  checksum: cfc664f5f33191777f177ba00786c8b077c458cf72f1f9423ccc512ae38368332005485767c9a30f2dfa521edaafcf660e3f37d5d63ad981f8371f68d7d22df0
   languageName: node
   linkType: hard
 
@@ -1971,23 +1971,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@capacitor/geolocation@npm:^7.1.0":
-  version: 7.1.0
-  resolution: "@capacitor/geolocation@npm:7.1.0"
+"@capacitor/geolocation@npm:^7.1.1":
+  version: 7.1.1
+  resolution: "@capacitor/geolocation@npm:7.1.1"
   dependencies:
     "@capacitor/synapse": "npm:^1.0.1"
   peerDependencies:
     "@capacitor/core": ">=7.0.0"
-  checksum: e15cb6281d7dae8d7f22c69fd683775c0317511152ecd65d3ff5099ee77b08d49860a4e6812fb540cddf2a33f9fee83ecbb057344408b546256cca72b5259529
+  checksum: 71a3e6a5a6b23cb8516b9641b0f6ef2ba8e23fe1e269e5fc13e33f9e47d59d209a702daeec2eb174a94cdc375e4472358997aa948f191a4bfdccfcb480268d88
   languageName: node
   linkType: hard
 
-"@capacitor/ios@npm:^7.0.1":
-  version: 7.0.1
-  resolution: "@capacitor/ios@npm:7.0.1"
+"@capacitor/ios@npm:^7.1.0":
+  version: 7.1.0
+  resolution: "@capacitor/ios@npm:7.1.0"
   peerDependencies:
-    "@capacitor/core": ^7.0.0
-  checksum: c7190f2bbe4729a1b950c4ee649bb2fb8814700657b6c3ee23b14b6a9a84b82b5470d99a78aef7056fdefcc3b7927c197935f16ef01a123b1e8f54bdfdf367dc
+    "@capacitor/core": ^7.1.0
+  checksum: e468bef0323a18a9e8ba26426adce39669af0521e4eafd38668e7e1f013d2f4a07607aeb02152756a40192b182f9bddcca550c9834df12b248c6b849459d9614
   languageName: node
   linkType: hard
 
@@ -12759,16 +12759,16 @@ __metadata:
     "@bull-board/express": "npm:^6.7.7"
     "@capacitor-community/apple-sign-in": "npm:^7.0.0"
     "@capacitor-community/in-app-review": "npm:^7.0.0"
-    "@capacitor/android": "npm:^7.0.1"
+    "@capacitor/android": "npm:^7.1.0"
     "@capacitor/app": "npm:^7.0.0"
     "@capacitor/assets": "npm:^3.0.5"
     "@capacitor/browser": "npm:^7.0.0"
-    "@capacitor/cli": "npm:^7.0.1"
+    "@capacitor/cli": "npm:^7.1.0"
     "@capacitor/clipboard": "npm:^7.0.0"
-    "@capacitor/core": "npm:^7.0.1"
+    "@capacitor/core": "npm:^7.1.0"
     "@capacitor/device": "npm:^7.0.0"
-    "@capacitor/geolocation": "npm:^7.1.0"
-    "@capacitor/ios": "npm:^7.0.1"
+    "@capacitor/geolocation": "npm:^7.1.1"
+    "@capacitor/ios": "npm:^7.1.0"
     "@capacitor/keyboard": "npm:^7.0.0"
     "@capacitor/push-notifications": "npm:^7.0.0"
     "@capacitor/screen-orientation": "npm:^7.0.0"

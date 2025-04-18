@@ -3,6 +3,7 @@ import path from 'path';
 import { mkdirp } from 'mkdirp';
 
 import models, { frameworkModels } from 'core/models/allModels';
+import { IMPORTED_TYPES } from './buildTypesConsts';
 
 function getOutput(forFramework: boolean) {
   let filteredModels = forFramework
@@ -10,10 +11,14 @@ function getOutput(forFramework: boolean) {
     : models;
   filteredModels = filteredModels.filter(m => m.isRR);
 
-  return `// Use EntityTypeToInstance, EntityInstancesMap[ModelType] creates a union of all entities
+  return `${IMPORTED_TYPES}
+
+declare global {
+// Use EntityTypeToInstance, EntityInstancesMap[ModelType] creates a union of all entities
 type EntityInstancesMap = {
 ${filteredModels.map(m => `  ${m.Model.type}: BaseEntity & I${m.Model.name};`).join('\n')}
 };
+}
 `;
 }
 

@@ -5,6 +5,7 @@ import { compile } from 'json-schema-to-typescript';
 
 import allModels, { ModelsArr, frameworkModels } from 'core/models/allModels';
 import isSchemaNullable from 'utils/models/isSchemaNullable';
+import { IMPORTED_TYPES } from './buildTypesConsts';
 
 function isValidValSchema(val: JsonSchema): boolean {
   if (typeof val === 'boolean') {
@@ -101,7 +102,10 @@ ${
     allRelations[Model.type] = modelRelations;
   }
 
-  return `${interfaces.join('\n')}
+  return `${IMPORTED_TYPES}
+
+declare global {
+${interfaces.join('\n')}
 type ModelType =
   | '${models.map(m => m.Model.type).join(`'
   | '`)}';
@@ -132,6 +136,7 @@ ${
 `)
     .join('')
 }};
+}
 `;
 }
 

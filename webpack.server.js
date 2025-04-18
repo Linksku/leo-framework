@@ -79,6 +79,7 @@ export default mergeReplaceArrays(baseConfig, {
       'json-schema-to-typescript': 'json-schema-to-typescript',
       kafkajs: 'kafkajs',
       knex: 'knex',
+      'playwright-core': 'playwright-core',
       pg: 'pg',
       sharp: 'sharp',
     },

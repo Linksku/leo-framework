@@ -27,12 +27,18 @@ export default async function askLlama({
   image?: Buffer,
   maxOutputLength?: number,
 }): Promise<string> {
+  prompt = prompt.trim();
+
   const imgStr = image?.toString('base64');
   if (imgStr && imgStr.length > 1_000_000) {
     throw new Error('askLlama: image too large');
   }
 
   if (!bedrockClient || !Command) {
+    if (!process.env.AWS_SECRET_KEY) {
+      throw new Error('askLlama: missing AWS_SECRET_KEY');
+    }
+
     importPromise ??= import('@aws-sdk/client-bedrock-runtime')
       .then(({ BedrockRuntimeClient, InvokeModelCommand }) => ({
         bedrockClient: new BedrockRuntimeClient({
@@ -81,8 +87,8 @@ export default async function askLlama({
   if (output.prompt_token_count && output.prompt_token_count > 5000) {
     ErrorLogger.warn(new Error('askLlama: prompt_token_count > 5000'), { prompt });
   } else if (output.generation_token_count
-      && output.generation_token_count > 5000
-      && output.generation_token_count > maxOutputLength) {
+    && output.generation_token_count > 5000
+    && output.generation_token_count > maxOutputLength) {
     ErrorLogger.warn(
       new Error('askLlama: generation_token_count > 5000'),
       { generation: output.generation },

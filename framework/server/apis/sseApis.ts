@@ -49,8 +49,14 @@ defineApi(
             type: 'object',
             required: ['name', 'params'],
             properties: {
-              name: SchemaConstants.name,
-              params: SchemaConstants.pojo,
+              name: {
+                ...SchemaConstants.name,
+                tsType: 'SseName',
+              },
+              params: {
+                ...SchemaConstants.pojo,
+                tsType: 'SseParams[SseName]',
+              },
             },
             additionalProperties: false,
           },
@@ -92,8 +98,14 @@ defineApi(
             type: 'object',
             required: ['name', 'params'],
             properties: {
-              name: SchemaConstants.name,
-              params: SchemaConstants.pojo,
+              name: {
+                ...SchemaConstants.name,
+                tsType: 'SseName',
+              },
+              params: {
+                ...SchemaConstants.pojo,
+                tsType: 'SseParams[SseName]',
+              },
             },
             additionalProperties: false,
           },

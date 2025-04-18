@@ -1,3 +1,5 @@
+import type { NotifScope } from 'config/notifs';
+
 export const [
   NotifsProvider,
   useNotifsStore,

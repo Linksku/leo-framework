@@ -7,6 +7,7 @@ import allModels, { ModelsArr, frameworkModels } from 'core/models/allModels';
 import Entity from 'core/models/Entity';
 import MaterializedView from 'core/models/MaterializedView';
 import VirtualModel from 'core/models/VirtualModel';
+import { IMPORTED_TYPES } from './buildTypesConsts';
 
 const ModelBaseClasses = [
   MaterializedView,
@@ -78,7 +79,8 @@ type ${Model.name}Class = typeof ${clsName};`;
     }
   }
 
-  return `import Entity from 'core/models/Entity';
+  return `${IMPORTED_TYPES}
+import Entity from 'core/models/Entity';
 import MaterializedView from 'core/models/MaterializedView';
 import VirtualModel from 'core/models/VirtualModel';
 
