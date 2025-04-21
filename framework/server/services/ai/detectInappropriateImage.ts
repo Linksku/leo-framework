@@ -10,7 +10,7 @@ export default async function detectInappropriateImage(
       ...(clubNames && {
         isRelated: {
           type: 'boolean',
-          description: `is this image related to the topic "${clubNames.reverse().join(', ')}"`,
+          description: `is this image related to the topic "${clubNames.slice().reverse().join(', ')}"`,
         },
       }),
       isInappropriate: {

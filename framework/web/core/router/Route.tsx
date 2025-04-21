@@ -12,7 +12,7 @@ type RouteProps = {
   matches: Stable<string[]>,
   historyState: HistoryState,
   // Don't start freezing during low-pri render: https://github.com/facebook/react/issues/29126
-  isFrozen: boolean,
+  isFrozen?: boolean,
 };
 
 const Route = React.memo(function Route({

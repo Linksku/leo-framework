@@ -29,6 +29,7 @@ const htmlFiles = new Map<string, string>();
 function readHtmlFile(fileName: string) {
   fs.readFile(
     path.resolve(`./build/${process.env.NODE_ENV}/web/${fileName}.html`),
+    'utf8',
     (err, file) => {
       if (err) {
         if (fileName === 'main' || fileName === 'home') {
@@ -40,7 +41,7 @@ function readHtmlFile(fileName: string) {
           ErrorLogger.error(err, { ctx: `Read ${fileName}.html` });
         }
       } else {
-        htmlFiles.set(fileName, file.toString());
+        htmlFiles.set(fileName, file);
       }
     },
   );

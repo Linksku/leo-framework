@@ -23,6 +23,7 @@ type Props = {
     | 'paddingLeft'
     | 'paddingRight'
     | 'paddingTop'
+    | 'borderRadius'
   >,
   disabled?: boolean,
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>;

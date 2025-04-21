@@ -2,7 +2,18 @@ import type { SseName, SseParams, SseData } from 'config/sse';
 import useDeepMemoObj from 'utils/useDeepMemoObj';
 import useEnterRoute from 'core/router/useEnterRoute';
 
-export default function useSse<Name extends SseName>(
+function useSse<Name extends SseName>(
+  eventName: Name,
+  eventParams: SseParams[Name] | null,
+  cb: Stable<(data: SseData[Name]) => void>,
+): void;
+
+function useSse<Name extends SseName>(
+  eventName: Name,
+  eventParams: SseParams[Name] | null,
+): void;
+
+function useSse<Name extends SseName>(
   eventName: Name,
   eventParams: SseParams[Name] | null,
   cb?: Stable<(data: SseData[Name]) => void>,
@@ -16,6 +27,7 @@ export default function useSse<Name extends SseName>(
       return NOOP;
     }
 
+    // todo: high/mid addSubscription doesn't run when params change
     addSubscription(eventName, paramsMemo, cb);
 
     return () => {
@@ -23,3 +35,5 @@ export default function useSse<Name extends SseName>(
     };
   }, [isEnabled, eventName, paramsMemo, addSubscription, removeSubscription, cb]));
 }
+
+export default useSse;

@@ -19,7 +19,7 @@ const SseState = {
       name: SseName,
       params: Stable<SseParams[SseName]>,
       numSubscribers: number,
-      cbs:((data: SseData[SseName]) => void)[],
+      cbs: Stable<(data: any) => void>[],
     }
   >(),
   readyState: EventSource.CLOSED as number,
@@ -284,7 +284,7 @@ export const [
     const addSubscription = useCallback(<Name extends SseName>(
       name: Name,
       params: Stable<SseParams[Name]>,
-      cb?: (data: SseData[Name]) => void,
+      cb?: Stable<(data: SseData[Name]) => void>,
     ) => {
       const serializedEventName = serializeSseEvent(name, params);
       const sub = SseState.subscriptions.get(serializedEventName);
@@ -318,7 +318,7 @@ export const [
     const removeSubscription = useCallback(<Name extends SseName>(
       name: Name,
       params: Stable<SseParams[Name]>,
-      cb?: (data: SseData[Name]) => void,
+      cb?: Stable<(data: SseData[Name]) => void>,
     ) => {
       const serializedEventName = serializeSseEvent(name, params);
       const sub = SseState.subscriptions.get(serializedEventName);

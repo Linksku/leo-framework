@@ -35,10 +35,6 @@ export default async function askLlama({
   }
 
   if (!bedrockClient || !Command) {
-    if (!process.env.AWS_SECRET_KEY) {
-      throw new Error('askLlama: missing AWS_SECRET_KEY');
-    }
-
     importPromise ??= import('@aws-sdk/client-bedrock-runtime')
       .then(({ BedrockRuntimeClient, InvokeModelCommand }) => ({
         bedrockClient: new BedrockRuntimeClient({

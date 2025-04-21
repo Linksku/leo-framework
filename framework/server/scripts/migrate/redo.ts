@@ -26,7 +26,7 @@ export default async function migrationRedo() {
   }
 
   if (!hadError) {
-    for (const file of [...rollback.files].reverse()) {
+    for (const file of rollback.files.slice().reverse()) {
       const migration = await getMigration(file);
       const type = rollback.type === 'up' ? 'down' : 'up';
       try {

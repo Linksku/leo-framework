@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import mapValues from 'lodash/mapValues.js';
 import webpack from 'webpack';
 
@@ -8,6 +9,8 @@ import globalsSrc from './app/server/config/globals.cjs';
 import sharedGlobals from './framework/shared/config/globals.cjs';
 import sharedGlobalsSrc from './app/shared/config/globals.cjs';
 import baseConfig from './webpack.common.js';
+
+const packageJson = JSON.parse(fs.readFileSync(path.resolve('./package.json'), 'utf8'));
 
 export default mergeReplaceArrays(baseConfig, {
   target: 'node',
@@ -70,19 +73,7 @@ export default mergeReplaceArrays(baseConfig, {
   externals: [
     // These packages have errors when bundled
     // Syncs with package.docker.json using build-docker-package-json.mjs
-    {
-      '@sentry/node': '@sentry/node', // Exclude from server scripts
-      bcrypt: 'bcrypt',
-      bullmq: 'bullmq',
-      'firebase-admin': 'firebase-admin',
-      'fluent-ffmpeg': 'fluent-ffmpeg',
-      'json-schema-to-typescript': 'json-schema-to-typescript',
-      kafkajs: 'kafkajs',
-      knex: 'knex',
-      'playwright-core': 'playwright-core',
-      pg: 'pg',
-      sharp: 'sharp',
-    },
+    Object.fromEntries(packageJson.externalDependences.map(dep => [dep, dep])),
   ],
   externalsType: 'module',
   experiments: {

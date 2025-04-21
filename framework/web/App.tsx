@@ -96,7 +96,7 @@ export default function App() {
     });
   });
 
-  const router = PROVIDERS.reverse().reduce(
+  const router = PROVIDERS.slice().reverse().reduce(
     (inner, Provider) => <Provider>{inner}</Provider>,
     <Router />,
   );

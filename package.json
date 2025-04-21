@@ -200,6 +200,18 @@
     "yargs": "^17.7.2",
     "zx": "^8.3.2"
   },
+  "externalDependences": [
+    "@sentry/node",
+    "bcrypt",
+    "bullmq",
+    "firebase-admin",
+    "fluent-ffmpeg",
+    "json-schema-to-typescript",
+    "kafkajs",
+    "knex",
+    "pg",
+    "sharp"
+  ],
   "devDependencies": {
     "@bull-board/express": "^6.7.7",
     "@cypress/webpack-preprocessor": "^6.0.2",

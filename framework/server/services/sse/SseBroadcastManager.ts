@@ -1,4 +1,4 @@
-import type { SseName, SseParams } from 'config/sse';
+import type { SseName, SseParams, SseData } from 'config/sse';
 import SseConnectionsManager from 'services/sse/SseConnectionsManager';
 import PubSubManager from 'services/PubSubManager';
 import serializeSseEvent from 'utils/serializeSseEvent';
@@ -24,12 +24,19 @@ const stringifyMsg = fastJson({
   additionalProperties: false,
 });
 
-export type SseData = Pick<
+export type SseResponseData<Name extends SseName> = Pick<
   ApiRouteRet<any>,
   'entities' | 'createdEntities' | 'updatedEntities' | 'deletedIds'
 > & {
-  // temp
-  data: any,
+  data: SseData[Name],
+};
+
+export type SseResponseSerialized<Name extends SseName> = Pick<
+ApiSuccessResponse<any>,
+  'entities' | 'createdEntities' | 'updatedEntities' | 'deletedIds' | 'status'
+> & {
+  data: SseData[Name],
+  eventType: string,
 };
 
 const SUBSCRIBE_EVENT_NAME = 'SseBroadcastManager.subscribe';
@@ -160,7 +167,7 @@ const SseBroadcastManager = {
   async _sendImpl<Name extends SseName>(
     eventName: Name,
     eventParams: SseParams[Name] | SseParams[Name][],
-    data: SseData,
+    data: SseResponseData<Name>,
   ) {
     const successResponse = await formatApiSuccessResponse('sse' as any, data);
     const eventTypes = Array.isArray(eventParams)
@@ -168,7 +175,7 @@ const SseBroadcastManager = {
       : [serializeSseEvent(eventName, eventParams)];
     for (const eventType of eventTypes) {
       // todo: mid/mid validate SSE data
-      const processedData: SseResponse = {
+      const processedData: SseResponseSerialized<Name> = {
         eventType,
         ...successResponse,
       };
@@ -185,7 +192,7 @@ const SseBroadcastManager = {
   send<Name extends SseName>(
     eventName: Name,
     eventParams: SseParams[Name] | SseParams[Name][],
-    data: SseData,
+    data: SseResponseData<Name>,
   ) {
     wrapPromise(
       this._sendImpl(eventName, eventParams, data),
@@ -207,7 +214,7 @@ const SseBroadcastManager = {
 
   sendHeartbeats() {
     for (const pair of sessionIdToEventTypes.entries()) {
-      const data: SseResponse = {
+      const data: SseResponseSerialized<'sseHeartbeat'> = {
         eventType: serializeSseEvent('sseHeartbeat', {}),
         status: 200,
         data: {

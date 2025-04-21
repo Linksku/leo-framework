@@ -7,7 +7,7 @@ import {
 import uniq from 'lodash/uniq.js';
 import uniqBy from 'lodash/uniqBy.js';
 
-import type { SseData } from 'services/sse/SseBroadcastManager';
+import type { SseResponseData } from 'services/sse/SseBroadcastManager';
 import type { NotifScope, NotifChannel } from 'config/notifs';
 import { FcmNotifData, NOTIF_APPROX_MAX_LENGTH } from 'consts/notifs';
 import {
@@ -265,7 +265,7 @@ async function sendPushNotifs(
   const apiData = await formatApiSuccessResponse('sse' as any, {
     data: null,
     createdEntities: [notif],
-  } satisfies SseData);
+  } satisfies SseResponseData<any>);
 
   await Promise.all(notifDevices.map(async device => {
     const msg: Message = {
