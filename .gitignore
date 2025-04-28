@@ -50,8 +50,7 @@ package-lock.json
 /framework/infra/kafka-connectors/**/target/
 /framework/tests/fixtures/auth.json
 /app/tests/screenshots/
-/app/tests/videos/
-
+/app/tests/vide
 # App-specific
 /.git-crypt/*
 /env/*

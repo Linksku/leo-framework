@@ -7,9 +7,15 @@ if ((await $`git status --porcelain`).stdout) {
   process.exit(1);
 }
 
+await $`git fetch origin master`;
+await $`git --git-dir=.git-framework checkout master`;
+if ((await $`git --git-dir=.git-framework diff master origin/master`).stdout) {
+  console.log('Pull before pushing: git --git-dir=.git-framework fetch origin master && git --git-dir=.git-framework rebase origin/master');
+  process.exit(1);
+}
+
 await $`./scripts/helpers/switch-to-framework.mjs`;
 
-await $`git --git-dir=.git-framework co master`;
 if ((await $`git --git-dir=.git-framework ls-files -i -c --exclude-from=.gitignore`).stdout) {
   await $`git --git-dir=.git-framework rm --cached \`git --git-dir=.git-framework ls-files -i -c --exclude-from=.gitignore\``;
 }

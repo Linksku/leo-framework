@@ -27,13 +27,14 @@ declare global {
     SSL_KEY: string;
     SSL_CERT: string;
     AWS_SECRET_KEY: string;
-    MAPBOX_TOKEN: string;
-    DO_SPACES_SECRET: string;
-    CF_ZONE_ID: string;
-    CF_USERNAME: string;
     CF_API_KEY: string;
+    CF_USERNAME: string;
+    CF_ZONE_ID: string;
+    DEEPSEEK_SECRET_KEY: string;
+    DO_SPACES_SECRET: string;
     FIREBASE_PRIVATE_KEY: string;
     INSTAGRAM_APP_SECRET: string;
+    MAPBOX_TOKEN: string;
     PROD_IP: string;
     PROD_ROOT_DIR: string;
   }

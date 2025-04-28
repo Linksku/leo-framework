@@ -19,7 +19,6 @@ const SseState = {
       name: SseName,
       params: Stable<SseParams[SseName]>,
       numSubscribers: number,
-      cbs: Stable<(data: any) => void>[],
     }
   >(),
   readyState: EventSource.CLOSED as number,
@@ -166,9 +165,9 @@ export const [
         }
 
         const data = parsed as unknown as StableDeep<SseResponse>;
-        const { name, params } = unserializeSseEvent(data.eventType);
+        const { params } = unserializeSseEvent(data.eventType);
         handleApiEntities(data);
-        SseEventEmitter.emit(name, deepFreezeIfDev(data.data), params);
+        SseEventEmitter.emit(data.eventType, deepFreezeIfDev(data.data), params);
       });
 
       source.addEventListener('open', () => {
@@ -287,9 +286,15 @@ export const [
       cb?: Stable<(data: SseData[Name]) => void>,
     ) => {
       const serializedEventName = serializeSseEvent(name, params);
+
+      if (cb) {
+        SseEventEmitter.on(serializedEventName, cb);
+      }
+
       const sub = SseState.subscriptions.get(serializedEventName);
       if (sub) {
         sub.numSubscribers++;
+
         if (sub.numSubscribers > 1) {
           return;
         }
@@ -305,7 +310,6 @@ export const [
           name,
           params,
           numSubscribers: 1,
-          cbs: cb ? [cb] : [],
         });
       }
 
@@ -321,15 +325,17 @@ export const [
       cb?: Stable<(data: SseData[Name]) => void>,
     ) => {
       const serializedEventName = serializeSseEvent(name, params);
+
+      if (cb) {
+        SseEventEmitter.off(serializedEventName, cb);
+      }
+
       const sub = SseState.subscriptions.get(serializedEventName);
       if (!sub) {
         return;
       }
 
       sub.numSubscribers--;
-      if (cb) {
-        sub.cbs = sub.cbs.filter(cb2 => cb2 !== cb);
-      }
       if (sub.numSubscribers > 0) {
         return;
       }
@@ -370,13 +376,14 @@ export const [
         }
       };
 
-      // todo: low/mid types for sse
-      SseEventEmitter.on('sseConnected', handleConnect);
-      SseEventEmitter.on('sseHeartbeat', handleHeartbeat);
+      const sseConnectedEvent = serializeSseEvent('sseConnected');
+      const sseHeartbeatEvent = serializeSseEvent('sseHeartbeat');
+      SseEventEmitter.on(sseConnectedEvent, handleConnect);
+      SseEventEmitter.on(sseHeartbeatEvent, handleHeartbeat);
 
       return () => {
-        SseEventEmitter.off('sseConnected', handleConnect);
-        SseEventEmitter.off('sseHeartbeat', handleHeartbeat);
+        SseEventEmitter.off(sseConnectedEvent, handleConnect);
+        SseEventEmitter.off(sseHeartbeatEvent, handleHeartbeat);
       };
     }, [processQueuedSubs, closeSse]);
 

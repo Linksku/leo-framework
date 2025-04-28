@@ -215,7 +215,7 @@ const SseBroadcastManager = {
   sendHeartbeats() {
     for (const pair of sessionIdToEventTypes.entries()) {
       const data: SseResponseSerialized<'sseHeartbeat'> = {
-        eventType: serializeSseEvent('sseHeartbeat', {}),
+        eventType: serializeSseEvent('sseHeartbeat'),
         status: 200,
         data: {
           subbedEventTypes: [...pair[1]],

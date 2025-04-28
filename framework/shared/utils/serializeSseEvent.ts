@@ -10,7 +10,11 @@ export default function serializeSseEvent<Name extends SseName>(
     throw new Error(`serializeEvent: invalid params: ${JSON.stringify(params)}`);
   }
 
-  return JSON.stringify(params ? { name, params } : { name });
+  return JSON.stringify(
+    params && Object.keys(params).length
+      ? { name, params }
+      : { name },
+  );
 }
 
 export function unserializeSseEvent<Name extends SseName>(str: string): {

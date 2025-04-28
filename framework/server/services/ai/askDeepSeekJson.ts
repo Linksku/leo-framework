@@ -1,4 +1,4 @@
-import askLlama from './askLlama';
+import askDeepSeek from './askDeepSeek';
 import {
   StringToType,
   cleanJsonObj,
@@ -6,23 +6,21 @@ import {
   validateResponseObj,
 } from './jsonHelpers';
 
-export default async function askLlamaJson<
+export default async function askDeepSeekJson<
   Type extends string,
   Fields extends Record<string, { type: Type, description: string }>,
   ReturnArray extends boolean = false,
 >({
-  modelId = 'us.meta.llama3-2-11b-instruct-v1:0',
-  context,
   returnArray,
   fields,
-  image,
+  context,
+  prompt,
   maxOutputLength = 1024,
 }: {
-  modelId?: string,
-  context?: string,
   returnArray?: ReturnArray,
   fields: Fields,
-  image?: Buffer,
+  context?: string,
+  prompt: string,
   maxOutputLength?: number,
 }): Promise<
   ReturnArray extends true
@@ -30,22 +28,29 @@ export default async function askLlamaJson<
     : { [K in keyof Fields]: StringToType<Fields[K]['type']> }
 > {
   const fieldsEntries = TS.objEntries(fields);
-  const format = `{${fieldsEntries.map(([key, val]) => `"${key}":${val.type}`).join(',')}}${returnArray ? '[]' : ''}`;
-  const prompt = [
-    `Generate ${returnArray ? 'a JSON array' : 'JSON'} with the format ${format}`,
+  const format = `{${
+    fieldsEntries
+      .map(([key, val]) => `"${key}":${val.type}`)
+      .join(',')
+  }}${returnArray ? '[]' : ''}`;
+  const systemPrompt = [
+    `You are a JSON generator, only return ${returnArray ? 'a JSON array' : 'JSON'} with the format ${format}`,
     'JSON fields:',
     ...fieldsEntries.map(([key, val]) => `${key}: ${val.description}`),
     '',
     ...(context ? [context] : []),
     'No text outside the JSON.',
   ].join('\n');
-  const outputPrefix = `${returnArray ? '[' : ''}{"${fieldsEntries[0][0].endsWith('?') ? '' : `${fieldsEntries[0][0]}":`}`;
+  const outputPrefix = `${returnArray ? '[' : ''}{"${
+    fieldsEntries[0][0].endsWith('?')
+      ? ''
+      : `${fieldsEntries[0][0]
+  }":`}`;
 
-  const fullOutput = await askLlama({
-    modelId,
-    prompt,
+  const fullOutput = await askDeepSeek({
+    systemPrompt,
+    userMsg: prompt,
     outputPrefix,
-    image,
     maxOutputLength,
   });
 
@@ -54,11 +59,11 @@ export default async function askLlamaJson<
     ? TS.assertType(
       parsed,
       arr => Array.isArray(arr) && arr.every(val => validateResponseObj(fields, val)),
-      new Error(`askLlamaJson: invalid decoded: ${fullOutput.slice(0, 200)}`),
+      new Error(`askDeepSeekJson: invalid decoded: ${fullOutput.slice(0, 200)}`),
     )
     : TS.assertType(
       parsed,
       val => validateResponseObj(fields, val),
-      new Error(`askLlamaJson: invalid decoded: ${fullOutput.slice(0, 200)}`),
+      new Error(`askDeepSeekJson: invalid decoded: ${fullOutput.slice(0, 200)}`),
     );
 }

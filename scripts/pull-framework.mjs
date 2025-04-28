@@ -21,7 +21,7 @@ if ((await $`git status --porcelain`).stdout) {
   process.exit(1);
 }
 
-await $`git --git-dir=.git-framework co master`;
+await $`git --git-dir=.git-framework checkout master`;
 
 await $`./scripts/helpers/switch-to-framework.mjs`;
 
