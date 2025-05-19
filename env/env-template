@@ -14,8 +14,8 @@ REDIS_PASS=redis
 MAX_CPU_PERCENT=100
 
 # Misc
-PASSWORD_PEPPER=
-JWT_KEY=
+PASSWORD_PEPPER=REPLACE_THIS
+JWT_KEY=REPLACE_THIS
 
 # Required for non-dev
 SSL_KEY=/etc/letsencrypt/live/example.com/privkey.pem

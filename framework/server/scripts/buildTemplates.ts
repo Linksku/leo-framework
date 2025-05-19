@@ -13,6 +13,11 @@ import {
 import { DO_SPACES_HOST } from 'config/serverConfig';
 import readdirRecursive from 'utils/readdirRecursive';
 
+const jsVersion = childProcess
+  .execSync('git rev-list --count master 2>/dev/null || echo 0')
+  .toString()
+  .trim();
+
 export default async function buildTemplates() {
   const files = await readdirRecursive(path.resolve('./framework/server/templates'));
   await Promise.all(files
@@ -40,7 +45,7 @@ export default async function buildTemplates() {
             homeUrl: HOME_URL,
             production: process.env.PRODUCTION,
             fileVersion: process.env.NODE_ENV === 'production'
-              ? `.${childProcess.execSync('git rev-list --count master').toString().trim()}`
+              ? `.${jsVersion}`
               : '',
             spacesHost: DO_SPACES_HOST,
           },

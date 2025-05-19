@@ -3,7 +3,7 @@
 set -e
 source <(grep -v '^#' env/secrets)
 
-version=$(git rev-list --count master)
+version=$(git rev-list --count master 2>/dev/null || echo 0)
 
 utcHour=`date +"%-H" --utc`
 # 5 UTC = 9 PST, 10 UTC = 6 EDT
@@ -70,7 +70,7 @@ echo "Upload tar"
 scp server.tar.gz "root@$PROD_IP:$PROD_ROOT_DIR"
 
 echo "Run post-deploy"
-GIT_REVS=$(git rev-list --count master)
+GIT_REVS=$(git rev-list --count master 2>/dev/null || echo 0)
 ssh -tt "root@$PROD_IP" "source ~/.profile; cd $PROD_ROOT_DIR; git fetch origin; git reset --hard origin/master; scripts/post-deploy.sh $GIT_REVS"
 
 curl -s -S --output /dev/null \

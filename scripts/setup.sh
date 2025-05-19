@@ -14,4 +14,7 @@ npx husky init
 echo 'npx lint-staged' > .husky/pre-commit
 chmod +x .husky/pre-commit
 
-git add -A && git commit -m "Initial"
+yarn build:types
+
+git add -A
+git commit -m "Initial" --no-verify

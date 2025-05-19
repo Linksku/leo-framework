@@ -2,7 +2,7 @@
 # todo: low/mid if post-deploy.sh was updated, throw error and rerun
 set -e
 
-GIT_REVS=$(git rev-list --count master)
+GIT_REVS=$(git rev-list --count master 2>/dev/null || echo 0)
 if [ -n "$1" ] && [ "$1" != "$GIT_REVS" ]; then
   printf "\033[0;31mLocal and remote git versions don't match."
   exit 1

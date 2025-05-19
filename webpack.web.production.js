@@ -13,10 +13,10 @@ if (process.env.NODE_ENV !== 'production') {
   throw new Error('NODE_ENV isn\'t production');
 }
 
-const jsVersion = Number.parseInt(
-  childProcess.execSync('git rev-list --count master').toString().trim(),
-  10,
-);
+const jsVersion = childProcess
+  .execSync('git rev-list --count master 2>/dev/null || echo 0')
+  .toString()
+  .trim();
 
 export default mergeReplaceArrays(baseConfig, {
   mode: 'production',

@@ -89,10 +89,10 @@ async function askDeepSeek<
   });
 
   if (completion.choices) {
-    const output = `${outputPrefix ?? ''}${completion.choices[0].message.content}`;
-    if (!output) {
+    if (!completion.choices[0].message.content) {
       throw new Error('askDeepSeek: empty response');
     }
+    const output = `${outputPrefix ?? ''}${completion.choices[0].message.content}`;
 
     const cacheKey = `${systemPrompt}|${userMsg}`;
     cache.set(cacheKey, output);

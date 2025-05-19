@@ -56,7 +56,7 @@ try {
   // Delete files deleted in master
   await $`git --git-dir=.git-framework diff --name-only --diff-filter=D HEAD origin/master | xargs -r rm`;
   await $`git --git-dir=.git-framework add -A`;
-  await $`git --git-dir=.git-framework commit -m 'Pull framework'`;
+  await $`git --git-dir=.git-framework commit -m 'Pull framework' --no-verify`;
 
   // git --git-dir=.git-framework rebase -X theirs origin/master
   // if [ $? -ne 0 ]; then

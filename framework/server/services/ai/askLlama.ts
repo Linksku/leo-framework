@@ -48,20 +48,23 @@ export default async function askLlama<
   T extends boolean | undefined = undefined,
 >({
   modelId = 'us.meta.llama3-2-11b-instruct-v1:0',
-  prompt,
+  systemPrompt,
+  userPrompt,
   outputPrefix,
   image,
   stream,
   maxOutputLength = 1024,
 }: {
   modelId?: string,
-  prompt: string,
+  systemPrompt: string,
+  userPrompt: string,
   outputPrefix?: string,
   image?: Buffer,
   stream?: T,
   maxOutputLength?: number,
 }): Promise<Ret> {
-  prompt = prompt.trim();
+  systemPrompt = systemPrompt.trim();
+  userPrompt = userPrompt.trim();
 
   const imgStr = image?.toString('base64');
   if (imgStr && imgStr.length > 1_000_000) {
@@ -90,9 +93,12 @@ export default async function askLlama<
 
   const fullPrompt = [
     '<|begin_of_text|>',
+    '<|start_header_id|>system<|end_header_id|>',
+    systemPrompt,
+    '<|eot_id|>',
     '<|start_header_id|>user<|end_header_id|>',
     image ? '<|image|>' : '',
-    prompt,
+    userPrompt,
     '<|eot_id|>',
     '<|start_header_id|>assistant<|end_header_id|>',
     outputPrefix,

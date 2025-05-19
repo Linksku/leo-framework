@@ -33,8 +33,11 @@ declare global {
     DEEPSEEK_SECRET_KEY: string;
     DO_SPACES_SECRET: string;
     FIREBASE_PRIVATE_KEY: string;
+    GEMINI_API_KEY: string;
     INSTAGRAM_APP_SECRET: string;
     MAPBOX_TOKEN: string;
+    OPENAI_API_KEY: string;
+    OPENROUTER_API_KEY: string;
     PROD_IP: string;
     PROD_ROOT_DIR: string;
   }

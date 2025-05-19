@@ -12,6 +12,11 @@ if (!process.env.SERVER || !process.env.NODE_ENV) {
   throw new Error('Webpack: env vars not set.');
 }
 
+const jsVersion = childProcess
+  .execSync('git rev-list --count master 2>/dev/null || echo 0')
+  .toString()
+  .trim();
+
 const shouldMinimize = process.env.MINIMIZE != null
   ? !!process.env.MINIMIZE && process.env.MINIMIZE !== '0' && process.env.MINIMIZE !== 'false'
   : process.env.NODE_ENV === 'production';
@@ -66,10 +71,7 @@ export default {
   context: ROOT,
   plugins: [
     new webpack.EnvironmentPlugin({
-      JS_VERSION: Number.parseInt(
-        childProcess.execSync('git rev-list --count master').toString().trim(),
-        10,
-      ),
+      JS_VERSION: jsVersion,
       PRODUCTION: process.env.NODE_ENV === 'production',
       SERVER: process.env.SERVER,
     }),
