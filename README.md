@@ -99,9 +99,11 @@ For prod:
 listen_addresses = '*'
 ``````
 
-4. Restart Postgres
+4. Restart Postgres.
 
-5. Create 2 Postgres databases: writeable and read-replica. Install PostGIS in RR.
+5. Create Postgres databases.
+
+5.1. If using materialized views, create 2 Postgres databases: writeable base table and read-replica:
 ```
 sudo -u postgres psql
 > ALTER USER postgres PASSWORD 'pass';
@@ -109,6 +111,17 @@ sudo -u postgres psql
 > CREATE DATABASE "dbRR";
 > \c "dbRR"
 > CREATE EXTENSION postgis;
+> CREATE EXTENSION tsm_system_rows;
+```
+
+5.2. If not using materialized views, create only the base table:
+```
+sudo -u postgres psql
+> ALTER USER postgres PASSWORD 'pass';
+> CREATE DATABASE db;
+> \c "db"
+> CREATE EXTENSION postgis;
+> CREATE EXTENSION tsm_system_rows;
 ```
 
 6. Edit `env/env.dev`.

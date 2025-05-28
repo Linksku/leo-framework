@@ -14,13 +14,11 @@ export default async function askDeepSeekJson<
   returnArray,
   fields,
   context,
-  prompt,
   maxOutputLength = 1024,
 }: {
   returnArray?: ReturnArray,
   fields: Fields,
   context?: string,
-  prompt: string,
   maxOutputLength?: number,
 }): Promise<
   ReturnArray extends true
@@ -35,11 +33,13 @@ export default async function askDeepSeekJson<
   }}${returnArray ? '[]' : ''}`;
   const systemPrompt = [
     `You are a JSON generator, only return ${returnArray ? 'a JSON array' : 'JSON'} with the format ${format}`,
+    'No text outside the JSON.',
+  ].join('\n');
+  const userMsg = [
     'JSON fields:',
     ...fieldsEntries.map(([key, val]) => `${key}: ${val.description}`),
     '',
     ...(context ? [context] : []),
-    'No text outside the JSON.',
   ].join('\n');
   const outputPrefix = `${returnArray ? '[' : ''}{"${
     fieldsEntries[0][0].endsWith('?')
@@ -49,7 +49,7 @@ export default async function askDeepSeekJson<
 
   const fullOutput = await askDeepSeek({
     systemPrompt,
-    userMsg: prompt,
+    userMsg,
     outputPrefix,
     maxOutputLength,
   });

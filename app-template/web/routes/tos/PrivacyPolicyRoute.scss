@@ -1,0 +1,19 @@
+.container {
+  padding: 1.5rem $containerPadding;
+
+  h2,
+  h3,
+  h4 {
+    white-space: normal;
+  }
+
+  h4 {
+    text-decoration: underline;
+  }
+
+  p,
+  li,
+  td {
+    line-height: 1.5;
+  }
+}

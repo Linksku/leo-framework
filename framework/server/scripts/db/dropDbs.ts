@@ -7,7 +7,7 @@ import { HAS_MVS } from 'config/__generated__/consts';
 export default async function dropDbs() {
   const ans = await prompt('Delete BT and RR databases?');
   if (ans.toLowerCase() !== 'y') {
-    await ErrorLogger.flushAndExit(0);
+    return;
   }
 
   await Promise.all([

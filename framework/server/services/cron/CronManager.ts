@@ -18,13 +18,17 @@ const cronConfigs = new Map<string, CronConfig>();
 const queues = new Map<string, Queue>();
 
 const MAX_STALE_TIME = 24 * 60 * 60 * 1000;
-let started = false;
+let startTime = 0;
 let lastRunTime = 0;
 
 setInterval(() => {
   // todo: high/hard figure out why cron often stops in prod
-  if (started && performance.now() - lastRunTime > 10 * 60 * 1000) {
-    printDebug('Cron hasn\'t ran for 10min, restarting worker.', 'warn', { prod: 'always' });
+  if (startTime && performance.now() - lastRunTime > 10 * 60 * 1000) {
+    printDebug(
+      `Cron hasn't ran for 10min, restarting worker. Up for ${Math.round((performance.now() - startTime) / 60_000)}min`,
+      'warn',
+      { prod: 'always' },
+    );
     cluster.worker?.kill();
   }
 }, 60 * 1000);
@@ -78,7 +82,7 @@ export function defineCronJob(
   }
 
   cronConfigs.set(name, config);
-  if (started) {
+  if (startTime) {
     wrapPromise(startCronJob(name), 'fatal', `startCronJob(${name})`);
   }
 }
@@ -104,10 +108,10 @@ export function getCronJobNames() {
 
 // Note: if Bull jobs don't run, flushRedis might help
 export async function startCronJobs() {
-  if (started) {
+  if (startTime) {
     throw new Error('CronManager: Cron already started');
   }
-  started = true;
+  startTime = performance.now();
   lastRunTime = performance.now();
 
   // const existingJobs = await getExistingJobs(false);

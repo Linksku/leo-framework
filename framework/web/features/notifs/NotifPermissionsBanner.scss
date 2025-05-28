@@ -1,0 +1,16 @@
+.container {
+  @extend %maxWidthContainer;
+}
+
+.banner {
+  padding: 0.5rem $containerPadding 1.5rem $containerPadding;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.maybeLater {
+  padding: 0.3rem 1rem;
+  margin-left: 0.5rem;
+  font-size: 0.9em;
+}

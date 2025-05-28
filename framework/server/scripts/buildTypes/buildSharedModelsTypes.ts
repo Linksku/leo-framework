@@ -65,6 +65,7 @@ async function getOutput(models: ModelsArr) {
 ${
   fields.split('\n').slice(1, -2).join('\n')
     .replaceAll('?: ', ': ')
+    .replaceAll('?:\n', ':\n')
     .replaceAll('"', '\'')
 }
 }

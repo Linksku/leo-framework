@@ -51,7 +51,8 @@ try {
   // Pull changes from master
   await $`git --git-dir=.git-framework checkout origin/master -- .`;
   for (const fileName of IGNORE_CHANGES) {
-    await $`git --git-dir=.git-framework checkout master -- ${fileName}`;
+    // Intentionally no `git-dir`
+    await $`git checkout master -- ${fileName}`;
   }
   // Delete files deleted in master
   await $`git --git-dir=.git-framework diff --name-only --diff-filter=D HEAD origin/master | xargs -r rm`;

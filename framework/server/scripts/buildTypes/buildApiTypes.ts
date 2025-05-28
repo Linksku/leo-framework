@@ -11,9 +11,12 @@ import { IMPORTED_TYPES } from './buildTypesConsts';
 
 function validateSchema(apiName: string, schema: JSONSchema4) {
   const { required, properties } = schema;
-  if (Array.isArray(required)) {
+  if (Array.isArray(required) && required.length) {
+    if (!properties) {
+      throw new Error(`buildApiTypes.validateSchema(${apiName}): missing properties`);
+    }
     for (const key of required) {
-      if (!properties || !properties[key]) {
+      if (!properties[key]) {
         throw new Error(`buildApiTypes.validateSchema(${apiName}): invalid required "${key}"`);
       }
     }
@@ -94,11 +97,11 @@ ${
 }
 };
 
-type ApiName = '${apis.map(a => a.config.name).join(`'
-  | '`)}';
+type ApiName =
+${apis.map(a => `  | '${a.config.name}'`).join('\n')};
 
-type AuthApiName = '${apis.filter(a => a.config.auth).map(a => a.config.name).join(`'
-| '`)}';
+type AuthApiName =
+${apis.filter(a => a.config.auth).map(a => `  | '${a.config.name}'`).join('\n')};
 }
 `;
 

@@ -84,6 +84,6 @@ export default async function recreateInfra(args?: Arguments<{
     await restorePgdump();
     await initRR();
     await seedDb();
-    await initMVInfra();
+    await initMVInfra({ skipPendingMigrations: true });
   });
 }

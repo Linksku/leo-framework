@@ -25,7 +25,7 @@ async function getOutput(models: ModelsArr) {
       throw new Error(`getModelBaseClass: unknown base class for ${Model.name}`);
     }
 
-    const fields = await compile(
+    const rawFields = await compile(
       Model.jsonSchema as JsonSchema,
       'Foo',
       {
@@ -33,6 +33,10 @@ async function getOutput(models: ModelsArr) {
         maxItems: 2,
       },
     );
+    const fields = rawFields
+      .split('\n')
+      .slice(1, -2)
+      .map(line => (line.startsWith('  ') ? line.slice(2).trimEnd() : line.trimEnd()));
     const clsName = path.basename(modelPath).split('.')[0];
     const uniqueIndexes = Model.uniqueIndexes.map(
       index => (Array.isArray(index) ? `['${index.join('\', \'')}']` : `'${index}'`),
@@ -59,12 +63,13 @@ async function getOutput(models: ModelsArr) {
 
 ${
   fields
-    .split('\n')
-    .slice(1, -2)
-    .map(line => line.trim())
-    .map(line => (line.startsWith('/*') || line.startsWith('* ') || line.startsWith('*/')
-      ? `  ${line}`
-      : `  declare ${line}`))
+    .map((line, idx) => ((idx === 0
+      || fields[idx - 1]?.endsWith(';')
+      || fields[idx - 1]?.endsWith('*/'))
+      && !line.startsWith('  ')
+      && !line.startsWith('/*')
+      ? `  declare ${line}`
+      : `  ${line}`))
     .join('\n')
     .replaceAll('?: ', ': ')
     .replaceAll('"', '\'')

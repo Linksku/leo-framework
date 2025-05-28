@@ -1,7 +1,6 @@
 export const AWS_REGION = 'us-east-2';
 export const AWS_BEDROCK_REGION = 'us-east-1';
 export const AWS_ACCESS_ID = '';
-export const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/v1';
 export const DO_SPACES_REGION = 'nyc3';
 export const DO_SPACES_BUCKET = '';
 export const DO_SPACES_ID = '';

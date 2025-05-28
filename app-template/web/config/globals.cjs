@@ -1,6 +1,3 @@
-const globals = {
-  useCurrentUserStore: ['./app/web/stores/CurrentUserStore', 'useCurrentUserStore'],
-  useCurrentUser: ['./app/web/stores/CurrentUserStore', 'useCurrentUser'],
-};
+const globals = {};
 
 module.exports = globals;

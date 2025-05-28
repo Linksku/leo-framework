@@ -3,8 +3,6 @@ import type { ChatCompletionChunk, ChatCompletionMessageParam } from 'openai/res
 import type { Stream } from 'openai/streaming';
 import QuickLRU from 'quick-lru';
 
-import { DEEPSEEK_BASE_URL } from 'config/serverConfig';
-
 let client: OpenAI | null = null;
 let importPromise: Promise<{ default: typeof OpenAI }> | null = null;
 
@@ -47,7 +45,7 @@ async function askDeepSeek<
     importPromise ??= import('openai');
     const { default: OpenAI } = await importPromise;
     client = new OpenAI({
-      baseURL: DEEPSEEK_BASE_URL,
+      baseURL: 'https://api.deepseek.com/v1',
       apiKey: process.env.DEEPSEEK_SECRET_KEY,
     });
   }

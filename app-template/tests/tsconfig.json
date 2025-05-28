@@ -1,0 +1,32 @@
+{
+  "extends": "../../tsconfig-base.json",
+  "compilerOptions": {
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable",
+    ],
+    "isolatedModules": false,
+    "paths": {
+      "*": [
+        "app/tests/*",
+        "app/shared/*",
+        "framework/tests/*",
+        "framework/shared/*",
+      ],
+    },
+    "types": [
+      "webpack-env",
+      "cypress",
+    ],
+  },
+  "include": [
+    ".",
+    "../shared/types",
+    "../../framework/tests/types",
+    "../../framework/shared/types",
+  ],
+  "exclude": [
+    "../../framework/shared/types/__generated__",
+  ],
+}

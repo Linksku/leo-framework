@@ -31,19 +31,22 @@ export default async function askLlamaJson<
 > {
   const fieldsEntries = TS.objEntries(fields);
   const format = `{${fieldsEntries.map(([key, val]) => `"${key}":${val.type}`).join(',')}}${returnArray ? '[]' : ''}`;
-  const prompt = [
+  const systemPrompt = [
     `Generate ${returnArray ? 'a JSON array' : 'JSON'} with the format ${format}`,
+    'No text outside the JSON.',
+  ].join('\n');
+  const userPrompt = [
     'JSON fields:',
     ...fieldsEntries.map(([key, val]) => `${key}: ${val.description}`),
     '',
     ...(context ? [context] : []),
-    'No text outside the JSON.',
   ].join('\n');
   const outputPrefix = `${returnArray ? '[' : ''}{"${fieldsEntries[0][0].endsWith('?') ? '' : `${fieldsEntries[0][0]}":`}`;
 
   const fullOutput = await askLlama({
     modelId,
-    prompt,
+    systemPrompt,
+    userPrompt,
     outputPrefix,
     image,
     maxOutputLength,

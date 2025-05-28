@@ -50,6 +50,7 @@ module.exports = {
   useApi: ['./framework/web/stores/api/useApi', 'default'],
   useCatchAsync: ['./framework/web/utils/useCatchAsync', 'default'],
   useConst: ['./framework/web/utils/useConst', 'default'],
+  useCurrentUser: ['./framework/web/features/users/useCurrentUser', 'default'],
   useDeferredApi: ['./framework/web/stores/api/useDeferredApi', 'default'],
   useDeepMemoObj: ['./framework/web/utils/useDeepMemoObj', 'default'],
   useLatestCallback: ['./framework/web/utils/useLatestCallback', 'default'],
