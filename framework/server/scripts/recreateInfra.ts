@@ -42,8 +42,8 @@ import initMVInfra from './mv/initMVInfra';
 - Create MZ sinks
 */
 
-// todo: low/mid create pg db and user
-// todo: low/mid use superuser for infra scripts and limit pg user permissions
+// todo: low/med create pg db and user
+// todo: low/med use superuser for infra scripts and limit pg user permissions
 export default async function recreateInfra(args?: Arguments<{
   destroy: boolean,
 }>) {

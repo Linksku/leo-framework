@@ -102,7 +102,7 @@ export default function Img({
   const shownUrl = showThumb ? thumbUrl : url;
   if ((shownUrl || isFetchingUrl) && (!hadError || showThumb)) {
     const isLoadingImg = isFetchingUrl || (!!url && showThumb);
-    // todo: low/mid spinner spins for longer than timeout while image is loading
+    // todo: low/med spinner spins for longer than timeout while image is loading
     return (
       <FixedRatioContainer
         {...containerProps}

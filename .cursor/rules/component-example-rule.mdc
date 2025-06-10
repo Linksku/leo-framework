@@ -1,0 +1,6 @@
+---
+description:
+globs: app/web/**/*.tsx
+alwaysApply: false
+---
+- use [Typeahead.tsx](mdc:framework/web/components/common/Typeahead.tsx) as a React component code style example

@@ -45,7 +45,7 @@ const Route = React.memo(function Route({
     }
   }, [skipRender]);
 
-  // todo: mid/blocked when offscreen api is available, remove Freeze
+  // todo: med/blocked when offscreen api is available, remove Freeze
   return (
     <RouteProvider
       routeConfig={routeConfig}

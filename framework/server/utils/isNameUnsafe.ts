@@ -2,7 +2,7 @@ import tokenizeString from 'utils/nlp/tokenizeString';
 import unsafeWordsRaw from 'consts/unsafeWords.txt';
 import { unsafeSubStrs, allowedUnsafeSubStrs } from 'consts/unsafeWords';
 
-// todo: mid/hard handle common substitutions, e.g. sex -> s3x
+// todo: med/hard handle common substitutions, e.g. sex -> s3x
 const unsafeWords = new Set(
   unsafeWordsRaw
     .trim()

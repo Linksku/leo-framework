@@ -75,7 +75,7 @@ export default function initMZ({ sourceTimeout, waitForComplete, skipPendingMigr
     }
 
     if (waitForComplete !== false) {
-      // todo: mid/hard detect if MZ crashes while waiting
+      // todo: med/hard detect if MZ crashes while waiting
       await Promise.all([
         withErrCtx(
           waitForMZSourcesCatchUp(true, sourceTimeout),

@@ -176,7 +176,7 @@ export async function registerUser({
   }
 
   name = formatTitle(name);
-  // todo: low/mid validate obvious non-names
+  // todo: low/med validate obvious non-names
   const nameInvalidReason = getNameInvalidReason(name);
   if (nameInvalidReason) {
     throw new UserFacingError(nameInvalidReason, 400);

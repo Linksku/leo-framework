@@ -373,7 +373,7 @@ const config = {
           'ts-check': false,
           minimumDescriptionLength: 3,
         }],
-        // todo: low/mid enable explicit-module-boundary-types
+        // todo: low/med enable explicit-module-boundary-types
         '@typescript-eslint/explicit-module-boundary-types': 0,
         // Too slow.
         '@typescript-eslint/no-floating-promises': [2, {

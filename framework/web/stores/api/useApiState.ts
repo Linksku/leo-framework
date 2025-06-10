@@ -48,7 +48,7 @@ export default function useApiState<
   });
 
   useEffect(
-    // Even if shouldFetch is false, api state could change, e.g. request is mid-flight
+    // Even if shouldFetch is false, api state could change, e.g. request is med-flight
     () => subscribeApiState({
       name,
       params,

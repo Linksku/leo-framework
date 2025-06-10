@@ -6,7 +6,7 @@ class MaterializedView extends Model {
   static override isMV = true;
 
   // Set true if DEFAULT_REDIS_CACHE_TTL staleness is ok
-  // todo: mid/hard use mz tail to trigger invalidating mv cache
+  // todo: med/hard use mz tail to trigger invalidating mv cache
   static override cacheable = false;
 
   static replicaTable: Nullish<string>;

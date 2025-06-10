@@ -68,7 +68,7 @@ export default function usePaginationApi<
   if (!process.env.PRODUCTION
     && prevName
     && (apiName !== prevName || !equal(apiParams, prevParams))) {
-    // todo: low/mid handle api params changing and remove keys on scrollers
+    // todo: low/med handle api params changing and remove keys on scrollers
     ErrorLogger.error(new Error(`usePaginationApi(${apiName}): api changed`));
     // eslint-disable-next-line no-console
     console.log(
@@ -139,7 +139,7 @@ export default function usePaginationApi<
   const fetchNextPageThrottled = useThrottle(
     () => {
       if (!hasCompleted || error) {
-        // todo: low/mid maybe make fetchNextPage return a promise
+        // todo: low/med maybe make fetchNextPage return a promise
         fetchNextPage(apiName, apiParams, initialCursor);
       }
     },

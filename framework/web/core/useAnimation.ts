@@ -76,7 +76,7 @@ export class AnimatedValue {
     return performance.now() - this.lastSetValTime < this.curKeyframe.duration;
   }
 
-  // todo: low/mid animation easing with keyframes
+  // todo: low/med animation easing with keyframes
   getNextKeyframe(
     keyframeVals: number[] | null,
     // lastKeyframeVal is for stepped animations, it's different from Keyframe.val
@@ -353,7 +353,7 @@ export function useAnimation<T extends HTMLElement>(
       stylesForFinalVal?: ObjectOf<Style>,
       defaultEasing?: 'none' | keyof typeof easings | null,
       // Note: keyframes is choppy if thread is blocked
-      // todo: low/mid replace with css keyframes
+      // todo: low/med replace with css keyframes
       keyframes?: number[],
       skipTransitionProps?: string[],
     },
@@ -512,7 +512,7 @@ export function useAnimation<T extends HTMLElement>(
       || (newKeyframe.inGesture && needsRafForAnimations())
     ) {
       // Chrome seems to drop frames automatically, but FF needs RAF
-      // todo: mid/hard FF animations flicker again
+      // todo: med/hard FF animations flicker again
       ref.current.paintRaf = requestAnimationFrame(() => {
         paintStyles(animationElem, styles);
         ref.current.paintRaf = null;

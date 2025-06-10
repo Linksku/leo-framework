@@ -4,7 +4,7 @@ import styles from './Pinchable.scss';
 
 type DragMemo = [number, number];
 
-// todo: low/mid maybe move Pinchable to top level
+// todo: low/med maybe move Pinchable to top level
 export default function Pinchable({
   className,
   children,

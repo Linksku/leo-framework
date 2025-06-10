@@ -56,7 +56,7 @@ window.addEventListener('unhandledrejection', e => {
 });
 
 // todo: high/hard log actions
-// todo: low/mid enable deeplinks
+// todo: low/med enable deeplinks
 const tz = (new Date()).getTimezoneOffset() / 60;
 if (tz >= -3 && tz <= 0
   // 'debug' param allowed in prod, unlike isDebug

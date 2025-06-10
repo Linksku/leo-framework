@@ -13,7 +13,7 @@ addHealthcheck('mzSinkPrometheus', {
       );
     }
   },
-  resourceUsage: 'mid',
+  resourceUsage: 'med',
   usesResource: 'mz',
   stability: 'low',
   // From Materialize's metrics-scraping-interval

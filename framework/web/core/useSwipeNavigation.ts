@@ -353,7 +353,7 @@ export default function useSwipeNavigation<T extends HTMLElement>({
     if (first) {
       if (event.target instanceof HTMLElement
         && event.target === document.activeElement
-        // todo: low/mid enable swiping on textarea
+        // todo: low/med enable swiping on textarea
         && ['INPUT', 'TEXTAREA'].includes(event.target.tagName)
         && !['submit', 'button'].includes(event.target.getAttribute('type') ?? '')) {
         cancel();

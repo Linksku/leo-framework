@@ -1,10 +1,6 @@
 .container {
   padding: 5rem $containerPadding;
   text-align: center;
-
-  @include gtLg {
-    min-height: auto;
-  }
 }
 
 .title {

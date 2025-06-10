@@ -1,5 +1,5 @@
-import AngleDownSvg from 'svgs/fa5/angle-down-solid.svg';
-import AngleUpSvg from 'svgs/fa5/angle-up-solid.svg';
+import AngleDownSvg from 'svgs/fa5/solid/angle-down.svg';
+import AngleUpSvg from 'svgs/fa5/solid/angle-up.svg';
 
 import type { Props as DropdownProps } from 'components/common/DropdownMenu';
 import { useThrottle } from 'utils/throttle';

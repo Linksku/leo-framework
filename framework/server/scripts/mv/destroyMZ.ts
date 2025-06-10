@@ -29,7 +29,7 @@ type Props = {
   deleteMZReplicationSlots?: boolean,
 };
 
-// todo: low/mid put a wrapper around server scripts for types
+// todo: low/med put a wrapper around server scripts for types
 export default async function destroyMZ(args?: Arguments<Props> | Props) {
   if (!HAS_MVS) {
     return;

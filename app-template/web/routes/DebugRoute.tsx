@@ -1,5 +1,5 @@
-import ArrowSvg from 'svgs/fa5/arrow-right-regular.svg';
-import LoginSvg from 'svgs/fa5/sign-in-alt-regular.svg';
+import ArrowSvg from 'svgs/fa5/regular/arrow-right.svg';
+import LoginSvg from 'svgs/fa5/regular/sign-in-alt.svg';
 import dayjs from 'dayjs';
 
 import RouteInner from 'core/frame/RouteInner';

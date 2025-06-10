@@ -26,7 +26,7 @@ declare global {
 
   type ModelPartial<T extends { Interface: IBaseModel }> = Partial<T['Interface']>;
 
-  // todo: low/mid build types for required fields for insert
+  // todo: low/med build types for required fields for insert
   type ModelPartialExact<
     T extends { Interface: IBaseModel },
     P,

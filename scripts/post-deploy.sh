@@ -1,5 +1,5 @@
 #!/bin/bash
-# todo: low/mid if post-deploy.sh was updated, throw error and rerun
+# todo: low/med if post-deploy.sh was updated, throw error and rerun
 set -e
 
 GIT_REVS=$(git rev-list --count master 2>/dev/null || echo 0)
@@ -23,7 +23,7 @@ fi
 echo "Stop monitor-infra"
 yarn ss stopMonitorInfra || true
 
-# todo: mid/mid don't delete mz if no models changed
+# todo: med/med don't delete mz if no models changed
 echo "Load Docker"
 docker load --input server.tar.gz
 

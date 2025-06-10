@@ -42,7 +42,7 @@ body {
   // Matches iOS show keyboard animation
   transition: padding-top 0.2s ease-out;
   // For iOS, copied from @capacitor/text-zoom. Android version is in MainActivity.java
-  // todo: mid/hard text-size-adjust doesn't work for Messenger webview
+  // todo: med/hard text-size-adjust doesn't work for Messenger webview
   // stylelint-disable-next-line plugin/no-unsupported-browser-features
   text-size-adjust: 100%;
   // stylelint-disable-next-line plugin/no-unsupported-browser-features, property-no-vendor-prefix

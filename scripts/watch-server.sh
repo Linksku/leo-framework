@@ -29,7 +29,7 @@ rebuild_server="nodemon -e js,cjs,ts \
   --watch webpack.server.$NODE_ENV.js --watch webpack.server.js --watch webpack.common.js \
   --watch app/shared/types/__generated__/globals.d.ts \
   --watch app/server/types/__generated__/globals.d.ts \
-  --watch app/server/types/__generated__/allModels.cjs \
+  --watch app/server/config/__generated__/allModels.cjs \
   --watch framework/shared/settings.js \
   --watch env/env.dev --watch env/secrets \
   --watch package.json --watch yarn.lock --watch babel.config.cjs \
@@ -40,7 +40,7 @@ rebuild_monitor="nodemon -e js,cjs,ts \
   --watch webpack.server.$NODE_ENV.js --watch webpack.server.js --watch webpack.common.js \
   --watch app/shared/types/__generated__/globals.d.ts \
   --watch app/server/types/__generated__/globals.d.ts \
-  --watch app/server/types/__generated__/allModels.d.ts \
+  --watch app/server/config/__generated__/allModels.cjs \
   --watch framework/shared/settings.js \
   --watch env/env.dev --watch env/secrets \
   --watch package.json --watch yarn.lock --watch babel.config.cjs \

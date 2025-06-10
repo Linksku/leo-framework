@@ -11,7 +11,9 @@ import useEffectInitialMount from 'utils/useEffectInitialMount';
 import styles from './ModalInner.scss';
 
 export default function ModalInner(props: React.PropsWithChildren<
-  Omit<Modal, 'id' | 'closeAfter'>
+  Omit<Modal, 'id' | 'closeAfter'> & {
+    textAlign?: 'center' | 'left',
+  }
 >) {
   const modals = useAtomValue(modalsAtom);
   const [disabledOkModal, setDisabledOkModal] = useAtom(disabledOkModalAtom);
@@ -20,6 +22,7 @@ export default function ModalInner(props: React.PropsWithChildren<
     id,
     title,
     msg,
+    textAlign = 'center',
     closeable = true,
     confirmBeforeClose = false,
     showOk = true,
@@ -93,7 +96,11 @@ export default function ModalInner(props: React.PropsWithChildren<
   return (
     <div
       className={styles.modal}
-      style={{ textAlign: typeof msg === 'string' ? 'center' : 'left' }}
+      style={{
+        textAlign: textAlign ?? (typeof msgOrChildren === 'string'
+          ? 'center'
+          : 'left'),
+      }}
       onClick={event => event.stopPropagation()}
       role="dialog"
     >

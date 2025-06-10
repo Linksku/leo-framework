@@ -19,8 +19,8 @@ addHealthcheck('bullCron', {
   },
   // runOnAllServers has to be true because otherwise healthchecks won't run when Redis is down
   runOnAllServers: true,
-  resourceUsage: 'mid',
-  stability: 'mid',
+  resourceUsage: 'med',
+  stability: 'med',
   timeout: 30 * 1000,
   async fix() {
     await restartMissingCronJobs();

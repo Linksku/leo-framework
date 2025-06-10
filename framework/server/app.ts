@@ -99,7 +99,7 @@ if (process.env.SERVER === 'production') {
       || !req.secure
       || (SHORT_DOMAIN_NAME !== DOMAIN_NAME && req.hostname === SHORT_DOMAIN_NAME)
       || (req.subdomains.length === 1 && req.subdomains[0] === 'www')) {
-      // todo: mid/mid og preview tags for redirects
+      // todo: med/med og preview tags for redirects
       res.redirect(redirectUrl);
     } else {
       next();

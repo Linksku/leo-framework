@@ -1,5 +1,5 @@
 interface IBaseModel {
-  // todo: low/mid try making __isModel private
+  // todo: low/med try making __isModel private
   __isModel: true;
 }
 

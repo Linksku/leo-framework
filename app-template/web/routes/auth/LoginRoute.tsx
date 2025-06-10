@@ -1,4 +1,4 @@
-import InfoSvg from 'svgs/fa5/info-circle-solid.svg';
+import InfoSvg from 'svgs/fa5/solid/info-circle.svg';
 import { useWatch } from 'react-hook-form';
 
 import type ApiError from 'core/ApiError';

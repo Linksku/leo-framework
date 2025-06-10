@@ -26,6 +26,7 @@ type Props = {
   overrides?: Pick<
     React.CSSProperties,
     | 'borderColor'
+    | 'borderRadius'
     | 'marginBottom'
   >,
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix' | 'readOnly'>;
@@ -80,7 +81,7 @@ export default function Input({
   if (SuffixSvg) {
     suffix = <SuffixSvg className={cx(styles.suffixSvg, suffixClassName)} />;
   }
-  // todo: low/mid make empty space in label not focus input
+  // todo: low/med make empty space in label not focus input
   const WrapperComponent = (label || prefix || suffix)
     ? 'label'
     : 'span';
@@ -117,6 +118,7 @@ export default function Input({
         })}
         style={{
           borderColor: overrides?.borderColor,
+          borderRadius: overrides?.borderRadius,
         }}
         onChange={e => {
           if (registerProps) {

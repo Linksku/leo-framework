@@ -45,7 +45,7 @@ const SseConnectionsManager = {
     return conns.get(sessionId);
   },
 
-  // todo: high/mid keep msgs for a while in case client disconnects
+  // todo: high/med keep msgs for a while in case client disconnects
   sendMessage(sessionId: string, data: string) {
     const conn = conns.get(sessionId);
     if (conn) {

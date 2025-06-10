@@ -60,7 +60,7 @@ interface FrameworkEnv {
 
   NODE_ENV: 'production' | 'development';
   PRODUCTION: boolean;
-  // todo: mid/hard add staging server
+  // todo: med/hard add staging server
   SERVER: 'production' | 'development';
   JS_VERSION: string;
 }

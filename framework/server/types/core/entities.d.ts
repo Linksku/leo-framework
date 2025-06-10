@@ -1,7 +1,7 @@
 import type _Entity from 'core/models/Entity';
 
 declare global {
-  // todo: mid/hard change to string for bigint
+  // todo: med/hard change to string for bigint
   type EntityId = number;
 
   type Entity = _Entity;

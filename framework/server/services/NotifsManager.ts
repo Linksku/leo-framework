@@ -245,7 +245,7 @@ async function getThrottledUsers<T>(
     .map(notif => notif.userId);
 }
 
-// todo: mid/mid images in push notifs
+// todo: med/med images in push notifs
 async function sendPushNotifs(
   config: NotifConfig,
   notif: NotifModel,

@@ -3,6 +3,7 @@ import type waitForModelRRInsert from 'utils/models/waitForModelRRInsert';
 import createEachModel from 'scripts/createEachModel';
 
 export { default as createEachModel } from 'scripts/createEachModel';
+export { default as createGeneratedUser } from 'features/users/createGeneratedUser';
 
 export function seedDb(): Promise<void> {
   return createEachModel();

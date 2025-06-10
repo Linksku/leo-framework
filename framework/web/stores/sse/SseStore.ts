@@ -144,7 +144,7 @@ export const [
         url += '&DEBUG=1';
       }
 
-      // todo: low/mid handle removing subscription while connecting to /sse
+      // todo: low/med handle removing subscription while connecting to /sse
       const source = new EventSource(
         url,
         {

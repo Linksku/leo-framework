@@ -38,7 +38,7 @@ export function processEntityClassConfig<Config extends EntityClassConfig<Entity
       throw new Error(`processEntityClassConfig(${config.type}): user data must be deleteable.`);
     }
 
-    // todo: low/mid recursively check if related to user model
+    // todo: low/med recursively check if related to user model
     for (const key of Object.keys(config.schema)) {
       if (key.includes('user')) {
         throw new Error(`processEntityClassConfig(${config.type}): user data must be deleteable.`);

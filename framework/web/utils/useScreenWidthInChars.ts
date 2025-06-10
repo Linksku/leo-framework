@@ -12,7 +12,7 @@ export default function useScreenWidthInChars() {
       elem.textContent = 'qwertyuiopasdfghjklzxcvbnm';
       elem.style.position = 'fixed';
       // Can't use rem because this might load before css
-      // todo: low/mid get actual size using rem
+      // todo: low/med get actual size using rem
       elem.style.fontSize = '16px';
       // Shouldn't use Inter Tight because it might not be loaded
       elem.style.fontFamily = 'arial,sans-serif';

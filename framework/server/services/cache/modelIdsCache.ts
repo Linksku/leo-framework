@@ -203,7 +203,7 @@ export default {
     _Model: T,
     _partial: ModelInstance<T>,
   ): void {
-    // todo: low/mid the column we're searching by could be updated, so need to invalidate
+    // todo: low/med the column we're searching by could be updated, so need to invalidate
     // E.g. find users in city -> update user city -> invalidate list
   },
 
@@ -212,7 +212,7 @@ export default {
     Model: T,
     ent: ModelInstance<T>,
   ): Promise<void> {
-    // todo: mid/hard use redis lists instead of invalidating every time
+    // todo: med/hard use redis lists instead of invalidating every time
     return invalidateCache(rc, Model, ent);
   },
 

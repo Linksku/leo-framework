@@ -46,7 +46,7 @@ export default async function addMetaTags(req: ExpressRequest, html: string) {
     })
     .join('\n');
 
-  // todo: low/mid use EJS instead of injecting before </head>
+  // todo: low/med use EJS instead of injecting before </head>
   if (!process.env.PRODUCTION && (html.match(/<\/head>/g)?.length ?? 0) > 1) {
     throw new Error('addMetaTags: multiple "</head>" found');
   }

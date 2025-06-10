@@ -6,7 +6,7 @@ export const windowSizeAtom = atom({
 export default function useWindowSize(): {
   width: number,
   height: number,
-  // todo: low/mid @typescript-eslint/indent
+  // todo: low/med @typescript-eslint/indent
   } {
   return useAtomValue(windowSizeAtom);
 }

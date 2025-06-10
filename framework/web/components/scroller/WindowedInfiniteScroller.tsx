@@ -120,7 +120,7 @@ export default React.memo(function WindowedInfiniteScroller<
   }, []);
 
   if (initialId) {
-  // todo: mid/hard with initialId, scroll to item and handle scrolling in opposite direction
+  // todo: med/hard with initialId, scroll to item and handle scrolling in opposite direction
     const initialIdIdx = origItems.indexOf(initialId);
     if (initialIdIdx >= 0) {
       for (let i = 0; i <= initialIdIdx; i++) {

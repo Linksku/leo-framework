@@ -37,7 +37,7 @@ addHealthcheck('replicationSlots', {
       throw new Error('replicationSlotsHealthcheck: RR slot is inactive');
     }
   },
-  resourceUsage: 'mid',
+  resourceUsage: 'med',
   usesResource: 'bt',
   stability: 'high',
   timeout: 10 * 1000,

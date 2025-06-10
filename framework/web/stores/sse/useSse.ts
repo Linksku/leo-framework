@@ -27,7 +27,7 @@ function useSse<Name extends SseName>(
       return NOOP;
     }
 
-    // todo: high/mid addSubscription doesn't run when params change
+    // todo: high/med addSubscription doesn't run when params change
     addSubscription(eventName, paramsMemo, cb);
 
     return () => {

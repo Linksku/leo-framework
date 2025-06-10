@@ -1,5 +1,5 @@
-import EyeSvg from 'svgs/fa5/eye-regular.svg';
-import EyeSlashSvg from 'svgs/fa5/eye-slash-regular.svg';
+import EyeSvg from 'svgs/fa5/regular/eye.svg';
+import EyeSlashSvg from 'svgs/fa5/regular/eye-slash.svg';
 
 export default function PasswordInput({
   disabled,

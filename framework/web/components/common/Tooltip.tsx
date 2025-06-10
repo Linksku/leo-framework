@@ -41,7 +41,7 @@ type Props = {
   shown?: boolean,
 };
 
-// todo: low/mid create context for scrollable parents, then use portal
+// todo: low/med create context for scrollable parents, then use portal
 export default React.memo(function Tooltip({
   ref: forwardedRef,
   anchor,

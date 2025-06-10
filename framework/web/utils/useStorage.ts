@@ -40,7 +40,7 @@ function setItem<T>(
   }
 }
 
-// todo: low/mid combine useSetStorage and useStorage
+// todo: low/med combine useSetStorage and useStorage
 function useSetStorage<T>(
   type: 'local' | 'session',
   key: string,

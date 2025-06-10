@@ -14,7 +14,7 @@ export default function PrependHomeToHistoryHandler() {
 
     if (!backStates.length && curState.path !== '/' && curState.id === FIRST_ID) {
       // Note: doesn't always work, especially is user hasn't interacted with the page.
-      // todo: low/mid add home to history after user takes action
+      // todo: low/med add home to history after user takes action
       prependPathToHistory('/');
     }
   });

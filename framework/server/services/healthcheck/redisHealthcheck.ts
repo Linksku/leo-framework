@@ -17,7 +17,7 @@ addHealthcheck('redis', {
   // runOnAllServers has to be true because otherwise healthchecks won't run when Redis is down
   runOnAllServers: true,
   resourceUsage: 'low',
-  stability: 'mid',
+  stability: 'med',
   timeout: 10 * 1000,
   async fix() {
     try {

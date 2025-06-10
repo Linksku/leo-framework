@@ -117,7 +117,7 @@ export default {
       return fromRedis;
     }
 
-    // todo: low/mid errors may be cached and reused, causing long debugCtx
+    // todo: low/med errors may be cached and reused, causing long debugCtx
     const instance = await getModelDataLoader(Model).load(partial);
     if (instance) {
       wrapPromise(

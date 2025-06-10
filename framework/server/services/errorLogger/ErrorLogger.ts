@@ -19,7 +19,7 @@ const WARN_THROTTLE_DURATION = 10 * 60 * 1000;
 const ERROR_THROTTLE_DURATION = 60 * 1000;
 const lastLoggedTimes = new Map<string, number>();
 
-// todo: low/mid maybe switch to Pino
+// todo: low/med maybe switch to Pino
 async function _log(level: SeverityLevel, err: Error) {
   if (!process.env.PRODUCTION || process.env.IS_SERVER_SCRIPT) {
     return;

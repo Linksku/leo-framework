@@ -300,7 +300,7 @@ export const [
     }, []);
 
     // useEffectInitialMount(() => {
-    // todo: low/mid scroll to hash in homewrap and stackwrap
+    // todo: low/med scroll to hash in homewrap and stackwrap
     // Note: this doesn't work for deferred components,
     // also may show blank space outside overflow: hidden
     // document.getElementById(curState.hash)?.scrollIntoView(true);

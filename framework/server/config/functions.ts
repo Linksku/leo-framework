@@ -33,6 +33,10 @@ export function canSubscribeToSse<Name extends SseName>(
   throw new Error('canSubscribeToSse: not implemented');
 }
 
+export function createGeneratedUser(): Promise<UserModel> {
+  throw new Error('createGeneratedUser: not implemented');
+}
+
 export function waitForUserInsert(
   _userId: EntityId,
   _opts?: Parameters<typeof waitForModelRRInsert>[2],

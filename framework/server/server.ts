@@ -76,7 +76,7 @@ try {
   }
 
   if (isSecondaryServer) {
-    // todo: low/mid share healthcheck state within cluster
+    // todo: low/med share healthcheck state within cluster
     withErrCtx(() => startHealthchecks(), 'server: startHealthchecks');
     try {
       await withErrCtx(startCronJobs(), 'server: startCronjobs');
@@ -107,7 +107,7 @@ try {
       }
 
       if (sslKey && sslCert) {
-        // todo: mid/blocked add http2
+        // todo: med/blocked add http2
         // Express doesn't support http2 yet: https://github.com/expressjs/express/issues/2761
         const server = https
           .createServer({

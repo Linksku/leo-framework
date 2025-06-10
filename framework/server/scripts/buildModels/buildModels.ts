@@ -8,11 +8,13 @@ import getModelsWithPaths, { ModelsArr } from './getModelsWithPaths';
 function getOutput({
   frameworkModels,
   appModels,
+  hasMVs,
   forFramework,
   isCjs,
 }: {
   frameworkModels: ModelsArr,
   appModels: ModelsArr,
+  hasMVs: boolean,
   forFramework: boolean,
   isCjs: boolean,
 }) {
@@ -28,7 +30,7 @@ ${frameworkModels.map(model => `  {
     type: '${model.Model.type}',
     path: 'framework/server/models/${model.path}',
     ${isCjs ? '// ' : ''}Model: require('../../${forFramework ? '' : '../../framework/server/'}models/${model.path.slice(0, -3)}').default,
-    isRR: ${model.Model.getReplicaTable() || model.Model.isVirtual ? 'true' : 'false'},
+    isRR: ${model.Model.getReplicaTable() || model.Model.isVirtual || !hasMVs ? 'true' : 'false'},
   },
 `).join('')}];
 
@@ -37,7 +39,7 @@ ${appModels.map(model => `  {
     type: '${model.Model.type}',
     path: 'app/server/models/${model.path}',
     ${isCjs ? '// ' : ''}Model: require('../../models/${model.path.slice(0, -3)}').default,
-    isRR: ${model.Model.getReplicaTable() || model.Model.isVirtual ? 'true' : 'false'},
+    isRR: ${model.Model.getReplicaTable() || model.Model.isVirtual || !hasMVs ? 'true' : 'false'},
   },
 `).join('')}];
 `;
@@ -67,12 +69,17 @@ export default async function buildModels() {
     throw new Error('buildModels: MVs shouldn\'t be in framework');
   }
 
+  const hasMVs = appModels.some(
+    m => m.Model.type !== 'mzTestMV' && TS.extends(m.Model, MaterializedView),
+  );
+
   await Promise.all([
     fs.writeFile(
       path.resolve('./framework/server/config/__generated__/allModels.ts'),
       getOutput({
         frameworkModels,
         appModels: [],
+        hasMVs: false,
         forFramework: true,
         isCjs: false,
       }),
@@ -82,6 +89,7 @@ export default async function buildModels() {
       getOutput({
         frameworkModels,
         appModels: [],
+        hasMVs: false,
         forFramework: true,
         isCjs: true,
       }),
@@ -96,6 +104,7 @@ export default async function buildModels() {
       getOutput({
         frameworkModels,
         appModels,
+        hasMVs,
         forFramework: false,
         isCjs: false,
       }),
@@ -105,17 +114,14 @@ export default async function buildModels() {
       getOutput({
         frameworkModels,
         appModels,
+        hasMVs,
         forFramework: false,
         isCjs: true,
       }),
     ),
     fs.writeFile(
       path.resolve('./app/server/config/__generated__/consts.ts'),
-      `export const HAS_MVS = ${
-        appModels.some(m => m.Model.type !== 'mzTestMV' && TS.extends(m.Model, MaterializedView))
-          ? 'true'
-          : 'false'
-      };
+      `export const HAS_MVS = ${hasMVs};
 `,
     ),
   ]);

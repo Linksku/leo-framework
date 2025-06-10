@@ -1,7 +1,7 @@
 import type { UseFormRegister, RegisterOptions, Control } from 'react-hook-form';
 import { useWatch } from 'react-hook-form';
-import CheckSvg from 'svgs/fa5/check-regular.svg';
-import PlusSvg from 'svgs/fa5/plus-regular.svg';
+import CheckSvg from 'svgs/fa5/regular/check.svg';
+import PlusSvg from 'svgs/fa5/regular/plus.svg';
 
 import styles from './ToggleButton.scss';
 

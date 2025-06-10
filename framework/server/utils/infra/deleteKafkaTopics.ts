@@ -10,7 +10,7 @@ export default async function deleteKafkaTopics(prefixOrRegex: string | RegExp) 
     return 0;
   }
 
-  // todo: low/mid deleteTopics can throw time out error, but time limit wasn't reached
+  // todo: low/med deleteTopics can throw time out error, but time limit wasn't reached
   // Note: if topic has subscribers, topic may be recreated
   await retry(
     async () => {

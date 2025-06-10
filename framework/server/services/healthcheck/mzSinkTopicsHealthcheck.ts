@@ -57,9 +57,9 @@ addHealthcheck('mzSinkTopics', {
       }
     }
   },
-  resourceUsage: 'mid',
+  resourceUsage: 'med',
   usesResource: 'kafka',
-  stability: 'mid',
+  stability: 'med',
   timeout: 10 * 1000,
 });
 

@@ -6,7 +6,7 @@ import { MZ_TIMESTAMP_FREQUENCY } from 'consts/mz';
 import { HAS_MVS } from 'config/__generated__/consts';
 import { addHealthcheck } from './HealthcheckManager';
 
-// todo: mid/mid in case of incorrect columns, delete specific tables
+// todo: med/med in case of incorrect columns, delete specific tables
 addHealthcheck('rrMVs', {
   disabled: !HAS_MVS,
   deps: ['pgRR'],
@@ -123,6 +123,6 @@ addHealthcheck('rrMVs', {
   },
   resourceUsage: 'high',
   usesResource: 'rr',
-  stability: 'mid',
+  stability: 'med',
   timeout: 2 * 60 * 1000,
 });

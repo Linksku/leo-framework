@@ -25,8 +25,8 @@ addHealthcheck('kafkaConnect', {
   },
   // Fails even if a single MV has an error
   onlyForDebug: true,
-  resourceUsage: 'mid',
+  resourceUsage: 'med',
   usesResource: 'docker',
-  stability: 'mid',
+  stability: 'med',
   timeout: 10 * 1000,
 });

@@ -78,7 +78,7 @@ export default function ImageCropper({
   const botLeftRef = useRef<HTMLDivElement | null>(null);
   const botRightRef = useRef<HTMLDivElement | null>(null);
 
-  // todo: low/mid check if useDrag cb should have useCallback
+  // todo: low/med check if useDrag cb should have useCallback
   const bindCropped = useDrag(
     ({
       delta,

@@ -23,7 +23,7 @@ function validateSchema(apiName: string, schema: JSONSchema4) {
   }
 }
 
-// todo: low/mid handle image field types
+// todo: low/med handle image field types
 export default async function buildApiTypes() {
   const paramsInterfaces = [] as string[];
   const dataInterfaces = [] as string[];
@@ -105,7 +105,7 @@ ${apis.filter(a => a.config.auth).map(a => `  | '${a.config.name}'`).join('\n')}
 }
 `;
 
-  // todo: low/mid only include default routes in default shared folder
+  // todo: low/med only include default routes in default shared folder
   await mkdirp(path.resolve('./framework/shared/types/__generated__'));
   await fs.writeFile(
     path.resolve('./framework/shared/types/__generated__/api.d.ts'),

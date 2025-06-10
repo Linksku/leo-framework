@@ -34,7 +34,7 @@ export default async function recreateMVInfra(args?: Arguments<{
     await destroyMVInfra();
   });
   await redisFlushAll();
-  // todo: low/mid maybe `docker down` in case not everything is destroyed
+  // todo: low/med maybe `docker down` in case not everything is destroyed
   printDebug('Destroyed MV infra', 'success');
 
   await initInfraWrap(async () => {

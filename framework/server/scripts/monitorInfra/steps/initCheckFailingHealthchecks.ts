@@ -57,7 +57,7 @@ export default async function initCheckFailingHealthchecks() {
     }
 
     try {
-      // todo: mid/mid don't fix infra when recreating infra
+      // todo: med/med don't fix infra when recreating infra
       await checkPendingMigrations();
       if (numFails > minFails) {
         printDebug(`initCheckFailingHealthchecks: Recreating MV infra, failing: ${[...failing].join(', ')}`, 'info');

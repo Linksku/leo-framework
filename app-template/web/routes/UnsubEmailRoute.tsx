@@ -1,6 +1,6 @@
-import BellSvg from 'svgs/fa5/bell-regular.svg';
-import BellSlashSvg from 'svgs/fa5/bell-slash-regular.svg';
-import HomeSvg from 'svgs/fa5/home-regular.svg';
+import BellSvg from 'svgs/fa5/regular/bell.svg';
+import BellSlashSvg from 'svgs/fa5/regular/bell-slash.svg';
+import HomeSvg from 'svgs/fa5/regular/home.svg';
 
 import RouteInner from 'core/frame/RouteInner';
 

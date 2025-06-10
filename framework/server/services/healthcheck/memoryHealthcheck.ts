@@ -21,7 +21,7 @@ addHealthcheck('memory', {
     }
   },
   runOnAllServers: true,
-  resourceUsage: 'mid',
+  resourceUsage: 'med',
   stability: 'high',
   timeout: 10 * 1000,
 });

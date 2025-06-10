@@ -69,7 +69,7 @@ export async function getFailingServices({
   printFails?: boolean,
   healthcheckTimeout?: number,
 }) {
-  // todo: low/mid handle time outs differently
+  // todo: low/med handle time outs differently
   if (!forceRerun) {
     try {
       const serversStatus = await getServersStatus(
@@ -118,7 +118,7 @@ export async function getFailingServices({
   );
 }
 
-// todo: low/mid maybe skip init if views etc all exist, but downstream healthchecks fail
+// todo: low/med maybe skip init if views etc all exist, but downstream healthchecks fail
 async function initOrRecreateMZ(failing: Set<HealthcheckName>, initFromScratch = false) {
   printDebug('fixInfra: Init MZ', 'info');
 
@@ -358,7 +358,7 @@ export async function fixFailingInfra(failing: Set<HealthcheckName>) {
         return null;
       })()
       : null,
-    // todo: low/mid maybe check if MZ can recover automatically
+    // todo: low/med maybe check if MZ can recover automatically
     mzRunning: HAS_MVS ? false : isMzRunning(),
     hasMZKafkaErrorsTable: failing.has('mzSinkPrometheus')
       ? (async () => {

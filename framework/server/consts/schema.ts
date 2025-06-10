@@ -12,7 +12,7 @@ const name = TS.literal({ type: 'string', minLength: 1, maxLength: 50 } as const
 const httpUrl = TS.literal({ type: 'string', format: 'http-url', maxLength: 1024 } as const);
 const datetime = TS.literal({
   instanceof: 'Date',
-  // todo: low/mid extend JsonSchema with custom props
+  // todo: low/med extend JsonSchema with custom props
   tsType: 'Date',
 } as const);
 const cursor = TS.literal({ type: 'string', minLength: 1 } as const);

@@ -180,7 +180,7 @@ export default function PopstateEventHandler() {
 
     hideVirtualKeyboard();
 
-    // todo: low/mid update history state on click instead of on popstate
+    // todo: low/med update history state on click instead of on popstate
     updateHistoryState({
       curState: newCurState,
       backStates: newBackStates,

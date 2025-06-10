@@ -44,7 +44,7 @@ function hasDefault(val: JsonSchema): boolean {
   return false;
 }
 
-// todo: mid/hard remove Objection
+// todo: med/hard remove Objection
 class BaseModel extends ObjectionModel implements IBaseModel {
   static type: ModelType;
 
@@ -187,7 +187,7 @@ class BaseModel extends ObjectionModel implements IBaseModel {
 
   static _uniqueIndexes: ModelIndex<ModelClass>[] | undefined;
 
-  // todo: low/mid add memoize decorator
+  // todo: low/med add memoize decorator
   static getUniqueIndexes<T extends ModelClass>(this: T): ModelIndex<T>[] {
     if (!this._uniqueIndexes) {
       this._uniqueIndexes = this.uniqueIndexes.map(

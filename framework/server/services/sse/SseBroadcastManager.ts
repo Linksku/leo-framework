@@ -174,7 +174,7 @@ const SseBroadcastManager = {
       ? eventParams.map(params => serializeSseEvent(eventName, params))
       : [serializeSseEvent(eventName, eventParams)];
     for (const eventType of eventTypes) {
-      // todo: mid/mid validate SSE data
+      // todo: med/med validate SSE data
       const processedData: SseResponseSerialized<Name> = {
         eventType,
         ...successResponse,

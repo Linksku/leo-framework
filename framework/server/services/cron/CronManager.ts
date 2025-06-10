@@ -39,7 +39,7 @@ async function startCronJob(name: string) {
   const queue = createBullQueue(QUEUE_PREFIX + name);
   queues.set(name, queue);
 
-  // todo: low/mid warn when cron job times out
+  // todo: low/med warn when cron job times out
   await queue.add(
     name,
     {},
@@ -111,9 +111,6 @@ export async function startCronJobs() {
   if (startTime) {
     throw new Error('CronManager: Cron already started');
   }
-  startTime = performance.now();
-  lastRunTime = performance.now();
-
   // const existingJobs = await getExistingJobs(false);
   // const removableJobs = existingJobs
   //   .filter(job => !cronConfigs.has(job.name));
@@ -133,6 +130,12 @@ export async function startCronJobs() {
   if (totalRemoved) {
     printDebug(`Removed ${totalRemoved} old cron jobs`, 'info');
   }
+
+  if (!cronConfigs.size) {
+    return;
+  }
+  startTime = performance.now();
+  lastRunTime = performance.now();
 
   await throttledPromiseAll(
     10,

@@ -60,7 +60,7 @@ export default function handleBrowserSize() {
 
   window.addEventListener('resize', throttledHandleResize);
   window.addEventListener('focus', throttledHandleResize);
-  // todo: mid/blocked resize event doesn't always fire for ios
+  // todo: med/blocked resize event doesn't always fire for ios
   window.visualViewport?.addEventListener('resize', throttledHandleResize);
 
   if (detectPlatform().isNative) {

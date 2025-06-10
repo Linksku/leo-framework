@@ -64,7 +64,7 @@ export default mergeReplaceArrays(baseConfig, {
           },
           'postcss-loader',
           {
-            // todo: mid/hard atomic css
+            // todo: med/hard atomic css
             loader: 'sass-loader',
             options: {
               sourceMap: false,

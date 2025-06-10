@@ -1,6 +1,6 @@
-import HomeSvg from 'svgs/fa5/home-regular.svg';
-import UserSvg from 'svgs/fa5/user-regular.svg';
-import LoginSvg from 'svgs/fa5/sign-in-alt-regular.svg';
+import HomeSvg from 'svgs/fa5/regular/home.svg';
+import UserSvg from 'svgs/fa5/regular/user.svg';
+import LoginSvg from 'svgs/fa5/regular/sign-in-alt.svg';
 
 import RouteInner from 'core/frame/RouteInner';
 

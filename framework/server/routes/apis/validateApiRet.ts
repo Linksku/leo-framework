@@ -28,8 +28,11 @@ export default function validateApiRet<Name extends ApiName>({
   if (!process.env.PRODUCTION && Object.keys(ret).some(
     k => !TS.includes(API_RET_KEYS, k),
   )) {
+    const extraKeys = Object.keys(ret).filter(
+      k => !TS.includes(API_RET_KEYS, k),
+    );
     throw new Error(
-      `${api.config.name} contains extra keys: ${Object.keys(ret).join(', ')}`,
+      `${api.config.name} contains extra keys: ${extraKeys.join(', ')}`,
     );
   }
 

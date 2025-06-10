@@ -1,4 +1,4 @@
-import SyncSvg from 'svgs/fa5/sync-alt-solid.svg';
+import SyncSvg from 'svgs/fa5/solid/sync-alt.svg';
 
 import useSwipeNavigation from 'core/useSwipeNavigation';
 import { DEFAULT_DURATION, useAnimatedValue, useAnimation } from 'core/useAnimation';
@@ -32,7 +32,7 @@ export default function PullToReload({
     'PullToReload',
   );
 
-  // todo: low/mid allow pull to reload past 100%
+  // todo: low/med allow pull to reload past 100%
   const { ref, bindSwipe } = useSwipeNavigation<HTMLDivElement>({
     duration: 500,
     elementDim: ELEM_DIM * (MAX_DISPLACEMENT * 1.5),

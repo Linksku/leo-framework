@@ -31,7 +31,7 @@ export default function beforeQuery({
 
   const rc = getRC();
   if (rc) {
-    // todo: low/mid fix numDbQueries
+    // todo: low/med fix numDbQueries
     rc.numDbQueries++;
 
     if (rc.loadTesting) {
@@ -41,7 +41,7 @@ export default function beforeQuery({
 
   if (rc?.debug) {
     printDebug(
-      // todo: low/mid add async context for apis
+      // todo: low/med add async context for apis
       rc ? `${db.toUpperCase()} Query ${rc.apiPath}` : `${db.toUpperCase()} Query`,
       'success',
       {

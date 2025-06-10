@@ -86,7 +86,7 @@ router.get('/', async (req, res) => {
       );
     }
 
-    // todo: low/mid move types into shared constants
+    // todo: low/med move types into shared constants
     const response: SseResponse = {
       eventType: serializeSseEvent('sseConnected'),
       status: 200,

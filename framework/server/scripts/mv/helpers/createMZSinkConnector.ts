@@ -34,7 +34,7 @@ const BASE_KAFKA_CONNECT_CONFIG = {
   'pk.mode': 'record_key',
 };
 
-// todo: mid/hard sometimes all healthchecks pass, but no data get written to sink topics
+// todo: med/hard sometimes all healthchecks pass, but no data get written to sink topics
 export default async function createMZSinkConnector({
   name,
   replicaTable,

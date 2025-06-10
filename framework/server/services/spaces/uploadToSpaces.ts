@@ -20,8 +20,8 @@ type Props = {
   timeout?: number,
 };
 
-// todo: mid/mid verify paths are unique
-// todo: mid/hard periodically remove unused files
+// todo: med/med verify paths are unique
+// todo: med/hard periodically remove unused files
 export default async function uploadToSpaces({
   file,
   prefix = DO_SPACES_PREFIX,

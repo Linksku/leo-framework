@@ -51,7 +51,7 @@ function createThrottle(
       }
     }
 
-    // todo: low/mid: if fn returns a promise, maybe this should return a promise too
+    // todo: low/med: if fn returns a promise, maybe this should return a promise too
     return function throttleReturn(this: any, ...args: any[]) {
       if (state.current.disabled) {
         return;

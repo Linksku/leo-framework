@@ -69,7 +69,7 @@ export const MZ_DOWNSTREAM_HEALTHCHECKS: HealthcheckName[] = [
   'mzUpdating',
 ];
 
-// todo: mid/hard monitor error logs
+// todo: med/hard monitor error logs
 
 type HealthcheckConfig = {
   disabled?: boolean,
@@ -78,9 +78,9 @@ type HealthcheckConfig = {
   onlyForDebug?: boolean,
   onlyForScript?: boolean,
   runOnAllServers?: boolean,
-  resourceUsage: 'high' | 'mid' | 'low',
+  resourceUsage: 'high' | 'med' | 'low',
   usesResource?: 'bt' | 'rr' | 'docker' | 'kafka' | 'mz',
-  stability: 'high' | 'mid' | 'low',
+  stability: 'high' | 'med' | 'low',
   minUpdateFreq?: number,
   timeout: number,
   fix?: () => Promise<void>,
@@ -119,7 +119,7 @@ function _getDuration(name: HealthcheckName, passing: boolean) {
   const config = healthchecks[name];
   let intervalIfPassing = {
     high: 60 * 1000,
-    mid: 30 * 1000,
+    med: 30 * 1000,
     low: 10 * 1000,
   }[config.resourceUsage];
   if (config.stability === 'low') {
@@ -127,7 +127,7 @@ function _getDuration(name: HealthcheckName, passing: boolean) {
   }
   const intervalIfFailing = {
     high: 30 * 1000,
-    mid: 10 * 1000,
+    med: 10 * 1000,
     low: 1000,
   }[config.resourceUsage];
 

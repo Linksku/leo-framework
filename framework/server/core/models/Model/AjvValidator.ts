@@ -69,8 +69,7 @@ export default class AjvValidator extends Validator {
               'Instance value',
               'error',
               {
-                ctx: `${instanceVal}: ${typeof instanceVal}`,
-                details: JSON.stringify(json),
+                details: `${instanceVal}: ${typeof instanceVal}\n${JSON.stringify(json)}`,
               },
             );
           }

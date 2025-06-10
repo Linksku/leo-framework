@@ -191,7 +191,7 @@ defineApi(
           {
             status: 401,
             data: {
-              // todo: low/mid schema for error data
+              // todo: low/med schema for error data
               email: payload.email.toLowerCase(),
             },
           },

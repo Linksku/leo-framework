@@ -25,7 +25,7 @@ export const [
   function BatchImagesLoadStore() {
     const curRenderBatch = useRef<RenderBatch | null>(null);
 
-    // todo: low/mid keep batch open until end of render
+    // todo: low/med keep batch open until end of render
     const getCurRenderBatch = useCallback(() => {
       if (!curRenderBatch.current?.startTime
         || performance.now() - curRenderBatch.current.startTime > RENDER_BATCH_INTERVAL

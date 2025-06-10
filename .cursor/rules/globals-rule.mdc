@@ -1,0 +1,7 @@
+---
+description:
+globs: *.tsx,*.ts
+alwaysApply: false
+---
+- global constants are referenced in the files: [globals.cjs](mdc:app/shared/config/globals.cjs),  [globals.cjs](mdc:app/server/config/globals.cjs),  [globals.cjs](mdc:app/web/config/globals.cjs)
+- global constants don't need `import` statements

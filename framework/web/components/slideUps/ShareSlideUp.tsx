@@ -82,7 +82,7 @@ type Props = {
   hideSocialBtns?: boolean,
 };
 
-// todo: mid/mid add title/image to share slideup
+// todo: med/med add title/image to share slideup
 export default function ShareSlideUp({
   path,
   hideSocialBtns,

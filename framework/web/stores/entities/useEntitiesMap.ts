@@ -62,7 +62,7 @@ function useEntitiesMap<
   opts: OptsWithSet<T, ColForSet>,
 ): RetSet<T, Cols, ColForSet>;
 
-// todo: mid/mid checkEntityExists for accessing entities map keys
+// todo: med/med checkEntityExists for accessing entities map keys
 function useEntitiesMap<
   T extends EntityType,
   Cols extends (keyof Entity<T> & string)[] | [keyof Entity<T> & string],

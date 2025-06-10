@@ -1,6 +1,6 @@
 import 'core/initEnv';
 
-// todo: low/mid build shared lib bundle for server scripts
+// todo: low/med build shared lib bundle for server scripts
 import yargs from 'yargs';
 
 import 'services/knex/knexBT';
@@ -31,7 +31,7 @@ try {
 
 let promise: any;
 try {
-  // todo: low/mid args validation and typing
+  // todo: low/med args validation and typing
   // Note: yargs built-in validation allows non-numbers and converts them to NaN
   promise = fn(yargs(process.argv).argv);
 } catch (err) {

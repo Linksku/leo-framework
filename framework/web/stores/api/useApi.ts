@@ -85,10 +85,10 @@ function useApi<
     // On mount or enter route
     refetchOnMount,
     refetchIfStale,
-    // todo: low/mid don't show toast again when refetching stale api
+    // todo: low/med don't show toast again when refetching stale api
     showToastOnError,
     batchInterval,
-    // todo: low/mid fetch api on render instead of in effect
+    // todo: low/med fetch api on render instead of in effect
     // "immediate" is no longer needed with queueMicrotask
     immediate,
   }: UseApiOpts<Name> = {},
@@ -99,7 +99,7 @@ function useApi<
   const isRouteVisible = routeState?.isRouteVisible ?? true;
   const hadRouteBeenActive = routeState?.hadRouteBeenActive ?? true;
   const routeKey = routeState?.key;
-  // todo: low/mid don't fetch if inactive route fetches new api
+  // todo: low/med don't fetch if inactive route fetches new api
   if (!hadRouteBeenActive || !isRouteVisible) {
     // Doesn't seem to work with Freeze
     shouldFetch = false;

@@ -27,8 +27,8 @@ addHealthcheck('mzViews', {
       throw getErr('mzViewsHealthcheck: extra views', { extraViews });
     }
   },
-  resourceUsage: 'mid',
+  resourceUsage: 'med',
   usesResource: 'mz',
-  stability: 'mid',
+  stability: 'med',
   timeout: 2 * 60 * 1000,
 });

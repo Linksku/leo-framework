@@ -135,7 +135,7 @@ ${createTable}`,
     };
   }
   if (command === 'addColumn') {
-    // todo: low/mid generate columns and indexes from model
+    // todo: low/med generate columns and indexes from model
     return {
       imports: [
         'utils/migrations/addColumn',

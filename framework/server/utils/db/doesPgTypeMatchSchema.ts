@@ -66,6 +66,10 @@ function getSchemaTypeError({
     if (!['timestamp', 'timestamp without time zone', 'date', 'datetime'].includes(colType)) {
       return 'isn\'t date';
     }
+  } else if (nonNullType === 'object') {
+    if (colType !== 'jsonb' && colType !== 'text') {
+      return 'isn\'t json or text';
+    }
   } else {
     return 'has unhandled type';
   }
@@ -92,7 +96,7 @@ export default function doesPgTypeMatchSchema({
     return 'is nullable';
   }
 
-  // todo: low/mid better pg expression parser
+  // todo: low/med better pg expression parser
   const defaultType = colStr.match(/ DEFAULT ('[^']+'(?:::(?:character varying|double precision|[^ ]+))?|[^ ]+)/)
     ?.[1];
   const colType = colStr.replace(/ [A-Z].*/, '').replace(/\([^)]+\)/, '');

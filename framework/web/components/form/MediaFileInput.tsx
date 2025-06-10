@@ -1,5 +1,5 @@
 import type { UseFormRegister, RegisterOptions } from 'react-hook-form';
-import TimesSvg from 'svgs/fa5/times-circle-solid.svg';
+import TimesSvg from 'svgs/fa5/solid/times-circle.svg';
 
 import fileToDataUrl from 'utils/fileToDataUrl';
 

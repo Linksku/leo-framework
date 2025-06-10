@@ -1,4 +1,4 @@
-import AppleSvg from 'svgs/fa5/apple-brands.svg';
+import AppleSvg from 'svgs/fa5/brands/apple.svg';
 
 import { APP_STORE_URL } from 'config';
 

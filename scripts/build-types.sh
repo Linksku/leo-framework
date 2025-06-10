@@ -2,7 +2,7 @@
 
 start_time=$(date -d "1 minute ago" +"%Y-%m-%d %T")
 
-# todo: low/mid pause monitor-infra when rebuilding models
+# todo: low/med pause monitor-infra when rebuilding models
 
 mkdir -p ./framework/server/config/__generated__
 echo "export const frameworkModels = [];

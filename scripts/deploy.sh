@@ -60,7 +60,7 @@ sentry-cli sourcemaps upload build/production/server --project server --release 
 sentry-cli sourcemaps upload build/production/web/js --project web --release $version --silent
 find build/production -name "*.js.map" -type f -delete
 
-# todo: low/mid option to deploy only client code
+# todo: low/med option to deploy only client code
 echo "Build Docker"
 scripts/build-docker-package-json.mjs
 docker build -t server -f framework/infra/server-dockerfile .

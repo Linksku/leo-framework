@@ -36,7 +36,7 @@ const Popups = React.memo(function Popups() {
   );
 });
 
-// todo: low/mid navigation fails if debugger triggers
+// todo: low/med navigation fails if debugger triggers
 export default function Router() {
   const { pendingNavState, deferredNavState, isNavigating } = useHistoryStore();
   const { curState, prevState } = pendingNavState;

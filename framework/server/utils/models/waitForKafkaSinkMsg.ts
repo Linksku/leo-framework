@@ -25,7 +25,7 @@ const consumerConfigs = Object.create(null) as Partial<Record<
   ConsumerConfig
 >>;
 
-// todo: mid/hard don't create a consumer for every server
+// todo: med/hard don't create a consumer for every server
 export default async function waitForKafkaSinkMsg<
   T extends ModelType,
   P extends ModelPartialExact<ModelTypeToClass<T>, P>,

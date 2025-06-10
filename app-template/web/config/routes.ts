@@ -27,6 +27,12 @@ export default [
     ),
   ],
   [
+    '/support',
+    () => import(
+      /* webpackChunkName: 'SupportRoute' */ 'routes/auth/SupportRoute'
+    ),
+  ],
+  [
     '/verifyemail',
     () => import(
       /* webpackChunkName: 'VerifyEmailRoute' */ 'routes/auth/VerifyEmailRoute'

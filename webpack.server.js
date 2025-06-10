@@ -5,9 +5,9 @@ import webpack from 'webpack';
 
 import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
 import globals from './framework/server/config/globals.cjs';
-import globalsSrc from './app/server/config/globals.cjs';
+import appGlobals from './app/server/config/globals.cjs';
 import sharedGlobals from './framework/shared/config/globals.cjs';
-import sharedGlobalsSrc from './app/shared/config/globals.cjs';
+import appSharedGlobals from './app/shared/config/globals.cjs';
 import baseConfig from './webpack.common.js';
 
 const packageJson = JSON.parse(fs.readFileSync(path.resolve('./package.json'), 'utf8'));
@@ -54,9 +54,9 @@ export default mergeReplaceArrays(baseConfig, {
     ...baseConfig.plugins,
     new webpack.ProvidePlugin(mapValues({
       ...sharedGlobals,
-      ...sharedGlobalsSrc,
+      ...appSharedGlobals,
       ...globals,
-      ...globalsSrc,
+      ...appGlobals,
     }, v => {
       let p = Array.isArray(v) ? v[0] : v;
       if (p.startsWith('.')) {

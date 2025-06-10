@@ -1,6 +1,6 @@
 import readline from 'readline';
 
-// todo: low/mid doesn't work in Docker Compose
+// todo: low/med doesn't work in Docker Compose
 // https://stackoverflow.com/questions/53106678/docker-compose-up-and-user-inputs-on-stdin
 export default async function prompt(
   question: string,

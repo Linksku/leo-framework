@@ -50,7 +50,7 @@ function _deepEqualIgnoreUndefined(objA: any, objB: any) {
   return true;
 }
 
-// todo: low/mid auto add error props such as "errno" to debugCtx
+// todo: low/med auto add error props such as "errno" to debugCtx
 export default function formatErr(
   err: unknown,
   { maxStackLines }: {

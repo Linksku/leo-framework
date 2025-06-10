@@ -4,7 +4,7 @@
 # 1. copy capacitor/android, node_modules/@capacitor/android/capacitor,
 #   and build/production/web/capacitor to Windows
 # 2. run `yarn`
-# todo: low/mid zx sync-capacitor for cross-plat
+# todo: low/med zx sync-capacitor for cross-plat
 
 yarn
 

@@ -41,8 +41,8 @@ addHealthcheck('mzSinks', {
       throw getErr('mzSinksHealthcheck: extra sinks', { extraSinks: extraSinks.slice(0, 10) });
     }
   },
-  resourceUsage: 'mid',
+  resourceUsage: 'med',
   usesResource: 'mz',
-  stability: 'mid',
+  stability: 'med',
   timeout: 2 * 60 * 1000,
 });

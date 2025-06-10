@@ -1,7 +1,7 @@
 import type { UseFormRegister, RegisterOptions, Control } from 'react-hook-form';
 import { useWatch } from 'react-hook-form';
-import CheckedSvg from 'svgs/fa5/check-square-solid.svg';
-import UncheckedSvg from 'svgs/fa5/square-regular.svg';
+import CheckedSvg from 'svgs/fa5/solid/check-square.svg';
+import UncheckedSvg from 'svgs/fa5/regular/square.svg';
 
 import styles from './Checkbox.scss';
 

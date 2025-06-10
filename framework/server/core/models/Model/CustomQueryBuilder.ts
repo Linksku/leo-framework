@@ -141,7 +141,7 @@ export default class CustomQueryBuilder<M extends Model, R = M[]>
       const schema = Model.getSchema()[col as ModelKey<ModelClass>];
 
       if (schema && isSchemaNullable(schema)) {
-        // todo: low/mid make isDistinctFrom work differently with MZ
+        // todo: low/med make isDistinctFrom work differently with MZ
         printDebug(`whereNot(${Model.type}.${col}): unsafe condition, use whereDistinctFrom`, 'warn');
       }
     }

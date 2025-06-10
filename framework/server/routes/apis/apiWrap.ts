@@ -31,7 +31,7 @@ function getFullParamsFromReq<Name extends ApiName>(
       // In case user has already filled out a form
       || (method !== 'get' && ver + 3 < JS_VERSION)
   )) {
-    // todo: mid/hard don't always throw, e.g. mark APIs as updated
+    // todo: med/hard don't always throw, e.g. mark APIs as updated
     throw new UserFacingError('Client is outdated.', 469);
   }
 
@@ -56,7 +56,7 @@ function getFullParamsFromReq<Name extends ApiName>(
   return deepFreezeIfDev(fullParams);
 }
 
-// todo: mid/hard maybe send ents updated via MZ after request completes
+// todo: med/hard maybe send ents updated via MZ after request completes
 export default function apiWrap<Name extends ApiName>(
   api: ApiDefinition<Name>,
 ): (req: ExpressRequest, res: ExpressResponse) => Promise<void> {
@@ -135,7 +135,7 @@ export default function apiWrap<Name extends ApiName>(
 
     res.status(status)
       .set(API_ROUTES_HEADERS)
-      // todo: low/mid switch to fast-json-stringify
+      // todo: low/med switch to fast-json-stringify
       .send(JSON.stringify(
         result,
         null,

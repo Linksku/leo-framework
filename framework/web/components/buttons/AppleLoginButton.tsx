@@ -1,5 +1,5 @@
 import { SignInWithApple } from '@capacitor-community/apple-sign-in';
-import AppleSvg from 'svgs/fa5/apple-brands.svg';
+import AppleSvg from 'svgs/fa5/brands/apple.svg';
 
 import ApiError from 'core/ApiError';
 import { APPLE_SERVICE_ID, APP_NAME } from 'config';

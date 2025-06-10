@@ -3,7 +3,7 @@ import isSchemaNumeric from 'utils/models/isSchemaNumeric';
 export function getApiId(ent: Model): ApiEntityId {
   const index = (ent.constructor as ModelClass).getPrimaryIndex();
   if (typeof index === 'string') {
-    // todo: low/mid type of Model shouldn't be { __isModel: boolean }
+    // todo: low/med type of Model shouldn't be { __isModel: boolean }
     const id = ent[index];
     if (!process.env.PRODUCTION
       && typeof id !== 'number'

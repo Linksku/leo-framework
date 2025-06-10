@@ -1,4 +1,4 @@
-import LocationSvg from 'svgs/fa5/location-regular.svg';
+import LocationSvg from 'svgs/fa5/regular/location.svg';
 import { Geolocation } from '@capacitor/geolocation';
 
 import promiseTimeout from 'utils/promiseTimeout';

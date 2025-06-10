@@ -19,8 +19,8 @@ type Props = {
   target?: string,
 } & React.HTMLAttributes<HTMLAnchorElement | HTMLSpanElement | HTMLDivElement>;
 
-// todo: mid/hard make clients open _blank in browser
-// todo: low/mid maybe preload route on hover
+// todo: med/hard make clients open _blank in browser
+// todo: low/med maybe preload route on hover
 export default function Link({
   ref,
   Element,

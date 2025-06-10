@@ -1,5 +1,6 @@
 import { getDefaultStore } from 'jotai';
 
+import ModalInner from 'core/frame/ModalInner';
 import { addPopHandler, removePopHandler } from 'stores/history/HistoryStore';
 
 export type Modal = {
@@ -38,7 +39,7 @@ function handlePopHistory() {
 }
 
 export const showModal = markStable(function showModal(
-  propsOrElem: ReactElement | Partial<Modal>,
+  propsOrElem: React.ReactElement<typeof ModalInner> | Partial<Modal>,
   opts?: {
     closeAfter?: number,
     confirmBeforeClose?: boolean,

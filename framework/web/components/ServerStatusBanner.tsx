@@ -1,4 +1,4 @@
-import WifiSlashSvg from 'svgs/fa5/wifi-slash-regular.svg';
+import WifiSlashSvg from 'svgs/fa5/regular/wifi-slash.svg';
 
 import InfoBanner from 'components/InfoBanner';
 import useIsServerHealthy from 'core/useIsServerHealthy';

@@ -1,4 +1,4 @@
-import InfoSvg from 'svgs/fa5/info-circle-solid.svg';
+import InfoSvg from 'svgs/fa5/solid/info-circle.svg';
 import dayjs from 'dayjs';
 import { useWatch } from 'react-hook-form';
 
@@ -24,7 +24,7 @@ const AppleLoginButton = reactLazy(() => import(
   /* webpackChunkName: 'AppleLoginButton' */ 'components/buttons/AppleLoginButton'
 ), null);
 
-// todo: mid/mid captcha for signing up
+// todo: med/med captcha for signing up
 export default React.memo(function RegisterRoute() {
   const query = useRouteQuery<'Register'>();
   const defaultEmail = query?.email;

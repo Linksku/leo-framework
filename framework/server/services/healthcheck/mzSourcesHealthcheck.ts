@@ -49,9 +49,9 @@ addHealthcheck('mzSources', {
       throw new Error('mzSourcesHealthcheck: extra PG source');
     }
   },
-  resourceUsage: 'mid',
+  resourceUsage: 'med',
   usesResource: 'mz',
-  stability: 'mid',
+  stability: 'med',
   timeout: 2 * 60 * 1000,
 });
 
@@ -140,7 +140,7 @@ addHealthcheck('mzDbzSourceRows', {
   },
   resourceUsage: 'high',
   usesResource: 'mz',
-  stability: 'mid',
+  stability: 'med',
   timeout: 2 * 60 * 1000,
 });
 
@@ -191,8 +191,8 @@ addHealthcheck('mzPgSourceRows', {
       },
     );
   },
-  resourceUsage: 'mid',
+  resourceUsage: 'med',
   usesResource: 'mz',
-  stability: 'mid',
+  stability: 'med',
   timeout: 2 * 60 * 1000,
 });

@@ -8,7 +8,7 @@ const Pinchable = reactLazy(() => import(
   /* webpackChunkName: 'Pinchable' */ 'core/frame/Pinchable'
 ), null);
 
-// todo: low/mid maybe save or share image btns
+// todo: low/med maybe save or share image btns
 export default function Lightbox() {
   const ref = useRef({
     isHiding: false,

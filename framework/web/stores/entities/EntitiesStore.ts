@@ -328,8 +328,8 @@ export const [
             TS.getProp(updates, 'entity') ?? TS.getProp(updates, 'partial') ?? '',
           );
 
-          // todo: low/mid detect missing keys
-          // todo: mid/mid warn if entity was just fetched then updated
+          // todo: low/med detect missing keys
+          // todo: med/med warn if entity was just fetched then updated
         }
 
         if (!process.env.PRODUCTION
@@ -342,7 +342,7 @@ export const [
         if (updates?.action === 'load') {
           loadEntities([{ id, type, ...updates.entity } as Entity<T>]);
         } else if (updates?.action === 'create') {
-          // todo: low/mid check if entity already exists
+          // todo: low/med check if entity already exists
           createEntities([{ id, type, ...updates.entity } as Entity<T>]);
         } else if (updates?.action === 'update') {
           if (!entity) {

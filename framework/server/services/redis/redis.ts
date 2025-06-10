@@ -64,7 +64,7 @@ export const redisPub = ServiceContextLocalStorage.run(
 );
 
 // For global config, locks, etc.
-// todo: mid/mid create separate Redis clusters
+// todo: med/med create separate Redis clusters
 export const redisMaster = ServiceContextLocalStorage.run(
   createServiceContext('redisMaster'),
   () => {

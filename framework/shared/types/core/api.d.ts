@@ -67,7 +67,7 @@ type _ApiAllRelations = Partial<{
 interface ApiAllRelations extends _ApiAllRelations {}
 
 type ApiParams<Name extends ApiName> = ApiNameToParams[Name] & {
-  // todo: low/mid clean up relations error message
+  // todo: low/med clean up relations error message
   relations?: ApiAllRelations,
   nonce?: string,
 };

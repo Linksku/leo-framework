@@ -1,7 +1,7 @@
 import type RouteParams from 'config/routeQueryParams';
 import removeUndefinedValues from 'utils/removeUndefinedValues';
 
-// todo: low/mid map route name to path
+// todo: low/med map route name to path
 export default function buildPath<RouteName extends keyof RouteParams = never>(
   path: string,
   params?: Partial<Record<RouteParams[RouteName], string | number>>,

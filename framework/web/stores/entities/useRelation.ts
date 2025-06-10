@@ -58,7 +58,7 @@ function useCheckRelationExists(
   }, [shouldCheck, checkRelationExists]);
 }
 
-// todo: low/mid improve perf by removing useEntitiesMapByField
+// todo: low/med improve perf by removing useEntitiesMapByField
 export default function useRelation<
   T extends EntityType,
   RelationName extends string & keyof EntityRelationTypes[T],

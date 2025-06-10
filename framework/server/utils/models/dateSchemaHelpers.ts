@@ -58,15 +58,16 @@ export function serializeDateProps(
   forDb: boolean,
 ): ObjectOf<any> {
   const dateProps = getDateProps(schema);
+  const newObj = { ...obj };
   for (const key of dateProps) {
-    const val = obj[key] as Date | Dayjs | undefined;
+    const val = newObj[key] as Date | Dayjs | undefined;
     if (val) {
-      obj[key] = forDb
+      newObj[key] = forDb
         ? toDbDateTime(val)
         : val.toISOString();
     }
   }
-  return obj;
+  return newObj;
 }
 
 export function unserializeDateProp(
@@ -85,11 +86,12 @@ export function unserializeDateProps(
   obj: ObjectOf<any>,
 ): ObjectOf<any> {
   const dateProps = getDateProps(schema);
+  const newObj = { ...obj };
   for (const key of dateProps) {
-    const val = obj[key] as Nullish<Date | Dayjs>;
+    const val = newObj[key] as Nullish<Date | Dayjs>;
     if (val != null) {
-      obj[key] = dayjs(val).toDate();
+      newObj[key] = dayjs(val).toDate();
     }
   }
-  return obj;
+  return newObj;
 }

@@ -119,7 +119,7 @@ type Wide<T> =
 
 type Merge<First, Second> = Omit<First, Extract<keyof First, keyof Second>> & Second;
 
-// todo: low/mid this doesn't work anymore with generics
+// todo: low/med this doesn't work anymore with generics
 type NoExtraProps<Expected, Obj> = Expected & (
   Exclude<keyof Obj, keyof Expected> extends never
     ? any

@@ -1,5 +1,5 @@
-import SearchSvg from 'svgs/fa5/search-regular.svg';
-import TimesSvg from 'svgs/fa5/times-regular.svg';
+import SearchSvg from 'svgs/fa5/regular/search.svg';
+import TimesSvg from 'svgs/fa5/regular/times.svg';
 
 import { useThrottle } from 'utils/throttle';
 import Form from 'components/form/Form';

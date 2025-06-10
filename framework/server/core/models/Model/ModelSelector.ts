@@ -45,7 +45,7 @@ function sortEntities<T extends ModelClass>(
   });
 }
 
-// todo: low/mid add cached count to ModelSelector
+// todo: low/med add cached count to ModelSelector
 export default class ModelSelector extends BaseModel {
   static selectOne<
     T extends ModelClass,
@@ -203,7 +203,7 @@ export default class ModelSelector extends BaseModel {
 
     const rc = getRC();
     return RequestContextLocalStorage.exit(async () => {
-      // todo: low/mid add count cache
+      // todo: low/med add count cache
       const ids = await modelIdsCache.get(rc, this, partial);
       if (!process.env.PRODUCTION && ids.length > 1000) {
         throw getErr(`${this.type}.selectCount: > 1000 rows`, { partial });
@@ -212,7 +212,7 @@ export default class ModelSelector extends BaseModel {
     });
   }
 
-  // todo: mid/hard add selectAllCol
+  // todo: med/hard add selectAllCol
   // Note: invalidate cache is hard for selectAllCol because there are too many combinations
   //   of partials and cols
   static async selectAllIds<
@@ -246,7 +246,7 @@ export default class ModelSelector extends BaseModel {
     });
   }
 
-  // todo: mid/hard add pagination/limit to selectAll
+  // todo: med/hard add pagination/limit to selectAll
   static async selectAll<
     T extends ModelClass,
     P extends ModelPartialExact<T, P>,

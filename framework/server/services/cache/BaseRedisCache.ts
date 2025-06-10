@@ -19,7 +19,7 @@ export type ConstructorProps<T> = {
   disableDataLoader?: boolean,
 };
 
-// todo: low/mid remove promises from perf-sensitive functions
+// todo: low/med remove promises from perf-sensitive functions
 // Note: AsyncLocalStorage + async is slow, but removing it requires a callback-based dataloader
 export default class BaseRedisCache<T> {
   private redisNamespace: string;

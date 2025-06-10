@@ -51,7 +51,7 @@ export default function usePushPath(): Stable<(
     if (path === backState?.path
       && queryStr === backState.queryStr
       && hash === backState.hash) {
-      // todo: low/mid disallow back to auto-added home
+      // todo: low/med disallow back to auto-added home
       historyQueue.back();
       return;
     }

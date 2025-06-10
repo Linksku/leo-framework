@@ -10,7 +10,7 @@ import getEntitiesForMZSources from '../helpers/getEntitiesForMZSources';
 // Note: if MVs aren't created right after sources are created, overrall time is slower
 export default async function waitForMZSourcesCatchUp(
   insertOnly: boolean,
-  // todo: high/mid speed up waitForMZSourcesCatchUp
+  // todo: high/med speed up waitForMZSourcesCatchUp
   timeout = 20 * 60 * 1000,
 ) {
   printDebug(
