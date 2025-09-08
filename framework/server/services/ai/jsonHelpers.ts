@@ -1,19 +1,25 @@
 import { jsonrepair } from 'jsonrepair';
 
 export function cleanJsonObj(str: string): string {
-  const firstIdx = str.indexOf('{');
-  if (firstIdx === -1) {
+  const firstBrace = str.indexOf('{');
+  if (firstBrace === -1) {
     throw new Error(`cleanJsonObj: invalid JSON: ${str}`);
   }
-  return jsonrepair(str.slice(firstIdx));
+
+  const lastBrace = str.lastIndexOf('}');
+  str = str.slice(firstBrace, lastBrace + 1);
+  return jsonrepair(str.replaceAll('"\\"', '"'));
 }
 
 export function cleanJsonArr(str: string): string {
-  const firstIdx = str.indexOf('[');
-  if (firstIdx === -1) {
+  const firstBracket = str.indexOf('[');
+  if (firstBracket === -1) {
     throw new Error(`cleanJsonArr: invalid JSON: ${str}`);
   }
-  return jsonrepair(str.slice(firstIdx));
+
+  const lastBracket = str.lastIndexOf(']');
+  str = str.slice(firstBracket, lastBracket + 1);
+  return jsonrepair(str.replaceAll('"\\"', '"'));
 }
 
 export type StringToType<T extends string> =

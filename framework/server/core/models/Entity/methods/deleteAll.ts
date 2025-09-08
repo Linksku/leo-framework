@@ -9,6 +9,7 @@ import { updateLastWriteTime } from 'core/models/helpers/lastWriteTimeHelpers';
 
 export type DeleteAllOpts = {
   trx?: Knex.Transaction,
+  force?: boolean,
 };
 
 export default async function deleteAll<
@@ -19,7 +20,7 @@ export default async function deleteAll<
   partial: P,
   opts?: DeleteAllOpts,
 ): Promise<EntityInstance<T>[]> {
-  if (!this.deleteable) {
+  if (!this.deleteable && !opts?.force) {
     throw new Error(`${this.name}.deleteAll: not deleteable.`);
   }
   validateNotUniquePartial(this, partial);
@@ -29,8 +30,12 @@ export default async function deleteAll<
     .where(partial)
     .returning('*');
   if (!process.env.PRODUCTION) {
-    for (const ent of deleted) {
-      ent.$validate();
+    try {
+      for (const ent of deleted) {
+        ent.$validate();
+      }
+    } catch (err) {
+      printDebug(err, 'error', { ctx: `${this.name}.deleteAll` });
     }
   }
 

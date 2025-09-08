@@ -1,4 +1,5 @@
 .inputGroup {
+  min-width: 0; // for flex parent
   display: flex;
   margin-bottom: 1.5rem;
 }
@@ -39,6 +40,7 @@
   margin: 0;
   border-radius: $inputBorderRadius;
   outline: none;
+  min-width: 0; // for flex parent
   // stylelint-disable-next-line plugin/no-unsupported-browser-features
   appearance: none;
 
@@ -86,6 +88,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  color: $lightTextColor;
 
   @include activeBg;
 }

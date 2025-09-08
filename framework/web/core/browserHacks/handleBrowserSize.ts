@@ -3,6 +3,7 @@ import { Keyboard } from '@capacitor/keyboard';
 import throttle from 'utils/throttle';
 import isVirtualKeyboardOpen from 'utils/isVirtualKeyboardOpen';
 import detectPlatform from 'utils/detectPlatform';
+import { IS_100_HEIGHT } from 'config/webConfig';
 
 if (TS.hasProp(navigator, 'virtualKeyboard')) {
   navigator.virtualKeyboard.overlaysContent = false;
@@ -22,8 +23,10 @@ function _handleResize() {
     `${Math.round(window.visualViewport?.height ?? window.innerHeight)}px`,
   );
 
-  // Move screen back after opening mobile keyboard
-  window.scrollTo(0, 0);
+  if (IS_100_HEIGHT) {
+    // Move screen back after opening mobile keyboard
+    window.scrollTo(0, 0);
+  }
 }
 
 let resizeTimer: number | null = null;

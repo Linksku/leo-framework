@@ -4,6 +4,7 @@
 
 html,
 body {
+  min-height: 100%;
   // Doesn't work in iOS: https://bugs.webkit.org/show_bug.cgi?id=176454
   // stylelint-disable-next-line plugin/no-unsupported-browser-features
   overscroll-behavior: none;

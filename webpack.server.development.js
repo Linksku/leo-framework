@@ -1,10 +1,8 @@
 import path from 'path';
-import CopyPlugin from 'copy-webpack-plugin';
 import nodeExternals from 'webpack-node-externals';
 
 import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
 import baseConfig from './webpack.server.js';
-import transformWebpackCopied from './scripts/helpers/transformWebpackCopied.js';
 
 if (process.env.NODE_ENV !== 'development') {
   throw new Error('NODE_ENV isn\'t development');
@@ -30,23 +28,6 @@ export default mergeReplaceArrays(baseConfig, {
       return rule;
     }),
   },
-  plugins: [
-    ...baseConfig.plugins,
-    new CopyPlugin({
-      patterns: [
-        {
-          from: path.resolve('./framework/server/public'),
-          to: path.resolve('./build/development/server'),
-          transform: transformWebpackCopied,
-        },
-        {
-          from: path.resolve('./app/server/public'),
-          to: path.resolve('./build/development/server'),
-          transform: transformWebpackCopied,
-        },
-      ],
-    }),
-  ],
   externals: [
     ...baseConfig.externals,
     nodeExternals({

@@ -474,6 +474,10 @@ function fixColumns(
 
     const Model = tableNameToModel[tableName];
     if (!Model) {
+      if (process.env.PRODUCTION) {
+        // Model might be deleted
+        continue;
+      }
       throw new Error(`Model not found for table "${tableName}"`);
     }
 

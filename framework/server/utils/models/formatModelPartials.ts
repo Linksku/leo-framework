@@ -35,7 +35,5 @@ export function parseModel<T extends ModelClass>(
   },
 ): ModelPartial<T> {
   const newObj: ModelPartial<T> = opts?.inPlace ? obj : { ...obj };
-  unserializeDateProps(Model.getSchema(), newObj);
-
-  return newObj;
+  return unserializeDateProps(Model.getSchema(), newObj);
 }

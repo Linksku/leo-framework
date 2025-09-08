@@ -38,7 +38,7 @@ function getSchemaTypeError({
     }
   } else if (nonNullType === 'number') {
     if (!['real', 'double precision'].includes(colType)) {
-      return 'isn\'t number';
+      return 'isn\'t float';
     }
   } else if (nonNullType === 'integer') {
     if (!['smallint', 'int', 'integer', 'bigint'].includes(colType)) {

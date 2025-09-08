@@ -81,17 +81,17 @@ export function unserializeDateProp(
   return val;
 }
 
-export function unserializeDateProps(
+export function unserializeDateProps<T extends ObjectOf<any>>(
   schema: JsonSchemaProperties,
-  obj: ObjectOf<any>,
-): ObjectOf<any> {
+  obj: T,
+): T {
   const dateProps = getDateProps(schema);
-  const newObj = { ...obj };
+  const newObj: ObjectOf<any> = { ...obj };
   for (const key of dateProps) {
     const val = newObj[key] as Nullish<Date | Dayjs>;
     if (val != null) {
       newObj[key] = dayjs(val).toDate();
     }
   }
-  return newObj;
+  return newObj as unknown as T;
 }

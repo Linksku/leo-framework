@@ -33,7 +33,7 @@ export default function usePrependPathToHistory():
       navCount: navCount + 1,
     });
 
-    // No requestIdleCallback because of goLeftStack
+    // No requestIdleCallback because of goLeft
     window.history.replaceState(
       getNativeHistoryState({
         curState: newBackState,

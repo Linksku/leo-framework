@@ -26,6 +26,7 @@ export default function Select<T extends string>({
   defaultValue,
   placeholder,
   label,
+  multiple,
   renderClickable,
   onChange,
   name,
@@ -59,12 +60,14 @@ export default function Select<T extends string>({
         {
           [styles.placeholder]: placeholder != null && !selectedValue,
           [styles.disabled]: disabled,
+          [styles.multiple]: multiple,
           [styles.withClickable]: renderClickable,
         },
       )}
       value={register ? undefined : selectedValue}
       {...registerProps}
       disabled={disabled}
+      multiple={multiple}
       onChange={e => {
         setSelectedValue(e.target.value as T);
 
@@ -78,7 +81,19 @@ export default function Select<T extends string>({
     >
       {placeholder != null && <option key="" hidden>{placeholder}</option>}
       {options.map(opt => (
-        <option key={opt.key} value={opt.key}>{opt.label}</option>
+        <option
+          key={opt.key}
+          value={opt.key}
+          onMouseDown={multiple
+            ? e => {
+              e.preventDefault();
+              const target = e.target as HTMLOptionElement;
+              target.selected = !target.selected;
+            }
+            : undefined}
+        >
+          {opt.label}
+        </option>
       ))}
     </select>
   );

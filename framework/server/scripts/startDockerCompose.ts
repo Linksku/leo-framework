@@ -10,7 +10,8 @@ import { HAS_MVS } from 'config/__generated__/consts';
 import getExpectedDockerServices from 'utils/infra/getExpectedDockerServices';
 import dockerCompose from '../../../docker-compose';
 
-async function getDockerComposeVersion() {
+// CLI within the container
+async function getCliDockerComposeVersion() {
   try {
     const dcVersionRaw = await exec(`yarn dc -p ${APP_NAME_LOWER} version`);
     const dcVersionMatch = dcVersionRaw.stdout.match(/v(\d+\.\d+\.\d+)/);
@@ -20,7 +21,8 @@ async function getDockerComposeVersion() {
   }
 }
 
-async function getPrevDockerComposeVersion() {
+// Version that started the container (host's version)
+async function getContainerDockerComposeVersion() {
   try {
     const prevDcVersionRaw = await exec(
       `docker inspect $(yarn dc -p ${APP_NAME_LOWER} ps -q broker) -f '{{json .Config.Labels}}'`,
@@ -70,16 +72,16 @@ export default function startDockerCompose({ allowRecreate }: {
     const startTime = performance.now();
     printDebug('Starting Docker Compose', 'highlight');
 
-    const { dcVersion, prevDcVersion } = await promiseObj({
-      dcVersion: getDockerComposeVersion(),
-      prevDcVersion: getPrevDockerComposeVersion(),
+    const { cliDcVersion, containerDcVersion } = await promiseObj({
+      cliDcVersion: getCliDockerComposeVersion(),
+      containerDcVersion: getContainerDockerComposeVersion(),
     });
 
-    if (!dcVersion) {
-      throw new Error('startDockerCompose: failed to get Docker Compose version');
+    if (!cliDcVersion) {
+      throw new Error('startDockerCompose: failed to get CLI Docker Compose version');
     }
-    if (prevDcVersion && semver.lt(dcVersion, prevDcVersion)) {
-      throw new Error(`startDockerCompose: expected Docker Compose v${dcVersion}`);
+    if (containerDcVersion && semver.lt(cliDcVersion, containerDcVersion)) {
+      throw new Error(`startDockerCompose: container Docker Compose (v${containerDcVersion}) > host (v${cliDcVersion})`);
     }
 
     allowRecreate ??= !process.env.IS_DOCKER && !process.env.IS_SERVER_SCRIPT;

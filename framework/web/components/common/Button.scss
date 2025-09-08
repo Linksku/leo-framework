@@ -49,6 +49,23 @@
     width: 100%;
   }
 
+  &.small {
+    padding: 0.3rem 0.7rem;
+    line-height: 2.2rem;
+    font-size: 1.4rem;
+    border-radius: 4px;
+
+    &.outline {
+      border-width: 1px;
+    }
+
+    .leftSvg,
+    .rightSvg {
+      height: 1.6rem;
+      width: 1.6rem;
+    }
+  }
+
   &:active,
   &.active {
     background-color: $activePrimaryColorBg;
@@ -105,17 +122,6 @@
     &:active,
     &.active {
       background-color: $activeBackgroundColor !important;
-    }
-  }
-
-  &.small {
-    padding: 0.3rem 0.7rem;
-    line-height: 2.2rem;
-    font-size: 1.4rem;
-    border-radius: 4px;
-
-    &.outline {
-      border-width: 1px;
     }
   }
 }

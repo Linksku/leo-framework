@@ -1,4 +1,4 @@
-import type { NextFunction, RequestHandler } from 'express';
+import type { NextFunction } from 'express';
 import express from 'express';
 import multer from 'multer';
 import cookieParser from 'cookie-parser';
@@ -154,7 +154,7 @@ for (const api of apis) {
   } else if (api.config.fileFields) {
     router[api.config.method ?? 'get'](
       `/${api.config.name}`,
-      upload.fields(api.config.fileFields) as RequestHandler,
+      upload.fields(api.config.fileFields),
       apiWrap(api),
     );
   } else {

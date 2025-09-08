@@ -1,21 +1,30 @@
+import path from 'path';
+import fs from 'fs/promises';
+
 import fileExists from 'utils/fileExists';
 
-// Year must be hardcoded to avoid bundling all old migrations
-const MIGRATIONS_PATH = '../../../../../app/server/migrations/2025';
-
 export async function getAllMigrations() {
-  if (!await fileExists(MIGRATIONS_PATH)) {
-    return [];
+  // Also replace in getMigration and server-dockerfile
+  const prevPathFromRoot = './app/server/migrations/2024';
+  const curPathFromRoot = './app/server/migrations/2025';
+
+  const exists = await Promise.all([
+    fileExists(path.resolve(prevPathFromRoot)),
+    fileExists(path.resolve(curPathFromRoot)),
+  ]);
+  if (!exists[0]) {
+    throw new Error(`getAllMigrations: ${prevPathFromRoot} doesn't exist`);
+  }
+  if (!exists[1]) {
+    throw new Error(`getAllMigrations: ${curPathFromRoot} doesn't exist`);
   }
 
-  const allMigrations = require.context(
-    MIGRATIONS_PATH,
-    true,
-    /\.ts$/,
-  );
-  return allMigrations.keys()
-    .map(k => k.slice(2))
-    .sort();
+  const files = await Promise.all([
+    fs.readdir(path.resolve(prevPathFromRoot)),
+    fs.readdir(path.resolve(curPathFromRoot)),
+  ]);
+
+  return files.flat().sort();
 }
 
 export async function getMigration(filename: string) {
@@ -32,7 +41,11 @@ export async function getMigration(filename: string) {
     throw getErr('getMigration: migration not found', { filename });
   }
 
-  const file = await import(`${MIGRATIONS_PATH}/${fullPath}`);
+  // Path must be hardcoded, also replace in getAllMigrations and server-dockerfile
+  const file = fullPath.startsWith('2024')
+    ? await import(`../../../../../app/server/migrations/2024/${fullPath}`)
+    : await import(`../../../../../app/server/migrations/2025/${fullPath}`);
+
   return TS.assertType<{
     up: AnyFunction,
     down?: AnyFunction,

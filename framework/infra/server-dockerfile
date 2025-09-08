@@ -11,7 +11,7 @@ RUN apt-get -y update \
   && apt-get -y install curl \
   && apt-get clean
 RUN mkdir -p /usr/local/lib/docker/cli-plugins \
-  && curl -SL https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose \
+  && curl -SL https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose \
   && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 COPY .yarnrc.yml \
@@ -24,6 +24,8 @@ COPY package.docker.json package.json
 COPY framework/server/core/initEnv.cjs framework/server/core/initEnv.cjs
 COPY app/shared/config/config.js app/shared/config/config.js
 COPY patches patches
+COPY app/server/migrations/2024 app/server/migrations/2024
+COPY app/server/migrations/2025 app/server/migrations/2025
 COPY build/production build/production
 RUN touch /var/run/docker.sock
 

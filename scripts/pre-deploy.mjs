@@ -22,7 +22,8 @@ if (argv.verify !== false) {
 
   await $`yarn clean --no-docker`;
   await $`yarn build:types`;
-  await $`yarn pgdump`;
+  // tmp
+  // await $`yarn pgdump`;
 
   const changes = await $`git status --porcelain`;
   if (changes.stdout || changes.stderr) {

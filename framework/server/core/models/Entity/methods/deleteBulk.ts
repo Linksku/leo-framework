@@ -11,6 +11,7 @@ const MAX_BULK_DELETES = 100;
 
 export type DeleteBulkOpts = {
   trx?: Knex.Transaction,
+  force?: boolean,
 };
 
 export default async function deleteBulk<
@@ -21,7 +22,7 @@ export default async function deleteBulk<
   partials: P[],
   opts?: DeleteBulkOpts,
 ): Promise<EntityInstance<T>[]> {
-  if (!this.deleteable) {
+  if (!this.deleteable && !opts?.force) {
     throw new Error(`${this.name}.deleteBulk: not deleteable.`);
   }
   if (!partials.length) {
@@ -56,8 +57,12 @@ export default async function deleteBulk<
     }
 
     if (!process.env.PRODUCTION) {
-      for (const ent of deleted) {
-        ent.$validate();
+      try {
+        for (const ent of deleted) {
+          ent.$validate();
+        }
+      } catch (err) {
+        printDebug(err, 'error', { ctx: `${this.name}.deleteBulk` });
       }
     }
 

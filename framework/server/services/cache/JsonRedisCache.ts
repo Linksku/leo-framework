@@ -22,13 +22,14 @@ export default class JsonRedisCache<T extends Json, T2 extends Json = T> extends
           return undefined;
         }
 
+        let parsed: any;
         try {
-          const parsed = JSON.parse(json) as T2;
-          return unserialize ? unserialize(parsed, key) : parsed as unknown as T;
+          parsed = JSON.parse(json) as T2;
         } catch {
           ErrorLogger.error(new Error(`JsonRedisCache(${key}): data isn't JSON`), { json });
+          return undefined;
         }
-        return undefined;
+        return unserialize ? unserialize(parsed, key) : parsed as unknown as T;
       },
     });
   }

@@ -12,7 +12,7 @@ if (!process.env.SERVER || !process.env.NODE_ENV || !process.env.REDIS_PASS || !
 const OMIT_SERVICES = process.env.SERVER === 'production'
   ? [
     'control-center',
-    'materialize-dashboard',
+    'mz-dashboard',
   ]
   : [
     'monitor-infra',
@@ -75,7 +75,7 @@ export const RESOURCE_LIMITS = {
     cpus: 2,
     memory: 2,
   },
-  'materialize-dashboard': {
+  'mz-dashboard': {
     cpus: 2,
     memory: 2,
   },
@@ -147,6 +147,7 @@ function getBrokerConfig(n) {
     },
     profiles: [
       'mz',
+      'mz-dashboard',
     ],
     healthcheck: {
       test: [
@@ -196,6 +197,7 @@ const SERVICES = {
     },
     profiles: [
       'mz',
+      'mz-dashboard',
     ],
     healthcheck: {
       test: ['CMD-SHELL', 'curl -f http://localhost:8081 || exit 1'],
@@ -245,6 +247,7 @@ const SERVICES = {
     },
     profiles: [
       'mz',
+      'mz-dashboard',
     ],
     healthcheck: {
       test: ['CMD-SHELL', 'curl -f http://localhost:8083 || exit 1'],
@@ -269,15 +272,16 @@ const SERVICES = {
     ...expose(6875),
     restart: 'always',
     // --workers 1 is faster, but might not scale
-    command: `
-      -D /var/lib/mzdata
-      --disable-telemetry
-      --workers 1
-      --introspection-frequency off
-      --log-filter WARN
-    `,
+    command: [
+      '-D /var/lib/mzdata',
+      '--disable-telemetry',
+      '--workers 1',
+      '--introspection-frequency off',
+      '--log-filter WARN',
+    ].join(' '),
     profiles: [
       'mz',
+      'mz-dashboard',
     ],
     healthcheck: {
       test: ['CMD', 'curl', 'http://localhost:6875/status'],
@@ -381,7 +385,6 @@ const SERVICES = {
     image: 'server',
     depends_on: [
       'redis',
-      'server',
     ],
     restart: 'always',
     user: 'root',
@@ -447,8 +450,8 @@ const SERVICES = {
       },
     },
   },
-  // yarn dc --profile materialize-dashboard up -d
-  'materialize-dashboard': {
+  // yarn dc --profile mz-dashboard up -d
+  'mz-dashboard': {
     image: 'materialize/dashboard:v0.26.6',
     depends_on: [
       'materialize',
@@ -460,11 +463,11 @@ const SERVICES = {
       MATERIALIZED_URL: 'materialize:6875',
     },
     profiles: [
-      'materialize-dashboard',
+      'mz-dashboard',
     ],
     deploy: {
       resources: {
-        limits: getResourceLimits('materialize-dashboard'),
+        limits: getResourceLimits('mz-dashboard'),
       },
     },
   },

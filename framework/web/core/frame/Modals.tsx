@@ -81,7 +81,7 @@ export default function Modals() {
 
   if (modals.length) {
     return modals.map(modal => (
-      <ModalWrap modal={modal}>
+      <ModalWrap key={modal.id} modal={modal}>
         <ModalProvider
           key={modal.id}
           modal={modal}

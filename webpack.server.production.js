@@ -1,9 +1,7 @@
 import path from 'path';
-import CopyPlugin from 'copy-webpack-plugin';
 
 import mergeReplaceArrays from './scripts/helpers/mergeReplaceArrays.js';
 import baseConfig from './webpack.server.js';
-import transformWebpackCopied from './scripts/helpers/transformWebpackCopied.js';
 import getTerserPlugin from './scripts/helpers/getTerserPlugin.js';
 
 if (process.env.NODE_ENV !== 'production') {
@@ -15,23 +13,6 @@ export default mergeReplaceArrays(baseConfig, {
   output: {
     path: path.resolve('./build/production/server'),
   },
-  plugins: [
-    ...baseConfig.plugins,
-    new CopyPlugin({
-      patterns: [
-        {
-          from: path.resolve('./framework/server/public'),
-          to: path.resolve('./build/production/server'),
-          transform: transformWebpackCopied,
-        },
-        {
-          from: path.resolve('./app/server/public'),
-          to: path.resolve('./build/production/server'),
-          transform: transformWebpackCopied,
-        },
-      ],
-    }),
-  ],
   optimization: {
     minimizer: [
       getTerserPlugin(),

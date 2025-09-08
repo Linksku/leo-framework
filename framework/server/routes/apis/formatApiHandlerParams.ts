@@ -15,7 +15,7 @@ export default function formatApiHandlerParams<Name extends ApiName>({
     params = unserializeDateProps(
       api.config.paramsSchema.properties,
       params,
-    ) as ApiNameToParams[Name];
+    );
   }
 
   return {

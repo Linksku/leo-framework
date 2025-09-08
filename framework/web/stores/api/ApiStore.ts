@@ -332,7 +332,9 @@ export const [
 
             curBatch[i].params = {
               ...curBatch[i].params,
-              // @ts-expect-error low-pri
+              // Error depends on API types
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore low-pri
               cursor,
             };
           }

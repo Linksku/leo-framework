@@ -27,6 +27,7 @@ type Props = {
     React.CSSProperties,
     | 'borderColor'
     | 'borderRadius'
+    | 'textAlign'
     | 'marginBottom'
   >,
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix' | 'readOnly'>;
@@ -119,6 +120,7 @@ export default function Input({
         style={{
           borderColor: overrides?.borderColor,
           borderRadius: overrides?.borderRadius,
+          textAlign: overrides?.textAlign,
         }}
         onChange={e => {
           if (registerProps) {

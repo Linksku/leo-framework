@@ -37,7 +37,7 @@ const [
         },
         onError(err) {
           const status = TS.getProp(err, 'status');
-          if (status === 401) {
+          if (status === 401 || status === 403 || status === 404) {
             removeAuthToken();
             fetchedCurrentUser(null);
           } else if (isFirstFetch && status !== 429) {

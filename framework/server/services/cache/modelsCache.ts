@@ -44,16 +44,17 @@ export const redisCache = new BaseRedisCache<Model | null>({
     }
 
     const Model = getModelClass(modelType);
+    let parsed: any;
     try {
-      const parsed = JSON.parse(json);
-      return Model.fromCachePojo(parsed);
+      parsed = JSON.parse(json);
     } catch {
       ErrorLogger.error(
         new Error(`modelsCache(${key}): data isn't JSON`),
         { json },
       );
+      return undefined;
     }
-    return undefined;
+    return Model.fromCachePojo(parsed);
   },
   lruMaxSize: 10_000,
 });
